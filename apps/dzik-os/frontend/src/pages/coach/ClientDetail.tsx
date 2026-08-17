@@ -1,7 +1,7 @@
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { api, money, plDate, plDateTime, WEEKDAYS } from "../../api";
-import { AuthImage, ErrorBox, Sparkline, Spinner, TopBar } from "../../components";
+import { AuthImage, ErrorBox, SectionLabel, Sparkline, Spinner, TopBar } from "../../components";
 import {
   CATEGORY_LABELS,
   CheckinData,
@@ -496,10 +496,17 @@ function ScheduleTab({ clientId }: { clientId: string }) {
   );
 }
 
+const SCALE_LABELS: [string, string][] = [
+  ["energy", "energia"], ["sleep", "sen"], ["hunger", "głód"],
+  ["stress", "stres"], ["recovery", "regeneracja"], ["diet_adherence", "dieta"],
+];
+
 function CheckinsTab({ clientId }: { clientId: string }) {
   const [checkins, setCheckins] = useState<CheckinData[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [responses, setResponses] = useState<Record<string, string>>({});
+  const [ai, setAi] = useState<Record<string, { loading: boolean; summary?: string;
+    draft?: string; flags?: string[]; reason?: string }>>({});
 
   const load = useCallback(() => {
     api.get<{ checkins: CheckinData[] }>(`/api/clients/${clientId}/checkins`)
@@ -512,62 +519,117 @@ function CheckinsTab({ clientId }: { clientId: string }) {
     load();
   }
 
+  async function requestAiSummary(id: string) {
+    setAi({ ...ai, [id]: { loading: true } });
+    try {
+      const r = await api.post<{ available: boolean; summary?: string;
+        draft_response?: string; flags?: string[]; reason?: string }>(
+        `/api/checkins/${id}/ai-summary`
+      );
+      setAi({ ...ai, [id]: {
+        loading: false, summary: r.summary, draft: r.draft_response,
+        flags: r.flags, reason: r.reason,
+      } });
+    } catch (e) {
+      setAi({ ...ai, [id]: { loading: false, reason: (e as Error).message } });
+    }
+  }
+
   if (error) return <ErrorBox error={error} />;
   if (!checkins) return <Spinner />;
-  const scaleLabels: Record<string, string> = {
-    energy: "energia", sleep: "sen", hunger: "głód", stress: "stres",
-    recovery: "regeneracja", diet_adherence: "dieta",
-  };
   return (
     <>
       {checkins.length === 0 && <p className="dim">Brak raportów.</p>}
-      {checkins.map((c) => (
-        <div className="card" key={c.id}>
-          <div className="row row--between">
-            <h3>Tydzień {plDate(c.week_start)}</h3>
-            <span className={`badge ${c.status === "REVIEWED" ? "badge--ok" : "badge--warn"}`}>
-              {c.status === "REVIEWED" ? "oceniony" : `do oceny${c.revision > 1 ? ` · rew. ${c.revision}` : ""}`}
-            </span>
-          </div>
-          <div className="stat-grid" style={{ margin: "8px 0" }}>
-            <div className="stat"><b>{String(c.payload.weight_kg ?? "—")}</b><span>masa (kg)</span></div>
-            <div className="stat"><b>{String(c.payload.trainings_done ?? "—")}</b><span>treningi</span></div>
-          </div>
-          <small>
-            {Object.entries(scaleLabels)
-              .filter(([k]) => c.payload[k] != null)
-              .map(([k, l]) => `${l} ${c.payload[k]}/5`).join(" · ")}
-          </small>
-          {typeof c.payload.pain_note === "string" && c.payload.pain_note && (
-            <p className="alert alert--error">⚠️ Ból/uraz: {c.payload.pain_note}</p>
-          )}
-          {typeof c.payload.comment === "string" && c.payload.comment && (
-            <p><b>Komentarz:</b> {c.payload.comment}</p>
-          )}
-          {typeof c.payload.questions === "string" && c.payload.questions && (
-            <p><b>Pytania:</b> {c.payload.questions}</p>
-          )}
-          {c.photo_ids.length > 0 && (
-            <div className="photo-grid" style={{ margin: "8px 0" }}>
-              {c.photo_ids.map((fid) => <AuthImage key={fid} fileId={fid} alt="zdjęcie raportu" />)}
+      {checkins.map((c) => {
+        const state = ai[c.id];
+        return (
+          <div className="card" key={c.id}>
+            <div className="row row--between">
+              <h3 style={{ margin: 0 }}>Tydzień {plDate(c.week_start)}</h3>
+              <span className={`badge ${c.status === "REVIEWED" ? "badge--ok" : "badge--warn"}`}>
+                {c.status === "REVIEWED" ? "oceniony" : `do oceny${c.revision > 1 ? ` · rew. ${c.revision}` : ""}`}
+              </span>
             </div>
-          )}
-          {c.coach_response ? (
-            <div className="alert alert--info"><b>Twoja odpowiedź:</b> {c.coach_response}</div>
-          ) : (
-            <div style={{ marginTop: 8 }}>
-              <textarea placeholder="Odpowiedź dla klienta…" value={responses[c.id] ?? ""}
-                onChange={(e) => setResponses({ ...responses, [c.id]: e.target.value })} />
-              <div style={{ marginTop: 8 }}>
-                <button className="btn btn--small" disabled={!responses[c.id]?.trim()}
-                  onClick={() => review(c.id)}>
-                  Wyślij odpowiedź i oznacz jako oceniony
-                </button>
+
+            <SectionLabel n={1} title="Ciało i trening" />
+            <div className="stat-grid">
+              <div className="stat"><b>{String(c.payload.weight_kg ?? "—")}</b><span>masa (kg)</span></div>
+              <div className="stat"><b>{String(c.payload.trainings_done ?? "—")}</b><span>treningi</span></div>
+            </div>
+
+            <SectionLabel n={2} title="Samopoczucie" />
+            <div className="row" style={{ flexWrap: "wrap", gap: 6 }}>
+              {SCALE_LABELS.filter(([k]) => c.payload[k] != null).map(([k, l]) => (
+                <span className="badge" key={k}>{l} {String(c.payload[k])}/5</span>
+              ))}
+            </div>
+
+            {Boolean(c.payload.pain_note || c.payload.comment || c.payload.questions) && (
+              <>
+                <SectionLabel n={3} title="Ból, komentarz, pytania" />
+                {typeof c.payload.pain_note === "string" && c.payload.pain_note && (
+                  <p className="alert alert--error">⚠️ Ból/uraz: {c.payload.pain_note}</p>
+                )}
+                {typeof c.payload.comment === "string" && c.payload.comment && (
+                  <p><b>Komentarz:</b> {c.payload.comment}</p>
+                )}
+                {typeof c.payload.questions === "string" && c.payload.questions && (
+                  <p><b>Pytania:</b> {c.payload.questions}</p>
+                )}
+              </>
+            )}
+
+            {c.photo_ids.length > 0 && (
+              <div className="photo-grid" style={{ margin: "8px 0" }}>
+                {c.photo_ids.map((fid) => <AuthImage key={fid} fileId={fid} alt="zdjęcie raportu" />)}
               </div>
-            </div>
-          )}
-        </div>
-      ))}
+            )}
+
+            {c.coach_response ? (
+              <div className="alert alert--info"><b>Twoja odpowiedź:</b> {c.coach_response}</div>
+            ) : (
+              <div style={{ marginTop: 8 }}>
+                {!state && (
+                  <button type="button" className="btn btn--ghost btn--small"
+                    onClick={() => requestAiSummary(c.id)}>
+                    ✨ Podsumowanie AI (propozycja)
+                  </button>
+                )}
+                {state?.loading && <p className="dim">Generowanie propozycji…</p>}
+                {state && !state.loading && state.reason && (
+                  <p className="alert alert--info" style={{ fontSize: "0.85rem" }}>{state.reason}</p>
+                )}
+                {state?.summary && (
+                  <div className="alert alert--info" style={{ marginBottom: 8 }}>
+                    <b>Propozycja AI — streszczenie:</b> {state.summary}
+                    {state.flags && state.flags.length > 0 && (
+                      <div style={{ marginTop: 4 }}>
+                        {state.flags.map((f) => (
+                          <span className="badge badge--warn" key={f} style={{ marginRight: 4 }}>{f}</span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+                <textarea placeholder="Odpowiedź dla klienta…" value={responses[c.id] ?? ""}
+                  onChange={(e) => setResponses({ ...responses, [c.id]: e.target.value })} />
+                {state?.draft && (
+                  <button type="button" className="btn btn--ghost btn--small" style={{ marginTop: 6 }}
+                    onClick={() => setResponses({ ...responses, [c.id]: state.draft! })}>
+                    Wstaw szkic AI do edycji
+                  </button>
+                )}
+                <div style={{ marginTop: 8 }}>
+                  <button className="btn btn--small" disabled={!responses[c.id]?.trim()}
+                    onClick={() => review(c.id)}>
+                    Wyślij odpowiedź i oznacz jako oceniony
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })}
     </>
   );
 }

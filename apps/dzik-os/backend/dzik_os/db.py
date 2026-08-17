@@ -83,6 +83,25 @@ MIGRATIONS: list[tuple[int, str, list[str]]] = [
         "CREATE INDEX IF NOT EXISTS ix_daily_nutrition_logs_client "
         "ON daily_nutrition_logs(client_id)",
     ]),
+    (4, "knowledge base", [
+        """
+        CREATE TABLE IF NOT EXISTS knowledge_items (
+            id VARCHAR(40) PRIMARY KEY,
+            coach_id VARCHAR(40) NOT NULL REFERENCES users(id),
+            title VARCHAR(300) NOT NULL,
+            category VARCHAR(80) NOT NULL DEFAULT 'Inne',
+            body TEXT,
+            external_url VARCHAR(500),
+            file_id VARCHAR(40) REFERENCES files(id),
+            pinned BOOLEAN NOT NULL DEFAULT 0,
+            status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
+            created_by VARCHAR(40) NOT NULL,
+            created_at VARCHAR(40) NOT NULL,
+            updated_at VARCHAR(40) NOT NULL
+        )
+        """,
+        "CREATE INDEX IF NOT EXISTS ix_knowledge_items_coach ON knowledge_items(coach_id)",
+    ]),
 ]
 
 

@@ -1,5 +1,38 @@
 # Changelog — Dzik OS
 
+## 0.3.0 — 2026-08-17
+
+Czytelność raportów, baza wiedzy, propozycje AI, aktualizacje PWA i
+odświeżony design — na podstawie bezpośredniej informacji zwrotnej.
+
+* **Raport tygodniowy w sekcjach**: formularz klienta i widok trenera
+  podzielone na „Ciało", „Samopoczucie", „Ból/komentarz/pytania" —
+  ocena raportu bez przewijania jednej długiej listy pól.
+* **Nowość — podsumowanie AI raportu** (propose-only): przycisk w
+  panelu trenera generuje streszczenie + szkic odpowiedzi do edycji;
+  domyślnie `NullAIProvider` pokazuje jawny komunikat „wymaga
+  konfiguracji" zamiast udawać działanie. Żadna odpowiedź nie trafia do
+  klienta bez zatwierdzenia przez trenera.
+* **Nowość — Baza wiedzy**: trener publikuje materiały (artykuł, link,
+  plik) widoczne dla wszystkich aktywnie prowadzonych klientów; pełny
+  CRUD (dodaj/edytuj/archiwizuj/przywróć), kategorie, przypinanie.
+  Osobna oś uprawnień od danych zdrowotnych (to treść trenera, nie
+  dane klienta) — patrz PERMISSIONS.md.
+* **Nowość — aktualizacje PWA**: baner „Dostępna nowa wersja" zamiast
+  cichej podmiany kodu aplikacji pod użytkownikiem w trakcie sesji;
+  użytkownik sam decyduje, kiedy odświeżyć.
+* **Design**: typografia Unbounded (nagłówki) + Inter (treść, cyfry
+  tabelaryczne); warstwowe tło zamiast płaskich kart (surface staircase);
+  delikatna poświata na kartach-bohaterach (trening dnia, cel); wykresy
+  ze zanikającym wypełnieniem pod linią; mikrointerakcje (naciśnięcie
+  przycisku, wejście karty) z pełnym poszanowaniem
+  `prefers-reduced-motion`; wypełnione plakietki akcentu dla wyróżnień.
+* Domyślny zakres trendów w Monitoringu skrócony z 90 do 30 dni —
+  czytelniejszy, bardziej typowy okres.
+* Migracja schematu nr 4 (`knowledge_items`) — bezpieczna dla istniejącej
+  bazy.
+* Testy: 65 → 74 backendu (275 Core bez zmian).
+
 ## 0.2.0 — 2026-08-17
 
 Monitoring w czasie — na podstawie analizy rynku (`ANALIZA_RYNKU.md`) i

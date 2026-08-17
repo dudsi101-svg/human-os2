@@ -35,9 +35,14 @@ przegląd prawny (patrz RISK_REGISTER R-01).
 
 ## Przepływy poza aplikację
 
-* **AI**: w MVP żadne dane nie są wysyłane do zewnętrznych modeli AI
-  (`DZIK_AI_ENABLED=false`; brak kodu wysyłającego). Ewentualne włączenie
-  wymaga osobnej zgody i minimalizacji zakresu — patrz ADR-DZIK-001 §AI.
+* **AI**: domyślnie żaden dostawca nie jest skonfigurowany
+  (`ai_provider.NullAIProvider` — nic nie wysyła, zawsze zwraca „wymaga
+  konfiguracji"). Jedyny podpięty, propose-only use case: podsumowanie
+  raportu tygodniowego + szkic odpowiedzi dla trenera — wynik nigdy nie
+  trafia do klienta bez edycji/zatwierdzenia przez trenera. Podłączenie
+  realnego dostawcy wymaga osobnej decyzji, minimalizacji wysyłanego
+  zakresu i — jeśli dane klienta miałyby opuszczać system — osobnej
+  zgody — patrz ADR-DZIK-001 §AI.
 * **E-mail**: domyślnie żaden dostawca nie jest skonfigurowany
   (`notifications_provider.NullNotificationProvider` — nic nie wysyła,
   loguje wyłącznie temat, bez adresu i treści). Jedyny podpięty trigger:

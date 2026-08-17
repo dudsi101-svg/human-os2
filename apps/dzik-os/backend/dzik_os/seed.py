@@ -426,6 +426,61 @@ def seed() -> dict[str, str]:
                              due_date=(today - timedelta(days=5)).isoformat(),
                              amount_cents=30000, status="PENDING"))
 
+        # --- Baza wiedzy trenera ---
+        from .models import KnowledgeItem
+
+        db.add(KnowledgeItem(
+            id=new_id("KNW"), coach_id=coach.id,
+            title="Jak czytać swój plan treningowy",
+            category="Trening", pinned=True, created_by=coach.id,
+            body="Każde ćwiczenie ma serie × powtórzenia, ciężar, tempo i "
+                 "przerwę. Tempo (np. 2011) czytamy jako: 2 s opuszczanie, "
+                 "0 s przerwy na dole, 1 s podnoszenie, 1 s przerwy na "
+                 "górze. Jeśli czujesz, że zapas powtórzeń jest większy niż "
+                 "2-3, to znak, żeby dać znać w raporcie — być może czas na "
+                 "progresję.",
+        ))
+        db.add(KnowledgeItem(
+            id=new_id("KNW"), coach_id=coach.id,
+            title="Białko — ile i po co",
+            category="Dieta", pinned=True, created_by=coach.id,
+            body="Białko to budulec mięśni i jeden z filarów sytości. "
+                 "Rozłóż dzienną porcję na 3-4 posiłki po ok. 30-40 g "
+                 "(mięso, ryby, nabiał, rośliny strączkowe, odżywka "
+                 "białkowa). Nie musisz jeść co 2-3 h — liczy się suma "
+                 "w ciągu dnia.",
+        ))
+        db.add(KnowledgeItem(
+            id=new_id("KNW"), coach_id=coach.id,
+            title="Sen a regeneracja",
+            category="Regeneracja", created_by=coach.id,
+            body="7-9 h snu to nie luksus, tylko część treningu — w tym "
+                 "czasie zachodzi większość regeneracji i adaptacji "
+                 "mięśniowej. Stały rytm (podobna pora zasypiania) działa "
+                 "lepiej niż nadrabianie w weekend.",
+        ))
+        db.add(KnowledgeItem(
+            id=new_id("KNW"), coach_id=coach.id,
+            title="Co zrobić, gdy motywacja siada",
+            category="Motywacja", created_by=coach.id,
+            body="To normalne, że intensywność chęci się zmienia. Zamiast "
+                 "czekać na motywację, oprzyj się na harmonogramie — jedno "
+                 "małe działanie (rozgrzewka, pierwsza seria) często "
+                 "wystarcza, żeby ruszyć dalej. Jeśli to się powtarza, "
+                 "napisz do mnie — razem dopasujemy plan.",
+        ))
+        db.add(KnowledgeItem(
+            id=new_id("KNW"), coach_id=coach.id,
+            title="Kiedy zgłosić ból, a kiedy to normalne zmęczenie",
+            category="Zdrowie", created_by=coach.id,
+            body="Delikatna zakwaszona bolesność mięśni 1-2 dni po treningu "
+                 "to norma. Ostry, kłujący ból podczas ruchu, ból stawu "
+                 "(nie mięśnia) albo obrzęk — zawsze zgłoś od razu przez "
+                 "raport lub wiadomość. W razie wątpliwości zawsze "
+                 "skonsultuj się z lekarzem — nie czekaj na odpowiedź "
+                 "trenera.",
+        ))
+
         db.commit()
         print("Seed OK. Konta demo:")
         for email, password, name in DEMO_ACCOUNTS.values():

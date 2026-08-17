@@ -212,6 +212,15 @@ class NutritionLogIn(BaseModel):
     note: str | None = Field(default=None, max_length=1000)
 
 
+class KnowledgeItemIn(BaseModel):
+    title: str = Field(min_length=1, max_length=300)
+    category: str = Field(default="Inne", max_length=80)
+    body: str | None = Field(default=None, max_length=20000)
+    external_url: str | None = Field(default=None, max_length=500)
+    file_id: str | None = None
+    pinned: bool = False
+
+
 class DocumentIn(BaseModel):
     client_id: str
     file_id: str

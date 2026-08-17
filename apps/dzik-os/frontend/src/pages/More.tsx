@@ -17,6 +17,7 @@ export default function More() {
         {isClient && (
           <>
             <Link className="card" to="/postepy">📈 Monitoring i postępy</Link>
+            <Link className="card" to="/wiedza">📚 Baza wiedzy</Link>
             <Link className="card" to="/dokumenty">📄 Dokumenty i harmonogram</Link>
             <Link className="card" to="/platnosci">💳 Płatności</Link>
             <Link className="card" to="/wiadomosci">💬 Wiadomości</Link>

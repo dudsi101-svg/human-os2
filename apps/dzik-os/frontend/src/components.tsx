@@ -1,6 +1,7 @@
 import { ReactNode, useEffect, useState } from "react";
 import { NavLink } from "react-router-dom";
 import { clearSession, fetchFileBlob, fetchFileUrl, getUser } from "./api";
+import { applyUpdate, onUpdateAvailable } from "./pwa";
 
 export function Logo({ size = 26 }: { size?: number }) {
   return (
@@ -25,6 +26,7 @@ const icons: Record<string, ReactNode> = {
   more: <path d="M5 12h.01M12 12h.01M19 12h.01" strokeWidth="3" />,
   clients: <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />,
   templates: <path d="M4 4h16v4H4zM4 12h10v8H4zM18 12h2v8h-2z" />,
+  knowledge: <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20M4 4.5A2.5 2.5 0 0 1 6.5 2H20v18H6.5A2.5 2.5 0 0 0 4 22.5v-18z" />,
 };
 
 export function Icon({ name }: { name: string }) {
@@ -43,6 +45,7 @@ export function Nav() {
     ? [
         { to: "/trener", label: "Klienci", icon: "clients" },
         { to: "/trener/szablony", label: "Szablony", icon: "templates" },
+        { to: "/trener/wiedza", label: "Wiedza", icon: "knowledge" },
         { to: "/wiadomosci", label: "Wiadomości", icon: "msg" },
         { to: "/wiecej", label: "Więcej", icon: "more" },
       ]
@@ -71,6 +74,20 @@ export function Nav() {
   );
 }
 
+/** Baner "nowa wersja dostępna" — użytkownik decyduje, kiedy odświeżyć,
+ * zamiast dostać podmieniony kod aplikacji bez ostrzeżenia w trakcie pracy. */
+export function UpdateBanner() {
+  const [available, setAvailable] = useState(false);
+  useEffect(() => onUpdateAvailable(() => setAvailable(true)), []);
+  if (!available) return null;
+  return (
+    <div className="update-banner">
+      <span>🐗 Dostępna nowa wersja Dzik OS</span>
+      <button className="btn btn--small" onClick={applyUpdate}>Odśwież</button>
+    </div>
+  );
+}
+
 export function TopBar({ title, right }: { title: string; right?: ReactNode }) {
   return (
     <div className="topbar">
@@ -92,6 +109,17 @@ export function ErrorBox({ error }: { error: string | null }) {
 
 export function Spinner() {
   return <p className="dim">Wczytywanie…</p>;
+}
+
+/** Numerowany nagłówek sekcji formularza/przeglądu — dzieli treść na
+ * jasne bloki zamiast jednej długiej listy pól (raporty, formularze). */
+export function SectionLabel({ n, title }: { n: number; title: string }) {
+  return (
+    <div className="section-label">
+      <span className="section-label__num">{n}</span>
+      <span>{title}</span>
+    </div>
+  );
 }
 
 export function LogoutButton() {
@@ -163,8 +191,13 @@ export function AuthAttachment({ fileId, filename }: { fileId: string; filename?
   );
 }
 
-/** Prosty wykres liniowy (SVG) dla pomiarów w czasie. */
+let sparkGradientSeq = 0;
+
+/** Wykres liniowy (SVG) dla pomiarów w czasie — cienka linia akcentu z
+ * zanikającym wypełnieniem pod spodem (wzorem paneli Whoop/Oura), bez
+ * osi i siatki, żeby trend czytało się od razu. */
 export function Sparkline({ points, unit }: { points: { x: string; y: number }[]; unit: string }) {
+  const [gradientId] = useState(() => `spark-fill-${++sparkGradientSeq}`);
   if (points.length < 2) return <p className="dim">Za mało danych na wykres.</p>;
   const ys = points.map((p) => p.y);
   const min = Math.min(...ys);
@@ -177,9 +210,17 @@ export function Sparkline({ points, unit }: { points: { x: string; y: number }[]
     cy: h - 6 - ((p.y - min) / range) * (h - 16),
   }));
   const path = coords.map((c, i) => `${i === 0 ? "M" : "L"}${c.cx.toFixed(1)},${c.cy.toFixed(1)}`).join(" ");
+  const areaPath = `${path} L${coords[coords.length - 1].cx.toFixed(1)},${h} L${coords[0].cx.toFixed(1)},${h} Z`;
   return (
     <div>
       <svg className="spark" viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none">
+        <defs>
+          <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="var(--accent)" stopOpacity="0.35" />
+            <stop offset="100%" stopColor="var(--accent)" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        <path className="spark__area" d={areaPath} fill={`url(#${gradientId})`} stroke="none" />
         <path d={path} fill="none" stroke="var(--accent)" strokeWidth="2.5"
           strokeLinecap="round" strokeLinejoin="round" />
         {coords.map((c, i) => (

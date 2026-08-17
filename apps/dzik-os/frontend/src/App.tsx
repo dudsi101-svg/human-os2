@@ -12,12 +12,14 @@ import Progress from "./pages/client/Progress";
 import Payments from "./pages/client/Payments";
 import Profile from "./pages/client/Profile";
 import Documents from "./pages/client/Documents";
+import ClientKnowledge from "./pages/client/Knowledge";
 import More from "./pages/More";
 import Messages from "./pages/Messages";
 import Thread from "./pages/Thread";
 import Clients from "./pages/coach/Clients";
 import ClientDetail from "./pages/coach/ClientDetail";
 import Templates from "./pages/coach/Templates";
+import CoachKnowledge from "./pages/coach/Knowledge";
 import Admin from "./pages/Admin";
 
 export default function App() {
@@ -58,6 +60,7 @@ export default function App() {
             <Route path="/platnosci" element={<Payments />} />
             <Route path="/profil" element={<Profile />} />
             <Route path="/dokumenty" element={<Documents />} />
+            <Route path="/wiedza" element={<ClientKnowledge />} />
           </>
         )}
         {roles.includes("COACH") && (
@@ -65,6 +68,7 @@ export default function App() {
             <Route path="/trener" element={<Clients />} />
             <Route path="/trener/klient/:clientId" element={<ClientDetail />} />
             <Route path="/trener/szablony" element={<Templates />} />
+            <Route path="/trener/wiedza" element={<CoachKnowledge />} />
           </>
         )}
         {roles.includes("ADMIN") && <Route path="/admin" element={<Admin />} />}

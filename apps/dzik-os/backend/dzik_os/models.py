@@ -468,6 +468,30 @@ class DailyNutritionLog(Base):
     created_at: Mapped[str] = mapped_column(String(40), default=now_iso)
 
 
+class KnowledgeItem(Base):
+    """Baza wiedzy trenera — materiały (artykuł, link, plik), którymi
+    trener wspiera podopiecznych; treść dostarcza i za nią odpowiada
+    trener (nie jest to porada medyczna systemu). Broadcast: widoczne dla
+    wszystkich aktywnie prowadzonych klientów danego trenera — to
+    własność trenera, nie dane konkretnego klienta, więc nie przechodzi
+    przez resolve_client_access jak dane zdrowotne."""
+
+    __tablename__ = "knowledge_items"
+
+    id: Mapped[str] = mapped_column(String(40), primary_key=True)
+    coach_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
+    title: Mapped[str] = mapped_column(String(300))
+    category: Mapped[str] = mapped_column(String(80), default="Inne")
+    body: Mapped[str | None] = mapped_column(Text, nullable=True)
+    external_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    file_id: Mapped[str | None] = mapped_column(ForeignKey("files.id"), nullable=True)
+    pinned: Mapped[bool] = mapped_column(Boolean, default=False)
+    status: Mapped[str] = mapped_column(String(20), default="ACTIVE")  # ACTIVE/ARCHIVED
+    created_by: Mapped[str] = mapped_column(String(40))
+    created_at: Mapped[str] = mapped_column(String(40), default=now_iso)
+    updated_at: Mapped[str] = mapped_column(String(40), default=now_iso)
+
+
 class ConsentRecord(Base):
     """Rejestr zgód — trwała warstwa dla kontraktu
     hos_engine.consent.ConsentRegistry (patrz hos_bridge.ConsentService).

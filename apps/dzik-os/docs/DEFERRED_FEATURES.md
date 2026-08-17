@@ -25,6 +25,15 @@ Zgodnie z zakresem MVP (sekcja 13 briefu). Architektura ich nie blokuje.
   trenera), ale domyślny `NullNotificationProvider` niczego nie wysyła.
   Podłączenie realnego dostawcy (Resend/SendGrid/Mailgun/SMTP) to decyzja
   operatora — wymaga konta i kluczy API poza repozytorium;
+* **prawdziwy dostawca AI** — analogiczny adapter (`ai_provider.py`,
+  `NullAIProvider` domyślnie) już podpięty pod jeden governed use case:
+  podsumowanie raportu tygodniowego + szkic odpowiedzi dla trenera
+  (przycisk „✨ Podsumowanie AI" w panelu trenera), zawsze propose-only
+  (trener edytuje/zatwierdza, nic nie wysyła się automatycznie). Bez
+  klucza dostawcy UI pokazuje jawny komunikat, nie udaje działania.
+  Podłączenie realnego modelu (np. Claude API) to decyzja operatora —
+  wymaga klucza API poza repozytorium i ustalenia minimalnego zakresu
+  danych wysyłanych na zewnątrz (patrz DATA_PROCESSING_MAP.md §AI);
 * powiadomienia push PWA (wymagają kluczy VAPID + subskrypcji service
   workera) — obecnie przypomnienia i flagi widoczne po wejściu do aplikacji;
 * integracja z arkuszami zewnętrznymi (import z Excela) — eksport do

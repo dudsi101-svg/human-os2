@@ -69,6 +69,12 @@ Agregacja `/api/clients/{id}/monitoring` łączy powyższe z celem (`goals`),
 pomiarami i raportami tygodniowymi w jeden przegląd trendów — nie jest
 osobnym magazynem danych, tylko odczytem z istniejących tabel.
 
+## Baza wiedzy
+
+| Tabela | Uwagi |
+|---|---|
+| `knowledge_items` | materiał trenera (artykuł/link/plik): title, category, body, external_url, file_id, pinned, status ACTIVE/ARCHIVED. **Broadcast**, nie per-klient — widoczny dla wszystkich aktywnie prowadzonych klientów danego trenera (`coach_id`), nie przechodzi przez `resolve_client_access` bo to własność trenera, nie dane klienta. |
+
 ## Komunikacja i płatności
 
 | Tabela | Uwagi |

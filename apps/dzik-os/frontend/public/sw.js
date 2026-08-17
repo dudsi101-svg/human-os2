@@ -5,8 +5,14 @@ const CACHE = "dzik-os-v1";
 const APP_SHELL = ["/", "/manifest.webmanifest", "/icons/icon.svg"];
 
 self.addEventListener("install", (event) => {
+  // Celowo BEZ self.skipWaiting() — nowa wersja czeka, aż użytkownik
+  // świadomie potwierdzi odświeżenie (patrz src/pwa.ts + UpdateBanner),
+  // zamiast cicho podmieniać kod aplikacji pod ręką w trakcie sesji.
   event.waitUntil(caches.open(CACHE).then((c) => c.addAll(APP_SHELL)));
-  self.skipWaiting();
+});
+
+self.addEventListener("message", (event) => {
+  if (event.data && event.data.type === "SKIP_WAITING") self.skipWaiting();
 });
 
 self.addEventListener("activate", (event) => {

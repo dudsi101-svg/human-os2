@@ -1,6 +1,6 @@
 import { FormEvent, useEffect, useState } from "react";
 import { api, getUser, plDate } from "../../api";
-import { ErrorBox, Spinner, TopBar } from "../../components";
+import { ErrorBox, SectionLabel, Spinner, TopBar } from "../../components";
 import { CheckinData } from "../../types";
 
 function mondayOfCurrentWeek(): string {
@@ -10,9 +10,13 @@ function mondayOfCurrentWeek(): string {
   return d.toISOString().slice(0, 10);
 }
 
-const SCALES: [string, string][] = [
-  ["energy", "Energia"], ["sleep", "Sen"], ["hunger", "Głód"],
-  ["stress", "Stres"], ["recovery", "Regeneracja"], ["diet_adherence", "Realizacja diety"],
+const SCALES: [string, string, string][] = [
+  ["energy", "Energia", "niska–wysoka"],
+  ["sleep", "Sen", "słaby–dobry"],
+  ["hunger", "Głód", "brak–duży"],
+  ["stress", "Stres", "niski–wysoki"],
+  ["recovery", "Regeneracja", "słaba–dobra"],
+  ["diet_adherence", "Realizacja diety", "słaba–pełna"],
 ];
 
 export default function Checkin() {
@@ -65,18 +69,33 @@ export default function Checkin() {
   if (!checkins) return <div className="page"><Spinner /></div>;
   const currentWeek = form.week_start as string;
   const existing = checkins.find((c) => c.week_start === currentWeek);
+  const locked = existing?.status === "REVIEWED";
 
   return (
     <div className="page">
       <TopBar title="Raport tygodniowy" />
       <form className="card" onSubmit={submit}>
-        <h3>Tydzień od {plDate(currentWeek)}</h3>
-        {existing && existing.status === "REVIEWED" && (
-          <p className="alert alert--info">Ten tydzień został już oceniony — raport można wysłać w kolejnym tygodniu.</p>
+        <div className="row row--between">
+          <h3 style={{ margin: 0 }}>Tydzień od {plDate(currentWeek)}</h3>
+          {existing && (
+            <span className={`badge ${locked ? "badge--ok" : "badge--warn"}`}>
+              {locked ? "oceniony" : `rewizja ${existing.revision}`}
+            </span>
+          )}
+        </div>
+        {locked && (
+          <p className="alert alert--info">
+            Ten tydzień został już oceniony — raport można wysłać w kolejnym tygodniu.
+          </p>
         )}
-        {existing && existing.status !== "REVIEWED" && (
-          <p className="alert alert--info">Masz już raport za ten tydzień (rewizja {existing.revision}). Wysłanie ponownie zapisze poprawkę — poprzednia wersja zostaje w historii.</p>
+        {existing && !locked && (
+          <p className="alert alert--info">
+            Masz już raport za ten tydzień. Wysłanie ponownie zapisze poprawkę —
+            poprzednia wersja zostaje w historii.
+          </p>
         )}
+
+        <SectionLabel n={1} title="Ciało" />
         <div className="field-row">
           <div>
             <label>Masa ciała (kg)</label>
@@ -91,15 +110,25 @@ export default function Checkin() {
               onChange={(e) => set("trainings_done", e.target.value)} />
           </div>
         </div>
-        {SCALES.map(([key, label]) => (
-          <div key={key}>
-            <label>{label}: {String(form[key])}/5</label>
-            <input type="range" min="1" max="5" value={form[key] as number}
-              onChange={(e) => set(key, Number(e.target.value))} />
-          </div>
+        <label>Zdjęcia sylwetki (opcjonalnie)</label>
+        <input type="file" accept="image/jpeg,image/png,image/webp" multiple
+          onChange={(e) => setPhotos(Array.from(e.target.files ?? []))} />
+        {photos.length > 0 && <small>{photos.length} zdjęć do wysłania</small>}
+
+        <SectionLabel n={2} title="Samopoczucie" />
+        <p className="dim" style={{ fontSize: "0.82rem", marginTop: -4 }}>
+          Przesuń suwaki — to szybciej niż opisywanie słowami i łatwiej
+          porównać tydzień do tygodnia.
+        </p>
+        {SCALES.map(([key, label, hint]) => (
+          <ScaleRow key={key} label={label} hint={hint} value={form[key] as number}
+            onChange={(v) => set(key, v)} />
         ))}
+
+        <SectionLabel n={3} title="Ból, urazy i pytania" />
         <label>Ból lub urazy (jeśli wystąpiły)</label>
         <textarea value={(form.pain_note as string) ?? ""}
+          placeholder="Opisz dokładnie: gdzie, kiedy, przy jakim ruchu"
           onChange={(e) => set("pain_note", e.target.value)} />
         <label>Komentarz</label>
         <textarea value={(form.comment as string) ?? ""}
@@ -107,14 +136,11 @@ export default function Checkin() {
         <label>Pytania do trenera</label>
         <textarea value={(form.questions as string) ?? ""}
           onChange={(e) => set("questions", e.target.value)} />
-        <label>Zdjęcia sylwetki (opcjonalnie)</label>
-        <input type="file" accept="image/jpeg,image/png,image/webp" multiple
-          onChange={(e) => setPhotos(Array.from(e.target.files ?? []))} />
-        {photos.length > 0 && <small>{photos.length} zdjęć do wysłania</small>}
+
         <ErrorBox error={error} />
         {ok && <div className="alert alert--info">{ok}</div>}
         <div style={{ marginTop: 12 }}>
-          <button className="btn" disabled={busy || existing?.status === "REVIEWED"}>
+          <button className="btn" disabled={busy || locked}>
             {busy ? "Wysyłanie…" : existing ? "Wyślij poprawkę" : "Wyślij raport"}
           </button>
         </div>
@@ -144,6 +170,22 @@ export default function Checkin() {
           )}
         </div>
       ))}
+    </div>
+  );
+}
+
+function ScaleRow({ label, hint, value, onChange }: {
+  label: string; hint: string; value: number; onChange: (v: number) => void;
+}) {
+  return (
+    <div className="scale-row">
+      <div className="row row--between">
+        <label style={{ margin: 0 }}>{label}</label>
+        <span className="badge badge--accent">{value}/5</span>
+      </div>
+      <input type="range" min="1" max="5" value={value}
+        onChange={(e) => onChange(Number(e.target.value))} />
+      <div className="scale-row__hint">{hint}</div>
     </div>
   );
 }

@@ -17,6 +17,7 @@ from .routers import (
     checkins,
     clients,
     files,
+    knowledge,
     measurements,
     messages,
     monitoring,
@@ -67,7 +68,7 @@ def create_app() -> FastAPI:
         nutrition.router, schedule.router, checkins.router,
         measurements.router, messages.router, files.router,
         payments.router, privacy.router, today.router, admin.router,
-        monitoring.router,
+        monitoring.router, knowledge.router,
     ):
         app.include_router(router)
 

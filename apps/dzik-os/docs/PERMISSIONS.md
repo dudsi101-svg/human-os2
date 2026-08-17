@@ -48,6 +48,20 @@ Model dwuosiowy zgodny z Human OS (Identity, Authority & Permissions):
   (kto i na jakiej podstawie wpisał zalecenie) — proweniencja wymuszona
   w formularzu frontendu (`ScheduleTab`), nie tylko w backendzie.
 
+## Baza wiedzy (oś inna niż dane zdrowotne)
+
+`knowledge_items` to treść **trenera**, nie dane klienta — inna oś
+uprawnień niż reszta dokumentu:
+
+* zapis (`POST/PUT/status`) wymaga wyłącznie roli COACH i własności
+  rekordu (`coach_id == aktor`), bez `resolve_client_access`;
+* odczyt (`GET /api/me/knowledge`) wymaga aktywnej relacji
+  `coach_client_relationships.status=ACTIVE` z tym trenerem — **bez**
+  bramki zgody `health_data`, bo to materiał edukacyjny/broadcast,
+  nie dane osobowe klienta;
+* trener odpowiada merytorycznie za treść — system jej nie generuje,
+  nie moderuje ani nie weryfikuje.
+
 ## Zgody (rejestr wersjonowany)
 
 * Wiersz `consents` = jedna zgoda: podmiot, odbiorca, cel, domena, akcje,

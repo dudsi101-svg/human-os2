@@ -319,6 +319,24 @@ export const WELLBEING_LABELS: Record<string, string> = {
   diet_adherence: "Realizacja diety",
 };
 
+export interface KnowledgeItemRow {
+  id: string;
+  coach_id: string;
+  title: string;
+  category: string;
+  body: string | null;
+  external_url: string | null;
+  file_id: string | null;
+  pinned: boolean;
+  status: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export const KNOWLEDGE_CATEGORY_SUGGESTIONS = [
+  "Trening", "Dieta", "Regeneracja", "Motywacja", "Zdrowie", "Suplementacja", "Inne",
+];
+
 export const KIND_LABELS: Record<string, string> = {
   weight: "Masa ciała",
   waist: "Talia",

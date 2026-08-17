@@ -5,9 +5,10 @@ Prosta aplikacja domenowa dla internetowego trenera personalnego
 **Human OS** (`hos_engine`). Jedna przestrzeń zamiast WhatsAppa, arkuszy
 i PDF-ów: plan treningowy, dieta, harmonogram, raporty tygodniowe,
 pomiary, monitoring w czasie (cel, trendy, adherencja, dziennik
-obserwacji), wiadomości (w tym głosowe), dokumenty i płatności.
+obserwacji), baza wiedzy, wiadomości (w tym głosowe), dokumenty i
+płatności.
 
-Status: **MVP + monitoring (0.2.0)** · Język: polski · Licencja kodu: Apache-2.0
+Status: **MVP + monitoring + baza wiedzy (0.3.0)** · Język: polski · Licencja kodu: Apache-2.0
 
 ## Zasady (fundamenty Human OS)
 

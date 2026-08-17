@@ -238,7 +238,7 @@ def list_nutrition_log(
 @router.get("/clients/{client_id}/monitoring")
 def monitoring(
     client_id: str,
-    days: int = 90,
+    days: int = 30,
     user: User = Depends(current_user),
     db: Session = Depends(get_db),
 ):

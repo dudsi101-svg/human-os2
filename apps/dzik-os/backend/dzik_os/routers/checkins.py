@@ -5,6 +5,7 @@ import json
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
+from ..ai_provider import provider as ai_provider
 from ..authz import resolve_client_access, require_client_self
 from ..db import get_db
 from ..hos_bridge import record_event
@@ -166,3 +167,47 @@ def review_checkin(
     )
     db.commit()
     return {"ok": True}
+
+
+@router.post("/checkins/{checkin_id}/ai-summary")
+def ai_summary(
+    checkin_id: str,
+    coach: User = Depends(require_role("COACH")),
+    db: Session = Depends(get_db),
+):
+    """Propozycja AI: streszczenie raportu + szkic odpowiedzi do edycji.
+    NIGDY nie zapisuje niczego automatycznie — trener sam decyduje, czy i
+    co wysłać przez /checkins/{id}/review. Bez skonfigurowanego dostawcy
+    (domyślnie) zwraca available=false z jawnym wyjaśnieniem, zamiast
+    udawać, że funkcja działa."""
+    checkin = db.get(WeeklyCheckin, checkin_id)
+    if checkin is None:
+        raise HTTPException(status_code=404, detail="Nie znaleziono")
+    resolve_client_access(db, coach, checkin.client_id, action="write")
+    if not ai_provider.enabled:
+        return {
+            "available": False,
+            "reason": "Funkcja podsumowań AI wymaga konfiguracji przez "
+            "administratora (klucz dostawcy poza repozytorium — patrz "
+            "docs/DEFERRED_FEATURES.md).",
+        }
+    result = ai_provider.summarize_checkin(
+        payload=json.loads(checkin.payload_json), history_note=None
+    )
+    if result is None:
+        return {"available": False, "reason": "Dostawca AI nie zwrócił odpowiedzi."}
+    record_event(
+        db,
+        action="AI_SUMMARY_REQUESTED",
+        actor_id=coach.id,
+        subject_ids=[checkin.client_id],
+        payload={"checkin_id": checkin.id, "provider": ai_provider.name},
+        summary=f"Trener poprosił o podsumowanie AI raportu {checkin.week_start}",
+    )
+    db.commit()
+    return {
+        "available": True,
+        "summary": result.summary,
+        "draft_response": result.draft_response,
+        "flags": result.flags,
+    }
