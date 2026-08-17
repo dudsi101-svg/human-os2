@@ -44,7 +44,9 @@ async def lifespan(app: FastAPI):
             from . import seed as seed_module
 
             seed_module.seed()
-        except Exception as exc:  # pragma: no cover - diagnostyka staging
+        # Celowo łapiemy każdy wyjątek: nieudany seed demo nie może
+        # zatrzymać startu aplikacji na stagingu.
+        except Exception as exc:  # noqa: BLE001  # pragma: no cover - diagnostyka staging
             print(f"[dzik-os] seed demo nieudany: {exc}")
     yield
 

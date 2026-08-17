@@ -1,5 +1,7 @@
 """Integracja z Human OS Core: łańcuch zdarzeń, pokwitowania, zgody."""
 
+from itertools import pairwise
+
 from conftest import ADMIN, CLIENT_A, COACH, get_user_id, login
 
 from dzik_os.hos_bridge import event_store, verify_audit_chain
@@ -11,7 +13,7 @@ def test_audit_chain_is_hash_linked_and_valid(seeded):
     assert verify_audit_chain() is True
     # Każde zdarzenie jest niemutowalne i powiązane hashem z poprzednim.
     assert all(e["immutable"] is True for e in events)
-    for prev, curr in zip(events, events[1:]):
+    for prev, curr in pairwise(events):
         assert curr["previous_hash"] == prev["event_hash"]
 
 

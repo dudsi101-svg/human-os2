@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from ..ai_provider import provider as ai_provider
-from ..authz import resolve_client_access, require_client_self
+from ..authz import require_client_self, resolve_client_access
 from ..db import get_db
 from ..hos_bridge import record_event
 from ..models import CheckinRevision, ProgressPhoto, User, WeeklyCheckin, new_id, now_iso

@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import ClassVar
 
 
 def _env(name: str, default: str) -> str:
@@ -40,7 +41,7 @@ class Settings:
     )
     brand_accent: str = field(default_factory=lambda: _env("DZIK_BRAND_ACCENT", "#b8f339"))
 
-    ALLOWED_UPLOAD_TYPES = {
+    ALLOWED_UPLOAD_TYPES: ClassVar[dict[str, str]] = {
         "image/jpeg": ".jpg",
         "image/png": ".png",
         "image/webp": ".webp",

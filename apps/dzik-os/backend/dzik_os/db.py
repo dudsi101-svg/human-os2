@@ -46,10 +46,14 @@ MIGRATIONS: list[tuple[int, str, list[str]]] = [
             UNIQUE(schedule_item_id, completed_on)
         )
         """,
-        "CREATE INDEX IF NOT EXISTS ix_schedule_completions_item "
-        "ON schedule_completions(schedule_item_id)",
-        "CREATE INDEX IF NOT EXISTS ix_schedule_completions_client "
-        "ON schedule_completions(client_id)",
+        (
+            "CREATE INDEX IF NOT EXISTS ix_schedule_completions_item "
+            "ON schedule_completions(schedule_item_id)"
+        ),
+        (
+            "CREATE INDEX IF NOT EXISTS ix_schedule_completions_client "
+            "ON schedule_completions(client_id)"
+        ),
         """
         CREATE TABLE IF NOT EXISTS observations (
             id VARCHAR(40) PRIMARY KEY,
@@ -80,8 +84,10 @@ MIGRATIONS: list[tuple[int, str, list[str]]] = [
             UNIQUE(client_id, logged_on)
         )
         """,
-        "CREATE INDEX IF NOT EXISTS ix_daily_nutrition_logs_client "
-        "ON daily_nutrition_logs(client_id)",
+        (
+            "CREATE INDEX IF NOT EXISTS ix_daily_nutrition_logs_client "
+            "ON daily_nutrition_logs(client_id)"
+        ),
     ]),
     (4, "knowledge base", [
         """
