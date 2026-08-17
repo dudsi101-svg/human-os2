@@ -37,6 +37,40 @@ PostgreSQL + aplikacja na `http://localhost:8000`. Hasło bazy przez
 5. Zweryfikuj: logowanie kont demo, instalacja PWA na telefonie,
    `/api/health`, `GET /api/admin/audit/verify` (konto admina).
 
+## 3a. PaaS: Fly.io (zalecany start — darmowa subdomena z HTTPS)
+
+Gotowa konfiguracja: `apps/dzik-os/fly.toml`. Domena własna NIE jest
+potrzebna na start — dostajesz `https://<nazwa>.fly.dev` z ważnym HTTPS,
+co wystarcza do instalacji PWA na telefonie. Kroki (jednorazowo ~10 min):
+
+```bash
+# 1. Zainstaluj flyctl i zaloguj się (założenie konta: fly.io)
+curl -L https://fly.io/install.sh | sh
+flyctl auth login
+
+# 2. Z korzenia repozytorium: utwórz aplikację i wolumen na dane
+flyctl apps create dzik-os              # nazwa musi być globalnie wolna;
+                                        # przy innej nazwie zaktualizuj fly.toml
+flyctl volumes create dzik_data --region waw --size 1 --app dzik-os
+
+# 3. Deployment (buduje Dockerfile z hos_engine + frontendem)
+flyctl deploy --config apps/dzik-os/fly.toml
+
+# 4. Dane demo (wyłącznie staging!)
+flyctl ssh console --app dzik-os -C "python -m dzik_os.seed"
+
+# 5. Otwórz aplikację
+flyctl apps open --app dzik-os          # https://dzik-os.fly.dev
+```
+
+Własna domena później: `flyctl certs add panel.twojadomena.pl --app dzik-os`
+plus rekord CNAME u rejestratora — nic w kodzie się nie zmienia.
+
+Przejście na PostgreSQL (przy prawdziwych klientach):
+`flyctl postgres create` → `flyctl postgres attach` → ustaw secret
+`flyctl secrets set DZIK_DATABASE_URL="postgresql+psycopg2://…"` i usuń
+wpis SQLite z `[env]` w fly.toml.
+
 ## 4. Produkcja
 
 * `DZIK_ENV=production` (wyłącza `/api/docs`, wymusza cookie `secure`);

@@ -38,6 +38,23 @@ async def upload_file(
     }
 
 
+def _is_thread_attachment_participant(db: Session, user: User, file_id: str) -> bool:
+    """Załącznik wiadomości może pobrać każda strona wątku (np. plik wysłany
+    przez trenera należy do trenera, ale klient z wątku musi go zobaczyć)."""
+    from ..models import Message, MessageThread
+
+    return (
+        db.query(Message)
+        .join(MessageThread, Message.thread_id == MessageThread.id)
+        .filter(
+            Message.file_id == file_id,
+            (MessageThread.client_id == user.id) | (MessageThread.coach_id == user.id),
+        )
+        .count()
+        > 0
+    )
+
+
 @router.get("/files/{file_id}")
 def download_file(
     file_id: str,
@@ -47,7 +64,10 @@ def download_file(
     stored = db.get(StoredFile, file_id)
     if stored is None or stored.deleted_at is not None:
         raise HTTPException(status_code=404, detail="Nie znaleziono")
-    resolve_client_access(db, user, stored.owner_user_id)
+    if stored.owner_user_id != user.id and not _is_thread_attachment_participant(
+        db, user, file_id
+    ):
+        resolve_client_access(db, user, stored.owner_user_id)
     data = storage.read(stored)
     return Response(
         content=data,

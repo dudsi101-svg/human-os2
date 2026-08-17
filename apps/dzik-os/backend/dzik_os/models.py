@@ -42,6 +42,9 @@ class User(Base):
     created_at: Mapped[str] = mapped_column(String(40), default=now_iso)
     last_login_at: Mapped[str | None] = mapped_column(String(40), nullable=True)
     anonymized_at: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    # Konto założone przez trenera z hasłem startowym musi je zmienić przy
+    # pierwszym logowaniu (egzekwowane w security.current_user).
+    must_change_password: Mapped[bool] = mapped_column(Boolean, default=False)
 
 
 class RoleGrant(Base):
@@ -420,6 +423,10 @@ class ConsentRecord(Base):
     granted_at: Mapped[str] = mapped_column(String(40), default=now_iso)
     expires_at: Mapped[str | None] = mapped_column(String(40), nullable=True)
     revoked_at: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    # Zgoda zarejestrowana przy onboardingu przez trenera czeka na jawne
+    # potwierdzenie podmiotu w aplikacji (confirmed_at); zgody nadawane
+    # samodzielnie przez podmiot są potwierdzone od razu.
+    confirmed_at: Mapped[str | None] = mapped_column(String(40), nullable=True)
 
 
 class Receipt(Base):

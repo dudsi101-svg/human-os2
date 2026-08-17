@@ -22,12 +22,16 @@ def _make_engine(url: str):
 engine = _make_engine(settings.database_url)
 SessionLocal = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
 
-# Migracje: rejestr wersji schematu. Wersja 1 = pełny schemat MVP tworzony
-# z metadanych ORM (Base.metadata). Kolejne zmiany schematu dopisuje się do
-# MIGRATIONS jako funkcje wykonujące DDL — każda uruchamiana dokładnie raz,
-# w kolejności numerów, z wpisem do schema_migrations (ADR-DZIK-001 §Migracje).
-MIGRATIONS: list[tuple[int, str]] = [
-    (1, "initial schema (created from ORM metadata)"),
+# Migracje: rejestr wersji schematu. Świeża baza dostaje pełny schemat z
+# metadanych ORM i stempel wszystkich wersji; istniejąca baza wykonuje
+# wyłącznie brakujące wpisy MIGRATIONS w kolejności numerów
+# (ADR-DZIK-001 §Migracje).
+MIGRATIONS: list[tuple[int, str, list[str]]] = [
+    (1, "initial schema (created from ORM metadata)", []),
+    (2, "forced password change + consent confirmation", [
+        "ALTER TABLE users ADD COLUMN must_change_password BOOLEAN NOT NULL DEFAULT 0",
+        "ALTER TABLE consents ADD COLUMN confirmed_at VARCHAR(40)",
+    ]),
 ]
 
 
@@ -44,11 +48,8 @@ def run_migrations(target_engine=None) -> list[int]:
             )
         )
         done = {row[0] for row in conn.execute(text("SELECT version FROM schema_migrations"))}
-    for version, description in MIGRATIONS:
-        if version in done:
-            continue
-        if version == 1:
-            Base.metadata.create_all(eng)
+
+    def stamp(version: int, description: str) -> None:
         with eng.begin() as conn:
             conn.execute(
                 text(
@@ -58,6 +59,23 @@ def run_migrations(target_engine=None) -> list[int]:
                 {"v": version, "d": description},
             )
         applied.append(version)
+
+    if 1 not in done:
+        # Świeża baza: ORM tworzy już docelowy schemat (ze wszystkimi
+        # kolumnami), więc DDL późniejszych migracji nie jest wykonywany —
+        # tylko stemplowany.
+        Base.metadata.create_all(eng)
+        for version, description, _ in MIGRATIONS:
+            stamp(version, description)
+        return applied
+
+    for version, description, statements in MIGRATIONS:
+        if version in done:
+            continue
+        with eng.begin() as conn:
+            for statement in statements:
+                conn.execute(text(statement))
+        stamp(version, description)
     return applied
 
 

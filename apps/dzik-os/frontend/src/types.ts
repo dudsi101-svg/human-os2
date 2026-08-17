@@ -136,6 +136,7 @@ export interface ConsentRow {
   allow_sensitive: boolean;
   granted_at: string;
   revoked_at: string | null;
+  confirmed_at: string | null;
 }
 
 export interface ThreadRow {

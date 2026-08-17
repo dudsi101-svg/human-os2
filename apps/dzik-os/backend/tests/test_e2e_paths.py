@@ -20,9 +20,17 @@ def test_full_coach_and_client_journey(client):
     assert r.status_code == 201
     new_id = r.json()["client_id"]
 
-    # 2. Klient loguje się i uzupełnia profil.
+    # 2. Klient loguje się, zmienia hasło startowe, potwierdza zgodę
+    #    i uzupełnia profil.
     hn = login(client, {"email": "nowy.klient@example.com",
                         "password": "StartoweHaslo#1"})
+    r = client.post("/api/auth/change-password", headers=hn, json={
+        "current_password": "StartoweHaslo#1", "new_password": "WlasneNowe#123"})
+    assert r.status_code == 200
+    consents = client.get("/api/me/consents", headers=hn).json()["consents"]
+    onboarding = next(c for c in consents if c["confirmed_at"] is None)
+    r = client.post(f"/api/me/consents/{onboarding['id']}/confirm", headers=hn)
+    assert r.status_code == 200
     r = client.put(f"/api/clients/{new_id}/profile", headers=hn, json=[
         {"field_key": "cel_glowny", "value": "Poprawa kondycji"},
         {"field_key": "dni_treningowe", "value": "wt, czw"},

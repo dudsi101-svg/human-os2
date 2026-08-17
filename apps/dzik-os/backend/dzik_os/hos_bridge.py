@@ -146,6 +146,7 @@ class ConsentService:
         allow_sensitive: bool = False,
         consent_text_version: str = "1.0",
         expires_at: str | None = None,
+        confirmed: bool = False,
     ) -> ConsentRecord:
         row = ConsentRecord(
             id=new_id("CNS"),
@@ -157,6 +158,7 @@ class ConsentService:
             allow_sensitive=allow_sensitive,
             consent_text_version=consent_text_version,
             expires_at=expires_at,
+            confirmed_at=datetime.now(UTC).isoformat() if confirmed else None,
         )
         db.add(row)
         record_event(

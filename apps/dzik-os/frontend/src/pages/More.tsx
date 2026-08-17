@@ -13,15 +13,18 @@ export default function More() {
         <div><small>{user.email}</small></div>
         <div><small>Rola: {user.roles.join(", ")}</small></div>
       </div>
-      {isClient && (
-        <div className="list">
-          <Link className="card" to="/postepy">📈 Pomiary i postępy</Link>
-          <Link className="card" to="/dokumenty">📄 Dokumenty i harmonogram</Link>
-          <Link className="card" to="/platnosci">💳 Płatności</Link>
-          <Link className="card" to="/wiadomosci">💬 Wiadomości</Link>
-          <Link className="card" to="/profil">👤 Profil, zgody i moje dane</Link>
-        </div>
-      )}
+      <div className="list">
+        {isClient && (
+          <>
+            <Link className="card" to="/postepy">📈 Pomiary i postępy</Link>
+            <Link className="card" to="/dokumenty">📄 Dokumenty i harmonogram</Link>
+            <Link className="card" to="/platnosci">💳 Płatności</Link>
+            <Link className="card" to="/wiadomosci">💬 Wiadomości</Link>
+            <Link className="card" to="/profil">👤 Profil, zgody i moje dane</Link>
+          </>
+        )}
+        <Link className="card" to="/haslo">🔑 Zmień hasło</Link>
+      </div>
       <p className="dim" style={{ fontSize: "0.78rem" }}>
         Dzik OS działa na fundamentach Human OS: Twoje dane są Twoją
         własnością, każda istotna zmiana ma autora, powód i pozostaje w

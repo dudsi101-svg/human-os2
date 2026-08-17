@@ -2,6 +2,8 @@ import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { getUser } from "./api";
 import { Nav } from "./components";
 import Login from "./pages/Login";
+import ChangePassword from "./pages/ChangePassword";
+import ConsentGate, { ConsentSpinner, usePendingConsents } from "./pages/ConsentGate";
 import Today from "./pages/client/Today";
 import Plan from "./pages/client/Plan";
 import Nutrition from "./pages/client/Nutrition";
@@ -21,16 +23,31 @@ import Admin from "./pages/Admin";
 export default function App() {
   const user = getUser();
   const location = useLocation();
+  const roles = user?.roles ?? [];
+  const isClient = roles.includes("CLIENT");
+  const needsPassword = user?.must_change_password === true;
+  const { pending, reload } = usePendingConsents(
+    !!user && isClient && !needsPassword
+  );
   if (!user && location.pathname !== "/login") {
     return <Navigate to="/login" replace />;
   }
-  const roles = user?.roles ?? [];
+  if (user && needsPassword && location.pathname !== "/haslo") {
+    return <Navigate to="/haslo" replace />;
+  }
+  if (user && isClient && !needsPassword && location.pathname !== "/haslo") {
+    if (pending === null) return <ConsentSpinner />;
+    if (pending.length > 0) {
+      return <ConsentGate pending={pending} onResolved={reload} />;
+    }
+  }
   const home = roles.includes("COACH") ? "/trener" : roles.includes("ADMIN") ? "/admin" : "/";
   return (
     <>
-      {user && <Nav />}
+      {user && !needsPassword && <Nav />}
       <Routes>
         <Route path="/login" element={user ? <Navigate to={home} replace /> : <Login />} />
+        {user && <Route path="/haslo" element={<ChangePassword />} />}
         {roles.includes("CLIENT") && (
           <>
             <Route path="/" element={<Today />} />

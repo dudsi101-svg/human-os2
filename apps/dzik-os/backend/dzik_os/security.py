@@ -93,6 +93,15 @@ def _extract_token(request: Request) -> str | None:
     return request.cookies.get("dzik_session")
 
 
+# Ścieżki dostępne mimo flagi must_change_password (zmiana hasła, wylogowanie,
+# podgląd własnej sesji).
+_PASSWORD_CHANGE_ALLOWED_PATHS = {
+    "/api/auth/change-password",
+    "/api/auth/logout",
+    "/api/auth/me",
+}
+
+
 def current_user(request: Request, db: Session = Depends(get_db)) -> User:
     token = _extract_token(request)
     if not token:
@@ -107,7 +116,26 @@ def current_user(request: Request, db: Session = Depends(get_db)) -> User:
     user = db.get(User, row.user_id)
     if user is None or user.status != "ACTIVE":
         raise HTTPException(status_code=401, detail="Konto nieaktywne")
+    if (
+        user.must_change_password
+        and request.url.path not in _PASSWORD_CHANGE_ALLOWED_PATHS
+    ):
+        # Egzekwowane po stronie serwera: konto z hasłem startowym nie ma
+        # dostępu do danych, dopóki hasło nie zostanie zmienione.
+        raise HTTPException(status_code=403, detail="PASSWORD_CHANGE_REQUIRED")
     return user
+
+
+def revoke_other_sessions(db: Session, user_id: str, keep_token: str | None) -> None:
+    keep_hash = _token_hash(keep_token) if keep_token else None
+    rows = (
+        db.query(AuthSession)
+        .filter(AuthSession.user_id == user_id, AuthSession.revoked_at.is_(None))
+        .all()
+    )
+    for row in rows:
+        if row.token_hash != keep_hash:
+            row.revoked_at = now_iso()
 
 
 def active_roles(db: Session, user_id: str) -> set[str]:

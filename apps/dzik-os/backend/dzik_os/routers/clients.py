@@ -51,6 +51,9 @@ def create_client(
             display_name=body.client_name,
             identity_id=new_id("ID"),
             status="ACTIVE",
+            # Hasło startowe zna trener — klient musi je zmienić przy
+            # pierwszym logowaniu, zanim uzyska dostęp do danych.
+            must_change_password=True,
         )
         db.add(client)
         db.add(

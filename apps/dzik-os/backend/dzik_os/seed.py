@@ -105,6 +105,7 @@ def seed() -> dict[str, str]:
                 db, subject_id=client.id, grantee_id=coach.id,
                 purpose=CONSENT_PURPOSE, domain=CONSENT_DOMAIN,
                 actions="read,write", allow_sensitive=True,
+                confirmed=True,  # konta demo mają zgody już potwierdzone
             )
 
         # --- Profil i cele klienta A ---

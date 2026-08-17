@@ -70,7 +70,10 @@ export default function Profile() {
   }
 
   async function exportData() {
-    const blob = await api.get<Blob>("/api/me/export");
+    const data = await api.get<unknown>("/api/me/export");
+    const blob = new Blob([JSON.stringify(data, null, 2)], {
+      type: "application/json",
+    });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;

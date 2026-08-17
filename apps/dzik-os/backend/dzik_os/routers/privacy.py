@@ -81,6 +81,7 @@ def my_consents(user: User = Depends(current_user), db: Session = Depends(get_db
                 "granted_at": r.granted_at,
                 "expires_at": r.expires_at,
                 "revoked_at": r.revoked_at,
+                "confirmed_at": r.confirmed_at,
             }
             for r in rows
         ]
@@ -101,9 +102,39 @@ def grant_consent(
         domain=body.domain,
         actions=body.actions,
         allow_sensitive=body.allow_sensitive,
+        # Zgoda nadana osobiście przez podmiot jest potwierdzona z definicji.
+        confirmed=True,
     )
     db.commit()
     return {"id": row.id}
+
+
+@router.post("/consents/{consent_id}/confirm")
+def confirm_consent(
+    consent_id: str,
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    """Jawne potwierdzenie przez podmiot zgody zarejestrowanej przy
+    onboardingu (deklaracja zebrana przez trenera)."""
+    from ..models import ConsentRecord, now_iso
+
+    row = db.get(ConsentRecord, consent_id)
+    if row is None or row.subject_id != user.id or row.revoked_at is not None:
+        raise HTTPException(status_code=404, detail="Nie znaleziono")
+    if row.confirmed_at is None:
+        row.confirmed_at = now_iso()
+        record_event(
+            db,
+            action="CONSENT_CONFIRMED",
+            actor_id=user.id,
+            subject_ids=[user.id],
+            payload={"consent_id": row.id, "grantee_id": row.grantee_id,
+                     "purpose": row.purpose, "domain": row.domain},
+            summary=f"Potwierdzenie zgody {row.purpose}/{row.domain} przez podmiot",
+        )
+        db.commit()
+    return {"id": row.id, "confirmed_at": row.confirmed_at}
 
 
 @router.post("/consents/{consent_id}/revoke")

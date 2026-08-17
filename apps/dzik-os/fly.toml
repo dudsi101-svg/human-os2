@@ -1,0 +1,36 @@
+# Fly.io — konfiguracja Dzik OS (staging na darmowej subdomenie *.fly.dev
+# z automatycznym HTTPS; własna domena do podpięcia później jednym
+# poleceniem `flyctl certs add panel.twojadomena.pl`).
+#
+# Deployment Z KORZENIA repozytorium (kontekst budowania musi zawierać
+# hos_engine):  flyctl deploy --config apps/dzik-os/fly.toml
+# Pełna instrukcja: apps/dzik-os/docs/DEPLOYMENT.md §PaaS.
+
+app = "dzik-os"
+primary_region = "waw"   # Warszawa
+
+[build]
+  dockerfile = "apps/dzik-os/Dockerfile"
+
+[env]
+  DZIK_ENV = "staging"
+  # Start na SQLite na trwałym wolumenie — zero dodatkowych usług.
+  # Produkcyjnie: Fly Postgres + secret DZIK_DATABASE_URL (DEPLOYMENT.md).
+  DZIK_DATABASE_URL = "sqlite:////data/dzik.db"
+  DZIK_AUDIT_DB = "/data/audit.db"
+  DZIK_UPLOAD_DIR = "/data/uploads"
+
+[http_service]
+  internal_port = 8000
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+
+[[mounts]]
+  source = "dzik_data"
+  destination = "/data"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"

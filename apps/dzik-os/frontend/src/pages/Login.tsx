@@ -24,6 +24,10 @@ export default function Login() {
         return;
       }
       setSession(data.token as string, data.user as SessionUser);
+      if (data.user.must_change_password) {
+        location.assign("/haslo");
+        return;
+      }
       const roles: string[] = data.user.roles;
       location.assign(roles.includes("COACH") ? "/trener" : roles.includes("ADMIN") ? "/admin" : "/");
     } catch {

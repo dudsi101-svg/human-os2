@@ -7,6 +7,7 @@ export interface SessionUser {
   email: string;
   display_name: string;
   roles: string[];
+  must_change_password?: boolean;
 }
 
 const TOKEN_KEY = "dzik_token";
@@ -67,6 +68,9 @@ async function request<T>(
       if (typeof data.detail === "string") detail = data.detail;
     } catch {
       /* ignore */
+    }
+    if (detail === "PASSWORD_CHANGE_REQUIRED" && location.pathname !== "/haslo") {
+      location.assign("/haslo");
     }
     throw new ApiError(resp.status, detail);
   }

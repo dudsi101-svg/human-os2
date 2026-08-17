@@ -5,8 +5,12 @@
 Otwórz adres aplikacji w przeglądarce, zaloguj się i wybierz
 „Dodaj do ekranu głównego" (Android/Chrome: menu ⋮ → „Zainstaluj
 aplikację"; iPhone/Safari: Udostępnij → „Do ekranu początkowego").
-Po pierwszym logowaniu **zmień hasło startowe otrzymane od trenera**
-(napisz do trenera, jeśli potrzebujesz pomocy).
+
+Przy pierwszym logowaniu aplikacja poprosi Cię kolejno o:
+1. **ustawienie własnego hasła** (hasło startowe od trenera przestaje
+   działać, a Twoje dane są niedostępne, dopóki go nie zmienisz);
+2. **potwierdzenie zgody** na dostęp trenera do Twoich danych — możesz
+   ją też odrzucić, a później w każdej chwili cofnąć w Profilu.
 
 ## Ekran „Dzisiaj"
 

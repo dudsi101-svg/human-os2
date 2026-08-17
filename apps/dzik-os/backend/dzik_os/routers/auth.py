@@ -5,13 +5,17 @@ from sqlalchemy.orm import Session
 
 from ..config import settings
 from ..db import get_db
+from ..hos_bridge import record_event
 from ..models import User, now_iso
-from ..schemas import LoginRequest
+from ..schemas import ChangePasswordIn, LoginRequest
 from ..security import (
+    _extract_token,
     active_roles,
     create_session,
     current_user,
+    hash_password,
     login_rate_limiter,
+    revoke_other_sessions,
     revoke_session,
     verify_password,
 )
@@ -48,15 +52,44 @@ def login(body: LoginRequest, request: Request, response: Response, db: Session 
             "email": user.email,
             "display_name": user.display_name,
             "roles": sorted(active_roles(db, user.id)),
+            "must_change_password": user.must_change_password,
         },
     }
 
 
+@router.post("/change-password")
+def change_password(
+    body: ChangePasswordIn,
+    request: Request,
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    """Zmiana hasła (w tym wymuszona dla haseł startowych). Unieważnia
+    pozostałe sesje użytkownika."""
+    if not verify_password(body.current_password, user.password_hash):
+        raise HTTPException(status_code=403, detail="Nieprawidłowe obecne hasło")
+    try:
+        user.password_hash = hash_password(body.new_password)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from None
+    user.must_change_password = False
+    token = _extract_token(request)
+    revoke_other_sessions(db, user.id, token)
+    record_event(
+        db,
+        action="PASSWORD_CHANGED",
+        actor_id=user.id,
+        subject_ids=[user.id],
+        payload={"forced": False},
+        summary="Zmiana hasła (pozostałe sesje unieważnione)",
+    )
+    db.commit()
+    return {"ok": True}
+
+
 @router.post("/logout")
 def logout(request: Request, response: Response, db: Session = Depends(get_db)):
-    token = request.cookies.get("dzik_session") or request.headers.get(
-        "Authorization", ""
-    ).removeprefix("Bearer ").strip()
+    token = _extract_token(request)
     if token:
         revoke_session(db, token)
         db.commit()
