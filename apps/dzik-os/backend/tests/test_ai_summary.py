@@ -15,7 +15,7 @@ def test_ai_summary_not_configured_by_default(seeded):
     assert r.status_code == 200
     body = r.json()
     assert body["available"] is False
-    assert "reason" in body and body["reason"]
+    assert body.get("reason")
 
     # Nie zapisało odpowiedzi ani nie oznaczyło jako oceniony.
     after = seeded.get(f"/api/clients/{id_a}/checkins", headers=hc).json()["checkins"]

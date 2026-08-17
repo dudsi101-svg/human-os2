@@ -12,14 +12,15 @@ os.environ["DZIK_UPLOAD_DIR"] = f"{_tmp}/uploads"
 os.environ["DZIK_ENV"] = "test"
 os.environ["DZIK_BCRYPT_ROUNDS"] = "4"  # szybkie hasła w testach
 
-import pytest  # noqa: E402
-from fastapi.testclient import TestClient  # noqa: E402
+import pytest
+from fastapi.testclient import TestClient
 
-from dzik_os import hos_bridge, seed as seed_module  # noqa: E402
-from dzik_os.db import Base, engine, run_migrations  # noqa: E402
-from dzik_os.main import app  # noqa: E402
-from dzik_os.models import RoleGrant, User, new_id  # noqa: E402
-from dzik_os.security import hash_password, login_rate_limiter  # noqa: E402
+from dzik_os import hos_bridge
+from dzik_os import seed as seed_module
+from dzik_os.db import Base, engine, run_migrations
+from dzik_os.main import app
+from dzik_os.models import RoleGrant, User, new_id
+from dzik_os.security import hash_password, login_rate_limiter
 
 COACH = {"email": "dzik@example.com", "password": "DzikTrener#2026"}
 CLIENT_A = {"email": "klient.a@example.com", "password": "KlientA#2026!x"}

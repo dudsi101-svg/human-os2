@@ -258,7 +258,7 @@ def export_my_data_excel(user: User = Depends(current_user), db: Session = Depen
         if not rows:
             ws.append(["(brak danych)"])
             continue
-        headers = sorted({k for row in rows for k in row.keys()})
+        headers = sorted({k for row in rows for k in row})
         ws.append(headers)
         for row in rows:
             ws.append([
