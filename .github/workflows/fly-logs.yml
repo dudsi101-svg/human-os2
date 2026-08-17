@@ -1,0 +1,22 @@
+# Diagnostyka: pobiera status i ostatnie logi aplikacji na Fly.io.
+# Uruchamiany ręcznie (workflow_dispatch); wynik czyta się w logu joba.
+
+name: Fly logs (diagnostyka)
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  logs:
+    runs-on: ubuntu-latest
+    env:
+      FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+      APP_NAME: dzik-os-panel
+    steps:
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+      - name: Status
+        run: flyctl status --app "$APP_NAME" || true
+      - name: Machines
+        run: flyctl machines list --app "$APP_NAME" || true
+      - name: Logs
+        run: timeout 30 flyctl logs --app "$APP_NAME" --no-tail || true
