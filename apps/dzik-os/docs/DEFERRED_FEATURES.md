@@ -8,7 +8,12 @@ Zgodnie z zakresem MVP (sekcja 13 briefu). Architektura ich nie blokuje.
 * wideorozmowy i komunikator czasu rzeczywistego (obecnie: asynchroniczne
   wątki wiadomości);
 * analiza techniki ćwiczeń przez computer vision;
-* pełna baza produktów spożywczych i automatyczne generowanie diet;
+* **autonomiczne (AI-driven) generowanie diety pozostaje poza zakresem** —
+  od 0.4.0 istnieje baza produktów z makro i kompozytor diety
+  (`POST /api/coach/diet-suggestion`), ale to wyłącznie deterministyczna
+  arytmetyka nad produktami **wybranymi przez trenera**, propose-only,
+  nic nie zapisuje automatycznie w planie klienta (patrz DATA_MODEL.md
+  §Baza wiedzy);
 * integracje z wearables;
 * natywne aplikacje iOS/Android (jest instalowalna PWA);
 * autonomiczny AI-coach; jakiekolwiek funkcje AI (patrz ADR-DZIK-001 §AI);

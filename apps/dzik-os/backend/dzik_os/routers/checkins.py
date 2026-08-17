@@ -30,6 +30,7 @@ def _checkin_out(db: Session, c: WeeklyCheckin) -> dict:
         "coach_response": c.coach_response,
         "reviewed_by": c.reviewed_by,
         "reviewed_at": c.reviewed_at,
+        "rating": c.rating,
         "photo_ids": [p.file_id for p in photos],
     }
 
@@ -157,13 +158,16 @@ def review_checkin(
     checkin.status = "REVIEWED"
     checkin.reviewed_by = coach.id
     checkin.reviewed_at = now_iso()
+    checkin.rating = body.rating
     record_event(
         db,
         action="CHECKIN_REVIEWED",
         actor_id=coach.id,
         subject_ids=[checkin.client_id],
-        payload={"checkin_id": checkin.id, "week_start": checkin.week_start},
-        summary=f"Odpowiedź trenera na raport {checkin.week_start}",
+        payload={"checkin_id": checkin.id, "week_start": checkin.week_start,
+                 "rating": body.rating},
+        summary=f"Odpowiedź trenera na raport {checkin.week_start}"
+        + (f" (ocena {body.rating}/5)" if body.rating else ""),
     )
     db.commit()
     return {"ok": True}

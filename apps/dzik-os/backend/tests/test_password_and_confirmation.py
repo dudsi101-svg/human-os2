@@ -133,11 +133,13 @@ def test_migrations_apply_to_existing_v1_database(tmp_path):
         conn.execute(text("CREATE TABLE users (id VARCHAR(40) PRIMARY KEY)"))
         conn.execute(text("CREATE TABLE consents (id VARCHAR(40) PRIMARY KEY)"))
         conn.execute(text("CREATE TABLE schedule_items (id VARCHAR(40) PRIMARY KEY)"))
+        conn.execute(text("CREATE TABLE weekly_checkins (id VARCHAR(40) PRIMARY KEY)"))
     applied = run_migrations(eng)
     assert applied == [v for v, _, _ in MIGRATIONS if v != 1]
     with eng.connect() as conn:
         cols_u = [r[1] for r in conn.exec_driver_sql("PRAGMA table_info(users)")]
         cols_c = [r[1] for r in conn.exec_driver_sql("PRAGMA table_info(consents)")]
+        cols_w = [r[1] for r in conn.exec_driver_sql("PRAGMA table_info(weekly_checkins)")]
         tables = {
             r[0] for r in conn.exec_driver_sql(
                 "SELECT name FROM sqlite_master WHERE type='table'"
@@ -145,4 +147,6 @@ def test_migrations_apply_to_existing_v1_database(tmp_path):
         }
     assert "must_change_password" in cols_u
     assert "confirmed_at" in cols_c
+    assert "rating" in cols_w
     assert {"schedule_completions", "observations", "daily_nutrition_logs"} <= tables
+    assert {"exercises", "food_products"} <= tables

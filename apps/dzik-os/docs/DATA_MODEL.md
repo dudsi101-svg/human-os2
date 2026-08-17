@@ -44,7 +44,7 @@ Migracje: `db.py` — rejestr `schema_migrations`, wersja 1 = schemat MVP.
 |---|---|
 | `schedule_items` | kategoria (TRENING/POSILEK/NAWODNIENIE/REGENERACJA/SUPLEMENT/POMIAR/RAPORT/PLATNOSC/INNE), pora, dni tygodnia, autor_id + author_note (proweniencja zalecenia), status |
 | `reminders` | jednorazowe przypomnienia trenera |
-| `weekly_checkins` | payload_json (formularz), status SUBMITTED/REVIEWED, revision, coach_response |
+| `weekly_checkins` | payload_json (formularz), status SUBMITTED/REVIEWED, revision, coach_response, rating (1-5, opcjonalna ocena **raportu** przez trenera — nie ocena osoby) |
 | `checkin_revisions` | poprzednie wersje poprawianych raportów (append-only) |
 
 ## Pomiary i pliki
@@ -74,6 +74,18 @@ osobnym magazynem danych, tylko odczytem z istniejących tabel.
 | Tabela | Uwagi |
 |---|---|
 | `knowledge_items` | materiał trenera (artykuł/link/plik): title, category, body, external_url, file_id, pinned, status ACTIVE/ARCHIVED. **Broadcast**, nie per-klient — widoczny dla wszystkich aktywnie prowadzonych klientów danego trenera (`coach_id`), nie przechodzi przez `resolve_client_access` bo to własność trenera, nie dane klienta. |
+| `exercises` | know-how ćwiczeń: name, muscle_group (NOGI/PLECY/KLATKA/BARKI/RECE/BRZUCH/CALE_CIALO/MOBILNOSC/INNE), how_to, benefit, equipment, video_url, status. **Broadcast**, ten sam wzorzec co `knowledge_items`. |
+| `food_products` | baza produktów: name, category, kcal_100g/protein_100g/fat_100g/carbs_100g, default_portion_g, status. **Broadcast**, ten sam wzorzec co `knowledge_items`. Przeliczenie na porcję (kcal/makro × gramatura/100) jest czystą arytmetyką po stronie frontendu — nie osobnym magazynem danych. |
+
+**Kompozytor diety** (`POST /api/coach/diet-suggestion`, trener-only, nic
+nie zapisuje) nie ma własnej tabeli — bierze `target_kcal/protein_g/
+fat_g/carbs_g` i listę `product_ids` **wybranych przez trenera**,
+klasyfikuje każdy produkt wg makroskładnika o największym udziale
+kalorycznym (deterministyczna reguła, nie AI), dzieli cel danego makro
+równo między produkty tej kategorii i zwraca gramaturę + kcal/makro per
+produkt jako **sugestię do ręcznego wpisania** w `nutrition_plan_versions`
+— zgodnie z zasadą Human OS, że AI/algorytm nigdy nie generuje ani nie
+zmienia diety autonomicznie.
 
 ## Komunikacja i płatności
 

@@ -10,6 +10,9 @@ from ..db import get_db
 from ..hos_bridge import ConsentService, record_event
 from ..models import (
     CoachClientRelationship,
+    Exercise,
+    FoodProduct,
+    KnowledgeItem,
     Message,
     MessageThread,
     Observation,
@@ -99,6 +102,79 @@ def create_client(
     return {"client_id": client.id, "relationship_id": rel.id}
 
 
+def _client_flags(db: Session, coach: User, client: User, today) -> dict:
+    """Obiektywne flagi operacyjne dla jednego klienta — współdzielone
+    przez listę klientów i dashboard trenera, by uniknąć rozjazdu logiki."""
+    last_checkin = (
+        db.query(WeeklyCheckin)
+        .filter(WeeklyCheckin.client_id == client.id)
+        .order_by(WeeklyCheckin.week_start.desc())
+        .first()
+    )
+    checkin_overdue = (
+        last_checkin is None
+        or (today - datetime.fromisoformat(last_checkin.week_start).date()).days > 13
+    )
+    awaiting_review = (
+        db.query(WeeklyCheckin)
+        .filter(WeeklyCheckin.client_id == client.id, WeeklyCheckin.status == "SUBMITTED")
+        .count()
+        > 0
+    )
+    overdue_payment = (
+        db.query(PaymentRecord)
+        .join(PaymentSchedule, PaymentRecord.schedule_id == PaymentSchedule.id)
+        .filter(
+            PaymentSchedule.client_id == client.id,
+            PaymentSchedule.coach_id == coach.id,
+            PaymentRecord.status.in_(["PENDING", "OVERDUE"]),
+            PaymentRecord.due_date < today.isoformat(),
+        )
+        .count()
+    )
+    thread = (
+        db.query(MessageThread).filter_by(coach_id=coach.id, client_id=client.id).one_or_none()
+    )
+    unread = 0
+    if thread:
+        unread = (
+            db.query(Message)
+            .filter(
+                Message.thread_id == thread.id,
+                Message.author_id == client.id,
+                Message.read_at.is_(None),
+            )
+            .count()
+        )
+    recent_pain = (
+        db.query(WorkoutSession)
+        .filter(
+            WorkoutSession.client_id == client.id,
+            WorkoutSession.pain_flag.is_(True),
+            WorkoutSession.performed_on >= (today - timedelta(days=14)).isoformat(),
+        )
+        .count()
+    )
+    flagged_observations = (
+        db.query(Observation)
+        .filter(
+            Observation.client_id == client.id,
+            Observation.severity == "NIEPOKOJACE",
+            Observation.occurred_on >= (today - timedelta(days=14)).isoformat(),
+        )
+        .count()
+    )
+    return {
+        "checkin_overdue": checkin_overdue,
+        "awaiting_review": awaiting_review,
+        "payment_overdue": overdue_payment > 0,
+        "unread_messages": unread,
+        "recent_pain_reports": recent_pain,
+        "flagged_observations": flagged_observations,
+        "last_checkin_week": last_checkin.week_start if last_checkin else None,
+    }
+
+
 @router.get("/clients")
 def list_clients(
     coach: User = Depends(require_role("COACH")),
@@ -120,61 +196,7 @@ def list_clients(
             db, subject_id=client.id, grantee_id=coach.id,
             purpose=CONSENT_PURPOSE, domain=CONSENT_DOMAIN, action="read", sensitive=True,
         )
-        last_checkin = (
-            db.query(WeeklyCheckin)
-            .filter(WeeklyCheckin.client_id == client.id)
-            .order_by(WeeklyCheckin.week_start.desc())
-            .first()
-        )
-        checkin_overdue = (
-            last_checkin is None
-            or (today - datetime.fromisoformat(last_checkin.week_start).date()).days > 13
-        )
-        overdue_payment = (
-            db.query(PaymentRecord)
-            .join(PaymentSchedule, PaymentRecord.schedule_id == PaymentSchedule.id)
-            .filter(
-                PaymentSchedule.client_id == client.id,
-                PaymentSchedule.coach_id == coach.id,
-                PaymentRecord.status.in_(["PENDING", "OVERDUE"]),
-                PaymentRecord.due_date < today.isoformat(),
-            )
-            .count()
-        )
-        thread = (
-            db.query(MessageThread)
-            .filter_by(coach_id=coach.id, client_id=client.id)
-            .one_or_none()
-        )
-        unread = 0
-        if thread:
-            unread = (
-                db.query(Message)
-                .filter(
-                    Message.thread_id == thread.id,
-                    Message.author_id == client.id,
-                    Message.read_at.is_(None),
-                )
-                .count()
-            )
-        recent_pain = (
-            db.query(WorkoutSession)
-            .filter(
-                WorkoutSession.client_id == client.id,
-                WorkoutSession.pain_flag.is_(True),
-                WorkoutSession.performed_on >= (today - timedelta(days=14)).isoformat(),
-            )
-            .count()
-        )
-        flagged_observations = (
-            db.query(Observation)
-            .filter(
-                Observation.client_id == client.id,
-                Observation.severity == "NIEPOKOJACE",
-                Observation.occurred_on >= (today - timedelta(days=14)).isoformat(),
-            )
-            .count()
-        )
+        flags = _client_flags(db, coach, client, today)
         out.append(
             {
                 "client_id": client.id,
@@ -183,16 +205,79 @@ def list_clients(
                 "relationship_status": rel.status,
                 "consent_active": has_consent,
                 "flags": {
-                    "checkin_overdue": checkin_overdue,
-                    "payment_overdue": overdue_payment > 0,
-                    "unread_messages": unread,
-                    "recent_pain_reports": recent_pain,
-                    "flagged_observations": flagged_observations,
+                    "checkin_overdue": flags["checkin_overdue"],
+                    "awaiting_review": flags["awaiting_review"],
+                    "payment_overdue": flags["payment_overdue"],
+                    "unread_messages": flags["unread_messages"],
+                    "recent_pain_reports": flags["recent_pain_reports"],
+                    "flagged_observations": flags["flagged_observations"],
                 },
-                "last_checkin_week": last_checkin.week_start if last_checkin else None,
+                "last_checkin_week": flags["last_checkin_week"],
             }
         )
     return {"clients": out}
+
+
+@router.get("/dashboard")
+def coach_dashboard(
+    coach: User = Depends(require_role("COACH")),
+    db: Session = Depends(get_db),
+):
+    """Agregaty operacyjne panelu trenera — metadane o pracy trenera
+    (ile raportów czeka, ile płatności zalega itd.), nigdy ranking ani
+    ocena klientów (zasada Human OS: system nie rankinguje ludzi)."""
+    rels = (
+        db.query(CoachClientRelationship)
+        .filter(CoachClientRelationship.coach_id == coach.id, CoachClientRelationship.status == "ACTIVE")
+        .all()
+    )
+    today = datetime.now(UTC).date()
+    active_clients = len(rels)
+    awaiting_review = 0
+    checkin_overdue_clients = 0
+    payment_overdue_clients = 0
+    unread_messages_total = 0
+    flagged_observations_14d = 0
+    recent_pain_reports_14d = 0
+    for rel in rels:
+        client = db.get(User, rel.client_id)
+        if client is None:
+            continue
+        flags = _client_flags(db, coach, client, today)
+        if flags["awaiting_review"]:
+            awaiting_review += 1
+        if flags["checkin_overdue"]:
+            checkin_overdue_clients += 1
+        if flags["payment_overdue"]:
+            payment_overdue_clients += 1
+        unread_messages_total += flags["unread_messages"]
+        flagged_observations_14d += flags["flagged_observations"]
+        recent_pain_reports_14d += flags["recent_pain_reports"]
+    exercises_count = (
+        db.query(Exercise).filter(Exercise.coach_id == coach.id, Exercise.status == "ACTIVE").count()
+    )
+    food_products_count = (
+        db.query(FoodProduct)
+        .filter(FoodProduct.coach_id == coach.id, FoodProduct.status == "ACTIVE")
+        .count()
+    )
+    knowledge_items_count = (
+        db.query(KnowledgeItem)
+        .filter(KnowledgeItem.coach_id == coach.id, KnowledgeItem.status == "ACTIVE")
+        .count()
+    )
+    return {
+        "active_clients": active_clients,
+        "awaiting_review": awaiting_review,
+        "checkin_overdue_clients": checkin_overdue_clients,
+        "payment_overdue_clients": payment_overdue_clients,
+        "unread_messages_total": unread_messages_total,
+        "flagged_observations_14d": flagged_observations_14d,
+        "recent_pain_reports_14d": recent_pain_reports_14d,
+        "exercises_count": exercises_count,
+        "food_products_count": food_products_count,
+        "knowledge_items_count": knowledge_items_count,
+    }
 
 
 @router.post("/clients/{client_id}/relationship-status")

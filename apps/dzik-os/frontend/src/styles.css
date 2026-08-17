@@ -189,6 +189,7 @@ textarea { min-height: 84px; resize: vertical; }
 .alert { border-radius: var(--radius-sm); padding: 10px 12px; margin: 10px 0; font-size: 0.9rem; }
 .alert--error { background: rgba(255, 122, 122, 0.12); color: var(--danger); }
 .alert--info { background: var(--accent-soft); color: var(--accent); }
+.alert--warn { background: rgba(240, 180, 80, 0.12); color: var(--warn); }
 
 table.simple { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
 table.simple th, table.simple td {

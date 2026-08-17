@@ -2,10 +2,12 @@
 
 ## Start
 
-Zaloguj się swoim e-mailem i hasłem. Po zalogowaniu widzisz **listę
-klientów** z flagami: zaległy raport, zaległa płatność, nowe wiadomości,
-zgłoszony ból. Filtry u góry pozwalają szybko znaleźć klientów
-wymagających uwagi.
+Zaloguj się swoim e-mailem i hasłem. Po zalogowaniu widzisz **Dashboard**
+(aktywni klienci, raporty do oceny, zaległe raporty/płatności,
+nieprzeczytane wiadomości, obserwacje z ostatnich 14 dni) i pod nim
+**listę klientów** z flagami: zaległy raport, zaległa płatność, nowe
+wiadomości, zgłoszony ból. Filtry u góry pozwalają szybko znaleźć
+klientów wymagających uwagi.
 
 ## Nowy podopieczny
 
@@ -31,8 +33,10 @@ wymagających uwagi.
   tylko przypomina o planie wpisanym przez człowieka i nigdy sama nie
   ustala dawek.
 * **Raporty** — raporty tygodniowe klienta (masa, skale 1–5, zdjęcia,
-  pytania, ból). Odpowiedz i oznacz jako oceniony; na tej podstawie twórz
-  nową wersję planu.
+  pytania, ból). Opcjonalnie skorzystaj z podsumowania AI (jeśli
+  skonfigurowane), odpowiedz, opcjonalnie oceń raport (1–5 — to ocena
+  **kompletności/jakości raportu**, nie klienta) i oznacz jako oceniony;
+  na tej podstawie twórz nową wersję planu.
 * **Pomiary** — wykresy masy i obwodów w czasie.
 * **Płatności** — utwórz pakiet (nazwa, kwota, okres, pierwszy termin);
   oznaczaj wpłaty jako opłacone, dodawaj kolejne terminy. Klient widzi
@@ -44,6 +48,24 @@ wymagających uwagi.
 
 Zakładka „Szablony": twórz plany bez przypisanego klienta i odtwarzaj je
 przy zakładaniu planu klientowi.
+
+## Baza wiedzy
+
+Zakładka „Wiedza" ma cztery karty:
+
+* **Artykuły** — materiały (tekst, link, załącznik) widoczne dla
+  wszystkich aktywnie prowadzonych klientów.
+* **Ćwiczenia** — Twoje know-how: nazwa, partia mięśniowa, jak wykonać,
+  co to daje, sprzęt, link do wideo. Widoczne dla klientów w ich własnej
+  bazie wiedzy.
+* **Produkty** — baza produktów z kaloriami i makro na 100 g; wpisz
+  gramaturę porcji, żeby zobaczyć automatyczne przeliczenie. Klienci
+  widzą tę samą bazę z kalkulatorem porcji u siebie.
+* **Kompozytor diety** — podaj cel (kcal + białko/tłuszcz/węglowodany),
+  zaznacz produkty z bazy, a system rozłoży cel na gramaturę wg
+  dominującego makroskładnika każdego produktu. To wyłącznie przejrzysta
+  arytmetyka — **nic nie zapisuje się automatycznie**; wynik skopiuj i
+  wklej ręcznie do zakładki „Dieta" klienta, jeśli Ci odpowiada.
 
 ## Zasady
 

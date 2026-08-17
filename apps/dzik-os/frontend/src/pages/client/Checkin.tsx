@@ -166,6 +166,11 @@ export default function Checkin() {
           {c.coach_response && (
             <div className="alert alert--info" style={{ marginTop: 8 }}>
               <b>Odpowiedź trenera:</b> {c.coach_response}
+              {c.rating != null && (
+                <div style={{ marginTop: 4 }}>
+                  <span className="badge badge--accent">Ocena raportu: {c.rating}/5</span>
+                </div>
+              )}
             </div>
           )}
         </div>

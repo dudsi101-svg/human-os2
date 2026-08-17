@@ -5,10 +5,11 @@ Prosta aplikacja domenowa dla internetowego trenera personalnego
 **Human OS** (`hos_engine`). Jedna przestrzeń zamiast WhatsAppa, arkuszy
 i PDF-ów: plan treningowy, dieta, harmonogram, raporty tygodniowe,
 pomiary, monitoring w czasie (cel, trendy, adherencja, dziennik
-obserwacji), baza wiedzy, wiadomości (w tym głosowe), dokumenty i
-płatności.
+obserwacji), baza wiedzy (artykuły, know-how ćwiczeń z podziałem na
+partie, baza produktów z makro i kompozytor diety), wiadomości (w tym
+głosowe), dokumenty, płatności i dashboard trenera.
 
-Status: **MVP + monitoring + baza wiedzy (0.3.0)** · Język: polski · Licencja kodu: Apache-2.0
+Status: **MVP + monitoring + baza wiedzy + know-how + dashboard (0.4.0)** · Język: polski · Licencja kodu: Apache-2.0
 
 ## Zasady (fundamenty Human OS)
 
@@ -55,7 +56,7 @@ docker compose -f apps/dzik-os/docker-compose.yml run --rm seed   # dane demo
 ## Testy
 
 ```bash
-pytest apps/dzik-os/backend/tests -q   # 50 testów API/uprawnień/audytu
+pytest apps/dzik-os/backend/tests -q   # 92 testy API/uprawnień/audytu
 pytest tests/ -q                       # 275 testów regresyjnych Core
 pytest apps/dzik-os/e2e -q             # 3 testy E2E w przeglądarce (po npm run build)
 ruff check apps/dzik-os/backend
@@ -68,7 +69,7 @@ ruff check apps/dzik-os/backend
 | [docs/PRODUCT_BRIEF.md](docs/PRODUCT_BRIEF.md) | Cel produktu, role, zakres MVP |
 | [docs/REQUIREMENTS_MAP.md](docs/REQUIREMENTS_MAP.md) | Mapa wymagań → implementacja → testy |
 | [docs/ACCEPTANCE_CRITERIA.md](docs/ACCEPTANCE_CRITERIA.md) | Kryteria ukończenia ze statusem weryfikacji |
-| [docs/DATA_MODEL.md](docs/DATA_MODEL.md) | Model danych (27 tabel) |
+| [docs/DATA_MODEL.md](docs/DATA_MODEL.md) | Model danych (33 tabele) |
 | [docs/PERMISSIONS.md](docs/PERMISSIONS.md) | Role i reguły dostępu |
 | [docs/DATA_PROCESSING_MAP.md](docs/DATA_PROCESSING_MAP.md) | Mapa przetwarzania danych (RODO) |
 | [docs/RISK_REGISTER.md](docs/RISK_REGISTER.md) | Rejestr ryzyk |

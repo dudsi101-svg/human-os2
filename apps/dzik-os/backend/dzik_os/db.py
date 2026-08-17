@@ -102,6 +102,44 @@ MIGRATIONS: list[tuple[int, str, list[str]]] = [
         """,
         "CREATE INDEX IF NOT EXISTS ix_knowledge_items_coach ON knowledge_items(coach_id)",
     ]),
+    (5, "exercise + food product catalog, checkin rating", [
+        "ALTER TABLE weekly_checkins ADD COLUMN rating INTEGER",
+        """
+        CREATE TABLE IF NOT EXISTS exercises (
+            id VARCHAR(40) PRIMARY KEY,
+            coach_id VARCHAR(40) NOT NULL REFERENCES users(id),
+            name VARCHAR(300) NOT NULL,
+            muscle_group VARCHAR(30) NOT NULL,
+            how_to TEXT NOT NULL,
+            benefit TEXT,
+            equipment VARCHAR(200),
+            video_url VARCHAR(500),
+            status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
+            created_by VARCHAR(40) NOT NULL,
+            created_at VARCHAR(40) NOT NULL,
+            updated_at VARCHAR(40) NOT NULL
+        )
+        """,
+        "CREATE INDEX IF NOT EXISTS ix_exercises_coach ON exercises(coach_id)",
+        """
+        CREATE TABLE IF NOT EXISTS food_products (
+            id VARCHAR(40) PRIMARY KEY,
+            coach_id VARCHAR(40) NOT NULL REFERENCES users(id),
+            name VARCHAR(300) NOT NULL,
+            category VARCHAR(80) NOT NULL DEFAULT 'Inne',
+            kcal_100g FLOAT NOT NULL,
+            protein_100g FLOAT NOT NULL,
+            fat_100g FLOAT NOT NULL,
+            carbs_100g FLOAT NOT NULL,
+            default_portion_g FLOAT,
+            status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
+            created_by VARCHAR(40) NOT NULL,
+            created_at VARCHAR(40) NOT NULL,
+            updated_at VARCHAR(40) NOT NULL
+        )
+        """,
+        "CREATE INDEX IF NOT EXISTS ix_food_products_coach ON food_products(coach_id)",
+    ]),
 ]
 
 

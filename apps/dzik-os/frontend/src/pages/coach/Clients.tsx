@@ -2,22 +2,27 @@ import { FormEvent, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api, plDate } from "../../api";
 import { ErrorBox, LogoutButton, Spinner, TopBar } from "../../components";
-import { CoachClientRow } from "../../types";
+import { CoachClientRow, CoachDashboardData } from "../../types";
 
-type Filter = "all" | "checkin" | "payment" | "messages" | "pain" | "observation";
+type Filter = "all" | "review" | "checkin" | "payment" | "messages" | "pain" | "observation";
 
 export default function Clients() {
   const [clients, setClients] = useState<CoachClientRow[] | null>(null);
+  const [dashboard, setDashboard] = useState<CoachDashboardData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
   const [showNew, setShowNew] = useState(false);
   const [newClient, setNewClient] = useState({ client_name: "", client_email: "", initial_password: "" });
 
-  const load = () =>
+  const load = () => {
     api.get<{ clients: CoachClientRow[] }>("/api/coach/clients")
       .then((d) => setClients(d.clients))
       .catch((e) => setError(e.message));
+    api.get<CoachDashboardData>("/api/coach/dashboard")
+      .then(setDashboard)
+      .catch(() => undefined);
+  };
   useEffect(() => { load(); }, []);
 
   async function createClient(e: FormEvent) {
@@ -39,6 +44,7 @@ export default function Clients() {
     if (query && !c.display_name.toLowerCase().includes(query.toLowerCase()) &&
         !c.email.toLowerCase().includes(query.toLowerCase())) return false;
     switch (filter) {
+      case "review": return c.flags.awaiting_review;
       case "checkin": return c.flags.checkin_overdue;
       case "payment": return c.flags.payment_overdue;
       case "messages": return c.flags.unread_messages > 0;
@@ -52,6 +58,22 @@ export default function Clients() {
     <div className="page page--wide">
       <TopBar title="Klienci" right={<LogoutButton />} />
       <ErrorBox error={error} />
+      {dashboard && (
+        <div className="card" style={{ marginBottom: 10 }}>
+          <h3 style={{ marginTop: 0 }}>Dashboard</h3>
+          <p className="dim" style={{ fontSize: "0.82rem", marginTop: -4 }}>
+            Metadane operacyjne — co wymaga Twojej uwagi teraz, nie ranking klientów.
+          </p>
+          <div className="stat-grid">
+            <div className="stat"><b>{dashboard.active_clients}</b><span>aktywni klienci</span></div>
+            <div className="stat"><b>{dashboard.awaiting_review}</b><span>raporty do oceny</span></div>
+            <div className="stat"><b>{dashboard.checkin_overdue_clients}</b><span>zaległe raporty</span></div>
+            <div className="stat"><b>{dashboard.payment_overdue_clients}</b><span>zaległe płatności</span></div>
+            <div className="stat"><b>{dashboard.unread_messages_total}</b><span>nieprzeczytane wiadomości</span></div>
+            <div className="stat"><b>{dashboard.flagged_observations_14d}</b><span>obserwacje (14 dni)</span></div>
+          </div>
+        </div>
+      )}
       <div className="row" style={{ marginBottom: 10 }}>
         <input placeholder="Szukaj po nazwisku lub e-mailu…" value={query}
           onChange={(e) => setQuery(e.target.value)} className="grow" />
@@ -84,6 +106,7 @@ export default function Clients() {
       <div className="tabs">
         {([
           ["all", `Wszyscy (${clients.length})`],
+          ["review", `Raport do oceny (${clients.filter((c) => c.flags.awaiting_review).length})`],
           ["checkin", `Zaległy raport (${clients.filter((c) => c.flags.checkin_overdue).length})`],
           ["payment", `Zaległa płatność (${clients.filter((c) => c.flags.payment_overdue).length})`],
           ["messages", `Nowe wiadomości (${clients.filter((c) => c.flags.unread_messages > 0).length})`],
@@ -105,7 +128,8 @@ export default function Clients() {
                 {c.relationship_status !== "ACTIVE" && (
                   <span className="badge">{c.relationship_status === "PAUSED" ? "pauza" : "zakończona"}</span>
                 )}
-                {c.flags.checkin_overdue && <span className="badge badge--warn">raport</span>}
+                {c.flags.awaiting_review && <span className="badge badge--accent">raport do oceny</span>}
+                {c.flags.checkin_overdue && <span className="badge badge--warn">zaległy raport</span>}
                 {c.flags.payment_overdue && <span className="badge badge--danger">płatność</span>}
                 {c.flags.unread_messages > 0 && (
                   <span className="badge badge--accent">✉ {c.flags.unread_messages}</span>

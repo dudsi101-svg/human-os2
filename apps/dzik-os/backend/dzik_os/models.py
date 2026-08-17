@@ -272,6 +272,11 @@ class WeeklyCheckin(Base):
     coach_response: Mapped[str | None] = mapped_column(Text, nullable=True)
     reviewed_by: Mapped[str | None] = mapped_column(String(40), nullable=True)
     reviewed_at: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    # Ocena raportu przez trenera (1-5) — subiektywna notatka trenera o
+    # jakości/kompletności RAPORTU, nie ocena wartości klienta jako osoby
+    # (zasada Human OS: system nigdy nie rankinguje ludzi). Opcjonalna,
+    # widoczna dla klienta obok odpowiedzi.
+    rating: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
 
 class CheckinRevision(Base):
@@ -486,6 +491,52 @@ class KnowledgeItem(Base):
     external_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     file_id: Mapped[str | None] = mapped_column(ForeignKey("files.id"), nullable=True)
     pinned: Mapped[bool] = mapped_column(Boolean, default=False)
+    status: Mapped[str] = mapped_column(String(20), default="ACTIVE")  # ACTIVE/ARCHIVED
+    created_by: Mapped[str] = mapped_column(String(40))
+    created_at: Mapped[str] = mapped_column(String(40), default=now_iso)
+    updated_at: Mapped[str] = mapped_column(String(40), default=now_iso)
+
+
+class Exercise(Base):
+    """Baza ćwiczeń (know-how trenera) — technika wykonania i efekt, z
+    podziałem na partie mięśniowe. Broadcast: własność trenera, widoczna
+    dla wszystkich aktywnie prowadzonych klientów (ten sam wzorzec co
+    KnowledgeItem) — to nie są dane zdrowotne konkretnego klienta, więc
+    nie przechodzi przez resolve_client_access."""
+
+    __tablename__ = "exercises"
+
+    id: Mapped[str] = mapped_column(String(40), primary_key=True)
+    coach_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
+    name: Mapped[str] = mapped_column(String(300))
+    # NOGI/PLECY/KLATKA/BARKI/RECE/BRZUCH/CALE_CIALO/MOBILNOSC/INNE
+    muscle_group: Mapped[str] = mapped_column(String(30))
+    how_to: Mapped[str] = mapped_column(Text)
+    benefit: Mapped[str | None] = mapped_column(Text, nullable=True)
+    equipment: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    video_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    status: Mapped[str] = mapped_column(String(20), default="ACTIVE")  # ACTIVE/ARCHIVED
+    created_by: Mapped[str] = mapped_column(String(40))
+    created_at: Mapped[str] = mapped_column(String(40), default=now_iso)
+    updated_at: Mapped[str] = mapped_column(String(40), default=now_iso)
+
+
+class FoodProduct(Base):
+    """Baza produktów spożywczych z makroskładnikami na 100 g — pozwala na
+    automatyczne przeliczenie kalorii/makro względem wielkości porcji.
+    Broadcast trenera, ten sam wzorzec co Exercise/KnowledgeItem."""
+
+    __tablename__ = "food_products"
+
+    id: Mapped[str] = mapped_column(String(40), primary_key=True)
+    coach_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
+    name: Mapped[str] = mapped_column(String(300))
+    category: Mapped[str] = mapped_column(String(80), default="Inne")
+    kcal_100g: Mapped[float] = mapped_column(Float)
+    protein_100g: Mapped[float] = mapped_column(Float)
+    fat_100g: Mapped[float] = mapped_column(Float)
+    carbs_100g: Mapped[float] = mapped_column(Float)
+    default_portion_g: Mapped[float | None] = mapped_column(Float, nullable=True)
     status: Mapped[str] = mapped_column(String(20), default="ACTIVE")  # ACTIVE/ARCHIVED
     created_by: Mapped[str] = mapped_column(String(40))
     created_at: Mapped[str] = mapped_column(String(40), default=now_iso)

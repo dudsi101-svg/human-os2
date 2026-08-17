@@ -124,6 +124,8 @@ class CheckinIn(BaseModel):
 
 class CheckinReviewIn(BaseModel):
     coach_response: str = Field(min_length=1, max_length=10000)
+    # Ocena RAPORTU (kompletność/jakość zapisu), nie oceną osoby — opcjonalna.
+    rating: int | None = Field(default=None, ge=1, le=5)
 
 
 class MeasurementIn(BaseModel):
@@ -226,3 +228,38 @@ class DocumentIn(BaseModel):
     file_id: str
     title: str = Field(min_length=1, max_length=300)
     category: str = Field(default="INNE", pattern="^(DIETA|PLAN|WYNIKI|INNE)$")
+
+
+class ExerciseLibraryItemIn(BaseModel):
+    name: str = Field(min_length=1, max_length=300)
+    muscle_group: str = Field(
+        pattern="^(NOGI|PLECY|KLATKA|BARKI|RECE|BRZUCH|CALE_CIALO|MOBILNOSC|INNE)$"
+    )
+    how_to: str = Field(min_length=1, max_length=5000)
+    benefit: str | None = Field(default=None, max_length=2000)
+    equipment: str | None = Field(default=None, max_length=200)
+    video_url: str | None = Field(default=None, max_length=500)
+
+
+class FoodProductIn(BaseModel):
+    name: str = Field(min_length=1, max_length=300)
+    category: str = Field(default="Inne", max_length=80)
+    kcal_100g: float = Field(ge=0, le=1000)
+    protein_100g: float = Field(ge=0, le=110)
+    fat_100g: float = Field(ge=0, le=110)
+    carbs_100g: float = Field(ge=0, le=110)
+    default_portion_g: float | None = Field(default=None, ge=0, le=5000)
+
+
+class DietSuggestionIn(BaseModel):
+    """Wejście kompozytora diety: cel kcal/makro + katalog produktów
+    WYBRANYCH PRZEZ TRENERA. Wynik to przejrzysta arytmetyka (podział celu
+    na gramaturę), nigdy autonomiczna generacja diety przez AI — zgodnie z
+    zasadą Human OS „propose-only”, plan nadal wymaga ręcznego wpisania
+    przez trenera do NutritionPlanVersion."""
+
+    target_kcal: int = Field(ge=0, le=20000)
+    target_protein_g: int = Field(default=0, ge=0, le=2000)
+    target_fat_g: int = Field(default=0, ge=0, le=2000)
+    target_carbs_g: int = Field(default=0, ge=0, le=4000)
+    product_ids: list[str] = Field(min_length=1, max_length=40)

@@ -1,5 +1,41 @@
 # Changelog — Dzik OS
 
+## 0.4.0 — 2026-08-17
+
+Baza wiedzy trenera rozszerzona o know-how ćwiczeń i produktów, kompozytor
+diety, ocena raportu i dashboard trenera; nowe logo z motywem dzika.
+
+* **Nowość — logo z motywem dzika**: nowy znak (głowa dzika w profilu:
+  ucho, ryj, kieł) zastępuje poprzedni abstrakcyjny zygzak — `Logo()`,
+  ikony PWA (`icon.svg`/192/512) i favicon zaktualizowane.
+* **Nowość — Baza ćwiczeń (know-how trenera)**: model `Exercise` z
+  podziałem na partie mięśniowe (nogi/plecy/klatka/barki/ręce/brzuch/
+  całe ciało/mobilność), techniką wykonania i efektem; CRUD trenera,
+  broadcast do aktywnie prowadzonych klientów (ten sam wzorzec co Baza
+  wiedzy) — nowa zakładka „Ćwiczenia" w panelu trenera i u klienta.
+* **Nowość — Baza produktów z makro**: model `FoodProduct` (kcal/białko/
+  tłuszcz/węglowodany na 100 g); zakładka „Produkty" z polem porcji (g),
+  które na bieżąco przelicza kalorie i makro — po stronie trenera i
+  klienta. Seed: ~40 typowych produktów w 8 kategoriach.
+* **Nowość — Kompozytor diety** (propose-only): trener podaje cel kcal +
+  makro i wybiera produkty z własnej bazy; `/api/coach/diet-suggestion`
+  zwraca przejrzysty, deterministyczny podział celu na gramaturę wg
+  dominującego makroskładnika każdego produktu (nigdy AI, nigdy
+  automatyczna generacja diety) — wynik jest tylko sugestią do ręcznego
+  wpisania w plan żywieniowy klienta, niczego nie zapisuje automatycznie.
+* **Nowość — Ocena raportu przez trenera**: opcjonalna ocena 1-5 obok
+  odpowiedzi na raport tygodniowy (`WeeklyCheckin.rating`) — dotyczy
+  kompletności/jakości samego raportu, nie jest oceną osoby (zasada
+  Human OS: system nie rankinguje ludzi); widoczna dla obu stron.
+* **Nowość — Dashboard trenera**: `GET /api/coach/dashboard` agreguje
+  metadane operacyjne (aktywni klienci, raporty do oceny, zaległe
+  raporty/płatności, nieprzeczytane wiadomości, obserwacje) na górze
+  listy klientów; nowa flaga i filtr „Raport do oceny".
+* Migracja schematu nr 5 (`weekly_checkins.rating`, tabele `exercises`,
+  `food_products`).
+* Testy: 74 → 92 (ćwiczenia, produkty, kompozytor diety, ocena raportu,
+  dashboard).
+
 ## 0.3.0 — 2026-08-17
 
 Czytelność raportów, baza wiedzy, propozycje AI, aktualizacje PWA i

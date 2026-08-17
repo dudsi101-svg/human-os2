@@ -32,11 +32,15 @@ termin raportu, status płatności i ostatnią wiadomość trenera.
 Raz w tygodniu: masa, liczba treningów, oceny 1–5 (energia, sen, głód,
 stres, regeneracja, dieta), zdjęcia sylwetki, komentarz i pytania.
 Możesz wysłać poprawkę — poprzednia wersja zostaje w historii. Odpowiedź
-trenera pojawi się przy raporcie.
+trenera pojawi się przy raporcie, czasem razem z oceną raportu (1–5) —
+to ocena kompletności raportu, nie Ciebie.
 
 ## Pozostałe (zakładka „Więcej")
 
 * **Pomiary i postępy** — dodawaj pomiary, oglądaj wykresy i zdjęcia;
+* **Baza wiedzy** — artykuły trenera, know-how ćwiczeń (partia, technika,
+  efekt) i baza produktów z makro — wpisz gramaturę porcji, żeby
+  zobaczyć automatyczne przeliczenie kalorii;
 * **Dokumenty i harmonogram** — pliki od trenera i pełny harmonogram
   (każdy element ma zapisanego autora);
 * **Płatności** — terminy i statusy; aplikacja nie przechowuje danych kart;

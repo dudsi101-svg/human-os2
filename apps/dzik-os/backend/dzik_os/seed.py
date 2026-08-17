@@ -24,6 +24,8 @@ from .hos_bridge import ConsentService, record_event
 from .models import (
     CoachClientRelationship,
     Document,
+    Exercise,
+    FoodProduct,
     Goal,
     Measurement,
     Message,
@@ -356,6 +358,7 @@ def seed() -> dict[str, str]:
             coach_response="Świetna robota. Interwały OK — 20 min, tętno do 160. "
                            "Od przyszłego tygodnia przysiad 105 kg (plan v2).",
             reviewed_by=coach.id,
+            rating=5,
         )
         db.add(checkin)
         record_event(db, action="CHECKIN_SUBMITTED", actor_id=client_a.id,
@@ -425,6 +428,111 @@ def seed() -> dict[str, str]:
         db.add(PaymentRecord(id=new_id("PAY"), schedule_id=pay_b.id,
                              due_date=(today - timedelta(days=5)).isoformat(),
                              amount_cents=30000, status="PENDING"))
+
+        # --- Baza ćwiczeń trenera (know-how: partia, technika, efekt) ---
+        exercise_rows = [
+            {"name": "Przysiad ze sztangą", "group": "NOGI", "equipment": "Sztanga, stojak",
+             "how_to": "Sztanga na plecach (high/low bar), stopy na szerokość barków. Zejście z kontrolą do pełnego zakresu (uda min. równolegle do podłoża), kolana w linii ze stopami, plecy neutralne. Wstań napędem z pięt/całej stopy.",
+             "benefit": "Buduje siłę i masę całych nóg oraz core; przenosi się na większość sportów i czynności dnia codziennego."},
+            {"name": "Wykrok w chodzie z hantlami", "group": "NOGI", "equipment": "Hantle",
+             "how_to": "Krok do przodu, zejście do kąta ~90° w obu kolanach, tułów pionowo. Odepchnij się przednią nogą do kolejnego kroku.",
+             "benefit": "Siła jednostronna nóg, stabilizacja i balans — zmniejsza asymetrie między nogami."},
+            {"name": "Rumuński martwy ciąg", "group": "NOGI", "equipment": "Sztanga",
+             "how_to": "Sztanga blisko ud, lekkie ugięcie kolan, biodra cofasz do tyłu z plecami neutralnymi, aż poczujesz rozciągnięcie dwugłowych. Wróć napędem z bioder.",
+             "benefit": "Siła i rozciągliwość tylnej taśmy (dwugłowe, pośladki) — kluczowe dla zdrowia dolnego odcinka pleców."},
+            {"name": "Wyciskanie sztangi leżąc", "group": "KLATKA", "equipment": "Sztanga, ławka",
+             "how_to": "Leżenie na ławce, łopatki ściągnięte i przywiedzione, stopy mocno na podłodze. Opuść sztangę do dolnej części klatki, wypchnij po łuku do góry.",
+             "benefit": "Podstawowe ćwiczenie na siłę i masę klatki piersiowej, barków przednich i tricepsów."},
+            {"name": "Rozpiętki z hantlami", "group": "KLATKA", "equipment": "Hantle, ławka",
+             "how_to": "Leżenie na ławce, hantle nad klatką z lekko ugiętymi łokciami. Opuść ramiona w łuku na boki do wyczucia rozciągnięcia, wróć tym samym torem.",
+             "benefit": "Izolowane rozciągnięcie i praca klatki piersiowej — dobre uzupełnienie ćwiczeń wielostawowych."},
+            {"name": "Podciąganie nachwytem", "group": "PLECY", "equipment": "Drążek",
+             "how_to": "Chwyt nieco szerzej niż barki, start z pełnego zwisu. Podciągnij się aż broda nad drążek, kontrolowany powrót do pełnego wyprostu ramion.",
+             "benefit": "Buduje siłę i szerokość pleców (najszersze) oraz siłę chwytu."},
+            {"name": "Wiosłowanie sztangą w opadzie", "group": "PLECY", "equipment": "Sztanga",
+             "how_to": "Tułów pochylony ~45°, plecy neutralne. Przyciągnij sztangę do dolnej części brzucha, łopatki ściągnij na szczycie ruchu.",
+             "benefit": "Grubość pleców i siła pociągu — ważna równowaga dla ćwiczeń pchających (klatka)."},
+            {"name": "Wyciskanie żołnierskie (OHP)", "group": "BARKI", "equipment": "Sztanga",
+             "how_to": "Sztanga na wysokości obojczyków, chwyt na szerokość barków. Wypchnij pionowo nad głowę bez odchylania tułowia, kontroluj powrót.",
+             "benefit": "Siła i masa barków oraz stabilizacja core przy pracy nad głową."},
+            {"name": "Unoszenie hantli bokiem", "group": "BARKI", "equipment": "Hantle",
+             "how_to": "Hantle przy udach, lekko ugięte łokcie. Unieś ramiona bokiem do wysokości barków, kontrolowany powrót — bez bujania tułowiem.",
+             "benefit": "Izolacja mięśnia naramiennego środkowego — szerokość barków w sylwetce."},
+            {"name": "Uginanie ramion ze sztangą", "group": "RECE", "equipment": "Sztanga",
+             "how_to": "Łokcie przy tułowiu przez cały ruch. Ugnij ramiona unosząc sztangę, kontrolowany powrót bez bujania.",
+             "benefit": "Siła i masa bicepsów; kontrola ekscentryczna chroni łokcie."},
+            {"name": "Prostowanie ramion na wyciągu", "group": "RECE", "equipment": "Wyciąg",
+             "how_to": "Łokcie przy tułowiu, chwyt drążka/liny na wyciągu górnym. Wyprostuj ramiona w dół, kontrolowany powrót.",
+             "benefit": "Izolacja tricepsów — dopełnienie ćwiczeń pchających."},
+            {"name": "Plank (deska)", "group": "BRZUCH", "equipment": "Brak",
+             "how_to": "Podpór na przedramionach i palcach stóp, ciało w jednej linii od głowy do pięt, biodra ani uniesione, ani opadnięte. Napnij brzuch i pośladki, oddychaj spokojnie.",
+             "benefit": "Stabilizacja core (odcinek lędźwiowy) — baza pod ciężkie ćwiczenia wielostawowe."},
+            {"name": "Martwy ciąg klasyczny", "group": "CALE_CIALO", "equipment": "Sztanga",
+             "how_to": "Sztanga nad środkiem stopy, chwyt tuż za kolanami, plecy neutralne, biodra wyżej niż w przysiadzie. Wstań napędem z nóg i bioder, sztanga blisko ciała przez cały ruch.",
+             "benefit": "Jedno z najbardziej kompleksowych ćwiczeń — siła całego łańcucha tylnego, chwytu i core."},
+            {"name": "Wspinaczka wysokiego kolana / marsz", "group": "MOBILNOSC", "equipment": "Brak",
+             "how_to": "Aktywna rozgrzewka: naprzemienne unoszenie kolan do klatki w marszu lub truchcie, tempo umiarkowane.",
+             "benefit": "Podnosi tętno i mobilność bioder przed treningiem — mniejsze ryzyko kontuzji."},
+            {"name": "Rozciąganie zginaczy bioder w wykroku", "group": "MOBILNOSC", "equipment": "Brak",
+             "how_to": "Głęboki wykrok, biodro tylnej nogi przesuń do przodu aż do wyczucia rozciągnięcia z przodu biodra. Trzymaj 30-40 s na stronę.",
+             "benefit": "Poprawia zakres ruchu bioder — pomaga przy przysiadzie i martwym ciągu, szczególnie przy pracy siedzącej na co dzień."},
+        ]
+        for row in exercise_rows:
+            db.add(Exercise(
+                id=new_id("EXC"), coach_id=coach.id, name=row["name"],
+                muscle_group=row["group"], how_to=row["how_to"], benefit=row["benefit"],
+                equipment=row["equipment"], created_by=coach.id,
+            ))
+
+        # --- Baza produktów spożywczych (makro na 100 g) ---
+        food_rows = [
+            ("Pierś z kurczaka, surowa", "Mięso i ryby", 110, 23.0, 1.5, 0.0, 150),
+            ("Indyk, pierś, surowa", "Mięso i ryby", 104, 22.0, 1.2, 0.0, 150),
+            ("Wołowina chuda, surowa", "Mięso i ryby", 158, 21.0, 8.0, 0.0, 150),
+            ("Łosoś, surowy", "Mięso i ryby", 208, 20.0, 13.0, 0.0, 150),
+            ("Dorsz, surowy", "Mięso i ryby", 82, 18.0, 0.7, 0.0, 150),
+            ("Tuńczyk w wodzie, odsączony", "Mięso i ryby", 116, 26.0, 1.0, 0.0, 100),
+            ("Jaja kurze, całe", "Nabiał i jaja", 143, 12.6, 9.5, 0.7, 120),
+            ("Białko jaja kurzego", "Nabiał i jaja", 52, 11.0, 0.2, 0.7, 100),
+            ("Twaróg półtłusty", "Nabiał i jaja", 133, 18.0, 5.5, 3.7, 200),
+            ("Jogurt naturalny 2%", "Nabiał i jaja", 62, 4.3, 2.0, 6.0, 200),
+            ("Skyr naturalny", "Nabiał i jaja", 63, 11.0, 0.2, 4.0, 200),
+            ("Mleko 2%", "Nabiał i jaja", 50, 3.4, 2.0, 4.9, 250),
+            ("Ser żółty typu gouda", "Nabiał i jaja", 356, 25.0, 28.0, 2.2, 30),
+            ("Ryż biały, ugotowany", "Węglowodany", 130, 2.7, 0.3, 28.0, 150),
+            ("Ryż basmati, ugotowany", "Węglowodany", 121, 2.5, 0.4, 25.0, 150),
+            ("Kasza gryczana, ugotowana", "Węglowodany", 92, 3.4, 0.6, 20.0, 150),
+            ("Kasza jaglana, ugotowana", "Węglowodany", 119, 3.5, 1.0, 24.0, 150),
+            ("Ziemniaki, ugotowane", "Węglowodany", 87, 1.9, 0.1, 20.0, 200),
+            ("Słodkie ziemniaki, pieczone", "Węglowodany", 90, 2.0, 0.1, 21.0, 200),
+            ("Makaron pszenny, ugotowany", "Węglowodany", 158, 5.8, 0.9, 31.0, 150),
+            ("Płatki owsiane", "Węglowodany", 372, 13.5, 7.0, 60.0, 60),
+            ("Chleb żytni razowy", "Węglowodany", 220, 7.0, 1.5, 42.0, 60),
+            ("Bułka pszenna", "Węglowodany", 270, 8.5, 3.0, 51.0, 60),
+            ("Komosa ryżowa (quinoa), ugotowana", "Węglowodany", 120, 4.4, 1.9, 21.0, 150),
+            ("Brokuł, gotowany", "Warzywa i owoce", 35, 2.4, 0.4, 7.0, 150),
+            ("Marchew, surowa", "Warzywa i owoce", 41, 0.9, 0.2, 10.0, 100),
+            ("Pomidor, surowy", "Warzywa i owoce", 18, 0.9, 0.2, 3.9, 120),
+            ("Ogórek, surowy", "Warzywa i owoce", 15, 0.7, 0.1, 3.6, 100),
+            ("Papryka czerwona, surowa", "Warzywa i owoce", 31, 1.0, 0.3, 6.0, 120),
+            ("Banan", "Warzywa i owoce", 89, 1.1, 0.3, 23.0, 120),
+            ("Jabłko", "Warzywa i owoce", 52, 0.3, 0.2, 14.0, 150),
+            ("Borówki", "Warzywa i owoce", 57, 0.7, 0.3, 14.0, 100),
+            ("Oliwa z oliwek", "Tłuszcze", 884, 0.0, 100.0, 0.0, 10),
+            ("Masło orzechowe", "Tłuszcze", 588, 25.0, 50.0, 20.0, 20),
+            ("Awokado", "Tłuszcze", 160, 2.0, 15.0, 9.0, 100),
+            ("Migdały", "Tłuszcze", 579, 21.0, 50.0, 22.0, 30),
+            ("Orzechy włoskie", "Tłuszcze", 654, 15.0, 65.0, 14.0, 30),
+            ("Odżywka białkowa WPC (proszek)", "Suplementy diety", 380, 75.0, 6.0, 8.0, 30),
+            ("Ryż preparowany (wafle ryżowe)", "Przekąski", 387, 8.0, 2.8, 82.0, 30),
+            ("Soczewica czerwona, ugotowana", "Rośliny strączkowe", 116, 9.0, 0.4, 20.0, 150),
+        ]
+        for name, category, kcal, protein, fat, carbs, portion in food_rows:
+            db.add(FoodProduct(
+                id=new_id("FOD"), coach_id=coach.id, name=name, category=category,
+                kcal_100g=kcal, protein_100g=protein, fat_100g=fat, carbs_100g=carbs,
+                default_portion_g=portion, created_by=coach.id,
+            ))
 
         # --- Baza wiedzy trenera ---
         from .models import KnowledgeItem

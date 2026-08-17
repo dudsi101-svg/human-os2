@@ -73,6 +73,7 @@ export interface CheckinData {
   revision: number;
   submitted_at: string;
   coach_response: string | null;
+  rating: number | null;
   photo_ids: string[];
 }
 
@@ -183,12 +184,26 @@ export interface CoachClientRow {
   consent_active: boolean;
   flags: {
     checkin_overdue: boolean;
+    awaiting_review: boolean;
     payment_overdue: boolean;
     unread_messages: number;
     recent_pain_reports: number;
     flagged_observations: number;
   };
   last_checkin_week: string | null;
+}
+
+export interface CoachDashboardData {
+  active_clients: number;
+  awaiting_review: number;
+  checkin_overdue_clients: number;
+  payment_overdue_clients: number;
+  unread_messages_total: number;
+  flagged_observations_14d: number;
+  recent_pain_reports_14d: number;
+  exercises_count: number;
+  food_products_count: number;
+  knowledge_items_count: number;
 }
 
 export interface WorkoutRow {
@@ -345,3 +360,63 @@ export const KIND_LABELS: Record<string, string> = {
   arm: "Ramię",
   thigh: "Udo",
 };
+
+export interface ExerciseLibraryItem {
+  id: string;
+  coach_id: string;
+  name: string;
+  muscle_group: string;
+  how_to: string;
+  benefit: string | null;
+  equipment: string | null;
+  video_url: string | null;
+  status: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export const MUSCLE_GROUP_LABELS: Record<string, string> = {
+  NOGI: "Nogi",
+  PLECY: "Plecy",
+  KLATKA: "Klatka piersiowa",
+  BARKI: "Barki",
+  RECE: "Ręce",
+  BRZUCH: "Brzuch",
+  CALE_CIALO: "Całe ciało",
+  MOBILNOSC: "Mobilność",
+  INNE: "Inne",
+};
+
+export interface FoodProductRow {
+  id: string;
+  coach_id: string;
+  name: string;
+  category: string;
+  kcal_100g: number;
+  protein_100g: number;
+  fat_100g: number;
+  carbs_100g: number;
+  default_portion_g: number | null;
+  status: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DietSuggestionItem {
+  product_id: string;
+  name: string;
+  macro_role: "PROTEIN" | "FAT" | "CARB";
+  grams: number;
+  kcal: number;
+  protein_g: number;
+  fat_g: number;
+  carbs_g: number;
+}
+
+export interface DietSuggestionResult {
+  target: { kcal: number; protein_g: number; fat_g: number; carbs_g: number };
+  items: DietSuggestionItem[];
+  totals: { kcal: number; protein_g: number; fat_g: number; carbs_g: number };
+  warnings: string[];
+  note: string;
+}

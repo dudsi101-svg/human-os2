@@ -50,17 +50,23 @@ Model dwuosiowy zgodny z Human OS (Identity, Authority & Permissions):
 
 ## Baza wiedzy (oś inna niż dane zdrowotne)
 
-`knowledge_items` to treść **trenera**, nie dane klienta — inna oś
-uprawnień niż reszta dokumentu:
+`knowledge_items`, `exercises` i `food_products` to treść **trenera**,
+nie dane klienta — inna oś uprawnień niż reszta dokumentu:
 
 * zapis (`POST/PUT/status`) wymaga wyłącznie roli COACH i własności
   rekordu (`coach_id == aktor`), bez `resolve_client_access`;
-* odczyt (`GET /api/me/knowledge`) wymaga aktywnej relacji
+* odczyt (`GET /api/me/knowledge`, `/api/me/exercises`,
+  `/api/me/food-products`) wymaga aktywnej relacji
   `coach_client_relationships.status=ACTIVE` z tym trenerem — **bez**
   bramki zgody `health_data`, bo to materiał edukacyjny/broadcast,
   nie dane osobowe klienta;
 * trener odpowiada merytorycznie za treść — system jej nie generuje,
-  nie moderuje ani nie weryfikuje.
+  nie moderuje ani nie weryfikuje;
+* `POST /api/coach/diet-suggestion` jest COACH-only, dodatkowo waliduje,
+  że każdy przekazany `product_id` należy do wywołującego trenera
+  (`coach_id == aktor`, 422 dla cudzych/nieznanych) — nie zapisuje
+  niczego, więc nie wymaga `resolve_client_access` ani zgody klienta
+  (zwraca wyłącznie sugestię gramatury, propose-only).
 
 ## Zgody (rejestr wersjonowany)
 

@@ -505,6 +505,7 @@ function CheckinsTab({ clientId }: { clientId: string }) {
   const [checkins, setCheckins] = useState<CheckinData[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [responses, setResponses] = useState<Record<string, string>>({});
+  const [ratings, setRatings] = useState<Record<string, number>>({});
   const [ai, setAi] = useState<Record<string, { loading: boolean; summary?: string;
     draft?: string; flags?: string[]; reason?: string }>>({});
 
@@ -515,7 +516,9 @@ function CheckinsTab({ clientId }: { clientId: string }) {
   useEffect(load, [load]);
 
   async function review(id: string) {
-    await api.post(`/api/checkins/${id}/review`, { coach_response: responses[id] });
+    await api.post(`/api/checkins/${id}/review`, {
+      coach_response: responses[id], rating: ratings[id] || null,
+    });
     load();
   }
 
@@ -586,7 +589,14 @@ function CheckinsTab({ clientId }: { clientId: string }) {
             )}
 
             {c.coach_response ? (
-              <div className="alert alert--info"><b>Twoja odpowiedź:</b> {c.coach_response}</div>
+              <div className="alert alert--info">
+                <b>Twoja odpowiedź:</b> {c.coach_response}
+                {c.rating != null && (
+                  <div style={{ marginTop: 4 }}>
+                    <span className="badge badge--accent">Ocena raportu: {c.rating}/5</span>
+                  </div>
+                )}
+              </div>
             ) : (
               <div style={{ marginTop: 8 }}>
                 {!state && (
@@ -619,6 +629,22 @@ function CheckinsTab({ clientId }: { clientId: string }) {
                     Wstaw szkic AI do edycji
                   </button>
                 )}
+                <div className="row row--between" style={{ marginTop: 8, alignItems: "center" }}>
+                  <label style={{ margin: 0 }}>Ocena raportu (opcjonalnie)</label>
+                  <div className="row" style={{ gap: 4 }}>
+                    {[1, 2, 3, 4, 5].map((n) => (
+                      <button type="button" key={n}
+                        className={`btn btn--ghost btn--small ${ratings[c.id] === n ? "active" : ""}`}
+                        style={ratings[c.id] === n ? { background: "var(--accent)", color: "var(--accent-ink)" } : {}}
+                        onClick={() => setRatings({ ...ratings, [c.id]: ratings[c.id] === n ? 0 : n })}>
+                        {n}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <small className="dim">
+                  Ocena dotyczy kompletności/jakości samego raportu — nie jest oceną osoby.
+                </small>
                 <div style={{ marginTop: 8 }}>
                   <button className="btn btn--small" disabled={!responses[c.id]?.trim()}
                     onClick={() => review(c.id)}>
