@@ -32,6 +32,11 @@ testpaths = ["tests"]
 [tool.ruff]
 line-length = 100
 target-version = "py311"
+# apps/ hosts independent sub-projects (their own pyproject.toml, deps,
+# lint/test commands, e.g. apps/dzik-os/backend) — this root config and
+# CI job only install and check the Core (hos_engine), so exclude them
+# here rather than pick up their separate rule set unintentionally.
+extend-exclude = ["apps"]
 
 [tool.mypy]
 python_version = "3.11"
