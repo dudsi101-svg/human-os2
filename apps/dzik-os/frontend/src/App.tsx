@@ -1,0 +1,65 @@
+import { Navigate, Route, Routes, useLocation } from "react-router-dom";
+import { getUser } from "./api";
+import { Nav } from "./components";
+import Login from "./pages/Login";
+import Today from "./pages/client/Today";
+import Plan from "./pages/client/Plan";
+import Nutrition from "./pages/client/Nutrition";
+import Checkin from "./pages/client/Checkin";
+import Progress from "./pages/client/Progress";
+import Payments from "./pages/client/Payments";
+import Profile from "./pages/client/Profile";
+import Documents from "./pages/client/Documents";
+import More from "./pages/More";
+import Messages from "./pages/Messages";
+import Thread from "./pages/Thread";
+import Clients from "./pages/coach/Clients";
+import ClientDetail from "./pages/coach/ClientDetail";
+import Templates from "./pages/coach/Templates";
+import Admin from "./pages/Admin";
+
+export default function App() {
+  const user = getUser();
+  const location = useLocation();
+  if (!user && location.pathname !== "/login") {
+    return <Navigate to="/login" replace />;
+  }
+  const roles = user?.roles ?? [];
+  const home = roles.includes("COACH") ? "/trener" : roles.includes("ADMIN") ? "/admin" : "/";
+  return (
+    <>
+      {user && <Nav />}
+      <Routes>
+        <Route path="/login" element={user ? <Navigate to={home} replace /> : <Login />} />
+        {roles.includes("CLIENT") && (
+          <>
+            <Route path="/" element={<Today />} />
+            <Route path="/plan" element={<Plan />} />
+            <Route path="/dieta" element={<Nutrition />} />
+            <Route path="/raport" element={<Checkin />} />
+            <Route path="/postepy" element={<Progress />} />
+            <Route path="/platnosci" element={<Payments />} />
+            <Route path="/profil" element={<Profile />} />
+            <Route path="/dokumenty" element={<Documents />} />
+          </>
+        )}
+        {roles.includes("COACH") && (
+          <>
+            <Route path="/trener" element={<Clients />} />
+            <Route path="/trener/klient/:clientId" element={<ClientDetail />} />
+            <Route path="/trener/szablony" element={<Templates />} />
+          </>
+        )}
+        {roles.includes("ADMIN") && <Route path="/admin" element={<Admin />} />}
+        {user && (
+          <>
+            <Route path="/wiadomosci" element={<Messages />} />
+            <Route path="/wiadomosci/:threadId" element={<Thread />} />
+            <Route path="/wiecej" element={<More />} />
+          </>
+        )}
+        <Route path="*" element={<Navigate to={user ? home : "/login"} replace />} />
+      </Routes>
+    </>
+  );
+}
