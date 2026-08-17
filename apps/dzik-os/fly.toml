@@ -7,10 +7,11 @@
 # Pełna instrukcja: apps/dzik-os/docs/DEPLOYMENT.md §PaaS.
 
 app = "dzik-os-panel"
-primary_region = "waw"   # Warszawa
+primary_region = "fra"   # Frankfurt (najbliższy region Fly dla Polski)
 
-[build]
-  dockerfile = "apps/dzik-os/Dockerfile"
+# Uwaga: Dockerfile i kontekst budowania są przekazywane w wierszu poleceń
+# (patrz .github/workflows/fly-deploy.yml) — kontekstem musi być korzeń
+# repozytorium, bo obraz kopiuje pakiet hos_engine.
 
 [env]
   DZIK_ENV = "staging"

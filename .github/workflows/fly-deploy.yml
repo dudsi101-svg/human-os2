@@ -35,11 +35,12 @@ jobs:
       - name: Create data volume (first run only)
         run: |
           flyctl volumes create dzik_data --app "$APP_NAME" \
-            --region waw --size 1 --yes || true
+            --region fra --size 1 --yes || true
 
       - name: Deploy
         run: |
-          flyctl deploy --config apps/dzik-os/fly.toml \
+          flyctl deploy . --config apps/dzik-os/fly.toml \
+            --dockerfile apps/dzik-os/Dockerfile \
             --app "$APP_NAME" --remote-only --ha=false
 
       - name: Show app URL
