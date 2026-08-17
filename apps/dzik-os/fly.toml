@@ -6,7 +6,7 @@
 # hos_engine):  flyctl deploy --config apps/dzik-os/fly.toml
 # Pełna instrukcja: apps/dzik-os/docs/DEPLOYMENT.md §PaaS.
 
-app = "dzik-os"
+app = "dzik-os-panel"
 primary_region = "waw"   # Warszawa
 
 [build]
@@ -19,6 +19,9 @@ primary_region = "waw"   # Warszawa
   DZIK_DATABASE_URL = "sqlite:////data/dzik.db"
   DZIK_AUDIT_DB = "/data/audit.db"
   DZIK_UPLOAD_DIR = "/data/uploads"
+  # STAGING: przy pierwszym starcie zasiewa syntetyczne konta demo.
+  # Przy przejściu na produkcję z prawdziwymi klientami USUŃ tę linię.
+  DZIK_SEED_DEMO = "true"
 
 [http_service]
   internal_port = 8000

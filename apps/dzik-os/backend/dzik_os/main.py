@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -32,6 +33,15 @@ from .routers import (
 async def lifespan(app: FastAPI):
     settings.ensure_dirs()
     run_migrations()
+    if os.environ.get("DZIK_SEED_DEMO") == "true":
+        # Staging: jednorazowy zasiew danych demo (seed sam pomija
+        # niepustą bazę, więc restart maszyny nic nie duplikuje).
+        try:
+            from . import seed as seed_module
+
+            seed_module.seed()
+        except Exception as exc:  # pragma: no cover - diagnostyka staging
+            print(f"[dzik-os] seed demo nieudany: {exc}")
     yield
 
 

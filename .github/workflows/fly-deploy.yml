@@ -1,0 +1,46 @@
+# Wdrożenie Dzik OS na Fly.io z GitHub Actions.
+#
+# Wymaga sekretu repozytorium FLY_API_TOKEN (Settings → Secrets and
+# variables → Actions → New repository secret). Uruchamia się ręcznie
+# (Run workflow) albo automatycznie po pushu do main zmieniającym
+# apps/dzik-os. Kroki create są idempotentne — pierwszy run tworzy
+# aplikację i wolumen, kolejne tylko wdrażają.
+
+name: Deploy Dzik OS (Fly.io)
+
+on:
+  workflow_dispatch: {}
+  push:
+    branches: [main]
+    paths: ["apps/dzik-os/**", "hos_engine/**", ".github/workflows/fly-deploy.yml"]
+
+concurrency:
+  group: fly-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+      APP_NAME: dzik-os-panel
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Create app (first run only)
+        run: flyctl apps create "$APP_NAME" || true
+
+      - name: Create data volume (first run only)
+        run: |
+          flyctl volumes create dzik_data --app "$APP_NAME" \
+            --region waw --size 1 --yes || true
+
+      - name: Deploy
+        run: |
+          flyctl deploy --config apps/dzik-os/fly.toml \
+            --app "$APP_NAME" --remote-only --ha=false
+
+      - name: Show app URL
+        run: flyctl status --app "$APP_NAME"
