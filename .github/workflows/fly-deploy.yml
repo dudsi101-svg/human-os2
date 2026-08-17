@@ -45,3 +45,11 @@ jobs:
 
       - name: Show app URL
         run: flyctl status --app "$APP_NAME"
+
+      - name: Smoke check (strona i API muszą odpowiadać)
+        run: |
+          sleep 10
+          curl -sfS "https://$APP_NAME.fly.dev/api/health"
+          curl -sfS -o /dev/null "https://$APP_NAME.fly.dev/"
+          curl -sfS -o /dev/null "https://$APP_NAME.fly.dev/manifest.webmanifest"
+          echo "OK: aplikacja odpowiada"

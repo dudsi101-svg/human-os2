@@ -28,6 +28,7 @@ USER dzik
 ENV DZIK_DATABASE_URL=sqlite:////data/dzik.db \
     DZIK_AUDIT_DB=/data/audit.db \
     DZIK_UPLOAD_DIR=/data/uploads \
+    DZIK_FRONTEND_DIST=/app/apps/dzik-os/frontend/dist \
     DZIK_ENV=production
 EXPOSE 8000
 CMD ["uvicorn", "dzik_os.main:app", "--host", "0.0.0.0", "--port", "8000"]

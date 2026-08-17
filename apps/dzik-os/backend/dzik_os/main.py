@@ -73,8 +73,15 @@ def create_app() -> FastAPI:
     def health() -> dict:
         return {"ok": True, "app": settings.brand_name, "env": settings.env}
 
-    # Serwowanie zbudowanego frontendu (PWA) — jeżeli istnieje katalog dist.
-    frontend_dist = Path(__file__).resolve().parents[2] / "frontend" / "dist"
+    # Serwowanie zbudowanego frontendu (PWA). Ścieżka jawna przez
+    # DZIK_FRONTEND_DIST (obraz produkcyjny — pakiet w site-packages nie
+    # zna układu repo); fallback: układ repozytorium (uruchomienie z kodu).
+    dist_env = os.environ.get("DZIK_FRONTEND_DIST")
+    frontend_dist = (
+        Path(dist_env)
+        if dist_env
+        else Path(__file__).resolve().parents[2] / "frontend" / "dist"
+    )
     if frontend_dist.is_dir():
         app.mount(
             "/assets",
