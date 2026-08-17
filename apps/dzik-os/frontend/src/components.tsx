@@ -3,19 +3,16 @@ import { NavLink } from "react-router-dom";
 import { clearSession, fetchFileBlob, fetchFileUrl, getUser } from "./api";
 import { applyUpdate, onUpdateAvailable } from "./pwa";
 
-/** Głowa dzika (profil) — marka Dzik OS: kły, ryj, ucho. */
+/** Głowa dzika — marka Dzik OS. */
 export function Logo({ size = 26 }: { size?: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 64 64" aria-hidden>
-      <rect width="64" height="64" rx="14" fill="#191c1f" />
-      <path
-        fill="var(--accent)"
-        d="M8,40 L8,28 L14,16 L20,20 L22,7 L27,19 L34,13
-           L46,17 L50,24 L48,32 L40,36 L30,40 L18,42 Z"
-      />
-      <path fill="#eef0f2" d="M44,35 C42,30 44,26 49,25 C47,29 47,33 46,36 Z" />
-      <circle cx="32" cy="22" r="2.1" fill="#191c1f" />
-    </svg>
+    <img
+      src="/icons/boar-mark.png"
+      alt=""
+      width={size}
+      height={size}
+      style={{ width: size, height: size, objectFit: "contain" }}
+    />
   );
 }
 

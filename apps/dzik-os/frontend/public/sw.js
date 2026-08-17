@@ -2,7 +2,7 @@
    Strategia: cache-first dla statyków (app shell), network-only dla /api
    (dane zdrowotne nigdy nie są cachowane w service workerze). */
 const CACHE = "dzik-os-v1";
-const APP_SHELL = ["/", "/manifest.webmanifest", "/icons/icon.svg"];
+const APP_SHELL = ["/", "/manifest.webmanifest", "/icons/favicon-64.png", "/icons/boar-mark.png"];
 
 self.addEventListener("install", (event) => {
   // Celowo BEZ self.skipWaiting() — nowa wersja czeka, aż użytkownik

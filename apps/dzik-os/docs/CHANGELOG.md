@@ -1,5 +1,13 @@
 # Changelog — Dzik OS
 
+## 0.4.1 — 2026-08-17
+
+* **Logo**: zastąpiono wygenerowaną wcześniej prostą ikonę dzika docelową
+  grafiką dostarczoną przez założyciela (szczegółowy maskotkowy portret
+  głowy dzika + wordmark „DZIK OS"). Sama głowa (bez wordmarku, przycięta
+  do kwadratu) jest teraz jedynym źródłem `Logo()` w UI oraz ikon PWA
+  (`icon-192.png`/`icon-512.png` na ciemnym zaokrąglonym tle, favicon).
+
 ## 0.4.0 — 2026-08-17
 
 Baza wiedzy trenera rozszerzona o know-how ćwiczeń i produktów, kompozytor
