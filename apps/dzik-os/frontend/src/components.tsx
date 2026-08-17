@@ -1,6 +1,6 @@
 import { ReactNode, useEffect, useState } from "react";
 import { NavLink } from "react-router-dom";
-import { clearSession, fetchFileUrl, getUser } from "./api";
+import { clearSession, fetchFileBlob, fetchFileUrl, getUser } from "./api";
 
 export function Logo({ size = 26 }: { size?: number }) {
   return (
@@ -127,6 +127,40 @@ export function AuthImage({ fileId, alt }: { fileId: string; alt: string }) {
   }, [fileId]);
   if (!url) return <div className="stat" style={{ aspectRatio: "3/4" }} />;
   return <img src={url} alt={alt} />;
+}
+
+/** Załącznik dowolnego typu (obraz/audio/wideo/plik) pobierany przez
+ * uwierzytelnione API — typ rozpoznawany po pobraniu (Content-Type), nie
+ * po nazwie pliku, więc działa niezależnie od tego, kto go wgrał. */
+export function AuthAttachment({ fileId, filename }: { fileId: string; filename?: string }) {
+  const [state, setState] = useState<{ url: string; type: string } | null>(null);
+  useEffect(() => {
+    let revoke: string | null = null;
+    fetchFileBlob(fileId)
+      .then((blob) => {
+        const url = URL.createObjectURL(blob);
+        revoke = url;
+        setState({ url, type: blob.type });
+      })
+      .catch(() => setState(null));
+    return () => {
+      if (revoke) URL.revokeObjectURL(revoke);
+    };
+  }, [fileId]);
+  if (!state) return <div className="stat" style={{ minHeight: 40 }} />;
+  if (state.type.startsWith("image/")) return <img src={state.url} alt="załącznik" />;
+  if (state.type.startsWith("audio/")) {
+    return <audio controls src={state.url} style={{ width: "100%", maxWidth: 260 }} />;
+  }
+  if (state.type.startsWith("video/")) {
+    return <video controls src={state.url} style={{ width: "100%", borderRadius: 10 }} />;
+  }
+  return (
+    <a href={state.url} target="_blank" rel="noreferrer" download={filename}
+      className="btn btn--ghost btn--small">
+      📎 {filename ?? "Pobierz załącznik"}
+    </a>
+  );
 }
 
 /** Prosty wykres liniowy (SVG) dla pomiarów w czasie. */

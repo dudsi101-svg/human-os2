@@ -18,8 +18,17 @@ Zgodnie z zakresem MVP (sekcja 13 briefu). Architektura ich nie blokuje.
 
 * kopiowanie szablonu planu do klienta jednym kliknięciem (obecnie trener
   odtwarza układ w edytorze);
-* reset hasła e-mailem i wymuszona zmiana hasła startowego (R-06);
-* powiadomienia push PWA (obecnie przypomnienia widoczne po wejściu);
+* reset hasła e-mailem (wymuszona zmiana hasła startowego — zrobione, 0.1.1);
+* **prawdziwe wysyłanie e-maili** — interfejs providera gotowy
+  (`notifications_provider.py`, wzorzec jak `payments_provider.py`) i
+  podpięty do jednego triggera (niepokojąca obserwacja → e-mail do
+  trenera), ale domyślny `NullNotificationProvider` niczego nie wysyła.
+  Podłączenie realnego dostawcy (Resend/SendGrid/Mailgun/SMTP) to decyzja
+  operatora — wymaga konta i kluczy API poza repozytorium;
+* powiadomienia push PWA (wymagają kluczy VAPID + subskrypcji service
+  workera) — obecnie przypomnienia i flagi widoczne po wejściu do aplikacji;
+* integracja z arkuszami zewnętrznymi (import z Excela) — eksport do
+  Excela jest zrobiony (`/api/me/export.xlsx`), import w drugą stronę nie;
 * webhook prawdziwego operatora płatności (interfejs providera gotowy:
   `payments_provider.py`);
 * własne mierniki trenera w UI (API `metric_definitions` istnieje);

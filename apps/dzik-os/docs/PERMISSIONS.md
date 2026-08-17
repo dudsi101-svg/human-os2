@@ -32,6 +32,22 @@ Model dwuosiowy zgodny z Human OS (Identity, Authority & Permissions):
 5. **Decyzje zapadają wyłącznie w backendzie** — frontend jedynie
    renderuje wynik (kontrakt ADR-ARCH-003).
 
+## Monitoring i dziennik obserwacji
+
+* Odhaczanie harmonogramu (`schedule_completions`), dziennik obserwacji
+  (`observations`) i dziennik kaloryczny (`daily_nutrition_logs`) podlegają
+  tym samym regułom dostępu co inne dane zdrowotne (relacja + zgoda,
+  `resolve_client_access`, domyślnie `sensitive=True`).
+* **Obserwacje nigdy nie są diagnozą.** System zapisuje tekst dosłownie i
+  wyłącznie flaguje wpisy `severity=NIEPOKOJACE` do przeglądu przez
+  trenera (badge w panelu, filtr, e-mail przez `notifications_provider`
+  jeśli skonfigurowany) — nie interpretuje treści, nie sugeruje przyczyny,
+  nie zmienia planu ani dawkowania. Zgodnie z zasadą z §5.5 aplikacja
+  wyłącznie przechowuje i przypomina plan wprowadzony przez człowieka.
+* Element harmonogramu kategorii SUPLEMENT/POSIŁEK musi mieć `author_note`
+  (kto i na jakiej podstawie wpisał zalecenie) — proweniencja wymuszona
+  w formularzu frontendu (`ScheduleTab`), nie tylko w backendzie.
+
 ## Zgody (rejestr wersjonowany)
 
 * Wiersz `consents` = jedna zgoda: podmiot, odbiorca, cel, domena, akcje,

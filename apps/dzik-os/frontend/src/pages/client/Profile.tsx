@@ -82,6 +82,16 @@ export default function Profile() {
     URL.revokeObjectURL(url);
   }
 
+  async function exportDataExcel() {
+    const blob = await api.get<Blob>("/api/me/export.xlsx");
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "dzik-os-export.xlsx";
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   async function requestDeletion(e: FormEvent) {
     e.preventDefault();
     try {
@@ -177,9 +187,12 @@ export default function Profile() {
 
       <div className="card">
         <h3>Twoje dane</h3>
-        <div className="row">
+        <div className="row" style={{ flexWrap: "wrap" }}>
           <button className="btn btn--ghost btn--small" onClick={exportData}>
             ⬇️ Eksportuj wszystkie dane (JSON)
+          </button>
+          <button className="btn btn--ghost btn--small" onClick={exportDataExcel}>
+            ⬇️ Eksportuj do Excela
           </button>
           <button className="btn btn--danger btn--small" onClick={() => setShowDelete(!showDelete)}>
             Usuń konto i dane

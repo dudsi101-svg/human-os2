@@ -188,6 +188,30 @@ class GoalStatusIn(BaseModel):
     status: str = Field(pattern="^(ACTIVE|DONE|DROPPED)$")
 
 
+class ScheduleCompletionIn(BaseModel):
+    completed_on: str = Field(pattern=r"^\d{4}-\d{2}-\d{2}$")
+    status: str = Field(default="DONE", pattern="^(DONE|SKIPPED)$")
+    note: str | None = Field(default=None, max_length=1000)
+
+
+class ObservationIn(BaseModel):
+    occurred_on: str = Field(pattern=r"^\d{4}-\d{2}-\d{2}$")
+    schedule_item_id: str | None = None
+    category: str = Field(pattern="^(SAMOPOCZUCIE|OBJAW|REAKCJA|INNE)$")
+    severity: str = Field(default="INFO", pattern="^(INFO|NIEPOKOJACE)$")
+    text: str = Field(min_length=1, max_length=5000)
+
+
+class NutritionLogIn(BaseModel):
+    logged_on: str = Field(pattern=r"^\d{4}-\d{2}-\d{2}$")
+    kcal: int | None = Field(default=None, ge=0, le=20000)
+    protein_g: int | None = Field(default=None, ge=0, le=2000)
+    fat_g: int | None = Field(default=None, ge=0, le=2000)
+    carbs_g: int | None = Field(default=None, ge=0, le=4000)
+    water_l: float | None = Field(default=None, ge=0, le=20)
+    note: str | None = Field(default=None, max_length=1000)
+
+
 class DocumentIn(BaseModel):
     client_id: str
     file_id: str

@@ -405,6 +405,69 @@ class PaymentRecord(Base):
     created_at: Mapped[str] = mapped_column(String(40), default=now_iso)
 
 
+class ScheduleCompletion(Base):
+    """Odhaczenie elementu harmonogramu na dany dzień — adherencja
+    (trening/posiłek/suplement/nawodnienie/regenerację itd.), nie tylko
+    treningi. Jeden wpis na dzień na element (append przez unique);
+    poprawka = nowy POST nadpisujący wiersz (idempotentne 'wykonane')."""
+
+    __tablename__ = "schedule_completions"
+    __table_args__ = (UniqueConstraint("schedule_item_id", "completed_on"),)
+
+    id: Mapped[str] = mapped_column(String(40), primary_key=True)
+    schedule_item_id: Mapped[str] = mapped_column(ForeignKey("schedule_items.id"), index=True)
+    client_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
+    completed_on: Mapped[str] = mapped_column(String(40))  # YYYY-MM-DD
+    status: Mapped[str] = mapped_column(String(20), default="DONE")  # DONE / SKIPPED
+    note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_by: Mapped[str] = mapped_column(String(40))
+    created_at: Mapped[str] = mapped_column(String(40), default=now_iso)
+
+
+class Observation(Base):
+    """Dziennik obserwacji klienta — samodzielne, dobrowolne zgłoszenie
+    samopoczucia lub reakcji, opcjonalnie powiązane z elementem harmonogramu
+    (np. suplementem lub posiłkiem). NIGDY nie jest diagnozą ani
+    automatyczną analizą — wyłącznie deklaracja klienta (lub notatka
+    trenera) do przeglądu przez człowieka. System tylko rejestruje i
+    flaguje NIEPOKOJACE wpisy w panelu trenera; nie interpretuje ich."""
+
+    __tablename__ = "observations"
+
+    id: Mapped[str] = mapped_column(String(40), primary_key=True)
+    client_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
+    occurred_on: Mapped[str] = mapped_column(String(40))  # YYYY-MM-DD
+    schedule_item_id: Mapped[str | None] = mapped_column(
+        ForeignKey("schedule_items.id"), nullable=True
+    )
+    category: Mapped[str] = mapped_column(String(30))  # SAMOPOCZUCIE/OBJAW/REAKCJA/INNE
+    severity: Mapped[str] = mapped_column(String(20), default="INFO")  # INFO/NIEPOKOJACE
+    text: Mapped[str] = mapped_column(Text)
+    created_by: Mapped[str] = mapped_column(String(40))
+    created_at: Mapped[str] = mapped_column(String(40), default=now_iso)
+
+
+class DailyNutritionLog(Base):
+    """Dzienny log realizacji diety (kalorie/makra/woda) — deklaracja
+    klienta, osobna od statycznego celu w NutritionPlanVersion; pozwala
+    porównać cel z realizacją w czasie."""
+
+    __tablename__ = "daily_nutrition_logs"
+    __table_args__ = (UniqueConstraint("client_id", "logged_on"),)
+
+    id: Mapped[str] = mapped_column(String(40), primary_key=True)
+    client_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
+    logged_on: Mapped[str] = mapped_column(String(40))  # YYYY-MM-DD
+    kcal: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    protein_g: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    fat_g: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    carbs_g: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    water_l: Mapped[float | None] = mapped_column(Float, nullable=True)
+    note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_by: Mapped[str] = mapped_column(String(40))
+    created_at: Mapped[str] = mapped_column(String(40), default=now_iso)
+
+
 class ConsentRecord(Base):
     """Rejestr zgód — trwała warstwa dla kontraktu
     hos_engine.consent.ConsentRegistry (patrz hos_bridge.ConsentService).

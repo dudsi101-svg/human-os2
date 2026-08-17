@@ -4,9 +4,10 @@ Prosta aplikacja domenowa dla internetowego trenera personalnego
 (marka robocza: **Lubelski Dzik**), zbudowana na fundamentach
 **Human OS** (`hos_engine`). Jedna przestrzeń zamiast WhatsAppa, arkuszy
 i PDF-ów: plan treningowy, dieta, harmonogram, raporty tygodniowe,
-pomiary, wiadomości, dokumenty i płatności.
+pomiary, monitoring w czasie (cel, trendy, adherencja, dziennik
+obserwacji), wiadomości (w tym głosowe), dokumenty i płatności.
 
-Status: **MVP** · Język: polski · Licencja kodu: Apache-2.0
+Status: **MVP + monitoring (0.2.0)** · Język: polski · Licencja kodu: Apache-2.0
 
 ## Zasady (fundamenty Human OS)
 

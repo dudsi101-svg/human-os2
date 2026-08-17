@@ -255,6 +255,7 @@ def seed() -> dict[str, str]:
         ))
 
         # --- Harmonogram klienta A ---
+        schedule_by_name: dict[str, ScheduleItem] = {}
         for name, category, tod, days, instruction, note in [
             ("Trening siłowy", "TRENING", "17:30", "1,3,5",
              "Wg aktualnego planu treningowego", None),
@@ -269,10 +270,59 @@ def seed() -> dict[str, str]:
             ("Raport tygodniowy", "RAPORT", "18:00", "7",
              "Wypełnij formularz raportu w aplikacji", None),
         ]:
-            db.add(ScheduleItem(
+            item = ScheduleItem(
                 id=new_id("SCH"), client_id=client_a.id, name=name,
                 category=category, time_of_day=tod, days_of_week=days,
                 instruction=instruction, author_id=coach.id, author_note=note,
+            )
+            db.add(item)
+            schedule_by_name[name] = item
+
+        # --- Adherencja harmonogramu klienta A (ostatnie 2 tygodnie) ---
+        db.flush()
+        from .models import DailyNutritionLog, Observation, ScheduleCompletion
+
+        kreatyna = schedule_by_name["Kreatyna 5 g"]
+        trening = schedule_by_name["Trening siłowy"]
+        for offset in range(14):
+            date = (today - timedelta(days=offset)).isoformat()
+            # Suplement: pominięty co czwarty dzień (realistyczna adherencja).
+            db.add(ScheduleCompletion(
+                id=new_id("SCP"), schedule_item_id=kreatyna.id, client_id=client_a.id,
+                completed_on=date, status="SKIPPED" if offset % 4 == 0 else "DONE",
+                created_by=client_a.id,
+            ))
+        for offset in (2, 5, 9):
+            date = (today - timedelta(days=offset)).isoformat()
+            db.add(ScheduleCompletion(
+                id=new_id("SCP"), schedule_item_id=trening.id, client_id=client_a.id,
+                completed_on=date, status="DONE", created_by=client_a.id,
+            ))
+
+        # --- Dziennik obserwacji klienta A ---
+        db.add(Observation(
+            id=new_id("OBS"), client_id=client_a.id,
+            occurred_on=(today - timedelta(days=1)).isoformat(),
+            category="SAMOPOCZUCIE", severity="INFO",
+            text="Dobra energia w ciągu dnia, sen bez zarzutu.",
+            created_by=client_a.id,
+        ))
+        db.add(Observation(
+            id=new_id("OBS"), client_id=client_a.id,
+            occurred_on=(today - timedelta(days=3)).isoformat(),
+            schedule_item_id=kreatyna.id, category="REAKCJA", severity="NIEPOKOJACE",
+            text="Po kreatynie lekki dyskomfort żołądka — nie wiem, czy to od "
+                 "niej, czy od kawy na czczo. Obserwuję.",
+            created_by=client_a.id,
+        ))
+
+        # --- Dziennik kaloryczny klienta A (ostatnie 10 dni, na tle celu 2300 kcal) ---
+        for offset in range(10):
+            date = (today - timedelta(days=offset)).isoformat()
+            db.add(DailyNutritionLog(
+                id=new_id("NLG"), client_id=client_a.id, logged_on=date,
+                kcal=2250 + (offset % 3) * 60, protein_g=175, water_l=2.4,
+                created_by=client_a.id,
             ))
 
         # --- Pomiary klienta A (8 tygodni historii) ---

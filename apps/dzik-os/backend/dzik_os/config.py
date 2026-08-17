@@ -46,6 +46,11 @@ class Settings:
         "image/webp": ".webp",
         "application/pdf": ".pdf",
         "video/mp4": ".mp4",
+        # Wiadomości głosowe (nagrywane w przeglądarce przez MediaRecorder).
+        "audio/webm": ".webm",
+        "audio/mp4": ".m4a",
+        "audio/mpeg": ".mp3",
+        "audio/ogg": ".ogg",
     }
 
     def ensure_dirs(self) -> None:

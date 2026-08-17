@@ -8,24 +8,29 @@ import {
   GoalRow,
   KIND_LABELS,
   MeasurementRow,
+  MonitoringData,
   NutritionVersion,
+  OBSERVATION_CATEGORY_LABELS,
   PAYMENT_LABELS,
   PaymentScheduleRow,
   PlanVersion,
   ProfileFieldRow,
   ReceiptRow,
   ScheduleItem,
+  SEVERITY_LABELS,
   TrainingPlan,
+  WELLBEING_LABELS,
   WorkoutRow,
 } from "../../types";
 import PlanEditor from "./PlanEditor";
 
-type Tab = "profil" | "plan" | "dieta" | "harmonogram" | "raporty" | "pomiary" | "platnosci" | "historia";
+type Tab = "profil" | "plan" | "dieta" | "harmonogram" | "raporty" | "pomiary"
+  | "monitoring" | "platnosci" | "historia";
 
 const TABS: [Tab, string][] = [
   ["profil", "Profil"], ["plan", "Plan"], ["dieta", "Dieta"],
   ["harmonogram", "Harmonogram"], ["raporty", "Raporty"], ["pomiary", "Pomiary"],
-  ["platnosci", "Płatności"], ["historia", "Historia"],
+  ["monitoring", "Monitoring"], ["platnosci", "Płatności"], ["historia", "Historia"],
 ];
 
 interface NutritionPlanRow {
@@ -82,6 +87,7 @@ export default function ClientDetail() {
       {tab === "harmonogram" && <ScheduleTab clientId={clientId!} />}
       {tab === "raporty" && <CheckinsTab clientId={clientId!} />}
       {tab === "pomiary" && <MeasurementsTab clientId={clientId!} />}
+      {tab === "monitoring" && <MonitoringTab clientId={clientId!} />}
       {tab === "platnosci" && <PaymentsTab clientId={clientId!} />}
       {tab === "historia" && <HistoryTab clientId={clientId!} />}
     </div>
@@ -696,6 +702,106 @@ function PaymentsTab({ clientId }: { clientId: string }) {
           </table>
         </div>
       ))}
+    </>
+  );
+}
+
+function MonitoringTab({ clientId }: { clientId: string }) {
+  const [data, setData] = useState<MonitoringData | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  useEffect(() => {
+    api.get<MonitoringData>(`/api/clients/${clientId}/monitoring`)
+      .then(setData).catch((e) => setError(e.message));
+  }, [clientId]);
+
+  if (error) return <ErrorBox error={error} />;
+  if (!data) return <Spinner />;
+
+  return (
+    <>
+      {data.goal && (
+        <div className="card card--accent">
+          <div className="row row--between">
+            <h3>🎯 {data.goal.title}</h3>
+            {data.goal.days_remaining !== null && (
+              <span className="badge badge--accent">
+                {data.goal.days_remaining < 0
+                  ? `${Math.abs(data.goal.days_remaining)} dni po terminie`
+                  : `${data.goal.days_remaining} dni do celu`}
+              </span>
+            )}
+          </div>
+          {data.goal.target_date && <small>Termin: {plDate(data.goal.target_date)}</small>}
+        </div>
+      )}
+
+      {Object.keys(data.adherence).length > 0 && (
+        <div className="card">
+          <h3>Realizacja harmonogramu ({data.period_days} dni)</h3>
+          {Object.entries(data.adherence).map(([cat, b]) => (
+            <div key={cat} style={{ marginBottom: 12 }}>
+              <div className="row row--between">
+                <b style={{ fontSize: "0.9rem" }}>{CATEGORY_LABELS[cat] ?? cat}</b>
+                <small>{b.done}/{b.total}{b.pct !== null && ` · ${b.pct}%`}</small>
+              </div>
+              <div style={{ background: "var(--bg-raised)", borderRadius: 999, height: 8, overflow: "hidden", marginTop: 4 }}>
+                <div style={{ width: `${Math.min(100, b.pct ?? 0)}%`, background: "var(--accent)", height: "100%" }} />
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {Object.keys(data.wellbeing_series).length > 0 && (
+        <div className="card">
+          <h3>Samopoczucie</h3>
+          {Object.entries(data.wellbeing_series).map(([key, points]) => (
+            <div key={key} style={{ marginTop: 10 }}>
+              <div className="row row--between">
+                <b style={{ fontSize: "0.9rem" }}>{WELLBEING_LABELS[key] ?? key}</b>
+                <span className="badge">{points[points.length - 1].value}/5</span>
+              </div>
+              <Sparkline unit="/5" points={points.map((p) => ({ x: plDate(p.date), y: p.value }))} />
+            </div>
+          ))}
+        </div>
+      )}
+
+      {data.nutrition.log_series.length >= 2 && (
+        <div className="card">
+          <div className="row row--between">
+            <h3>Dziennik kaloryczny</h3>
+            {data.nutrition.target_kcal !== null && (
+              <span className="badge">cel: {data.nutrition.target_kcal} kcal</span>
+            )}
+          </div>
+          <Sparkline unit="kcal"
+            points={data.nutrition.log_series.map((p) => ({ x: plDate(p.date), y: p.value }))} />
+        </div>
+      )}
+
+      <div className="card">
+        <h3>Obserwacje klienta</h3>
+        <p className="dim" style={{ fontSize: "0.85rem", marginTop: -4 }}>
+          Deklaracje klienta do przeglądu — nie są diagnozą. Wpisy oznaczone
+          jako niepokojące wymagają Twojej uwagi.
+        </p>
+        {data.observations.length === 0 && <small>Brak obserwacji w tym okresie.</small>}
+        {data.observations.map((o) => (
+          <div className="exercise" key={o.id}>
+            <div>
+              <b>{OBSERVATION_CATEGORY_LABELS[o.category] ?? o.category}</b>
+              <div className="meta">{o.text}</div>
+            </div>
+            <div style={{ textAlign: "right" }}>
+              <span className={`badge ${o.severity === "NIEPOKOJACE" ? "badge--danger" : ""}`}>
+                {SEVERITY_LABELS[o.severity] ?? o.severity}
+              </span>
+              <div className="meta">{plDate(o.occurred_on)}</div>
+            </div>
+          </div>
+        ))}
+      </div>
     </>
   );
 }

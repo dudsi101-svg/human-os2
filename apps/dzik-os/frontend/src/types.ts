@@ -168,7 +168,7 @@ export interface TodayData {
     done_today: boolean;
   } | null;
   nutrition: { plan_id: string; title: string; kcal: number | null; protein_g: number | null; fat_g: number | null; carbs_g: number | null } | null;
-  schedule: { id: string; name: string; category: string; time_of_day: string | null; instruction: string | null }[];
+  schedule: { id: string; name: string; category: string; time_of_day: string | null; instruction: string | null; done_today: boolean }[];
   reminders: { id: string; text: string; due_date: string }[];
   checkin_due: string | null;
   next_payment: { record_id: string; due_date: string; amount_cents: number; currency: string; status: string; package_name: string | null; external_link: string | null } | null;
@@ -186,6 +186,7 @@ export interface CoachClientRow {
     payment_overdue: boolean;
     unread_messages: number;
     recent_pain_reports: number;
+    flagged_observations: number;
   };
   last_checkin_week: string | null;
 }
@@ -239,6 +240,83 @@ export const PAYMENT_LABELS: Record<string, string> = {
   PAID: "Opłacona",
   OVERDUE: "Zaległa",
   CANCELLED: "Anulowana",
+};
+
+export interface GoalProgress {
+  id: string;
+  title: string;
+  target_date: string | null;
+  days_remaining: number | null;
+  created_at: string;
+}
+
+export interface SeriesPoint {
+  date: string;
+  value: number;
+  unit?: string;
+}
+
+export interface AdherenceBucket {
+  done: number;
+  total: number;
+  pct: number | null;
+}
+
+export interface MonitoringObservation {
+  id: string;
+  occurred_on: string;
+  category: string;
+  severity: string;
+  text: string;
+}
+
+export interface ObservationRow extends MonitoringObservation {
+  schedule_item_id: string | null;
+  schedule_item_name: string | null;
+  created_by: string;
+  created_at: string;
+}
+
+export interface MonitoringData {
+  period_days: number;
+  goal: GoalProgress | null;
+  measurement_series: Record<string, SeriesPoint[]>;
+  wellbeing_series: Record<string, SeriesPoint[]>;
+  nutrition: { target_kcal: number | null; log_series: SeriesPoint[] };
+  adherence: Record<string, AdherenceBucket>;
+  observations: MonitoringObservation[];
+}
+
+export interface NutritionLogRow {
+  id: string;
+  logged_on: string;
+  kcal: number | null;
+  protein_g: number | null;
+  fat_g: number | null;
+  carbs_g: number | null;
+  water_l: number | null;
+  note: string | null;
+}
+
+export const OBSERVATION_CATEGORY_LABELS: Record<string, string> = {
+  SAMOPOCZUCIE: "Samopoczucie",
+  OBJAW: "Objaw",
+  REAKCJA: "Reakcja",
+  INNE: "Inne",
+};
+
+export const SEVERITY_LABELS: Record<string, string> = {
+  INFO: "Informacja",
+  NIEPOKOJACE: "Niepokojące",
+};
+
+export const WELLBEING_LABELS: Record<string, string> = {
+  sleep: "Sen",
+  energy: "Energia",
+  stress: "Stres",
+  hunger: "Głód",
+  recovery: "Regeneracja",
+  diet_adherence: "Realizacja diety",
 };
 
 export const KIND_LABELS: Record<string, string> = {

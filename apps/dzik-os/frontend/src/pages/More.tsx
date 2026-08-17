@@ -16,7 +16,7 @@ export default function More() {
       <div className="list">
         {isClient && (
           <>
-            <Link className="card" to="/postepy">📈 Pomiary i postępy</Link>
+            <Link className="card" to="/postepy">📈 Monitoring i postępy</Link>
             <Link className="card" to="/dokumenty">📄 Dokumenty i harmonogram</Link>
             <Link className="card" to="/platnosci">💳 Płatności</Link>
             <Link className="card" to="/wiadomosci">💬 Wiadomości</Link>

@@ -90,10 +90,16 @@ export const api = {
   },
 };
 
+export async function fetchFileBlob(fileId: string): Promise<Blob> {
+  return api.get<Blob>(`/api/files/${fileId}`);
+}
+
 export async function fetchFileUrl(fileId: string): Promise<string> {
-  const blob = await api.get<Blob>(`/api/files/${fileId}`);
+  const blob = await fetchFileBlob(fileId);
   return URL.createObjectURL(blob);
 }
+
+export const todayIso = () => new Date().toISOString().slice(0, 10);
 
 export const money = (cents: number, currency = "PLN") =>
   `${(cents / 100).toFixed(2).replace(".", ",")} ${currency}`;

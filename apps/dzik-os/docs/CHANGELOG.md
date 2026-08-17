@@ -1,5 +1,45 @@
 # Changelog — Dzik OS
 
+## 0.2.0 — 2026-08-17
+
+Monitoring w czasie — na podstawie analizy rynku (`ANALIZA_RYNKU.md`) i
+wniosku, że regularny monitoring pozwala wcześniej wychwycić niekorzystne
+reakcje, a nie tylko śledzić postępy.
+
+* **Nowość — Monitoring i postępy** (klient, `/postepy`) i zakładka
+  **Monitoring** (trener): cel z odliczaniem dni, trendy pomiarów i
+  samopoczucia (sen/energia/stres/głód/regeneracja z raportów), dziennik
+  kaloryczny na tle celu z diety, realizacja harmonogramu per kategoria
+  (pasek % zamiast surowych liczb), dziennik obserwacji.
+* **Nowość — adherencja harmonogramu**: przycisk „Wykonane" na ekranie
+  Dzisiaj dla każdego elementu harmonogramu (nie tylko treningu);
+  idempotentne odhaczenie per dzień (`schedule_completions`).
+* **Nowość — dziennik obserwacji** (`observations`): klient zgłasza
+  samopoczucie lub reakcję (opcjonalnie powiązaną z suplementem/posiłkiem
+  z harmonogramu), oznaczając wagę Informacja/Niepokojące. System **nigdy
+  nie interpretuje ani nie diagnozuje** — wyłącznie zapisuje dosłownie i
+  flaguje NIEPOKOJACE w panelu trenera (nowy filtr i badge na liście
+  klientów) oraz — jeśli skonfigurowany dostawca — e-mailem.
+* **Nowość — dziennik kaloryczny** (`daily_nutrition_logs`): szybki wpis
+  kcal/wody na tle celu z aktywnej diety.
+* **Nowość — eksport do Excela** (`/api/me/export.xlsx`, przycisk w
+  Profilu): ten sam komplet danych co eksport JSON, jeden arkusz na
+  tabelę.
+* **Nowość — wiadomości głosowe**: nagrywanie w przeglądarce
+  (MediaRecorder) i wysyłka jako załącznik; poprawiony też odbiór
+  załączników dowolnego typu w wątku (wcześniej wszystko renderowało się
+  jak obraz — PDF/wideo/audio wyświetlały się poprawnie po typie z
+  serwera, nie po nazwie pliku).
+* **Nowość — adapter powiadomień e-mail** (`notifications_provider.py`,
+  wzorzec jak `payments_provider.py`): domyślnie `NullNotificationProvider`
+  (nic nie wysyła, brak PII w logach); gotowy interfejs do podłączenia
+  Resend/SendGrid/Mailgun/SMTP decyzją operatora.
+* Migracja schematu nr 3 (trzy nowe tabele monitoringu) — bezpieczna dla
+  istniejącej bazy (w tym produkcyjnej na Fly), testowana regresyjnie.
+* Eksport JSON i procedura usunięcia danych objęły nowe tabele.
+* Testy: 55 → 65 (adherencja, obserwacje z flagą, dziennik kaloryczny,
+  eksport Excel, upload audio, migracja v1→v3).
+
 ## 0.1.1 — 2026-08-17
 
 Runda poprawek po pełnym przekliku aplikacji + przygotowanie PaaS.

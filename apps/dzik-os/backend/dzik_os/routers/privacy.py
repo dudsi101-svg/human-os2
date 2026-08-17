@@ -3,7 +3,9 @@ from __future__ import annotations
 import json
 
 from fastapi import APIRouter, Depends, HTTPException
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
+from openpyxl import Workbook
+from openpyxl.utils import get_column_letter
 from sqlalchemy.orm import Session
 
 from ..authz import require_client_self
@@ -12,6 +14,7 @@ from ..hos_bridge import ConsentService, record_event
 from ..models import (
     CheckinRevision,
     ConsentRecord,
+    DailyNutritionLog,
     Document,
     Goal,
     Measurement,
@@ -19,11 +22,13 @@ from ..models import (
     MessageThread,
     NutritionPlan,
     NutritionPlanVersion,
+    Observation,
     PaymentRecord,
     PaymentSchedule,
     ProfileField,
     ProgressPhoto,
     Reminder,
+    ScheduleCompletion,
     ScheduleItem,
     StoredFile,
     TrainingPlan,
@@ -151,11 +156,7 @@ def revoke_consent(
     return {"id": row.id, "revoked_at": row.revoked_at}
 
 
-@router.get("/export")
-def export_my_data(user: User = Depends(current_user), db: Session = Depends(get_db)):
-    """Eksport wszystkich danych użytkownika (prawo do przenoszenia danych).
-    Zwraca komplet danych jako JSON; pliki wymienione są z identyfikatorami
-    do pobrania przez /api/files/{id}."""
+def _collect_export(db: Session, user: User) -> dict:
     client_id = user.id
     threads = (
         db.query(MessageThread)
@@ -185,8 +186,12 @@ def export_my_data(user: User = Depends(current_user), db: Session = Depends(get
     pay_records = []
     for s in pay_schedules:
         pay_records.extend(_rows(db, PaymentRecord, schedule_id=s["id"]))
-    export = {
-        "export_version": "1.0",
+    schedule_items = _rows(db, ScheduleItem, client_id=client_id)
+    schedule_completions = []
+    for i in schedule_items:
+        schedule_completions.extend(_rows(db, ScheduleCompletion, schedule_item_id=i["id"]))
+    return {
+        "export_version": "1.1",
         "user": {
             "id": user.id, "email": user.email, "display_name": user.display_name,
             "identity_id": user.identity_id, "created_at": user.created_at,
@@ -199,7 +204,8 @@ def export_my_data(user: User = Depends(current_user), db: Session = Depends(get
         "workout_entries": entries,
         "nutrition_plans": nplans,
         "nutrition_plan_versions": nversions,
-        "schedule_items": _rows(db, ScheduleItem, client_id=client_id),
+        "schedule_items": schedule_items,
+        "schedule_completions": schedule_completions,
         "reminders": _rows(db, Reminder, client_id=client_id),
         "weekly_checkins": checkins,
         "checkin_revisions": revisions,
@@ -211,19 +217,81 @@ def export_my_data(user: User = Depends(current_user), db: Session = Depends(get
         "payment_schedules": pay_schedules,
         "payment_records": pay_records,
         "consents": _rows(db, ConsentRecord, subject_id=client_id),
+        "observations": _rows(db, Observation, client_id=client_id),
+        "daily_nutrition_logs": _rows(db, DailyNutritionLog, client_id=client_id),
     }
+
+
+@router.get("/export")
+def export_my_data(user: User = Depends(current_user), db: Session = Depends(get_db)):
+    """Eksport wszystkich danych użytkownika (prawo do przenoszenia danych).
+    Zwraca komplet danych jako JSON; pliki wymienione są z identyfikatorami
+    do pobrania przez /api/files/{id}."""
+    export = _collect_export(db, user)
     record_event(
         db,
         action="DATA_EXPORTED",
         actor_id=user.id,
         subject_ids=[user.id],
-        payload={"export_version": "1.0"},
-        summary="Eksport danych użytkownika",
+        payload={"export_version": export["export_version"], "format": "json"},
+        summary="Eksport danych użytkownika (JSON)",
     )
     db.commit()
     return JSONResponse(
         content=json.loads(json.dumps(export, default=str)),
         headers={"Content-Disposition": 'attachment; filename="dzik-os-export.json"'},
+    )
+
+
+@router.get("/export.xlsx")
+def export_my_data_excel(user: User = Depends(current_user), db: Session = Depends(get_db)):
+    """Ten sam eksport co /export, w formacie arkusza kalkulacyjnego —
+    jeden arkusz na tabelę, wygodny do przejrzenia w Excelu/LibreOffice."""
+    export = _collect_export(db, user)
+    wb = Workbook()
+    wb.remove(wb.active)
+    for name, rows in export.items():
+        if name == "user" or not isinstance(rows, list):
+            continue
+        sheet_name = name[:31]  # limit Excela na długość nazwy arkusza
+        ws = wb.create_sheet(sheet_name)
+        if not rows:
+            ws.append(["(brak danych)"])
+            continue
+        headers = sorted({k for row in rows for k in row.keys()})
+        ws.append(headers)
+        for row in rows:
+            ws.append([
+                json.dumps(row[h], ensure_ascii=False, default=str)
+                if isinstance(row.get(h), (dict, list))
+                else row.get(h)
+                for h in headers
+            ])
+        for idx, h in enumerate(headers, start=1):
+            width = max(10, min(40, len(h) + 2))
+            ws.column_dimensions[get_column_letter(idx)].width = width
+    info = wb.create_sheet("konto", 0)
+    info.append(["pole", "wartość"])
+    for k, v in export["user"].items():
+        info.append([k, v])
+
+    from io import BytesIO
+
+    buf = BytesIO()
+    wb.save(buf)
+    record_event(
+        db,
+        action="DATA_EXPORTED",
+        actor_id=user.id,
+        subject_ids=[user.id],
+        payload={"export_version": export["export_version"], "format": "xlsx"},
+        summary="Eksport danych użytkownika (Excel)",
+    )
+    db.commit()
+    return Response(
+        content=buf.getvalue(),
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": 'attachment; filename="dzik-os-export.xlsx"'},
     )
 
 
@@ -252,6 +320,12 @@ def request_deletion(
         db.delete(m)
     for p in db.query(ProgressPhoto).filter(ProgressPhoto.client_id == client_id).all():
         db.delete(p)
+    for o in db.query(Observation).filter(Observation.client_id == client_id).all():
+        db.delete(o)
+    for n in db.query(DailyNutritionLog).filter(DailyNutritionLog.client_id == client_id).all():
+        db.delete(n)
+    for sc in db.query(ScheduleCompletion).filter(ScheduleCompletion.client_id == client_id).all():
+        sc.note = None
     for c in db.query(WeeklyCheckin).filter(WeeklyCheckin.client_id == client_id).all():
         c.payload_json = "{}"
         c.coach_response = None

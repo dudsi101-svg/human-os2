@@ -57,6 +57,18 @@ Migracje: `db.py` — rejestr `schema_migrations`, wersja 1 = schemat MVP.
 | `documents` | metadane dokumentu klienta (tytuł, kategoria) → files |
 | `progress_photos` | zdjęcia sylwetki, opcjonalnie związane z raportem |
 
+## Monitoring w czasie
+
+| Tabela | Uwagi |
+|---|---|
+| `schedule_completions` | adherencja elementu harmonogramu per dzień: completed_on, status DONE/SKIPPED, note; unique(schedule_item_id, completed_on) — idempotentne odhaczenie |
+| `observations` | dziennik obserwacji (samopoczucie/objaw/reakcja/inne), opcjonalnie powiązany ze schedule_item_id; severity INFO/NIEPOKOJACE — **wyłącznie flaga do przeglądu przez trenera, nigdy diagnoza ani automatyczna interpretacja** |
+| `daily_nutrition_logs` | dzienny log kcal/makro/wody, osobny od statycznego celu w `nutrition_plan_versions`; unique(client_id, logged_on) |
+
+Agregacja `/api/clients/{id}/monitoring` łączy powyższe z celem (`goals`),
+pomiarami i raportami tygodniowymi w jeden przegląd trendów — nie jest
+osobnym magazynem danych, tylko odczytem z istniejących tabel.
+
 ## Komunikacja i płatności
 
 | Tabela | Uwagi |

@@ -16,6 +16,7 @@ from ..models import (
     PaymentRecord,
     PaymentSchedule,
     Reminder,
+    ScheduleCompletion,
     ScheduleItem,
     TrainingPlan,
     TrainingPlanVersion,
@@ -102,7 +103,17 @@ def today_view(user: User = Depends(current_user), db: Session = Depends(get_db)
                 "carbs_g": content.get("carbs_g"),
             }
 
-    # Elementy harmonogramu na dziś.
+    # Elementy harmonogramu na dziś (z odznaczeniem "wykonane" per dzień).
+    done_today_ids = {
+        c.schedule_item_id
+        for c in db.query(ScheduleCompletion)
+        .filter(
+            ScheduleCompletion.client_id == client_id,
+            ScheduleCompletion.completed_on == today.isoformat(),
+            ScheduleCompletion.status == "DONE",
+        )
+        .all()
+    }
     schedule_today = []
     for item in (
         db.query(ScheduleItem)
@@ -120,6 +131,7 @@ def today_view(user: User = Depends(current_user), db: Session = Depends(get_db)
             {
                 "id": item.id, "name": item.name, "category": item.category,
                 "time_of_day": item.time_of_day, "instruction": item.instruction,
+                "done_today": item.id in done_today_ids,
             }
         )
     schedule_today.sort(key=lambda i: i["time_of_day"] or "99:99")

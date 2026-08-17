@@ -32,6 +32,57 @@ MIGRATIONS: list[tuple[int, str, list[str]]] = [
         "ALTER TABLE users ADD COLUMN must_change_password BOOLEAN NOT NULL DEFAULT 0",
         "ALTER TABLE consents ADD COLUMN confirmed_at VARCHAR(40)",
     ]),
+    (3, "monitoring: schedule adherence, observations, daily nutrition log", [
+        """
+        CREATE TABLE IF NOT EXISTS schedule_completions (
+            id VARCHAR(40) PRIMARY KEY,
+            schedule_item_id VARCHAR(40) NOT NULL REFERENCES schedule_items(id),
+            client_id VARCHAR(40) NOT NULL REFERENCES users(id),
+            completed_on VARCHAR(40) NOT NULL,
+            status VARCHAR(20) NOT NULL DEFAULT 'DONE',
+            note TEXT,
+            created_by VARCHAR(40) NOT NULL,
+            created_at VARCHAR(40) NOT NULL,
+            UNIQUE(schedule_item_id, completed_on)
+        )
+        """,
+        "CREATE INDEX IF NOT EXISTS ix_schedule_completions_item "
+        "ON schedule_completions(schedule_item_id)",
+        "CREATE INDEX IF NOT EXISTS ix_schedule_completions_client "
+        "ON schedule_completions(client_id)",
+        """
+        CREATE TABLE IF NOT EXISTS observations (
+            id VARCHAR(40) PRIMARY KEY,
+            client_id VARCHAR(40) NOT NULL REFERENCES users(id),
+            occurred_on VARCHAR(40) NOT NULL,
+            schedule_item_id VARCHAR(40) REFERENCES schedule_items(id),
+            category VARCHAR(30) NOT NULL,
+            severity VARCHAR(20) NOT NULL DEFAULT 'INFO',
+            text TEXT NOT NULL,
+            created_by VARCHAR(40) NOT NULL,
+            created_at VARCHAR(40) NOT NULL
+        )
+        """,
+        "CREATE INDEX IF NOT EXISTS ix_observations_client ON observations(client_id)",
+        """
+        CREATE TABLE IF NOT EXISTS daily_nutrition_logs (
+            id VARCHAR(40) PRIMARY KEY,
+            client_id VARCHAR(40) NOT NULL REFERENCES users(id),
+            logged_on VARCHAR(40) NOT NULL,
+            kcal INTEGER,
+            protein_g INTEGER,
+            fat_g INTEGER,
+            carbs_g INTEGER,
+            water_l FLOAT,
+            note TEXT,
+            created_by VARCHAR(40) NOT NULL,
+            created_at VARCHAR(40) NOT NULL,
+            UNIQUE(client_id, logged_on)
+        )
+        """,
+        "CREATE INDEX IF NOT EXISTS ix_daily_nutrition_logs_client "
+        "ON daily_nutrition_logs(client_id)",
+    ]),
 ]
 
 

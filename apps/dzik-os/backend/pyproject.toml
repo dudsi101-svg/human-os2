@@ -19,6 +19,7 @@ dependencies = [
   "python-multipart>=0.0.9",
   "email-validator>=2",
   "jsonschema>=4.20,<5",
+  "openpyxl>=3.1,<4",
 ]
 
 [project.optional-dependencies]

@@ -4,7 +4,7 @@ import { api, plDate } from "../../api";
 import { ErrorBox, LogoutButton, Spinner, TopBar } from "../../components";
 import { CoachClientRow } from "../../types";
 
-type Filter = "all" | "checkin" | "payment" | "messages" | "pain";
+type Filter = "all" | "checkin" | "payment" | "messages" | "pain" | "observation";
 
 export default function Clients() {
   const [clients, setClients] = useState<CoachClientRow[] | null>(null);
@@ -43,6 +43,7 @@ export default function Clients() {
       case "payment": return c.flags.payment_overdue;
       case "messages": return c.flags.unread_messages > 0;
       case "pain": return c.flags.recent_pain_reports > 0;
+      case "observation": return c.flags.flagged_observations > 0;
       default: return true;
     }
   });
@@ -87,6 +88,7 @@ export default function Clients() {
           ["payment", `Zaległa płatność (${clients.filter((c) => c.flags.payment_overdue).length})`],
           ["messages", `Nowe wiadomości (${clients.filter((c) => c.flags.unread_messages > 0).length})`],
           ["pain", `Zgłoszony ból (${clients.filter((c) => c.flags.recent_pain_reports > 0).length})`],
+          ["observation", `Niepokojąca obserwacja (${clients.filter((c) => c.flags.flagged_observations > 0).length})`],
         ] as [Filter, string][]).map(([key, label]) => (
           <button key={key} className={filter === key ? "active" : ""}
             onClick={() => setFilter(key)}>{label}</button>
@@ -109,6 +111,9 @@ export default function Clients() {
                   <span className="badge badge--accent">✉ {c.flags.unread_messages}</span>
                 )}
                 {c.flags.recent_pain_reports > 0 && <span className="badge badge--danger">ból</span>}
+                {c.flags.flagged_observations > 0 && (
+                  <span className="badge badge--danger">⚠ obserwacja</span>
+                )}
               </div>
             </div>
             <small>

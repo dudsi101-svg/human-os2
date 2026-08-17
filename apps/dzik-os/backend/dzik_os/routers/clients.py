@@ -12,6 +12,7 @@ from ..models import (
     CoachClientRelationship,
     Message,
     MessageThread,
+    Observation,
     PaymentRecord,
     PaymentSchedule,
     RoleGrant,
@@ -165,6 +166,15 @@ def list_clients(
             )
             .count()
         )
+        flagged_observations = (
+            db.query(Observation)
+            .filter(
+                Observation.client_id == client.id,
+                Observation.severity == "NIEPOKOJACE",
+                Observation.occurred_on >= (today - timedelta(days=14)).isoformat(),
+            )
+            .count()
+        )
         out.append(
             {
                 "client_id": client.id,
@@ -177,6 +187,7 @@ def list_clients(
                     "payment_overdue": overdue_payment > 0,
                     "unread_messages": unread,
                     "recent_pain_reports": recent_pain,
+                    "flagged_observations": flagged_observations,
                 },
                 "last_checkin_week": last_checkin.week_start if last_checkin else None,
             }

@@ -8,6 +8,7 @@ export default function Today() {
   const [data, setData] = useState<TodayData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [marking, setMarking] = useState(false);
+  const [markingSchedule, setMarkingSchedule] = useState<string | null>(null);
   const user = getUser();
 
   const load = () =>
@@ -32,6 +33,21 @@ export default function Today() {
       setError((e as Error).message);
     } finally {
       setMarking(false);
+    }
+  }
+
+  async function markScheduleDone(itemId: string) {
+    if (!data || !user) return;
+    setMarkingSchedule(itemId);
+    try {
+      await api.post(`/api/clients/${user.id}/schedule/${itemId}/complete`, {
+        completed_on: data.date,
+      });
+      await load();
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setMarkingSchedule(null);
     }
   }
 
@@ -102,10 +118,18 @@ export default function Today() {
               <div>
                 <b>{s.name}</b>
                 {s.instruction && <div className="meta">{s.instruction}</div>}
+                <div className="meta">
+                  {s.time_of_day ?? ""} <span className="badge">{CATEGORY_LABELS[s.category] ?? s.category}</span>
+                </div>
               </div>
-              <div className="meta">
-                {s.time_of_day ?? ""} <span className="badge">{CATEGORY_LABELS[s.category] ?? s.category}</span>
-              </div>
+              {s.done_today ? (
+                <span className="badge badge--ok">✓ zrobione</span>
+              ) : (
+                <button className="btn btn--ghost btn--small" disabled={markingSchedule === s.id}
+                  onClick={() => markScheduleDone(s.id)}>
+                  {markingSchedule === s.id ? "…" : "Wykonane"}
+                </button>
+              )}
             </div>
           ))}
         </div>

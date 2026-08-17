@@ -19,6 +19,7 @@ from .routers import (
     files,
     measurements,
     messages,
+    monitoring,
     nutrition,
     payments,
     plans,
@@ -66,6 +67,7 @@ def create_app() -> FastAPI:
         nutrition.router, schedule.router, checkins.router,
         measurements.router, messages.router, files.router,
         payments.router, privacy.router, today.router, admin.router,
+        monitoring.router,
     ):
         app.include_router(router)
 
