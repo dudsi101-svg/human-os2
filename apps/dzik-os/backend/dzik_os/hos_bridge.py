@@ -16,6 +16,8 @@ Przepływ: UI -> Request -> (ten moduł: Core/Policy) -> Result/Receipt -> UI.
 
 from __future__ import annotations
 
+import sqlite3
+import threading
 import uuid
 from datetime import UTC, datetime
 from typing import Any
@@ -27,13 +29,31 @@ from sqlalchemy.orm import Session
 from .config import settings
 from .models import ConsentRecord, Receipt, new_id
 
+
+class ThreadSafeEventStore(SQLiteEventStore):
+    """SQLiteEventStore z hos_engine współdzielony między wątkami serwera
+    HTTP. Nie zmieniamy Core: podklasa wymienia połączenie na wielowątkowe
+    i serializuje zapisy blokadą (append pozostaje logiką Core)."""
+
+    def __init__(self, path: str) -> None:
+        super().__init__(path)
+        self.connection.close()
+        self.connection = sqlite3.connect(self.path, check_same_thread=False)
+        self.connection.row_factory = sqlite3.Row
+        self._lock = threading.Lock()
+
+    def append(self, event: dict[str, Any]) -> str:
+        with self._lock:
+            return super().append(event)
+
+
 _event_store: SQLiteEventStore | None = None
 
 
 def event_store() -> SQLiteEventStore:
     global _event_store
     if _event_store is None:
-        _event_store = SQLiteEventStore(settings.audit_db_path)
+        _event_store = ThreadSafeEventStore(settings.audit_db_path)
     return _event_store
 
 

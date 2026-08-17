@@ -28,6 +28,8 @@ class Settings:
     login_lockout_minutes: int = field(
         default_factory=lambda: int(_env("DZIK_LOGIN_LOCKOUT_MIN", "15"))
     )
+    # Koszt bcrypt (12 = produkcja; testy mogą obniżyć dla szybkości).
+    bcrypt_rounds: int = field(default_factory=lambda: int(_env("DZIK_BCRYPT_ROUNDS", "12")))
     # AI jest opcjonalne i domyślnie WYŁĄCZONE — aplikacja działa w pełni bez AI.
     ai_enabled: bool = field(default_factory=lambda: _env("DZIK_AI_ENABLED", "false") == "true")
     cors_origins: str = field(default_factory=lambda: _env("DZIK_CORS_ORIGINS", ""))

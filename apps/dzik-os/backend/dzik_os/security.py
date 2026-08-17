@@ -19,7 +19,8 @@ MIN_PASSWORD_LENGTH = 10
 def hash_password(password: str) -> str:
     if len(password) < MIN_PASSWORD_LENGTH:
         raise ValueError(f"Hasło musi mieć co najmniej {MIN_PASSWORD_LENGTH} znaków")
-    return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("ascii")
+    salt = bcrypt.gensalt(rounds=settings.bcrypt_rounds)
+    return bcrypt.hashpw(password.encode("utf-8"), salt).decode("ascii")
 
 
 def verify_password(password: str, password_hash: str) -> bool:
