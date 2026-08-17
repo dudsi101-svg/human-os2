@@ -280,6 +280,7 @@
     "protocol": "0.2.0-draft",
     "specification": "0.2.0-draft",
     "sdk_python": "0.2.0-alpha",
-    "hub": "0.2.0-prototype"
+    "hub": "0.2.0-prototype",
+    "dzik_os_app": "0.1.0-mvp (domain app, apps/dzik-os, ADR-DZIK-001..003)"
   }
 }

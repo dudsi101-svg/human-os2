@@ -1,0 +1,49 @@
+name: dzik-os-ci
+
+on:
+  push:
+    branches: [main, develop]
+    paths: ["apps/dzik-os/**", "hos_engine/**", ".github/workflows/dzik-os-ci.yml"]
+  pull_request:
+    paths: ["apps/dzik-os/**", "hos_engine/**", ".github/workflows/dzik-os-ci.yml"]
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install hos_engine + backend
+        run: |
+          pip install -e ".[dev]"
+          pip install -e "apps/dzik-os/backend[dev]"
+      - name: Lint (ruff)
+        run: ruff check apps/dzik-os/backend
+      - name: Core regression tests (hos_engine)
+        run: pytest tests/ -q
+      - name: Dzik OS backend tests
+        run: pytest apps/dzik-os/backend/tests -q
+
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install and build (includes typecheck via tsc -b)
+        working-directory: apps/dzik-os/frontend
+        run: |
+          npm install --no-audit --no-fund
+          npm run build
+      - name: Dependency audit (informational)
+        working-directory: apps/dzik-os/frontend
+        run: npm audit --omit=dev || true

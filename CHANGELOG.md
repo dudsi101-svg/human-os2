@@ -8,6 +8,17 @@ zarezerwowana dla systemu stabilnego, przejrzanego i wdrażalnego
 
 ## Niewydane (po 0.10.0-alpha.1)
 
+### Aplikacja domenowa: Dzik OS (2026-08-17)
+- **apps/dzik-os** — „Panel Podopiecznego" dla trenera personalnego:
+  pierwszy backend domenowy zbudowany na hos_engine (łańcuch zdarzeń
+  SQLiteEventStore + pokwitowania, trwałe zgody delegujące autoryzację do
+  ConsentRegistry, role wg wzorca authority.py). FastAPI + React/TS PWA,
+  wersjonowane plany treningowe i żywieniowe, raporty tygodniowe,
+  pomiary, wiadomości, płatności, eksport i anonimizacja danych.
+  Zaimplementowany podzbiór Human OS oznaczony MVP_IMPLEMENTED_SUBSET.
+  Decyzje: ADR-DZIK-001..003. Testy: 50 backend + 3 E2E; regresja Core
+  bez zmian (275).
+
 Zmiany zmergowane do `main` po tagu 0.10.0-alpha.1 (wszystkie 2026-08-17,
 PR #48 i #50):
 

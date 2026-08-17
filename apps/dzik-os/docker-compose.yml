@@ -1,0 +1,60 @@
+# Lokalne uruchomienie Dzik OS jednym poleceniem (z korzenia repozytorium):
+#   docker compose -f apps/dzik-os/docker-compose.yml up --build
+# Aplikacja: http://localhost:8000  (dane demo: docker compose ... run seed)
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: dzik
+      POSTGRES_USER: dzik
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-dzik-local-only}
+    volumes:
+      - dzik-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dzik"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  app:
+    build:
+      context: ../..
+      dockerfile: apps/dzik-os/Dockerfile
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DZIK_DATABASE_URL: postgresql+psycopg2://dzik:${POSTGRES_PASSWORD:-dzik-local-only}@db:5432/dzik
+      DZIK_AUDIT_DB: /data/audit.db
+      DZIK_UPLOAD_DIR: /data/uploads
+      DZIK_ENV: ${DZIK_ENV:-dev}
+      DZIK_BRAND_NAME: ${DZIK_BRAND_NAME:-Dzik OS}
+      DZIK_BRAND_COACH: ${DZIK_BRAND_COACH:-Lubelski Dzik}
+      DZIK_BRAND_ACCENT: ${DZIK_BRAND_ACCENT:-#b8f339}
+    volumes:
+      - dzik-data:/data
+    ports:
+      - "8000:8000"
+
+  # Jednorazowe zasilenie danymi demonstracyjnymi:
+  #   docker compose -f apps/dzik-os/docker-compose.yml run --rm seed
+  seed:
+    build:
+      context: ../..
+      dockerfile: apps/dzik-os/Dockerfile
+    profiles: ["seed"]
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DZIK_DATABASE_URL: postgresql+psycopg2://dzik:${POSTGRES_PASSWORD:-dzik-local-only}@db:5432/dzik
+      DZIK_AUDIT_DB: /data/audit.db
+      DZIK_UPLOAD_DIR: /data/uploads
+    volumes:
+      - dzik-data:/data
+    command: ["python", "-m", "dzik_os.seed"]
+
+volumes:
+  dzik-pgdata:
+  dzik-data:

@@ -218,3 +218,13 @@ Domain models with currency and provenance.
 |---|---|---|
 | [ADR-WORLD-001](ADR-WORLD-001-world-model-domain-signals.md) | Accepted | The World Model Consists of Domain Models With Currency and Uncertainty |
 
+
+## Dzik OS (aplikacja domenowa)
+
+Domain application built on Human OS foundations (apps/dzik-os).
+
+| ADR | Status | Title |
+|---|---|---|
+| [ADR-DZIK-001](ADR-DZIK-001-architektura-aplikacji-domenowej.md) | Accepted | Architektura aplikacji domenowej Dzik OS (FastAPI + React PWA, granica ADR-ARCH-003) |
+| [ADR-DZIK-002](ADR-DZIK-002-audyt-zgody-i-trwalosc.md) | Accepted | Audyt (hash chain), zgody (ConsentRegistry) i trwałość — integracja z hos_engine |
+| [ADR-DZIK-003](ADR-DZIK-003-import-fundamentow-i-mapowanie-ontologii.md) | Accepted | Import fundamentów do human-os2; mapowanie na ontologię jako koncepcyjne (MVP_IMPLEMENTED_SUBSET) |
