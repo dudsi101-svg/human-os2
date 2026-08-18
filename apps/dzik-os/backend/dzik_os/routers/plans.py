@@ -5,7 +5,7 @@ import json
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from .. import notifications
+from .. import aggregates, notifications
 from ..authz import (
     DOMAIN_TRAINING,
     deny,
@@ -339,14 +339,16 @@ def list_workouts(
         .limit(200)
         .all()
     )
+    # Wpisy wszystkich sesji JEDNYM zapytaniem — wcześniej każda sesja
+    # kosztowała osobne zapytanie, więc koszt listy rósł z historią
+    # treningów klienta (po roku współpracy to ponad sto zapytań na jedno
+    # wejście w zakładkę). Patrz aggregates.py i docs/SYMULACJA.md.
+    entries_by_session = aggregates.workout_entries_by_session(
+        db, [s.id for s in sessions]
+    )
     out = []
     for s in sessions:
-        entries = (
-            db.query(WorkoutEntry)
-            .filter(WorkoutEntry.session_id == s.id)
-            .order_by(WorkoutEntry.exercise_index)
-            .all()
-        )
+        entries = entries_by_session.get(s.id, [])
         out.append(
             {
                 "id": s.id,
