@@ -6,8 +6,18 @@ from datetime import UTC, datetime, timedelta
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 
-from ..authz import CONSENT_DOMAIN, CONSENT_PURPOSE, active_relationship, resolve_client_access
+from ..authz import (
+    DOMAIN_COLLABORATION,
+    DOMAIN_HEALTH,
+    DOMAIN_NUTRITION,
+    DOMAIN_PHOTOS,
+    DOMAIN_TRAINING,
+    active_relationship,
+    coach_can_access_client,
+    resolve_client_access,
+)
 from ..config import settings
+from ..consent_catalog import ONBOARDING_CATEGORIES
 from ..dates import local_now_minute, local_today, parse_iso_date
 from ..db import get_db
 from ..hos_bridge import ConsentService, record_event
@@ -175,20 +185,27 @@ def create_client(
     if thread is None:
         db.add(MessageThread(id=new_id("THR"), coach_id=coach.id, client_id=client.id))
     if new_account:
-        # Deklarację zgody z onboardingu wolno zarejestrować wyłącznie dla
+        # Deklaracje zgód z onboardingu wolno zarejestrować wyłącznie dla
         # konta zakładanego właśnie przez trenera. Dla ISTNIEJĄCEGO konta
-        # zgody nie nadaje nikt poza podmiotem danych — klient nadaje ją
+        # zgody nie nadaje nikt poza podmiotem danych — klient nadaje je
         # sam w aplikacji (POST /api/me/consents); do tego czasu trener
         # widzi relację z consent_active=false i nie ma dostępu do danych.
-        ConsentService.grant(
-            db,
-            subject_id=client.id,
-            grantee_id=coach.id,
-            purpose=CONSENT_PURPOSE,
-            domain=CONSENT_DOMAIN,
-            actions="read,write",
-            allow_sensitive=True,
-        )
+        #
+        # Każda kategoria to OSOBNY wiersz (RODO: odrębne cele) —
+        # klient potwierdza lub odmawia każdej z osobna przy pierwszym
+        # logowaniu. Kategorie czysto opcjonalne (przypomnienia, AI,
+        # marketing) NIGDY nie są rejestrowane przez trenera.
+        for category_key in ONBOARDING_CATEGORIES:
+            ConsentService.grant_category(
+                db,
+                subject_id=client.id,
+                category_key=category_key,
+                grantee_id=coach.id,
+                actions="read,write",
+                source="ONBOARDING_DECLARATION",
+                confirmed=False,
+                actor_id=coach.id,
+            )
     record_event(
         db,
         action="RELATIONSHIP_STARTED",
@@ -392,10 +409,27 @@ def list_clients(
         client = db.get(User, rel.client_id)
         if client is None:
             continue
-        has_consent = ConsentService.authorize(
-            db, subject_id=client.id, grantee_id=coach.id,
-            purpose=CONSENT_PURPOSE, domain=CONSENT_DOMAIN, action="read", sensitive=True,
+        # Zgody per kategoria danych: consent_active = podstawowa zgoda
+        # współpracy (bez niej trener nie widzi danych klienta w ogóle);
+        # consent_scopes pokazuje zakres zgód wrażliwych.
+        has_consent = coach_can_access_client(
+            db, coach.id, client.id, domain=DOMAIN_COLLABORATION
         )
+        consent_scopes = {
+            "collaboration": has_consent,
+            "training": coach_can_access_client(
+                db, coach.id, client.id, domain=DOMAIN_TRAINING
+            ),
+            "health": coach_can_access_client(
+                db, coach.id, client.id, domain=DOMAIN_HEALTH
+            ),
+            "nutrition": coach_can_access_client(
+                db, coach.id, client.id, domain=DOMAIN_NUTRITION
+            ),
+            "photos": coach_can_access_client(
+                db, coach.id, client.id, domain=DOMAIN_PHOTOS
+            ),
+        }
         flags = _client_flags(db, coach, client, today)
         invitation_expires_at = None
         if client.status == "PENDING":
@@ -423,6 +457,7 @@ def list_clients(
                 # zaproszenia — bez tokenu (serwer zna tylko hash).
                 "account_pending": client.status == "PENDING",
                 "invitation_expires_at": invitation_expires_at,
+                "consent_scopes": consent_scopes,
                 "flags": {
                     "checkin_overdue": flags["checkin_overdue"],
                     "awaiting_review": flags["awaiting_review"],
@@ -550,7 +585,7 @@ def client_history(
     db: Session = Depends(get_db),
 ):
     """Historia zmian (pokwitowania z łańcucha audytu) dotycząca klienta."""
-    resolve_client_access(db, coach, client_id)
+    resolve_client_access(db, coach, client_id, domain=DOMAIN_COLLABORATION)
     from ..models import Receipt
 
     rows = (
@@ -578,7 +613,7 @@ def client_overview(
     coach: User = Depends(require_role("COACH")),
     db: Session = Depends(get_db),
 ):
-    resolve_client_access(db, coach, client_id)
+    resolve_client_access(db, coach, client_id, domain=DOMAIN_COLLABORATION)
     client = db.get(User, client_id)
     assert client is not None
     return {

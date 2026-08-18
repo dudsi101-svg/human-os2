@@ -159,6 +159,9 @@ def test_migrations_apply_to_existing_v1_database(tmp_path):
         }
     assert "must_change_password" in cols_u
     assert "confirmed_at" in cols_c
+    # Migracja nr 10: granularne kategorie zgód (RODO).
+    for col in ("category", "legal_basis", "source", "denied_at"):
+        assert col in cols_c, col
     assert "rating" in cols_w
     assert "last_used_at" in cols_s
     assert {"schedule_completions", "observations", "daily_nutrition_logs"} <= tables

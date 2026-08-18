@@ -3,7 +3,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from ..authz import resolve_client_access
+from ..authz import DOMAIN_TRAINING, resolve_client_access
 from ..db import get_db
 from ..hos_bridge import record_event
 from ..models import Reminder, ScheduleItem, User, new_id, now_iso
@@ -39,7 +39,7 @@ def create_schedule_item(
     """Element harmonogramu może dodać trener lub sam klient. Autor zalecenia
     jest zawsze zapisany (proweniencja). System wyłącznie przechowuje plan
     wprowadzony przez człowieka — nie dobiera i nie modyfikuje dawkowania."""
-    resolve_client_access(db, user, body.client_id, action="write")
+    resolve_client_access(db, user, body.client_id, action="write", domain=DOMAIN_TRAINING)
     item = ScheduleItem(
         id=new_id("SCH"),
         client_id=body.client_id,
@@ -73,7 +73,7 @@ def list_schedule(
     user: User = Depends(current_user),
     db: Session = Depends(get_db),
 ):
-    resolve_client_access(db, user, client_id)
+    resolve_client_access(db, user, client_id, domain=DOMAIN_TRAINING)
     rows = (
         db.query(ScheduleItem)
         .filter(ScheduleItem.client_id == client_id)
@@ -95,7 +95,7 @@ def set_schedule_status(
     item = db.get(ScheduleItem, item_id)
     if item is None:
         raise HTTPException(status_code=404, detail="Nie znaleziono")
-    resolve_client_access(db, user, item.client_id, action="write")
+    resolve_client_access(db, user, item.client_id, action="write", domain=DOMAIN_TRAINING)
     previous = item.status
     item.status = status
     item.updated_at = now_iso()
@@ -118,7 +118,7 @@ def create_reminder(
     coach: User = Depends(require_role("COACH")),
     db: Session = Depends(get_db),
 ):
-    resolve_client_access(db, coach, body.client_id, action="write")
+    resolve_client_access(db, coach, body.client_id, action="write", domain=DOMAIN_TRAINING)
     reminder = Reminder(
         id=new_id("RMD"),
         client_id=body.client_id,
@@ -137,7 +137,7 @@ def list_reminders(
     user: User = Depends(current_user),
     db: Session = Depends(get_db),
 ):
-    resolve_client_access(db, user, client_id)
+    resolve_client_access(db, user, client_id, domain=DOMAIN_TRAINING)
     rows = (
         db.query(Reminder)
         .filter(Reminder.client_id == client_id, Reminder.status == "ACTIVE")

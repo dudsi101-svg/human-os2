@@ -214,11 +214,20 @@ class MfaCodeIn(BaseModel):
 
 
 class ConsentGrantIn(BaseModel):
-    grantee_id: str
-    purpose: str = Field(default="coaching", max_length=120)
-    domain: str = Field(default="health_data", max_length=120)
+    """Udzielenie zgody JEDNEJ kategorii z katalogu (consent_catalog).
+    Cel/zakres/wrażliwość/podstawa prawna wynikają z katalogu — klient
+    wskazuje kategorię i (dla kategorii trenerskich) odbiorcę."""
+
+    category: str = Field(min_length=1, max_length=40)
+    grantee_id: str | None = None  # wymagane dla kategorii trenerskich
     actions: str = Field(default="read,write", max_length=200)
-    allow_sensitive: bool = True
+
+
+class ConsentDeclineIn(BaseModel):
+    """Jawna odmowa zgody OPCJONALNEJ (zapisywana z historią)."""
+
+    category: str = Field(min_length=1, max_length=40)
+    grantee_id: str | None = None
 
 
 class DeletionRequestIn(BaseModel):

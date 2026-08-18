@@ -183,6 +183,14 @@ MIGRATIONS: list[tuple[int, str, list[str]]] = [
     (9, "session security: last used timestamp", [
         "ALTER TABLE auth_sessions ADD COLUMN last_used_at VARCHAR(40)",
     ]),
+    (10, "granular consent categories (RODO)", [
+        # Kategoria z consent_catalog; NULL = historyczna zgoda parasolowa
+        # coaching/health_data (interpretacja: ConsentService._hydrate).
+        "ALTER TABLE consents ADD COLUMN category VARCHAR(40)",
+        "ALTER TABLE consents ADD COLUMN legal_basis VARCHAR(120)",
+        "ALTER TABLE consents ADD COLUMN source VARCHAR(40)",
+        "ALTER TABLE consents ADD COLUMN denied_at VARCHAR(40)",
+    ]),
     (11, "invitations, password reset, TOTP MFA", [
         # MFA (TOTP) na koncie użytkownika; sekret nigdy nie opuszcza
         # backendu poza jednorazowym zwrotem przy konfiguracji.

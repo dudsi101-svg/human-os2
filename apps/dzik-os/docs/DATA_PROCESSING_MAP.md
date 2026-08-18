@@ -5,6 +5,15 @@ Administratorem danych klientów jest trener; aplikacja jest narzędziem.
 Dokument opisuje stan MVP; przed produkcyjnym wdrożeniem wymagany
 przegląd prawny (patrz RISK_REGISTER R-01).
 
+> **Od 0.11.0** zgody są granularne per kategoria danych (osobno dane
+> zdrowotne, żywienie/alergie, zdjęcia, komunikacja, przypomnienia,
+> funkcje AI, marketing…) — kolumna „Podstawa" poniżej odnosi się do
+> właściwej kategorii z `consent_catalog.py`. Dokumenty towarzyszące:
+> `ZGODY_MODEL.md` (model zgód), `RODO_REJESTR_CZYNNOSCI.md` (rejestr
+> czynności, procesorzy, retencja), `RODO_INCYDENTY.md` (incydenty),
+> `RODO_DPIA.md` (ocena konieczności DPIA),
+> `POLITYKA_PRYWATNOSCI_SZKIC.md` v0.2.
+
 | Kategoria danych | Przykłady | Cel | Podstawa | Kto widzi | Retencja |
 |---|---|---|---|---|---|
 | Identyfikacyjne | imię, e-mail | konto, kontakt | umowa o prowadzenie | klient, trener; admin (bez zdrowotnych) | do usunięcia konta |

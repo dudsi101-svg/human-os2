@@ -5,7 +5,7 @@ import json
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from ..authz import require_owned_resource, resolve_client_access
+from ..authz import DOMAIN_NUTRITION, require_owned_resource, resolve_client_access
 from ..db import get_db
 from ..hos_bridge import record_event
 from ..models import Document, NutritionPlan, NutritionPlanVersion, User, new_id, now_iso
@@ -61,7 +61,7 @@ def create_nutrition_plan(
     coach: User = Depends(require_role("COACH")),
     db: Session = Depends(get_db),
 ):
-    resolve_client_access(db, coach, body.client_id, action="write")
+    resolve_client_access(db, coach, body.client_id, action="write", domain=DOMAIN_NUTRITION)
     _check_document(db, body.version.document_id, body.client_id)
     plan = NutritionPlan(
         id=new_id("NUT"),
@@ -104,7 +104,7 @@ def create_nutrition_version(
     plan = require_owned_resource(
         db.get(NutritionPlan, plan_id), actor=coach, resource=f"nutrition_plan:{plan_id}"
     )
-    resolve_client_access(db, coach, plan.client_id, action="write")
+    resolve_client_access(db, coach, plan.client_id, action="write", domain=DOMAIN_NUTRITION)
     _check_document(db, body.document_id, plan.client_id)
     next_no = plan.current_version_no + 1
     version = NutritionPlanVersion(
@@ -137,7 +137,7 @@ def client_nutrition(
     user: User = Depends(current_user),
     db: Session = Depends(get_db),
 ):
-    resolve_client_access(db, user, client_id)
+    resolve_client_access(db, user, client_id, domain=DOMAIN_NUTRITION)
     plans = (
         db.query(NutritionPlan)
         .filter(NutritionPlan.client_id == client_id)
@@ -172,7 +172,7 @@ def nutrition_versions(
     plan = db.get(NutritionPlan, plan_id)
     if plan is None:
         raise HTTPException(status_code=404, detail="Nie znaleziono")
-    resolve_client_access(db, user, plan.client_id)
+    resolve_client_access(db, user, plan.client_id, domain=DOMAIN_NUTRITION)
     rows = (
         db.query(NutritionPlanVersion)
         .filter(NutritionPlanVersion.plan_id == plan_id)

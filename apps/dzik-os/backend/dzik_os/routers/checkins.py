@@ -233,6 +233,26 @@ def ai_summary(
     if checkin is None:
         raise HTTPException(status_code=404, detail="Nie znaleziono")
     resolve_client_access(db, coach, checkin.client_id, action="write")
+    # Raport zawiera dane zdrowotne klienta — użycie AI wymaga JEGO
+    # zgody kategorii „funkcje AI" (nie decyzji trenera). Bez zgody
+    # zwracamy jawny powód, nie udajemy błędu technicznego.
+    from ..consent_catalog import SYSTEM_GRANTEE
+    from ..hos_bridge import ConsentService
+
+    if not ConsentService.authorize(
+        db,
+        subject_id=checkin.client_id,
+        grantee_id=SYSTEM_GRANTEE,
+        purpose="ai_features",
+        domain="checkin_summaries",
+        action="read",
+        sensitive=True,
+    ):
+        return {
+            "available": False,
+            "reason": "Klient nie wyraził zgody na funkcje AI dla swoich "
+            "raportów (Profil → Prywatność i zgody).",
+        }
     if not ai_provider.enabled:
         return {
             "available": False,

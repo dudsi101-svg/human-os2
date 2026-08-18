@@ -26,6 +26,7 @@ from hos_engine.consent import ConsentRegistry
 from hos_engine.sqlite_store import SQLiteEventStore
 from sqlalchemy.orm import Session
 
+from . import consent_catalog
 from .config import settings
 from .models import ConsentRecord, Receipt, new_id
 
@@ -119,10 +120,36 @@ class ConsentService:
         registry = ConsentRegistry()
         rows = (
             db.query(ConsentRecord)
-            .filter(ConsentRecord.subject_id == subject_id, ConsentRecord.revoked_at.is_(None))
+            .filter(
+                ConsentRecord.subject_id == subject_id,
+                ConsentRecord.revoked_at.is_(None),
+                ConsentRecord.denied_at.is_(None),
+            )
             .all()
         )
         for row in rows:
+            if (
+                row.category is None
+                and row.purpose == "coaching"
+                and row.domain == "health_data"
+                and row.allow_sensitive
+            ):
+                # Historyczna zgoda parasolowa (sprzed migracji nr 10):
+                # jej pierwotny sens obejmował PEŁNY dostęp trenerski, więc
+                # hydratujemy ją na wszystkie domeny trenerskie — nie
+                # zawężamy po cichu zakresu, na który podmiot faktycznie
+                # wyraził zgodę. Nowe wiersze (category != NULL) są zawsze
+                # granularne.
+                registry.grant(
+                    subject_id=row.subject_id,
+                    grantee_id=row.grantee_id,
+                    purposes=set(consent_catalog.LEGACY_UMBRELLA_PURPOSES),
+                    domains=set(consent_catalog.LEGACY_UMBRELLA_DOMAINS),
+                    actions=set(row.actions.split(",")),
+                    expires_at=row.expires_at,
+                    allow_sensitive=row.allow_sensitive,
+                )
+                continue
             registry.grant(
                 subject_id=row.subject_id,
                 grantee_id=row.grantee_id,
@@ -135,47 +162,112 @@ class ConsentService:
         return registry
 
     @staticmethod
-    def grant(
+    def grant_category(
         db: Session,
         *,
         subject_id: str,
-        grantee_id: str,
-        purpose: str,
-        domain: str,
-        actions: str = "read",
-        allow_sensitive: bool = False,
-        consent_text_version: str = "1.0",
-        expires_at: str | None = None,
+        category_key: str,
+        grantee_id: str | None = None,
+        actions: str = "read,write",
+        source: str = "SUBJECT",
         confirmed: bool = False,
+        actor_id: str | None = None,
     ) -> ConsentRecord:
+        """Rejestruje zgodę JEDNEJ kategorii z katalogu (consent_catalog).
+        Cel, zakres, wrażliwość, podstawa prawna i wersja dokumentu
+        pochodzą z katalogu — nie od wywołującego."""
+        cat = consent_catalog.category_by_key(category_key)
+        if cat is None:
+            raise ValueError(f"Nieznana kategoria zgody: {category_key}")
+        grantee = (
+            consent_catalog.SYSTEM_GRANTEE if cat.grantee_kind == "SYSTEM" else grantee_id
+        )
+        if not grantee:
+            raise ValueError("Kategoria trenerska wymaga grantee_id")
         row = ConsentRecord(
             id=new_id("CNS"),
             subject_id=subject_id,
-            grantee_id=grantee_id,
-            purpose=purpose,
-            domain=domain,
+            grantee_id=grantee,
+            purpose=cat.purpose,
+            domain=cat.domain,
             actions=actions,
-            allow_sensitive=allow_sensitive,
-            consent_text_version=consent_text_version,
-            expires_at=expires_at,
+            allow_sensitive=cat.sensitive,
+            consent_text_version=consent_catalog.CONSENT_DOC_VERSION,
             confirmed_at=datetime.now(UTC).isoformat() if confirmed else None,
+            category=cat.key,
+            legal_basis=cat.legal_basis,
+            source=source,
         )
         db.add(row)
         record_event(
             db,
             action="CONSENT_GRANTED",
+            actor_id=actor_id or subject_id,
+            subject_ids=[subject_id],
+            payload={
+                "consent_id": row.id,
+                "grantee_id": grantee,
+                "category": cat.key,
+                "purpose": cat.purpose,
+                "domain": cat.domain,
+                "actions": actions,
+                "allow_sensitive": cat.sensitive,
+                "legal_basis": cat.legal_basis,
+                "source": source,
+                "consent_text_version": row.consent_text_version,
+            },
+            summary=f"Zgoda [{cat.key}] {cat.purpose}/{cat.domain} dla {grantee}",
+        )
+        return row
+
+    @staticmethod
+    def decline_category(
+        db: Session,
+        *,
+        subject_id: str,
+        category_key: str,
+        grantee_id: str | None = None,
+    ) -> ConsentRecord:
+        """Jawna ODMOWA zgody opcjonalnej — zapisywana z pełną historią
+        (wiersz z denied_at nigdy nie autoryzuje dostępu)."""
+        cat = consent_catalog.category_by_key(category_key)
+        if cat is None:
+            raise ValueError(f"Nieznana kategoria zgody: {category_key}")
+        grantee = (
+            consent_catalog.SYSTEM_GRANTEE if cat.grantee_kind == "SYSTEM" else grantee_id
+        )
+        if not grantee:
+            raise ValueError("Kategoria trenerska wymaga grantee_id")
+        now = datetime.now(UTC).isoformat()
+        row = ConsentRecord(
+            id=new_id("CNS"),
+            subject_id=subject_id,
+            grantee_id=grantee,
+            purpose=cat.purpose,
+            domain=cat.domain,
+            actions="",
+            allow_sensitive=False,
+            consent_text_version=consent_catalog.CONSENT_DOC_VERSION,
+            category=cat.key,
+            legal_basis=cat.legal_basis,
+            source="SUBJECT",
+            denied_at=now,
+        )
+        db.add(row)
+        record_event(
+            db,
+            action="CONSENT_DECLINED",
             actor_id=subject_id,
             subject_ids=[subject_id],
             payload={
                 "consent_id": row.id,
-                "grantee_id": grantee_id,
-                "purpose": purpose,
-                "domain": domain,
-                "actions": actions,
-                "allow_sensitive": allow_sensitive,
-                "consent_text_version": consent_text_version,
+                "grantee_id": grantee,
+                "category": cat.key,
+                "purpose": cat.purpose,
+                "domain": cat.domain,
+                "consent_text_version": row.consent_text_version,
             },
-            summary=f"Zgoda {purpose}/{domain} dla {grantee_id}",
+            summary=f"Odmowa zgody [{cat.key}] {cat.purpose}/{cat.domain}",
         )
         return row
 
@@ -194,6 +286,7 @@ class ConsentService:
                 actor_id=subject_id,
                 subject_ids=[subject_id],
                 payload={"consent_id": row.id, "grantee_id": row.grantee_id,
+                         "category": row.category,
                          "purpose": row.purpose, "domain": row.domain},
                 summary=f"Cofnięcie zgody {row.purpose}/{row.domain} dla {row.grantee_id}",
             )

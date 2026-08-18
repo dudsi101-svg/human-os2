@@ -3,7 +3,15 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from ..authz import deny, resolve_client_access
+from ..authz import (
+    DOMAIN_COLLABORATION,
+    DOMAIN_HEALTH,
+    DOMAIN_NUTRITION,
+    DOMAIN_TRAINING,
+    coach_can_access_client,
+    deny,
+    resolve_client_access,
+)
 from ..db import get_db
 from ..hos_bridge import record_event
 from ..models import Goal, ProfileField, User, new_id, now_iso
@@ -11,6 +19,39 @@ from ..schemas import GoalIn, GoalStatusIn, ProfileFieldIn
 from ..security import current_user
 
 router = APIRouter(prefix="/api/clients/{client_id}", tags=["profile"])
+
+# Pola wrażliwe profilu i domena zgody, która nimi rządzi. Pole wrażliwe
+# spoza tej mapy podlega domyślnie domenie zdrowotnej (bezpieczny domysł).
+SENSITIVE_FIELD_DOMAINS = {
+    "alergie": DOMAIN_NUTRITION,
+    "preferencje_zywieniowe": DOMAIN_NUTRITION,
+    "urazy": DOMAIN_HEALTH,
+}
+
+
+def _sensitive_field_domain(field_key: str) -> str:
+    return SENSITIVE_FIELD_DOMAINS.get(field_key, DOMAIN_HEALTH)
+
+
+def _visible_fields(db: Session, user: User, client_id: str, rows: list) -> list:
+    """Klient widzi wszystko; trener widzi pola wrażliwe tylko w zakresie
+    aktywnej zgody ich domeny (cofnięcie zgody „żywienie i alergie" chowa
+    alergie, nie cały profil)."""
+    if user.id == client_id:
+        return rows
+    allowed_cache: dict[str, bool] = {}
+
+    def allowed(domain: str) -> bool:
+        if domain not in allowed_cache:
+            allowed_cache[domain] = coach_can_access_client(
+                db, user.id, client_id, domain=domain
+            )
+        return allowed_cache[domain]
+
+    return [
+        f for f in rows
+        if not f.sensitive or allowed(_sensitive_field_domain(f.field_key))
+    ]
 
 
 def _field_out(f: ProfileField) -> dict:
@@ -33,13 +74,14 @@ def get_profile(
     user: User = Depends(current_user),
     db: Session = Depends(get_db),
 ):
-    resolve_client_access(db, user, client_id)
+    resolve_client_access(db, user, client_id, domain=DOMAIN_COLLABORATION)
     rows = (
         db.query(ProfileField)
         .filter(ProfileField.client_id == client_id, ProfileField.is_current.is_(True))
         .order_by(ProfileField.field_key)
         .all()
     )
+    rows = _visible_fields(db, user, client_id, rows)
     return {"client_id": client_id, "fields": [_field_out(f) for f in rows]}
 
 
@@ -49,13 +91,14 @@ def profile_history(
     user: User = Depends(current_user),
     db: Session = Depends(get_db),
 ):
-    resolve_client_access(db, user, client_id)
+    resolve_client_access(db, user, client_id, domain=DOMAIN_COLLABORATION)
     rows = (
         db.query(ProfileField)
         .filter(ProfileField.client_id == client_id)
         .order_by(ProfileField.field_key, ProfileField.version)
         .all()
     )
+    rows = _visible_fields(db, user, client_id, rows)
     return {"client_id": client_id, "fields": [_field_out(f) for f in rows]}
 
 
@@ -68,8 +111,17 @@ def set_profile_fields(
 ):
     """Aktualizacja pól profilu — append-only: poprzednia wartość zostaje
     jako wersja historyczna. Źródło zależy od tego, kto zapisuje."""
-    resolve_client_access(db, user, client_id, action="write")
+    resolve_client_access(db, user, client_id, action="write", domain=DOMAIN_COLLABORATION)
     source = "CLIENT_DECLARED" if user.id == client_id else "COACH_ENTERED"
+    if user.id != client_id:
+        # Zapis pola wrażliwego przez trenera wymaga aktywnej zgody
+        # domeny tego pola (klient zapisuje swoje pola zawsze).
+        for item in fields:
+            if item.sensitive and not coach_can_access_client(
+                db, user.id, client_id, action="write",
+                domain=_sensitive_field_domain(item.field_key),
+            ):
+                deny(user.id, f"profile_field:{item.field_key}")
     changed: list[str] = []
     for item in fields:
         current = (
@@ -121,7 +173,7 @@ def list_goals(
     user: User = Depends(current_user),
     db: Session = Depends(get_db),
 ):
-    resolve_client_access(db, user, client_id)
+    resolve_client_access(db, user, client_id, domain=DOMAIN_TRAINING)
     rows = db.query(Goal).filter(Goal.client_id == client_id).order_by(Goal.created_at).all()
     return {
         "goals": [
@@ -142,7 +194,7 @@ def create_goal(
     user: User = Depends(current_user),
     db: Session = Depends(get_db),
 ):
-    resolve_client_access(db, user, client_id, action="write")
+    resolve_client_access(db, user, client_id, action="write", domain=DOMAIN_TRAINING)
     goal = Goal(
         id=new_id("GOL"),
         client_id=client_id,
@@ -173,7 +225,7 @@ def set_goal_status(
     user: User = Depends(current_user),
     db: Session = Depends(get_db),
 ):
-    resolve_client_access(db, user, client_id, action="write")
+    resolve_client_access(db, user, client_id, action="write", domain=DOMAIN_TRAINING)
     goal = db.get(Goal, goal_id)
     if goal is None:
         from fastapi import HTTPException

@@ -4,7 +4,16 @@ from fastapi import APIRouter, Depends, HTTPException, Response, UploadFile
 from sqlalchemy.orm import Session
 
 from .. import file_safety
-from ..authz import active_relationship, coach_can_access_client, resolve_client_access
+from ..authz import (
+    DOMAIN_COLLABORATION,
+    DOMAIN_MESSAGES,
+    DOMAIN_NUTRITION,
+    DOMAIN_PHOTOS,
+    DOMAIN_TRAINING,
+    active_relationship,
+    coach_can_access_client,
+    resolve_client_access,
+)
 from ..config import settings
 from ..db import get_db
 from ..hos_bridge import record_event
@@ -27,7 +36,9 @@ async def upload_file(
     (client_id dla uploadu trenera; domyślnie sam wgrywający)."""
     owner_id = user.id
     if client_id is not None and client_id != user.id:
-        resolve_client_access(db, user, client_id, action="write")
+        # Upload w imieniu klienta — bramka na współpracy (przypięcie do
+        # konkretnego zasobu ma własną, ściślejszą bramkę per domena).
+        resolve_client_access(db, user, client_id, action="write", domain=DOMAIN_COLLABORATION)
         owner_id = client_id
     stored = await storage.save_upload(db, file, owner_user_id=owner_id, uploaded_by=user.id)
     db.commit()
@@ -61,7 +72,7 @@ def _thread_attachment_access(db: Session, user: User, file_id: str) -> bool:
         if thread.client_id == user.id:
             return True
         if thread.coach_id == user.id and coach_can_access_client(
-            db, user.id, thread.client_id, sensitive=False
+            db, user.id, thread.client_id, domain=DOMAIN_MESSAGES
         ):
             return True
     return False
@@ -94,8 +105,10 @@ def download_file(
       (trener: tylko przy aktywnej relacji),
     * klient aktywnie prowadzony przez trenera — dla załączników
       AKTYWNYCH wpisów bazy wiedzy tego trenera,
-    * trener z aktywną relacją ORAZ aktywną zgodą coaching/health_data
-      (resolve_client_access) — dla wszystkich pozostałych plików klienta.
+    * trener z aktywną relacją ORAZ aktywną zgodą KATEGORII, do której
+      plik należy (zdjęcie progresu → zgoda „zdjęcia progresu", dieta →
+      „żywienie i alergie", załącznik treningu → „dane treningowe",
+      pozostałe → „udostępnianie danych trenerowi").
     Każda odmowa to 404 (nie ujawniamy istnienia zasobu)."""
     stored = db.get(StoredFile, file_id)
     if stored is None or stored.deleted_at is not None:
@@ -105,7 +118,7 @@ def download_file(
         and not _thread_attachment_access(db, user, file_id)
         and not _knowledge_attachment_access(db, user, file_id)
     ):
-        resolve_client_access(db, user, stored.owner_user_id)
+        resolve_client_access(db, user, stored.owner_user_id, domain=_file_domain(db, stored))
     data = storage.read(stored)
     # Sanityzacja także przy odczycie — obejmuje pliki zapisane przed
     # wprowadzeniem sanityzacji na uploadzie.
@@ -124,13 +137,34 @@ def download_file(
     )
 
 
+def _file_domain(db: Session, stored: StoredFile) -> str:
+    """Domena zgody właściwa dla pliku — wg zasobu, do którego plik jest
+    przypięty. Plik bez referencji podlega domenie współpracy."""
+    from ..models import WorkoutEntry
+
+    if (
+        db.query(ProgressPhoto).filter(ProgressPhoto.file_id == stored.id).first()
+        is not None
+    ):
+        return DOMAIN_PHOTOS
+    doc = db.query(Document).filter(Document.file_id == stored.id).first()
+    if doc is not None:
+        return DOMAIN_NUTRITION if doc.category == "DIETA" else DOMAIN_COLLABORATION
+    if (
+        db.query(WorkoutEntry).filter(WorkoutEntry.file_id == stored.id).first()
+        is not None
+    ):
+        return DOMAIN_TRAINING
+    return DOMAIN_COLLABORATION
+
+
 @router.post("/documents", status_code=201)
 def create_document(
     body: DocumentIn,
     coach: User = Depends(require_role("COACH")),
     db: Session = Depends(get_db),
 ):
-    resolve_client_access(db, coach, body.client_id, action="write")
+    resolve_client_access(db, coach, body.client_id, action="write", domain=DOMAIN_COLLABORATION)
     stored = db.get(StoredFile, body.file_id)
     if stored is None or stored.deleted_at is not None:
         raise HTTPException(status_code=404, detail="Nie znaleziono pliku")
@@ -166,7 +200,7 @@ def list_documents(
     user: User = Depends(current_user),
     db: Session = Depends(get_db),
 ):
-    resolve_client_access(db, user, client_id)
+    resolve_client_access(db, user, client_id, domain=DOMAIN_COLLABORATION)
     rows = (
         db.query(Document)
         .filter(Document.client_id == client_id, Document.status == "ACTIVE")
@@ -191,7 +225,7 @@ def list_photos(
     user: User = Depends(current_user),
     db: Session = Depends(get_db),
 ):
-    resolve_client_access(db, user, client_id)
+    resolve_client_access(db, user, client_id, domain=DOMAIN_PHOTOS)
     rows = (
         db.query(ProgressPhoto)
         .filter(ProgressPhoto.client_id == client_id)

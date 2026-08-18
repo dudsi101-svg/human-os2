@@ -4,7 +4,12 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from .. import push_service
-from ..authz import coach_can_access_client, require_attachable_file, require_thread_party
+from ..authz import (
+    DOMAIN_MESSAGES,
+    coach_can_access_client,
+    require_attachable_file,
+    require_thread_party,
+)
 from ..db import get_db
 from ..models import Message, MessageThread, User, new_id, now_iso
 from ..schemas import MessageIn
@@ -25,7 +30,7 @@ def my_threads(user: User = Depends(current_user), db: Session = Depends(get_db)
         threads = [
             t
             for t in q.filter(MessageThread.coach_id == user.id).all()
-            if coach_can_access_client(db, user.id, t.client_id, sensitive=False)
+            if coach_can_access_client(db, user.id, t.client_id, domain=DOMAIN_MESSAGES)
         ]
     else:
         threads = q.filter(MessageThread.client_id == user.id).all()

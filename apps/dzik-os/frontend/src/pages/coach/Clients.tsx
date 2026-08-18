@@ -217,6 +217,16 @@ export default function Clients() {
                   <span className="badge badge--warn">oczekuje na aktywację</span>
                 )}
                 {!c.account_pending && !c.consent_active && <span className="badge badge--danger">brak zgody</span>}
+                {!c.account_pending && c.consent_active && c.consent_scopes &&
+                  !(c.consent_scopes.health && c.consent_scopes.nutrition && c.consent_scopes.photos) && (
+                  <span className="badge badge--warn" title={
+                    "Klient nie udzielił części zgód: " + [
+                      !c.consent_scopes.health && "dane zdrowotne",
+                      !c.consent_scopes.nutrition && "żywienie i alergie",
+                      !c.consent_scopes.photos && "zdjęcia progresu",
+                    ].filter(Boolean).join(", ")
+                  }>ograniczone zgody</span>
+                )}
                 {c.relationship_status !== "ACTIVE" && (
                   <span className="badge">{c.relationship_status === "PAUSED" ? "pauza" : "zakończona"}</span>
                 )}

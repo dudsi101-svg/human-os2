@@ -8,6 +8,7 @@ from openpyxl import Workbook
 from openpyxl.utils import get_column_letter
 from sqlalchemy.orm import Session
 
+from .. import consent_catalog
 from ..authz import require_client_self
 from ..db import get_db
 from ..hos_bridge import ConsentService, record_event
@@ -15,6 +16,7 @@ from ..models import (
     CheckinRevision,
     CoachClientRelationship,
     ConsentRecord,
+    ConsultSlot,
     DailyNutritionLog,
     Document,
     Goal,
@@ -28,6 +30,8 @@ from ..models import (
     PaymentSchedule,
     ProfileField,
     ProgressPhoto,
+    PushSubscription,
+    Receipt,
     Reminder,
     ScheduleCompletion,
     ScheduleItem,
@@ -40,7 +44,7 @@ from ..models import (
     WorkoutSession,
     now_iso,
 )
-from ..schemas import ConsentGrantIn, DeletionRequestIn
+from ..schemas import ConsentDeclineIn, ConsentGrantIn, DeletionRequestIn
 from ..security import current_user, revoke_other_sessions, verify_password
 from ..storage import storage
 
@@ -69,6 +73,9 @@ def _rows(db: Session, model, **filters) -> list[dict]:
 
 @router.get("/consents")
 def my_consents(user: User = Depends(current_user), db: Session = Depends(get_db)):
+    """Pełna historia zgód podmiotu + katalog kategorii (cel, zakres,
+    odbiorcy, okres, dobrowolność, sposób wycofania, wersja dokumentu) —
+    jedno źródło danych dla ekranu zgód i Profilu/Prywatności."""
     rows = (
         db.query(ConsentRecord)
         .filter(ConsentRecord.subject_id == user.id)
@@ -77,26 +84,38 @@ def my_consents(user: User = Depends(current_user), db: Session = Depends(get_db
     )
     grantee_names = {}
     for r in rows:
+        if r.grantee_id == consent_catalog.SYSTEM_GRANTEE:
+            grantee_names[r.grantee_id] = "Aplikacja Dzik OS"
+            continue
         grantee = db.get(User, r.grantee_id)
         grantee_names[r.grantee_id] = grantee.display_name if grantee else r.grantee_id
     return {
+        "document_version": consent_catalog.CONSENT_DOC_VERSION,
+        "catalog": consent_catalog.catalog_payload(),
         "consents": [
             {
                 "id": r.id,
                 "grantee_id": r.grantee_id,
                 "grantee_name": grantee_names.get(r.grantee_id),
+                "category": r.category,
+                "legal_basis": r.legal_basis,
+                "source": r.source,
                 "purpose": r.purpose,
                 "domain": r.domain,
                 "actions": r.actions,
                 "allow_sensitive": r.allow_sensitive,
                 "consent_text_version": r.consent_text_version,
+                "document_version_current": (
+                    r.consent_text_version == consent_catalog.CONSENT_DOC_VERSION
+                ),
                 "granted_at": r.granted_at,
                 "expires_at": r.expires_at,
                 "revoked_at": r.revoked_at,
                 "confirmed_at": r.confirmed_at,
+                "denied_at": r.denied_at,
             }
             for r in rows
-        ]
+        ],
     }
 
 
@@ -106,19 +125,73 @@ def grant_consent(
     user: User = Depends(current_user),
     db: Session = Depends(get_db),
 ):
-    row = ConsentService.grant(
+    """Udzielenie zgody JEDNEJ kategorii. Brak jakiejkolwiek ścieżki
+    „zaakceptuj wszystko" — każda kategoria to osobne wywołanie z osobnym
+    wpisem w audycie."""
+    cat = consent_catalog.category_by_key(body.category)
+    if cat is None:
+        raise HTTPException(status_code=422, detail="Nieznana kategoria zgody")
+    if cat.grantee_kind == "COACH" and not body.grantee_id:
+        raise HTTPException(status_code=422, detail="Wskaż odbiorcę (trenera)")
+    row = ConsentService.grant_category(
         db,
         subject_id=user.id,
+        category_key=body.category,
         grantee_id=body.grantee_id,
-        purpose=body.purpose,
-        domain=body.domain,
         actions=body.actions,
-        allow_sensitive=body.allow_sensitive,
+        source="SUBJECT",
         # Zgoda nadana osobiście przez podmiot jest potwierdzona z definicji.
         confirmed=True,
     )
     db.commit()
-    return {"id": row.id}
+    return {"id": row.id, "category": row.category,
+            "consent_text_version": row.consent_text_version}
+
+
+@router.post("/consents/decline", status_code=201)
+def decline_consent(
+    body: ConsentDeclineIn,
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    """Jawna odmowa zgody OPCJONALNEJ — równie prosta jak udzielenie,
+    zapisywana z pełną historią (wiersz z denied_at nigdy nie autoryzuje).
+    Kategorii wymaganych (podstawa umowna) nie da się „odmówić" tą ścieżką
+    — ich zakończenie to zakończenie współpracy/konta."""
+    cat = consent_catalog.category_by_key(body.category)
+    if cat is None:
+        raise HTTPException(status_code=422, detail="Nieznana kategoria zgody")
+    if cat.required:
+        raise HTTPException(
+            status_code=422,
+            detail="Ta kategoria wynika z umowy — zakończenie przetwarzania "
+            "to zakończenie współpracy albo usunięcie konta",
+        )
+    if cat.grantee_kind == "COACH" and not body.grantee_id:
+        raise HTTPException(status_code=422, detail="Wskaż odbiorcę (trenera)")
+    # Odmowa zamyka też ewentualną oczekującą deklarację z onboardingu.
+    grantee = (
+        consent_catalog.SYSTEM_GRANTEE
+        if cat.grantee_kind == "SYSTEM"
+        else body.grantee_id
+    )
+    for pending in (
+        db.query(ConsentRecord)
+        .filter(
+            ConsentRecord.subject_id == user.id,
+            ConsentRecord.category == cat.key,
+            ConsentRecord.grantee_id == grantee,
+            ConsentRecord.revoked_at.is_(None),
+            ConsentRecord.denied_at.is_(None),
+        )
+        .all()
+    ):
+        ConsentService.revoke(db, consent_id=pending.id, subject_id=user.id)
+    row = ConsentService.decline_category(
+        db, subject_id=user.id, category_key=body.category, grantee_id=body.grantee_id
+    )
+    db.commit()
+    return {"id": row.id, "category": row.category, "denied_at": row.denied_at}
 
 
 @router.post("/consents/{consent_id}/confirm")
@@ -159,6 +232,22 @@ def revoke_consent(
         row = ConsentService.revoke(db, consent_id=consent_id, subject_id=user.id)
     except PermissionError:
         raise HTTPException(status_code=404, detail="Nie znaleziono") from None
+    if row.category == "przypomnienia":
+        # Wycofanie zgody na przypomnienia natychmiast kończy przyszłe
+        # przetwarzanie: wszystkie subskrypcje push znikają (żaden kanał
+        # doręczeń nie zostaje).
+        removed = (
+            db.query(PushSubscription)
+            .filter(PushSubscription.user_id == user.id)
+            .delete()
+        )
+        if removed:
+            record_event(
+                db, action="PUSH_UNSUBSCRIBED", actor_id=user.id,
+                subject_ids=[user.id],
+                payload={"reason": "consent_revoked", "count": removed},
+                summary="Usunięto subskrypcje push po wycofaniu zgody",
+            )
     db.commit()
     return {"id": row.id, "revoked_at": row.revoked_at}
 
@@ -197,8 +286,17 @@ def _collect_export(db: Session, user: User) -> dict:
     schedule_completions = []
     for i in schedule_items:
         schedule_completions.extend(_rows(db, ScheduleCompletion, schedule_item_id=i["id"]))
+    consult_slots = _rows(db, ConsultSlot, client_id=client_id)
+    # Subskrypcje push: bez kluczy kryptograficznych subskrypcji (p256dh/
+    # auth to sekrety kanału doręczeń — minimalizacja: nie kopiujemy ich
+    # do pliku eksportu; sam endpoint wystarcza do rozliczalności).
+    push_subs = [
+        {"id": p.id, "endpoint": p.endpoint, "created_at": p.created_at}
+        for p in db.query(PushSubscription).filter_by(user_id=client_id).all()
+    ]
+    receipts = _rows(db, Receipt, subject_id=client_id)
     return {
-        "export_version": "1.1",
+        "export_version": "1.2",
         "user": {
             "id": user.id, "email": user.email, "display_name": user.display_name,
             "identity_id": user.identity_id, "created_at": user.created_at,
@@ -226,6 +324,9 @@ def _collect_export(db: Session, user: User) -> dict:
         "consents": _rows(db, ConsentRecord, subject_id=client_id),
         "observations": _rows(db, Observation, client_id=client_id),
         "daily_nutrition_logs": _rows(db, DailyNutritionLog, client_id=client_id),
+        "consult_slots": consult_slots,
+        "push_subscriptions": push_subs,
+        "audit_receipts": receipts,
     }
 
 
@@ -311,7 +412,10 @@ def request_deletion(
     """Usunięcie danych: anonimizacja konta i danych osobowych oraz
     fizyczne usunięcie plików. Zapisy audytowe (łańcuch zdarzeń) pozostają —
     zawierają wyłącznie identyfikatory, nie dane zdrowotne w postaci jawnej.
-    Operacja jest nieodwracalna i wymaga hasła + frazy potwierdzającej."""
+    Dane rozliczeniowe (ewidencja płatności: kwoty, terminy, statusy)
+    pozostają bez treści opisowych — obowiązek podatkowy administratora
+    (art. 6 ust. 1 lit. c RODO). Operacja jest nieodwracalna i wymaga
+    hasła + frazy potwierdzającej."""
     if not verify_password(body.password, user.password_hash):
         raise HTTPException(status_code=403, detail="Nieprawidłowe hasło")
     client_id = require_client_self(db, user)
@@ -336,6 +440,41 @@ def request_deletion(
     for c in db.query(WeeklyCheckin).filter(WeeklyCheckin.client_id == client_id).all():
         c.payload_json = "{}"
         c.coach_response = None
+    # Wolne teksty mogące zawierać dane osobowe/zdrowotne — anonimizacja
+    # (liczby i daty zostają jako dane spseudonimizowane bez powiązania
+    # z osobą po anonimizacji konta).
+    for g in db.query(Goal).filter(Goal.client_id == client_id).all():
+        g.title = "[usunięto]"
+        g.description = None
+    for rm in db.query(Reminder).filter(Reminder.client_id == client_id).all():
+        rm.text = "[usunięto]"
+    for si in db.query(ScheduleItem).filter(ScheduleItem.client_id == client_id).all():
+        si.name = "[usunięto]"
+        si.instruction = None
+        si.author_note = None
+        si.status = "ENDED"
+    for ws in db.query(WorkoutSession).filter(WorkoutSession.client_id == client_id).all():
+        ws.comment = None
+        ws.pain_note = None
+        for we in db.query(WorkoutEntry).filter(WorkoutEntry.session_id == ws.id).all():
+            we.comment = None
+    for doc in db.query(Document).filter(Document.client_id == client_id).all():
+        doc.title = "[usunięto]"
+        doc.status = "ARCHIVED"
+    # Subskrypcje push znikają w całości (kanał doręczeń przestaje istnieć).
+    db.query(PushSubscription).filter(PushSubscription.user_id == client_id).delete()
+    # Konsultacje: odpięcie klienta od slotów; przyszłe rezerwacje wracają
+    # do puli trenera jako wolne.
+    for slot in db.query(ConsultSlot).filter(ConsultSlot.client_id == client_id).all():
+        slot.client_id = None
+        slot.booked_at = None
+        if slot.status == "BOOKED":
+            slot.status = "OPEN"
+    # Ewidencja płatności: kwoty/terminy/statusy zostają (rozliczenia),
+    # treści opisowe są usuwane.
+    for ps in db.query(PaymentSchedule).filter(PaymentSchedule.client_id == client_id).all():
+        for pr in db.query(PaymentRecord).filter(PaymentRecord.schedule_id == ps.id).all():
+            pr.note = None
     for r in (
         db.query(CheckinRevision)
         .join(WeeklyCheckin, CheckinRevision.checkin_id == WeeklyCheckin.id)

@@ -38,8 +38,11 @@ def test_ai_summary_requires_access(seeded):
     checkins = seeded.get(f"/api/clients/{id_a}/checkins", headers=hc).json()["checkins"]
     checkin_id = checkins[0]["id"]
 
+    # Zgody są rozdzielone per kategoria — cofnięcie zgody „dane
+    # zdrowotne" odbiera trenerowi dostęp do raportu (i podsumowań AI).
     consents = seeded.get("/api/me/consents", headers=ha).json()["consents"]
-    active = next(c for c in consents if c["revoked_at"] is None)
+    active = next(c for c in consents
+                  if c["revoked_at"] is None and c["category"] == "dane_zdrowotne")
     seeded.post(f"/api/me/consents/{active['id']}/revoke", headers=ha)
 
     r = seeded.post(f"/api/checkins/{checkin_id}/ai-summary", headers=hc)

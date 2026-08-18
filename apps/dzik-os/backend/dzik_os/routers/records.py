@@ -17,7 +17,7 @@ from datetime import timedelta
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from ..authz import resolve_client_access
+from ..authz import DOMAIN_TRAINING, resolve_client_access
 from ..dates import local_today
 from ..db import get_db
 from ..models import Measurement, User, WorkoutEntry, WorkoutSession
@@ -76,7 +76,7 @@ def personal_records(
     każdego pomiaru względem pierwszego zapisu. `is_new` oznacza rekord
     poprawiony w ostatnich 14 dniach względem WCZEŚNIEJSZEGO własnego
     wyniku — pierwszy zapis ćwiczenia nie jest "nowym rekordem"."""
-    resolve_client_access(db, user, client_id)
+    resolve_client_access(db, user, client_id, domain=DOMAIN_TRAINING)
     # performed_on jest datą lokalną — okno "nowego rekordu" liczymy od
     # lokalnego "dziś", nie od daty UTC.
     today = local_today()
@@ -156,7 +156,7 @@ def strength_series(
     serii (ciężar × powtórzenia): objętość dnia (suma kg×powt.) i
     najlepszy szacowany 1RM dnia (Epley — szacunek do obserwacji trendu,
     nie zalecenie). Porównania tylko z własną historią."""
-    resolve_client_access(db, user, client_id)
+    resolve_client_access(db, user, client_id, domain=DOMAIN_TRAINING)
     rows = (
         db.query(WorkoutEntry, WorkoutSession.performed_on)
         .join(WorkoutSession, WorkoutEntry.session_id == WorkoutSession.id)

@@ -21,14 +21,20 @@ Model dwuosiowy zgodny z Human OS (Identity, Authority & Permissions):
    Ochrona przed IDOR: każdy endpoint z `client_id` w ścieżce przechodzi
    przez tę funkcję; cudze zasoby zwracają **404** (nie ujawniamy istnienia).
 2. **Trener**: wymaga (a) relacji `coach_client_relationships.status=ACTIVE`
-   oraz (b) pozytywnej decyzji `hos_engine.ConsentRegistry.authorize`
-   (purpose=`coaching`, domain=`health_data`). Cofnięcie zgody odbiera
-   dostęp natychmiast, mimo aktywnej relacji.
+   oraz (b) pozytywnej decyzji `hos_engine.ConsentRegistry.authorize` dla
+   **domeny danych, o którą pyta endpoint** (od 0.11.0 zgody są
+   granularne — katalog kategorii w `consent_catalog.py`, mapowanie
+   domen w `docs/ZGODY_MODEL.md`): `collaboration` (profil/dokumenty/
+   płatności), `training_data` (plany/wyniki/harmonogram/cele),
+   `health_data` (pomiary/raporty/obserwacje), `nutrition_data`
+   (dieta/alergie), `progress_photos` (zdjęcia), `messages`
+   (wiadomości). Cofnięcie zgody odbiera dostęp natychmiast i dotyczy
+   tylko tej kategorii, mimo aktywnej relacji.
 3. **Admin**: endpointy `/api/admin/*` nie zwracają danych zdrowotnych;
    próba wejścia admina na `/api/clients/{id}/...` kończy się 403/404.
    Każde użycie panelu admina emituje zdarzenie audytowe.
 4. **Płatności** są metadanymi współpracy (nie danymi zdrowotnymi) —
-   wymagają relacji, ale nie zgody `health_data` (sensitive=False).
+   wymagają relacji i zgody `collaboration` (sensitive=False).
 5. **Decyzje zapadają wyłącznie w backendzie** — frontend jedynie
    renderuje wynik (kontrakt ADR-ARCH-003). Rola i `clientId` trzymane
    w `sessionStorage` frontendu są WYŁĄCZNIE wskazówką dla UI; tożsamość
@@ -64,12 +70,14 @@ Testy: `tests/test_idor.py::test_access_denied_is_audited_without_health_data`,
 ## Macierz uprawnień endpointów
 
 Legenda: **W** = właściciel danych (klient, `actor.id == client_id`);
-**T** = trener z **AKTYWNĄ** relacją i **nieocofniętą zgodą**
-coaching/health_data (`resolve_client_access`); **T·rel** = trener z samą
-aktywną relacją (bez bramki zgody); **T·own** = trener-właściciel rekordu
+**T** = trener z **AKTYWNĄ** relacją i **nieocofniętą zgodą** domeny
+danych endpointu (`resolve_client_access(domain=...)` — od 0.11.0 zgody
+są granularne per kategoria; mapowanie endpoint→domena w
+`docs/ZGODY_MODEL.md` §1); **T·rel** = trener z samą aktywną relacją
+(bez bramki zgody); **T·own** = trener-właściciel rekordu
 (`coach_id == aktor`); **A** = admin; ✗ = 404 (odmowa zasobowa) albo 403
-(brak roli). Kolumna „Zgoda" dotyczy zgody coaching/health_data
-(`sensitive=True`, chyba że zaznaczono inaczej).
+(brak roli). Kolumna „Zgoda" oznacza zgodę kategorii właściwej dla
+domeny endpointu (`sensitive` wynika z katalogu kategorii).
 
 | Endpoint | Kto może | Zakres rekordów | Relacja | Zgoda | R/W |
 |---|---|---|---|---|---|
@@ -187,8 +195,8 @@ Model autoryzacji pobrania (`GET /api/files/{id}`, egzekwowany w
 | Kto | Warunek |
 |---|---|
 | Właściciel danych | `files.owner_user_id == aktor` (upload trenera z `client_id` = własność klienta) |
-| Trener | aktywna relacja **i** aktywna zgoda coaching/health_data (`resolve_client_access`) — cofnięcie zgody odbiera dostęp również do plików już istniejących |
-| Strona wątku wiadomości | plik jest załącznikiem wiadomości w wątku aktora; klient zawsze, trener przy AKTYWNEJ relacji i nieocofniętej zgodzie (`sensitive=False` — dokładnie ten sam kontrakt co dostęp do treści wątku, `authz.require_thread_party`) |
+| Trener | aktywna relacja **i** aktywna zgoda kategorii pliku (`resolve_client_access(domain=_file_domain(...))`: zdjęcie progresu → `progress_photos`, dokument DIETA → `nutrition_data`, załącznik treningu → `training_data`, pozostałe → `collaboration`) — cofnięcie zgody odbiera dostęp również do plików już istniejących |
+| Strona wątku wiadomości | plik jest załącznikiem wiadomości w wątku aktora; klient zawsze, trener przy AKTYWNEJ relacji i nieocofniętej zgodzie kategorii `komunikacja` (domena `messages` — dokładnie ten sam kontrakt co dostęp do treści wątku, `authz.require_thread_party`) |
 | Klient trenera | plik jest załącznikiem **AKTYWNEGO** wpisu bazy wiedzy trenera, z którym aktor ma AKTYWNĄ relację (broadcast, bez bramki zgody) |
 
 Upload i podpinanie:
@@ -214,10 +222,25 @@ Upload i podpinanie:
   soft delete (`deleted_at`) + usunięcie bajtów z dysku (pętla godzinna,
   zdarzenie ORPHAN_FILES_CLEANED).
 
-## Zgody (rejestr wersjonowany)
+## Zgody (rejestr wersjonowany, od 0.11.0 granularny per kategoria)
 
-* Wiersz `consents` = jedna zgoda: podmiot, odbiorca, cel, domena, akcje,
-  `allow_sensitive`, wersja tekstu zgody, `granted_at`, `revoked_at`.
+* **Kategorie zgód** (`consent_catalog.py` — pełny opis w
+  `docs/ZGODY_MODEL.md`): odrębne, jednoznaczne kategorie z podziałem na
+  wymagane (podstawa umowna) i opcjonalne (zgody właściwe, w tym art. 9
+  dla danych zdrowotnych/żywienia/zdjęć oraz funkcji AI). Nie istnieje
+  żadna ścieżka „zaakceptuj wszystko" dla niezależnych celów.
+* Wiersz `consents` = jedna zgoda JEDNEJ kategorii: podmiot, odbiorca,
+  kategoria, podstawa prawna, źródło (SUBJECT/ONBOARDING_DECLARATION),
+  cel, domena, akcje, `allow_sensitive`, wersja tekstu zgody,
+  `granted_at`, `confirmed_at`, `revoked_at`, `denied_at` (jawna odmowa).
+  Wiersze z `category=NULL` to historyczne zgody parasolowe sprzed
+  migracji nr 10 — hydratowane w pierwotnym, pełnym zakresie
+  (`ConsentService._hydrate`).
+* Zgoda klienta na **funkcje AI** (kategoria `funkcje_ai`) jest bramką
+  `POST /api/checkins/{id}/ai-summary` — decyzja trenera nie zastępuje
+  zgody podmiotu danych.
+* Wycofanie zgody `przypomnienia` usuwa wszystkie subskrypcje push
+  podmiotu (kanał doręczeń przestaje istnieć).
 * Cofnięcie **nie usuwa** wiersza (pełna historia); cofnąć może wyłącznie
   podmiot danych (kontrakt `ConsentRegistry.revoke`).
 * Autoryzację (`authorize`) wykonuje Core (`hos_engine.consent`) na

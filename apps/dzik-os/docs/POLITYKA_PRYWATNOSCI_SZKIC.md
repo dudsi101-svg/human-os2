@@ -1,141 +1,212 @@
-# Polityka prywatności Dzik OS — SZKIC v0.1 (2026-08-17)
+# Polityka prywatności Dzik OS — SZKIC v0.2 (2026-08-18)
 
 > **STATUS: SZKIC DO KONSULTACJI PRAWNEJ.** Ten dokument jest punktem
 > wyjścia przygotowanym technicznie na podstawie faktycznego działania
-> aplikacji. **Nie jest poradą prawną.** Przed użyciem wobec prawdziwych
-> klientów wymaga weryfikacji przez prawnika (dane zdrowotne = szczególna
-> kategoria danych, art. 9 RODO) oraz uzupełnienia pól oznaczonych
-> `[DO UZUPEŁNIENIA]`.
+> aplikacji (wersja 0.11.0). **Nie jest poradą prawną.** Przed użyciem
+> wobec prawdziwych klientów wymaga weryfikacji przez prawnika (dane
+> zdrowotne = szczególna kategoria danych, art. 9 RODO) oraz uzupełnienia
+> pól oznaczonych „DECYZJA ADMINISTRATORA DANYCH".
+>
+> Wersje polityki są numerowane; wersje archiwalne pozostają w historii
+> repozytorium. Poprzednia wersja: v0.1 (2026-08-17).
 
 ## 1. Administrator danych
 
 Administratorem Twoich danych osobowych jest trener prowadzący usługę
 „Dzik OS — Panel Podopiecznego":
 
-- `[DO UZUPEŁNIENIA: imię i nazwisko / nazwa firmy]`
-- `[DO UZUPEŁNIENIA: adres prowadzenia działalności, NIP]`
-- kontakt: `[DO UZUPEŁNIENIA: e-mail kontaktowy]`
+- DECYZJA ADMINISTRATORA DANYCH: `[imię i nazwisko / nazwa firmy]`
+- DECYZJA ADMINISTRATORA DANYCH: `[adres prowadzenia działalności, NIP]`
+- kontakt: DECYZJA ADMINISTRATORA DANYCH: `[e-mail kontaktowy]`
 
 ## 2. Jakie dane przetwarzamy
 
 | Kategoria | Przykłady | Skąd pochodzą |
 |---|---|---|
 | Dane konta | e-mail, imię i nazwisko, hasło (wyłącznie w postaci skrótu bcrypt) | od Ciebie / od trenera przy założeniu konta |
-| Profil współpracy | cele, doświadczenie, sprzęt, dostępność, preferencje żywieniowe | od Ciebie |
-| **Dane zdrowotne (szczególna kategoria, art. 9 RODO)** | alergie, kontuzje i ograniczenia, masa ciała, obwody, raporty samopoczucia (sen, stres, energia, ból), zdjęcia sylwetki | wyłącznie od Ciebie, dobrowolnie |
-| Treningi i dieta | plany, wyniki treningów, komentarze, realizacja diety | od trenera i od Ciebie |
-| Wiadomości i pliki | treść rozmów z trenerem, załączniki, dokumenty PDF | od obu stron |
+| Dane współpracy | profil współpracy, dokumenty, ewidencja płatności | od Ciebie i od trenera |
+| Dane treningowe | plany, wyniki treningów, harmonogram, cele | od trenera i od Ciebie |
+| **Dane zdrowotne (art. 9 RODO)** | masa ciała, obwody, raporty samopoczucia (sen, stres, energia, ból), urazy i ograniczenia, obserwacje | wyłącznie od Ciebie, dobrowolnie, za odrębną zgodą |
+| **Żywienie i alergie (art. 9 RODO)** | alergie i nietolerancje, preferencje, plany żywieniowe, dziennik kaloryczny | jw., za odrębną zgodą |
+| **Zdjęcia progresu (wizerunek)** | zdjęcia sylwetki (metadane EXIF, w tym GPS, usuwane przy zapisie) | jw., za odrębną zgodą |
+| Wiadomości i pliki | treść rozmów z trenerem, załączniki | od obu stron |
 | Ewidencja płatności | pakiet, kwota, termin, status (opłacona/oczekująca) | od trenera |
+| Subskrypcje push | techniczny adres subskrypcji Twojej przeglądarki | od Ciebie, po włączeniu powiadomień |
 | Dziennik zdarzeń (audyt) | kto i kiedy zmienił plan, zgodę, płatność (identyfikatory, bez treści zdrowotnych) | generowane przez aplikację |
 
 **Czego NIE przetwarzamy:** danych kart płatniczych (aplikacja tylko
-ewidencjonuje statusy płatności), danych z urządzeń typu wearables,
-danych osób trzecich. Aplikacja nie zawiera reklam ani śledzenia.
-Funkcje AI są w tej wersji **wyłączone**.
+ewidencjonuje statusy płatności — nie ma płatności online), danych z
+urządzeń typu wearables, danych osób trzecich, danych o lokalizacji
+(GPS ze zdjęć jest usuwany). Aplikacja nie zawiera reklam, analityki ani
+śledzenia. Nie zapisujemy adresów IP przy zgodach ani innych zbędnych
+danych technicznych.
 
-## 3. Cele i podstawy prawne
+## 3. Cele, podstawy prawne i odrębne zgody
 
-| Cel | Podstawa prawna |
-|---|---|
-| Prowadzenie współpracy trenerskiej (plany, raporty, wiadomości) | art. 6 ust. 1 lit. b RODO — wykonanie umowy |
-| Przetwarzanie danych zdrowotnych na potrzeby prowadzenia trenerskiego | art. 9 ust. 2 lit. a RODO — **Twoja wyraźna zgoda** |
-| Ewidencja płatności i rozliczenia | art. 6 ust. 1 lit. b i c RODO |
-| Bezpieczeństwo, dziennik zdarzeń, zapobieganie nadużyciom | art. 6 ust. 1 lit. f RODO — uzasadniony interes |
+Zgody są podzielone na **odrębne kategorie** — każdą widzisz z pełnym
+opisem (cel, zakres, odbiorcy, okres, dobrowolność, sposób wycofania,
+wersja dokumentu) i o każdej decydujesz osobno. Zgody wymagane
+(wynikające z umowy) i opcjonalne nigdy nie są łączone.
+
+| Cel | Podstawa prawna | Charakter |
+|---|---|---|
+| Prowadzenie konta, bezpieczeństwo, dziennik zdarzeń | art. 6 ust. 1 lit. b i f RODO | wymagane (umowa) |
+| Współpraca trenerska: profil, dokumenty, plany, wyniki, komunikacja | art. 6 ust. 1 lit. b RODO | wymagane (umowa) |
+| Dane zdrowotne dla trenera | art. 9 ust. 2 lit. a RODO — **odrębna wyraźna zgoda** | opcjonalne |
+| Żywienie i alergie dla trenera | art. 9 ust. 2 lit. a RODO — **odrębna wyraźna zgoda** | opcjonalne |
+| Zdjęcia progresu dla trenera | art. 9 ust. 2 lit. a RODO — **odrębna wyraźna zgoda** | opcjonalne |
+| Powiadomienia push / przypomnienia | art. 6 ust. 1 lit. a RODO — zgoda | opcjonalne |
+| Funkcje AI (podsumowania raportów dla trenera) | art. 9 ust. 2 lit. a RODO — zgoda | opcjonalne; obecnie żaden dostawca AI nie jest skonfigurowany |
+| Marketing trenera | art. 6 ust. 1 lit. a RODO — zgoda | opcjonalne; nigdy nie jest rejestrowana przy zakładaniu konta |
+| Ewidencja płatności i rozliczenia | art. 6 ust. 1 lit. b i c RODO | wymagane (umowa + przepisy podatkowe) |
 
 ## 4. Zgoda i jej cofnięcie
 
-- Zgodę na dostęp trenera do Twoich danych zdrowotnych wyrażasz jawnie
-  przy pierwszym logowaniu (ekran „Twoje dane, Twoja zgoda").
-- Zgodę możesz **cofnąć w każdej chwili** w aplikacji (Profil → Zgody).
-  Cofnięcie działa natychmiast — trener traci dostęp do Twoich danych.
+- To **Ty** potwierdzasz zgody dotyczące swoich danych — przy pierwszym
+  logowaniu widzisz każdą kategorię osobno i decydujesz o każdej z
+  osobna. Deklaracja zebrana przez trenera przy zakładaniu konta nie
+  zastępuje Twojej decyzji; przy podpinaniu istniejącego konta trener
+  nie ma dostępu do danych, dopóki sam nie udzielisz zgód.
+- Każdą zgodę możesz **cofnąć w każdej chwili** w aplikacji (Profil →
+  Prywatność i zgody) — równie łatwo, jak ją wyrazić. Cofnięcie działa
+  natychmiast i dotyczy tylko tej kategorii (np. cofnięcie zgody na
+  zdjęcia nie wyłącza planu treningowego). Cofnięcie zgody na
+  przypomnienia usuwa też wszystkie subskrypcje push.
 - Cofnięcie zgody nie wpływa na zgodność z prawem przetwarzania sprzed
-  cofnięcia. Historia zgód (nadanie, potwierdzenie, cofnięcie) jest
-  zapisywana w niezmiennym dzienniku zdarzeń.
+  cofnięcia. Historia zgód (udzielenie, potwierdzenie, cofnięcie,
+  odmowa, wersja dokumentu, podstawa prawna) jest zapisywana w
+  niezmiennym dzienniku zdarzeń.
 
-## 5. Odbiorcy danych
+## 5. Odbiorcy danych i podmioty przetwarzające
 
-- **Hosting:** aplikacja działa na serwerach Fly.io w regionie
-  Frankfurt (UE). Fly.io Inc. jest podmiotem przetwarzającym
-  (`[DO UZUPEŁNIENIA: umowa powierzenia / DPA Fly.io]`).
+Korzystamy z zewnętrznych dostawców w minimalnym, opisanym niżej
+zakresie:
+
+- **Hosting:** aplikacja, baza danych i pliki działają na serwerach
+  Fly.io w regionie Frankfurt (UE). Fly.io, Inc. jest podmiotem
+  przetwarzającym. DECYZJA ADMINISTRATORA DANYCH: `[umowa powierzenia /
+  DPA Fly.io]`.
+- **Powiadomienia push:** jeżeli je włączysz, doręcza je dostawca push
+  Twojej przeglądarki (np. Mozilla, Google, Apple). Treść powiadomień
+  jest szyfrowana do Twojego urządzenia i **nigdy nie zawiera danych
+  zdrowotnych** — wyłącznie neutralne wezwanie do wejścia do aplikacji.
+- **E-mail:** obecnie żaden dostawca poczty nie jest skonfigurowany —
+  aplikacja nie wysyła e-maili. Jeżeli administrator uruchomi
+  powiadomienia e-mail, wskaże tu dostawcę i zakres danych.
+- **AI:** obecnie żaden dostawca AI nie jest skonfigurowany — dane nie
+  są nigdzie wysyłane. Funkcja (propozycja streszczenia raportu dla
+  trenera) działa wyłącznie za Twoją odrębną zgodą; jeżeli administrator
+  skonfiguruje dostawcę, wskaże go w tej polityce przed uruchomieniem.
+- **Płatności:** aplikacja prowadzi wyłącznie ewidencję statusów — nie
+  ma płatności online i żaden operator płatności nie otrzymuje danych.
+- **Czcionki i zasoby:** wszystkie zasoby (w tym czcionki Unbounded i
+  Inter, self-hosting @fontsource) są serwowane z własnej domeny — Twój
+  adres IP **nie jest** przekazywany do Google Fonts ani żadnej sieci
+  CDN podczas korzystania z aplikacji.
 - Dane **nie są sprzedawane** ani udostępniane podmiotom trzecim w
-  celach marketingowych.
-- Dostęp do Twoich danych ma wyłącznie Twój trener (w zakresie objętym
-  zgodą) — administrator techniczny systemu **nie ma** dostępu do danych
-  zdrowotnych.
-- `[DO UZUPEŁNIENIA przy wdrożeniu płatności online: operator płatności]`
-- **Zasoby zewnętrzne (czcionki, CDN):** aplikacja nie ładuje żadnych
-  zasobów z serwerów podmiotów trzecich. Czcionki (Unbounded, Inter) są
-  hostowane razem z aplikacją (self-hosting od 2026-08-18) — Twój adres IP
-  **nie jest** przekazywany do Google (Google Fonts) ani do żadnej innej
-  sieci CDN podczas korzystania z aplikacji.
+  celach marketingowych. Poza wymienionymi podmiotami przetwarzającymi
+  dane nie są przekazywane dalej.
+- Dostęp do Twoich danych ma wyłącznie Twój trener — w zakresie
+  kategorii, na które wyraziłeś(-aś) zgodę; administrator techniczny
+  systemu **nie ma** dostępu do danych zdrowotnych.
 
 ## 6. Przekazywanie poza EOG
 
 Serwery aplikacji znajdują się w UE (Frankfurt). Dostawca infrastruktury
-(Fly.io Inc.) ma siedzibę w USA — podstawą przekazania są standardowe
-klauzule umowne `[DO WERYFIKACJI PRAWNEJ: aktualny mechanizm transferu
-i DPA dostawcy]`.
+(Fly.io, Inc.) ma siedzibę w USA — DECYZJA ADMINISTRATORA DANYCH:
+`[zweryfikować aktualny mechanizm transferu (SCC/DPF) i DPA dostawcy]`.
+Dostawcy push (zależni od Twojej przeglądarki) mogą przetwarzać
+techniczny adres subskrypcji poza EOG; treść jest zaszyfrowana.
 
 ## 7. Jak długo przechowujemy dane
 
 - Dane współpracy: przez czas trwania współpracy trenerskiej.
-- Po zakończeniu współpracy: do `[DO UZUPEŁNIENIA: np. 12 miesięcy]`,
-  chyba że wcześniej skorzystasz z prawa do usunięcia.
-- Dokumenty rozliczeniowe: zgodnie z przepisami podatkowymi (5 lat).
-- Dziennik zdarzeń (bez treści zdrowotnych): `[DO UZUPEŁNIENIA]`.
+- Po zakończeniu współpracy: DECYZJA ADMINISTRATORA DANYCH:
+  `[np. 12 miesięcy]`, chyba że wcześniej skorzystasz z prawa do
+  usunięcia.
+- Dokumenty rozliczeniowe (kwoty, terminy, statusy): zgodnie z
+  przepisami podatkowymi (5 lat od końca roku).
+- Dziennik zdarzeń (bez treści zdrowotnych): trwale — służy Twojej
+  własnej rozliczalności (możesz sprawdzić, kto i kiedy zmieniał Twoje
+  dane).
+- Kopie zapasowe: dane usunięte z aplikacji mogą pozostawać w kopiach
+  zapasowych do wygaśnięcia ich rotacji — DECYZJA ADMINISTRATORA DANYCH:
+  `[skonfigurować backupy i podać maksymalny okres, np. 30 dni]`.
 
-## 8. Twoje prawa
+## 8. Twoje prawa i jak z nich skorzystać
 
 Masz prawo do:
 
-- **dostępu** do danych i informacji o ich przetwarzaniu;
-- **sprostowania** — swoje deklaracje możesz poprawiać w aplikacji
-  (historia zmian jest zachowywana, nic nie jest nadpisywane po cichu);
-- **usunięcia** — funkcja „Usuń konto i dane" w aplikacji anonimizuje
-  konto i trwale usuwa pliki (zdjęcia, dokumenty);
-- **przenoszenia danych** — funkcja „Eksportuj wszystkie dane" pobiera
-  komplet Twoich danych w otwartym formacie JSON;
-- **cofnięcia zgody** (pkt 4) oraz **sprzeciwu** wobec przetwarzania
-  opartego na uzasadnionym interesie;
+- **dostępu** do danych i informacji o ich przetwarzaniu — wszystkie
+  swoje dane widzisz w aplikacji;
+- **eksportu / przenoszenia danych** — Profil → „Eksportuj wszystkie
+  dane": komplet danych w otwartym formacie JSON (maszynowym) albo w
+  arkuszu Excel (czytelnym); eksport obejmuje też historię zgód,
+  pokwitowania audytu i ewidencję płatności;
+- **sprostowania** — swoje deklaracje poprawiasz w aplikacji; historia
+  zmian jest zachowywana, nic nie jest nadpisywane po cichu;
+- **usunięcia** — Profil → „Usuń konto i dane" (hasło + fraza
+  potwierdzająca): konto jest anonimizowane, zdjęcia i pliki **fizycznie
+  usuwane z dysku**, pomiary/obserwacje/dziennik żywieniowy usuwane,
+  treści wolnotekstowe (cele, wiadomości, komentarze, notatki)
+  anonimizowane, subskrypcje push usuwane, a wszystkie sesje
+  unieważniane. Pozostają: dane rozliczeniowe wymagane przepisami
+  (kwoty/terminy/statusy, bez notatek) oraz dziennik zdarzeń
+  (identyfikatory operacji, bez danych zdrowotnych);
+- **cofnięcia każdej zgody** (pkt 4) oraz **sprzeciwu** wobec
+  przetwarzania opartego na uzasadnionym interesie;
 - **skargi do Prezesa Urzędu Ochrony Danych Osobowych** (uodo.gov.pl).
 
-Realizacja praw: bezpośrednio w aplikacji albo kontaktowo (pkt 1).
+Realizacja praw: bezpośrednio w aplikacji (przyciski powyżej działają
+natychmiast, bez rozpatrywania) albo wnioskiem na adres kontaktowy
+administratora (pkt 1) — odpowiedź w terminie do miesiąca (art. 12
+RODO).
 
 ## 9. Bezpieczeństwo
 
-- transmisja wyłącznie szyfrowana (HTTPS);
+- transmisja wyłącznie szyfrowana (HTTPS); rygorystyczne nagłówki
+  bezpieczeństwa i CSP;
 - hasła przechowywane jako skróty bcrypt; wymuszona zmiana hasła
-  startowego przy pierwszym logowaniu; limit prób logowania;
+  startowego; limity prób; serwerowe unieważnianie sesji i ekran
+  aktywnych sesji;
 - ścisła izolacja kont — klient widzi wyłącznie swoje dane, trener
-  wyłącznie dane aktywnie przypisanych klientów za ich zgodą;
+  wyłącznie dane aktywnie przypisanych klientów w zakresie udzielonych
+  zgód; każda odmowa dostępu jest logowana;
+- nowe zdjęcia są pozbawiane metadanych EXIF (w tym GPS) już przy
+  zapisie; odpowiedzi z plikami nie trafiają do cache;
 - operacje o wysokim znaczeniu zapisywane w niezmiennym, kryptograficznie
   łańcuchowanym dzienniku zdarzeń (możliwość wykrycia manipulacji);
-- kopie zapasowe: `[DO UZUPEŁNIENIA po konfiguracji backupów]`.
+- kopie zapasowe: DECYZJA ADMINISTRATORA DANYCH (pkt 7);
+- szyfrowanie danych w spoczynku na poziomie aplikacji nie jest
+  zaimplementowane — DECYZJA ADMINISTRATORA DANYCH: ocena środków po
+  stronie platformy hostingowej.
 
 ## 10. Pliki cookie i pamięć przeglądarki
 
 Aplikacja używa wyłącznie technicznego ciasteczka sesji (httpOnly)
-oraz pamięci przeglądarki na potrzeby zalogowania. Brak cookies
-reklamowych, analitycznych i śledzących.
+oraz pamięci przeglądarki na potrzeby zalogowania i trybu offline
+(PWA). Brak cookies reklamowych, analitycznych i śledzących.
 
 ## 11. Osoby niepełnoletnie
 
-Usługa jest przeznaczona dla osób pełnoletnich. Osoby w wieku
-`[DO DECYZJI: 16–18 lat]` mogą korzystać wyłącznie za zgodą opiekuna
-prawnego.
+Usługa jest przeznaczona dla osób pełnoletnich. DECYZJA ADMINISTRATORA
+DANYCH: `[czy osoby 16–18 lat mogą korzystać za zgodą opiekuna]`.
 
 ## 12. Zmiany polityki
 
-Polityka jest wersjonowana. O istotnych zmianach poinformujemy w
-aplikacji przed ich wejściem w życie. Wersje archiwalne pozostają
-dostępne.
+Polityka jest wersjonowana (ta wersja: v0.2). O istotnych zmianach —
+w tym o każdej zmianie wersji dokumentu zgód — informujemy w aplikacji
+przed ich wejściem w życie; zgody wyrażone na wcześniejsze wersje
+zachowują w historii numer wersji, na którą zostały udzielone. Wersje
+archiwalne pozostają dostępne.
 
 ## 13. Kontakt
 
-W sprawach danych osobowych: `[DO UZUPEŁNIENIA: e-mail]`.
+W sprawach danych osobowych: DECYZJA ADMINISTRATORA DANYCH: `[e-mail]`.
 
 ---
 
-*Dokument przygotowany 2026-08-17 na podstawie rzeczywistego działania
-aplikacji Dzik OS 0.1.1 (funkcje zgód, eksportu, anonimizacji i audytu
-opisane w docs/DATA_PROCESSING_MAP.md i docs/PERMISSIONS.md).*
+*Dokument przygotowany 2026-08-18 na podstawie rzeczywistego działania
+aplikacji Dzik OS 0.11.0 (kategorie zgód, eksport, anonimizacja i audyt
+opisane w docs/ZGODY_MODEL.md, docs/RODO_REJESTR_CZYNNOSCI.md i
+docs/DATA_PROCESSING_MAP.md).*
