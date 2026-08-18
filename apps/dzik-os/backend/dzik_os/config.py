@@ -41,6 +41,13 @@ class Settings:
     orphan_file_ttl_hours: int = field(
         default_factory=lambda: int(_env("DZIK_ORPHAN_FILE_TTL_H", "24"))
     )
+    # Szyfrowanie at-rest plików uploadów (R-02): klucz AES-256 w base64
+    # (32 bajty po zdekodowaniu). Pusty = zapis jawny jak dotychczas.
+    # Generowanie: python -c "import os,base64;print(base64.b64encode(os.urandom(32)).decode())"
+    file_key_b64: str = field(default_factory=lambda: _env("DZIK_FILE_KEY", ""))
+    # Kopie zapasowe (R-12): katalog archiwów i retencja (ile najnowszych zostaje).
+    backup_dir: str = field(default_factory=lambda: _env("DZIK_BACKUP_DIR", "data/backups"))
+    backup_keep: int = field(default_factory=lambda: int(_env("DZIK_BACKUP_KEEP", "14")))
     session_ttl_hours: int = field(default_factory=lambda: int(_env("DZIK_SESSION_TTL_H", "72")))
     login_max_attempts: int = field(default_factory=lambda: int(_env("DZIK_LOGIN_MAX_ATTEMPTS", "5")))
     login_lockout_minutes: int = field(

@@ -13,14 +13,28 @@ Twarde reguły uploadu (patrz też file_safety.py):
   rozdzielczości i rekompresja — pliki wgrane przed tą zmianą pozostają
   na dysku bez modyfikacji (świadoma decyzja: brak retroaktywnego
   przetwarzania istniejących danych).
+
+Szyfrowanie at-rest (R-02): przy ustawionym DZIK_FILE_KEY (base64, 32
+bajty — AES-256-GCM) każdy nowy plik jest szyfrowany przy zapisie i
+deszyfrowany przy odczycie. Zaszyfrowane pliki mają jednoznaczny nagłówek
+magiczny ``DZIKENC1``; plik bez nagłówka to plik zapisany przed włączeniem
+szyfrowania i jest zwracany wprost (kompatybilność wsteczna). Tryby nigdy
+nie mieszają się po cichu w sposób uniemożliwiający odczyt: brak klucza
+przy zaszyfrowanym pliku to jawny błąd 500, a niepoprawny klucz w env
+zatrzymuje start aplikacji (ValueError).
 """
 
 from __future__ import annotations
 
+import base64
 import hashlib
+import logging
+import os
 import uuid
 from pathlib import Path
 
+from cryptography.exceptions import InvalidTag
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from fastapi import HTTPException, UploadFile
 from sqlalchemy.orm import Session
 
@@ -49,10 +63,74 @@ async def _read_limited(upload: UploadFile, max_bytes: int) -> bytes:
     return b"".join(chunks)
 
 
+logger = logging.getLogger("dzik_os.storage")
+
+# Nagłówek magiczny zaszyfrowanego pliku: DZIKENC1 || nonce(12B) || ciphertext+tag.
+ENC_MAGIC = b"DZIKENC1"
+_NONCE_LEN = 12
+
+
+def load_file_key() -> bytes | None:
+    """Klucz AES-256 z DZIK_FILE_KEY albo None (zapis jawny, jak dotychczas).
+
+    Niepoprawny klucz to jawny ValueError — cichy fallback na zapis jawny
+    przy literówce w kluczu byłby fałszywym poczuciem bezpieczeństwa.
+    """
+    raw = settings.file_key_b64.strip()
+    if not raw:
+        if settings.env not in ("dev", "test"):
+            logger.warning(
+                "DZIK_FILE_KEY nie jest ustawiony — pliki uploadów są zapisywane "
+                "BEZ szyfrowania at-rest (patrz RISK_REGISTER R-02)."
+            )
+        return None
+    try:
+        key = base64.b64decode(raw, validate=True)
+    except Exception as exc:
+        raise ValueError("DZIK_FILE_KEY nie jest poprawnym base64") from exc
+    if len(key) != 32:
+        raise ValueError(
+            f"DZIK_FILE_KEY musi mieć 32 bajty po zdekodowaniu base64 (jest: {len(key)})"
+        )
+    return key
+
+
+def encrypt_file_bytes(key: bytes, data: bytes) -> bytes:
+    """AES-256-GCM: DZIKENC1 || nonce || ciphertext+tag (świeży nonce na plik)."""
+    nonce = os.urandom(_NONCE_LEN)
+    return ENC_MAGIC + nonce + AESGCM(key).encrypt(nonce, data, None)
+
+
+def decrypt_file_bytes(key: bytes | None, blob: bytes) -> bytes:
+    """Odczyt zawartości pliku z dysku.
+
+    Plik bez nagłówka ENC_MAGIC to plik sprzed włączenia szyfrowania —
+    zwracany wprost. Zaszyfrowany plik bez klucza / z błędnym kluczem to
+    jawny błąd, nigdy ciche zwrócenie szyfrogramu.
+    """
+    if not blob.startswith(ENC_MAGIC):
+        return blob
+    if key is None:
+        raise HTTPException(
+            status_code=500,
+            detail="Plik jest zaszyfrowany, a DZIK_FILE_KEY nie jest skonfigurowany",
+        )
+    nonce = blob[len(ENC_MAGIC) : len(ENC_MAGIC) + _NONCE_LEN]
+    ciphertext = blob[len(ENC_MAGIC) + _NONCE_LEN :]
+    try:
+        return AESGCM(key).decrypt(nonce, ciphertext, None)
+    except InvalidTag as exc:
+        raise HTTPException(
+            status_code=500,
+            detail="Nie można odszyfrować pliku (niewłaściwy klucz DZIK_FILE_KEY?)",
+        ) from exc
+
+
 class LocalStorage:
     def __init__(self, root: str | None = None) -> None:
         self.root = Path(root or settings.upload_dir)
         self.root.mkdir(parents=True, exist_ok=True)
+        self._key = load_file_key()
 
     async def save_upload(
         self, db: Session, upload: UploadFile, *, owner_user_id: str, uploaded_by: str
@@ -90,12 +168,15 @@ class LocalStorage:
                 ) from None
         ext = settings.ALLOWED_UPLOAD_TYPES[content_type]
         rel_path = f"{uuid.uuid4().hex}{ext}"
-        (self.root / rel_path).write_bytes(data)
+        on_disk = encrypt_file_bytes(self._key, data) if self._key is not None else data
+        (self.root / rel_path).write_bytes(on_disk)
         stored = StoredFile(
             id=new_id("FIL"),
             owner_user_id=owner_user_id,
             filename=file_safety.sanitize_filename(upload.filename, ext)[:300],
             content_type=content_type,
+            # Metadane (rozmiar, sha256) dotyczą oryginalnej treści pliku,
+            # niezależnie od tego, czy na dysku leży szyfrogram.
             size_bytes=len(data),
             sha256=hashlib.sha256(data).hexdigest(),
             storage_path=rel_path,
@@ -114,11 +195,12 @@ class LocalStorage:
 
     def read(self, stored: StoredFile) -> bytes:
         try:
-            return self._resolved(stored).read_bytes()
+            blob = self._resolved(stored).read_bytes()
         except (ValueError, OSError):
             # Wpis wskazujący poza katalog lub brak pliku na dysku —
             # nie ujawniamy szczegółów, dla klienta zasób nie istnieje.
             raise HTTPException(status_code=404, detail="Nie znaleziono") from None
+        return decrypt_file_bytes(self._key, blob)
 
     def delete(self, stored: StoredFile) -> None:
         if not stored.storage_path:

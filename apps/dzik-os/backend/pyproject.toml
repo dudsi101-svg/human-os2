@@ -26,6 +26,8 @@ dependencies = [
   "pywebpush>=2,<3",
   # zoneinfo wymaga bazy stref czasowych także na obrazach slim bez tzdata
   "tzdata",
+  # Szyfrowanie at-rest plików uploadów (AES-256-GCM) — patrz storage.py / R-02.
+  "cryptography>=42,<47",
 ]
 
 [project.optional-dependencies]
