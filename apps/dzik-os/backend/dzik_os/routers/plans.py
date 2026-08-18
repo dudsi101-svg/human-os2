@@ -138,6 +138,57 @@ def create_plan_version(
     return {"version_id": version.id, "version_no": next_no}
 
 
+@router.post("/plans/{template_id}/copy-to/{client_id}", status_code=201)
+def copy_template_to_client(
+    template_id: str,
+    client_id: str,
+    coach: User = Depends(require_role("COACH")),
+    db: Session = Depends(get_db),
+):
+    """Kopiuje bieżącą wersję szablonu jako NOWY plan klienta (v1).
+    Kopia jest niezależna — późniejsza edycja szablonu nie zmienia planów
+    klientów (pełna proweniencja zamiast współdzielenia obiektu)."""
+    template = db.get(TrainingPlan, template_id)
+    if template is None or template.coach_id != coach.id or not template.is_template:
+        raise HTTPException(status_code=404, detail="Nie znaleziono szablonu")
+    resolve_client_access(db, coach, client_id, action="write")
+    source_version = (
+        db.query(TrainingPlanVersion)
+        .filter_by(plan_id=template.id, version_no=template.current_version_no)
+        .one_or_none()
+    )
+    if source_version is None:
+        raise HTTPException(status_code=422, detail="Szablon nie ma żadnej wersji")
+    plan = TrainingPlan(
+        id=new_id("PLN"),
+        client_id=client_id,
+        coach_id=coach.id,
+        title=template.title,
+        current_version_no=1,
+    )
+    db.add(plan)
+    version = TrainingPlanVersion(
+        id=new_id("PLV"),
+        plan_id=plan.id,
+        version_no=1,
+        reason=f"Skopiowano z szablonu „{template.title}”",
+        content_json=source_version.content_json,
+        created_by=coach.id,
+    )
+    db.add(version)
+    record_event(
+        db,
+        action="PLAN_CREATED",
+        actor_id=coach.id,
+        subject_ids=[client_id],
+        payload={"plan_id": plan.id, "title": plan.title, "version_no": 1,
+                 "copied_from_template_id": template.id},
+        summary=f"Plan „{plan.title}” skopiowany z szablonu dla klienta",
+    )
+    db.commit()
+    return {"id": plan.id, "version_id": version.id, "version_no": 1}
+
+
 @router.get("/plans/templates")
 def list_templates(
     coach: User = Depends(require_role("COACH")),

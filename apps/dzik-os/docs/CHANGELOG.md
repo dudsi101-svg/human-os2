@@ -1,5 +1,28 @@
 # Changelog — Dzik OS
 
+## 0.6.0 — 2026-08-18
+
+Runda 6a wg zatwierdzonej specyfikacji (docs/SPEC_NASTEPNE_RUNDY.md;
+punkty 10–11 z listy propozycji świadomie poza zakresem).
+
+* **Kopiowanie szablonu do klienta**: `POST /api/plans/{id}/copy-to/{client}`
+  — bieżąca wersja szablonu staje się v1 nowego, NIEZALEŻNEGO planu
+  klienta (późniejsza edycja szablonu nie zmienia planów klientów);
+  w karcie klienta wybór „Z szablonu…" + „Kopiuj do klienta".
+* **Porównywarka zdjęć „przed / po"**: zestawienie dwóch zdjęć sylwetki
+  z wyborem dat (domyślnie najstarsze vs najnowsze) — u klienta na
+  Postępach, u trenera w Monitoringu. Wyłącznie własna historia.
+  Seed: dwa syntetyczne zdjęcia demo dla klienta A.
+* **Timer przerw**: przy każdym ćwiczeniu z zapisaną przerwą przycisk ⏱
+  odlicza czas (obsługa „120 s"/„2 min"/„90"), wibracja na koniec;
+  czysto lokalny, niczego nie zapisuje.
+* **Wywiad startowy** (`/ankieta`): strukturalna ankieta klienta (cel →
+  cel główny, doświadczenie, dni, sprzęt, preferencje/alergie/kontuzje
+  jako pola wrażliwe) zasilająca profil append-only z proweniencją
+  CLIENT_DECLARED; baner-zaproszenie na Dzisiaj, dopóki profil pusty.
+* Testy: 97 → 100 (kopiowanie szablonu: niezależność kopii, izolacja
+  trenerów, blokada klienta).
+
 ## 0.5.2 — 2026-08-18
 
 * **Powitanie na ekranie logowania**: pod logo ciepłe zaproszenie

@@ -4,6 +4,7 @@ import {
   AuthImage,
   ErrorBox,
   PersonalRecordsCard,
+  PhotoCompare,
   Sparkline,
   Spinner,
   TopBar,
@@ -142,6 +143,8 @@ export default function Progress() {
       )}
 
       <ObservationsCard userId={user.id} onSaved={load} />
+
+      {photos.length >= 2 && <PhotoCompare photos={photos} formatDate={plDate} />}
 
       {photos.length > 0 && (
         <div className="card">

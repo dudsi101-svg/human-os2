@@ -157,6 +157,62 @@ export function AuthImage({ fileId, alt }: { fileId: string; alt: string }) {
   return <img src={url} alt={alt} />;
 }
 
+export interface ProgressPhotoRow {
+  id: string;
+  file_id: string;
+  taken_at: string;
+  note: string | null;
+}
+
+/** Porównywarka zdjęć sylwetki „przed / po" — zestawienie wyłącznie
+ * z WŁASNĄ historią (nigdy z innymi osobami). Domyślnie: najstarsze vs
+ * najnowsze zdjęcie. */
+export function PhotoCompare({ photos, formatDate }: {
+  photos: ProgressPhotoRow[];
+  formatDate: (iso: string) => string;
+}) {
+  // photos przychodzą posortowane malejąco po taken_at (API).
+  const oldestFirst = photos.slice().reverse();
+  const [leftId, setLeftId] = useState(oldestFirst[0]?.id ?? "");
+  const [rightId, setRightId] = useState(photos[0]?.id ?? "");
+  if (photos.length < 2) return null;
+  const left = photos.find((p) => p.id === leftId) ?? oldestFirst[0];
+  const right = photos.find((p) => p.id === rightId) ?? photos[0];
+  return (
+    <div className="card">
+      <h3>Przed / po</h3>
+      <div className="field-row">
+        <div>
+          <label>Zdjęcie „przed"</label>
+          <select value={left.id} onChange={(e) => setLeftId(e.target.value)}>
+            {oldestFirst.map((p) => (
+              <option key={p.id} value={p.id}>{formatDate(p.taken_at)}</option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label>Zdjęcie „po"</label>
+          <select value={right.id} onChange={(e) => setRightId(e.target.value)}>
+            {photos.map((p) => (
+              <option key={p.id} value={p.id}>{formatDate(p.taken_at)}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+      <div className="field-row" style={{ marginTop: 8 }}>
+        <div style={{ textAlign: "center" }}>
+          <AuthImage fileId={left.file_id} alt={`Zdjęcie ${formatDate(left.taken_at)}`} />
+          <small className="dim">{formatDate(left.taken_at)}</small>
+        </div>
+        <div style={{ textAlign: "center" }}>
+          <AuthImage fileId={right.file_id} alt={`Zdjęcie ${formatDate(right.taken_at)}`} />
+          <small className="dim">{formatDate(right.taken_at)}</small>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /** Załącznik dowolnego typu (obraz/audio/wideo/plik) pobierany przez
  * uwierzytelnione API — typ rozpoznawany po pobraniu (Content-Type), nie
  * po nazwie pliku, więc działa niezależnie od tego, kto go wgrał. */

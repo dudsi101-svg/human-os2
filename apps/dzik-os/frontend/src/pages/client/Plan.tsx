@@ -1,7 +1,67 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api, getUser, plDate, WEEKDAYS } from "../../api";
 import { ErrorBox, Spinner, TopBar } from "../../components";
 import { PlanVersion, TrainingPlan, WorkoutRow } from "../../types";
+
+/** "120 s" / "2 min" / "90" → sekundy (null, gdy nie da się odczytać). */
+function parseRestSeconds(rest: string | null | undefined): number | null {
+  if (!rest) return null;
+  const m = rest.replace(",", ".").match(/([\d.]+)\s*(min|m\b)?/i);
+  if (!m) return null;
+  const value = parseFloat(m[1]);
+  if (!isFinite(value) || value <= 0) return null;
+  return Math.round(m[2] ? value * 60 : value);
+}
+
+/** Timer przerwy między seriami — czysto lokalny, niczego nie zapisuje. */
+function RestTimer({ seconds }: { seconds: number }) {
+  const [left, setLeft] = useState<number | null>(null);
+  const interval = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => () => { if (interval.current) clearInterval(interval.current); }, []);
+
+  function start() {
+    if (interval.current) clearInterval(interval.current);
+    setLeft(seconds);
+    interval.current = setInterval(() => {
+      setLeft((prev) => {
+        if (prev === null) return null;
+        if (prev <= 1) {
+          if (interval.current) clearInterval(interval.current);
+          if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  }
+
+  function stop() {
+    if (interval.current) clearInterval(interval.current);
+    setLeft(null);
+  }
+
+  if (left === null) {
+    return (
+      <button type="button" className="btn btn--ghost btn--small" onClick={start}>
+        ⏱ przerwa {seconds >= 60 ? `${Math.round(seconds / 60)} min` : `${seconds} s`}
+      </button>
+    );
+  }
+  const done = left === 0;
+  return (
+    <button
+      type="button"
+      className="btn btn--small"
+      style={done
+        ? { background: "var(--accent)", color: "var(--accent-ink)" }
+        : { background: "var(--bg-raised)", color: "var(--accent)", fontVariantNumeric: "tabular-nums" }}
+      onClick={done ? () => start() : stop}
+    >
+      {done ? "✓ Koniec przerwy — jeszcze raz?" : `⏱ ${Math.floor(left / 60)}:${String(left % 60).padStart(2, "0")} (stop)`}
+    </button>
+  );
+}
 
 export default function Plan() {
   const user = getUser()!;
@@ -111,21 +171,27 @@ export default function Plan() {
                 <h3>{day.name}</h3>
                 {day.weekday && <span className="badge">{WEEKDAYS[day.weekday - 1]}</span>}
               </div>
-              {day.exercises.map((ex, i) => (
-                <div className="exercise" key={i}>
-                  <div>
-                    <b>{ex.name}</b>
-                    {ex.comment && <div className="meta">{ex.comment}</div>}
-                    {ex.video_url && (
-                      <a href={ex.video_url} target="_blank" rel="noreferrer">🎬 technika</a>
-                    )}
+              {day.exercises.map((ex, i) => {
+                const restSeconds = parseRestSeconds(ex.rest);
+                return (
+                  <div className="exercise" key={i}>
+                    <div>
+                      <b>{ex.name}</b>
+                      {ex.comment && <div className="meta">{ex.comment}</div>}
+                      {ex.video_url && (
+                        <a href={ex.video_url} target="_blank" rel="noreferrer">🎬 technika</a>
+                      )}
+                      {restSeconds !== null && (
+                        <div style={{ marginTop: 6 }}><RestTimer seconds={restSeconds} /></div>
+                      )}
+                    </div>
+                    <div className="meta">
+                      {[ex.sets && `${ex.sets}×${ex.reps ?? "?"}`, ex.weight, ex.tempo, ex.rest]
+                        .filter(Boolean).join(" · ")}
+                    </div>
                   </div>
-                  <div className="meta">
-                    {[ex.sets && `${ex.sets}×${ex.reps ?? "?"}`, ex.weight, ex.tempo, ex.rest]
-                      .filter(Boolean).join(" · ")}
-                  </div>
-                </div>
-              ))}
+                );
+              })}
               {logDay === di ? (
                 <div style={{ marginTop: 10 }}>
                   {day.exercises.map((ex, i) => (

@@ -5,6 +5,8 @@ import {
   AuthImage,
   ErrorBox,
   PersonalRecordsCard,
+  PhotoCompare,
+  ProgressPhotoRow,
   SectionLabel,
   Sparkline,
   Spinner,
@@ -165,6 +167,9 @@ function PlanTab({ clientId }: { clientId: string }) {
   const [plans, setPlans] = useState<TrainingPlan[] | null>(null);
   const [versions, setVersions] = useState<PlanVersion[] | null>(null);
   const [workouts, setWorkouts] = useState<WorkoutRow[]>([]);
+  const [templates, setTemplates] = useState<TrainingPlan[]>([]);
+  const [templateId, setTemplateId] = useState("");
+  const [copying, setCopying] = useState(false);
   const [editing, setEditing] = useState<"new" | "version" | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -177,8 +182,25 @@ function PlanTab({ clientId }: { clientId: string }) {
       .then((d) => setPlans(d.plans)).catch((e) => setError(e.message));
     api.get<{ workouts: WorkoutRow[] }>(`/api/clients/${clientId}/workouts`)
       .then((d) => setWorkouts(d.workouts)).catch(() => undefined);
+    api.get<{ templates: TrainingPlan[] }>("/api/plans/templates")
+      .then((d) => setTemplates(d.templates)).catch(() => undefined);
   }, [clientId]);
   useEffect(load, [load]);
+
+  async function copyTemplate() {
+    if (!templateId) return;
+    setCopying(true);
+    setError(null);
+    try {
+      await api.post(`/api/plans/${templateId}/copy-to/${clientId}`);
+      setTemplateId("");
+      load();
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setCopying(false);
+    }
+  }
 
   useEffect(() => {
     if (plan && !versions) {
@@ -202,12 +224,26 @@ function PlanTab({ clientId }: { clientId: string }) {
           onCancel={() => setEditing(null)} />
       )}
       {!editing && (
-        <div className="row" style={{ marginBottom: 10 }}>
+        <div className="row" style={{ marginBottom: 10, flexWrap: "wrap" }}>
           <button className="btn btn--small" onClick={() => setEditing("new")}>+ Nowy plan</button>
           {plan && (
             <button className="btn btn--ghost btn--small" onClick={() => setEditing("version")}>
               Nowa wersja aktualnego planu
             </button>
+          )}
+          {templates.length > 0 && (
+            <>
+              <select value={templateId} style={{ width: "auto" }}
+                onChange={(e) => setTemplateId(e.target.value)}>
+                <option value="">Z szablonu…</option>
+                {templates.map((t) => <option key={t.id} value={t.id}>{t.title}</option>)}
+              </select>
+              {templateId && (
+                <button className="btn btn--small" disabled={copying} onClick={copyTemplate}>
+                  {copying ? "Kopiowanie…" : "Kopiuj do klienta"}
+                </button>
+              )}
+            </>
           )}
         </div>
       )}
@@ -804,10 +840,13 @@ function PaymentsTab({ clientId }: { clientId: string }) {
 
 function MonitoringTab({ clientId }: { clientId: string }) {
   const [data, setData] = useState<MonitoringData | null>(null);
+  const [photos, setPhotos] = useState<ProgressPhotoRow[]>([]);
   const [error, setError] = useState<string | null>(null);
   useEffect(() => {
     api.get<MonitoringData>(`/api/clients/${clientId}/monitoring`)
       .then(setData).catch((e) => setError(e.message));
+    api.get<{ photos: ProgressPhotoRow[] }>(`/api/clients/${clientId}/photos`)
+      .then((d) => setPhotos(d.photos)).catch(() => undefined);
   }, [clientId]);
 
   if (error) return <ErrorBox error={error} />;
@@ -832,6 +871,8 @@ function MonitoringTab({ clientId }: { clientId: string }) {
       )}
 
       <PersonalRecordsCard clientId={clientId} />
+
+      {photos.length >= 2 && <PhotoCompare photos={photos} formatDate={plDate} />}
 
       {Object.keys(data.adherence).length > 0 && (
         <div className="card">

@@ -9,13 +9,20 @@ export default function Today() {
   const [error, setError] = useState<string | null>(null);
   const [marking, setMarking] = useState(false);
   const [markingSchedule, setMarkingSchedule] = useState<string | null>(null);
+  const [needsIntake, setNeedsIntake] = useState(false);
   const user = getUser();
 
   const load = () =>
     api.get<TodayData>("/api/me/today").then(setData).catch((e) => setError(e.message));
   useEffect(() => {
     load();
-  }, []);
+    if (user) {
+      // Pusty profil = świeże konto — zaproś do wywiadu startowego.
+      api.get<{ fields: unknown[] }>(`/api/clients/${user.id}/profile`)
+        .then((d) => setNeedsIntake(d.fields.length === 0))
+        .catch(() => undefined);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function markDone() {
     if (!data?.workout || !user) return;
@@ -57,6 +64,15 @@ export default function Today() {
   return (
     <div className="page">
       <TopBar title="Dzisiaj" />
+      {needsIntake && (
+        <Link to="/ankieta" className="card card--accent" style={{ display: "block", marginBottom: 10 }}>
+          <b style={{ color: "var(--text)" }}>👋 Zacznijmy od wywiadu startowego</b>
+          <p className="dim" style={{ margin: "4px 0 0", fontSize: "0.85rem" }}>
+            Kilka pytań o cel, doświadczenie i zdrowie — trener od razu
+            dopasuje plan do Ciebie. Zajmie 2 minuty.
+          </p>
+        </Link>
+      )}
       {data.workout ? (
         <div className="card card--accent">
           <div className="row row--between">

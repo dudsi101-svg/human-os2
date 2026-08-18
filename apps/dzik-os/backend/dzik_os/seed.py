@@ -62,6 +62,47 @@ DEMO_ACCOUNTS = {
     "admin": ("admin@example.com", "DzikAdmin#2026", "Administrator Techniczny"),
 }
 
+# Dwa syntetyczne zdjęcia progresu (male PNG, sylwetka "przed/po") --
+# wylacznie do demo porownywarki; zadnych prawdziwych osob.
+DEMO_PHOTO_BEFORE_B64 = (
+    "iVBORw0KGgoAAAANSUhEUgAAAPAAAAFACAIAAAANimYEAAADUklEQVR42u3dQYqrQBiF0Rhc"
+    "heBAQdz/ckIga8kwEwM/iSbl5Zxpw6MpP27b1CPdDeN0gRRXR4CgQdAgaBA0ggZBg6BB0CBo"
+    "BA2CBkGDoEHQCBoEDYIGQYOgETQIGgQNggZBI2gQNAgaBA0vvSM4zrys7770uN+czxE6H6f7"
+    "y46VLejMjpXtHTq55l3+BSx0EymbagsdW7OpFnRUzZoWdFrNmhZ0Ws2aFnRazZoWNAi6+ck0"
+    "0oJOa0vTgkbQIGjvG946BA2CBkEn/cT31iFoBA2CBkGDoEHQCBoEDYI+hRY+WsDHGwgaQYOg"
+    "vXV43xA0CBoEffaf+943BJ3TlpoFjaBpcjLNs6BzOlOzoHOaVrOgc5pWs6BzmlbzN/zRoH3s"
+    "8hkDUrbQOVOtZgudsNY6FnRC2ToWNHiHRtAgaBA0CBoEjaBB0PBffcvfnL8q0qxmbzotNF45"
+    "QNAgaAgK2v+x9FwsNBYaBA2CBkGDoBE0CBoEXeduxROx0FhoEDQIGgQNgkbQIGgQdJ27Fc/C"
+    "QmOhQdAgaBA0CBpBg6BB0HXuVjwFC42FBkGDoEHQIGgEDYIGQde5W3H+FhoLDYIGQYOgQdAI"
+    "GgQNgq5zt+LkLTQWGgQNggZBg6ARNAgaBF3nbsWZW2gsNAgaBA2CBkEjaBA0CLrO3YrTttBY"
+    "aBA0CBoEDYJG0CBoEHSduxXnbKGx0CBoEDQIGgSNoEHQIOg6dytO2EJjoUHQIGgQNAgaQYOg"
+    "QdB17lacrYXGQoOgQdAgaBA0ggZBg6Dr3K04VQuNhQZBg6BB0CBoBA2CBkHXuVtxnhYaCw2C"
+    "BkGDoEHQCBoEDYKuc7fiJC00FhoEDYKGD/WO4Ly/Hs3L6klZaAQNggZBg6BB0AgaBA2CBkGD"
+    "oBE0CBoEDYJG0CBoEDQIGgSNoEHQIGgQNAgaQYOgQdAgaBA0ggZBg6BB0CBoBA2CBkGDoEHQ"
+    "CBoEDYIGQYOgETQIGgQNgkbQIGgQNAgaBI2gQdAgaBA0CBpBg6BB0CBoEDSCBkGDoEHQIGgE"
+    "DYIGQYOgQdAIGgQNggZBg6ARNAgaBA2CBkEjaBA0CBoEjaAhRTeMk1PAQoOgQdAgaAQNggZB"
+    "g6BB0AgaBA2CBkGDoBE0CBoEDYKGTU/cdKSOB1LNcgAAAABJRU5ErkJggg=="
+)
+DEMO_PHOTO_AFTER_B64 = (
+    "iVBORw0KGgoAAAANSUhEUgAAAPAAAAFACAIAAAANimYEAAADTklEQVR42u3dQYrqQBiFUSPZ"
+    "QyBkmgyz/3U41M04dKIDMTGp+58zffBoio/b1V1gd8M0XiDF1REgaBA0CBoEjaBB0CBoEDQI"
+    "GkGDoEHQIGgQNIIGQYOgQdAgaAQNggZBg6BB0AgaBA2CBkHDS+8I9jMv66d/etxvzmcPnY/T"
+    "/WfHyhZ0ZsfKdodOrnmT/wELfYqUTbWFjq3ZVAs6qmZNCzqtZk0LOq1mTQs6rWZNCxoEffrJ"
+    "NNKCTmtL04JG0CBo9w23DkGDoEHQSd/x3ToEjaBB0CBoEDQIGkGDoEHQTTjDRwv4eANBI2gQ"
+    "tFuH+4agQdAg6Na/77tvCDqnLTULGkFzysk0z4LO6UzNgs5pWs2CzmlazYLOaVrNv/BHg7ax"
+    "yWcMSNlC50y1mi10wlrrWNAJZetY0OAOjaBB0CBoEDQIGkGDoOFYfbtfur85sqtG3zItNK4c"
+    "IGgQNAgaQfsxnIyztdBYaBA0CBoEjaBB0CBoEDSUCNpjoVO10FhoEDQIGgQNgkbQIGgQNAga"
+    "2g/a67fztNBYaBA0CBoEDYJG0CBoEDQUDdpjoZO00FhoEDQIGgQNgkbQIGgQNAgaQbfP67cz"
+    "tNBYaBA0CBoEjaAdAYIGQYOgoWjQHgudnoXGQoOgQdAgaAQNggZBg6BB0Ai6fV6/nZuFxkKD"
+    "oEHQIGgEDYIGQYOgoWjQHguLn5iFxkKDoEHQIGgEDYIGQYOgQdAIOoLX78pnZaERNAgaBA2C"
+    "RtAgaBA0CBpKB+2xsOwpWWgEDYIGQYOgETQIGgQNggZBI+ggXr9rno+FRtAgaBA0CBpBg6BB"
+    "0CBoELTHwoonY6ERNAgaBA2CprDeEXzlkN8PzMvq5C00ggZBg6BB0CBoBA2CBkGDoEHQCBoE"
+    "DYIGQYOgETQIGgQNggZBI2gQNAgaBA2CRtAgaBA0CBpBg6BB0CBoEDSCBkGDoEHQIGgEDYIG"
+    "QYOgQdAIGgQNggZBg6ARNAgaBA2CBkEjaBA0CBoEDYJG0CBoEDQIGgSNoEHQIGgQNIIGQYOg"
+    "QdAgaAQNggZBg6BB0AgaBA2CBkGDoBE0CBoEDYIGQZOuG6bRKWChQdAgaBA0ggZBg6BB0CBo"
+    "BA2CBkGDoEHQCBoEDYIGQcNbT0O2mNs54tspAAAAAElFTkSuQmCC"
+)
+
 
 def seed() -> dict[str, str]:
     settings.ensure_dirs()
@@ -446,6 +487,31 @@ def seed() -> dict[str, str]:
         db.add(Document(id=new_id("DOC"), client_id=client_a.id, file_id=stored.id,
                         title="Zasady współpracy", category="INNE",
                         uploaded_by=coach.id))
+
+        # --- Zdjęcia progresu klienta A (syntetyczne, do porównywarki) ---
+        import base64 as _b64
+
+        photo_ids = []
+        for b64, days_ago in [(DEMO_PHOTO_BEFORE_B64, 49), (DEMO_PHOTO_AFTER_B64, 0)]:
+            png = _b64.b64decode(b64)
+            rel = f"{_uuid.uuid4().hex}.png"
+            (Path(settings.upload_dir) / rel).write_bytes(png)
+            f = StoredFile(
+                id=new_id("FIL"), owner_user_id=client_a.id,
+                filename="sylwetka.png", content_type="image/png",
+                size_bytes=len(png), sha256=hashlib.sha256(png).hexdigest(),
+                storage_path=rel, uploaded_by=client_a.id,
+            )
+            db.add(f)
+            photo_ids.append((f.id, days_ago))
+        from .models import ProgressPhoto
+
+        for file_id, days_ago in photo_ids:
+            db.add(ProgressPhoto(
+                id=new_id("PHT"), client_id=client_a.id, file_id=file_id,
+                taken_at=(today - timedelta(days=days_ago)).isoformat(),
+            ))
+
 
         # --- Płatności: opłacona i oczekująca ---
         pay = PaymentSchedule(
