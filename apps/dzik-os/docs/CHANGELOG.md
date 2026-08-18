@@ -1,5 +1,133 @@
 # Changelog — Dzik OS
 
+## 0.22.0 — 2026-08-18
+
+Runda 14: **konwersacyjny onboarding** — rozmowa startowa zamiast ściany
+formularza. Jedno pytanie na krok, z wyjaśnieniem PO CO jest potrzebne,
+z możliwością pominięcia, powrotu, przerwania i wznowienia; na koniec
+uporządkowane podsumowanie zatwierdzane NAJPIERW przez klienta, POTEM
+przez trenera. Pełny opis architektury, schematu danych, promptów
+systemowych w całości, zabezpieczeń przed wstrzyknięciem instrukcji,
+minimalizacji danych, limitów kosztowych i planu wycofania migracji 17:
+`docs/ONBOARDING_AI.md`.
+
+**Cała funkcja działa end-to-end BEZ modelu językowego.** Tryb bez modelu
+nie jest trybem awaryjnym drugiej kategorii — jest ścieżką domyślną,
+w pełni przetestowaną, z tym samym kompletem pól. Model (gdy operator
+skonfiguruje dostawcę, a klient wyrazi zgodę) może wyłącznie przygotować
+**wersję roboczą podsumowania**.
+
+* **Nowość — deterministyczny scenariusz rozmowy**
+  (`onboarding_flow.py`): katalog kroków obejmujący cele, doświadczenie,
+  dostępność, preferowane dni i godziny, sprzęt, ograniczenia, urazy,
+  ból, sen, stres, żywienie, alergie, suplementację, preferencje
+  komunikacji i informację o zgodach. Każdy krok niesie pytanie, „po co"
+  i typ odpowiedzi; walidacja wyborów jest serwerowa (wartość spoza
+  listy nigdy nie trafia do profilu).
+* **Reguły adaptacji po stronie serwera** — brak sprzętu odsłania
+  pytania o warianty domowe, zgłoszony uraz odsłania doprecyzowanie
+  ograniczeń, początkujący dostaje pytanie o instruktaż techniki.
+  Działają identycznie bez modelu. Pominięte pytanie **nie** odsłania
+  kroków warunkowych (pominięcie niczego nie „odpowiada").
+* **Dane wrażliwe zbierane tylko wtedy, gdy są potrzebne** — pytania
+  zdrowotne powstają wyłącznie przy aktywnej zgodzie `dane_zdrowotne`,
+  żywieniowe przy `zywienie_alergie`. Cofnięcie zgody w trakcie rozmowy
+  natychmiast wycina dalsze pytania, chowa odpowiedzi przed trenerem
+  i wyklucza te pola z zapisu do profilu (`skipped_fields`).
+* **Objawy alarmowe** (ból w klatce, omdlenia, duszność, ostry ból po
+  urazie, kołatanie serca, drętwienie/niedowład, nagły silny ból głowy):
+  rozpoznaje je deterministyczna lista słów kluczowych — nie model —
+  odporna na wielkość liter i brak polskich znaków. Reakcją jest spokojny
+  komunikat kierujący do lekarza (112/999 przy nagłym przebiegu), bez
+  diagnozy, bez nazywania przyczyny i bez straszenia; rozmowa nie jest
+  przerywana, a trener dostaje wyraźny sygnał „wstrzymaj plan do
+  konsultacji". Taka odpowiedź **nigdy nie jedzie do dostawcy modelu**.
+* **Historia zamiast nadpisywania** (`onboarding_answers` append-only):
+  poprawiona odpowiedź to nowa wersja, poprzednia zostaje. Sprzeczne
+  odpowiedzi są widoczne dla trenera jako dane źródłowe z historią.
+  Pominięcie zapisywane jest jawnie (`skipped`), a nie jako pusta
+  wartość.
+* **Przerwanie i wznowienie**: stan rozmowy (bieżący krok, odpowiedzi)
+  żyje w bazie, nie w przeglądarce — nowe logowanie wraca dokładnie
+  w to samo miejsce.
+* **Warstwa modelu propose-only** (`onboarding_ai.py`): ścisły kontrakt
+  wyjścia (Pydantic, `extra="forbid"`), biała lista pól wywiedziona ze
+  scenariusza rozmowy, poziom pewności HIGH/MEDIUM/LOW per pole
+  i wymuszone `needs_confirmation` dla MEDIUM/LOW — **niepewności nie da
+  się ukryć**. Odpowiedź niezgodna ze schematem jest odrzucana
+  (jedno ponowienie, potem tryb formularza) i nigdy nie ląduje
+  w podsumowaniu ani w profilu. Wyjścia świadomie NIE naprawiamy.
+* **Model nie publikuje planu ani diety** — pól planu i diety nie ma
+  w białej liście, więc nie ma dokąd zapisać takiej propozycji
+  (własność strukturalna, nie tylko zapis w promptcie).
+* **Ochrona przed prompt injection** w czterech warstwach: wypowiedzi
+  klienta wyłącznie jako WARTOŚCI w strukturze JSON (nigdy sklejane
+  z instrukcją), jawne wygaszenie instrukcji z sekcji `DANE_KLIENTA`
+  w promptcie systemowym, biała lista pól i walidacja wyjścia.
+  Testy z czterema wektorami wstrzyknięcia (w tym próbą zamknięcia
+  sekcji danych i podstawienia własnego JSON-a).
+* **Minimalizacja zakresu**: do dostawcy jedzie wyłącznie lista
+  `{pole, zagadnienie, pytanie, odpowiedź}` — bez identyfikatorów,
+  e-maili, imion, nazwisk, bez odpowiedzi pominiętych i bez odpowiedzi
+  z sygnałem alarmowym; wartości przycięte do limitu kroku, całość do
+  `DZIK_AI_MAX_INPUT_CHARS`. Bez zgody `funkcje_ai` **nic** nie opuszcza
+  serwera, a UI mówi to wprost (nie jako błąd techniczny).
+* **Zgoda `funkcje_ai` objęła nowy cel przetwarzania** — opis kategorii
+  rozszerzony o wersję roboczą podsumowania rozmowy startowej; wersja
+  dokumentu zgód podbita do **2.1**, więc wcześniejsze zgody są
+  oznaczone jako udzielone na starszą treść.
+* **Dwie odrębne akceptacje**: klient zatwierdza podsumowanie (dopiero
+  wtedy dane trafiają do profilu normalną, wersjonowaną ścieżką
+  `CLIENT_DECLARED` — wspólny `profile_service.apply_profile_fields`,
+  ten sam co formularz — oraz do celu głównego), trener zatwierdza je
+  jako podstawę planu. Kolejność nie jest zamienna (`409`), a pola
+  oznaczone niepewnością wymagają jawnego potwierdzenia przez trenera.
+  Istniejący aktywny cel główny nie jest nadpisywany.
+* **Suplementacja wyłącznie jako deklaracja klienta**
+  (`suplementacja_deklaracja`, zgoda `zywienie_alergie`) — rozmowa nie
+  tworzy planu suplementacji; ten powstaje wyłącznie w wersji planu
+  diety, wprowadzony przez człowieka.
+* **Ekran rozmowy** (`/rozmowa`): pasek postępu, „pomiń", „wróć",
+  „przerwij i wróć później", podsumowanie do edycji i zatwierdzenia,
+  jawna informacja skąd pochodzi każde pole i jaka jest jego pewność.
+  Dostępność jak w P10: `aria-live` na zmianę kroku, fokus na nowym
+  pytaniu, etykiety pól, `role="progressbar"` z wartością.
+* **Integracja z ankietą startową**: `Intake` (`/ankieta`) **zostaje**
+  jako pełnoprawny tryb awaryjny/alternatywny — obie drogi zapisują
+  dokładnie te same pola profilu; ekran Dzisiaj proponuje wybór
+  („Porozmawiajmy" / „Wolę formularz"), a oba ekrany linkują do siebie.
+* **Widok trenera** (nowa zakładka „Rozmowa startowa" w karcie klienta):
+  dane źródłowe z historią poprawek i oznaczeniem pominięć,
+  podsumowanie, poziom niepewności per pole, pola do potwierdzenia,
+  sygnał do konsultacji medycznej i przycisk zatwierdzenia.
+* **Limity, timeouty i koszty**: `DZIK_AI_TIMEOUT_S` (20 s),
+  `DZIK_AI_DAILY_CALLS_USER` (20), `DZIK_AI_DAILY_CALLS_GLOBAL` (500),
+  `DZIK_AI_MAX_INPUT_CHARS` (6000); licznik wywołań i tokenów per
+  użytkownik i dzień (`ai_usage_counters`), metryki w `/api/metrics`
+  (`onboarding_ai_calls`, `_rejected`, `_fallback`, `_tokens_in`,
+  `_tokens_out`, `onboarding_safety_flags`) — same liczby, nigdy treść.
+  Logi (P9) niosą co najwyżej numer próby i kategorię odrzucenia —
+  pełne rozmowy nigdy nie trafiają do logów technicznych.
+* **Adapter dostawcy rozszerzony** (`ai_provider.py`): kontrakt
+  `propose_json(...) -> AIJsonResponse | None` obok istniejącego
+  `summarize_checkin`; domyślnie nadal `NullAIProvider` — bez klucza nic
+  nie wychodzi, a UI podaje powód. Kontrakt jest w całości przetestowany
+  na atrapie (poprawna odpowiedź, zły JSON, pole spoza listy, brak
+  odpowiedzi, wyjątek).
+* Eksport danych (`export_version` **1.4**) objął sesje rozmowy,
+  wszystkie wersje odpowiedzi i podsumowanie oraz liczniki kosztów AI;
+  usunięcie konta kasuje treść rozmów i liczniki.
+* Migracja schematu nr **17** (cztery nowe tabele, zero ALTER-ów) —
+  addytywna, z testem v1→17 i planem wycofania w `ONBOARDING_AI.md`.
+* Testy: backend 413 → 460 (nowy `test_onboarding.py`: pełna rozmowa,
+  przerwanie i wznowienie, sprzeczne odpowiedzi z zachowaną historią,
+  pominięcia, reguły adaptacji, objawy alarmowe, brak i wycofanie zgody
+  w trakcie, minimalizacja ładunku, prompt injection ×4, niedostępność
+  dostawcy, błędny JSON, pole spoza białej listy, ukryta niepewność,
+  limit dzienny, metryki bez treści, edycja podsumowania przez klienta,
+  zatwierdzenie przez klienta i trenera, izolacja IDOR, migracja v1→17);
+  frontend helpers 42 → 53 (`onboardingUtils`); Core 275 bez zmian.
+
 ## 0.21.0 — 2026-08-18
 
 Powiadomienia i prawdziwe przypomnienia (P13): jeden spójny system dla

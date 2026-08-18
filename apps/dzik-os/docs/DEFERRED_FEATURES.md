@@ -31,14 +31,22 @@ Zgodnie z zakresem MVP (sekcja 13 briefu). Architektura ich nie blokuje.
   Podłączenie realnego dostawcy (Resend/SendGrid/Mailgun/SMTP) to decyzja
   operatora — wymaga konta i kluczy API poza repozytorium;
 * **prawdziwy dostawca AI** — analogiczny adapter (`ai_provider.py`,
-  `NullAIProvider` domyślnie) już podpięty pod jeden governed use case:
-  podsumowanie raportu tygodniowego + szkic odpowiedzi dla trenera
-  (przycisk „✨ Podsumowanie AI" w panelu trenera), zawsze propose-only
-  (trener edytuje/zatwierdza, nic nie wysyła się automatycznie). Bez
-  klucza dostawcy UI pokazuje jawny komunikat, nie udaje działania.
-  Podłączenie realnego modelu (np. Claude API) to decyzja operatora —
-  wymaga klucza API poza repozytorium i ustalenia minimalnego zakresu
-  danych wysyłanych na zewnątrz (patrz DATA_PROCESSING_MAP.md §AI);
+  `NullAIProvider` domyślnie) podpięty pod dwa governed use case'y,
+  oba propose-only i bramkowane zgodą klienta `funkcje_ai`:
+  (1) podsumowanie raportu tygodniowego + szkic odpowiedzi dla trenera
+  (przycisk „✨ Podsumowanie AI" w panelu trenera);
+  (2) wersja robocza podsumowania konwersacyjnego onboardingu
+  (`docs/ONBOARDING_AI.md`) — zatwierdza ją klient, potem trener.
+  W obu wypadkach nic nie wysyła się ani nie publikuje automatycznie.
+  Bez klucza dostawcy UI pokazuje jawny komunikat, nie udaje działania,
+  a **cały onboarding działa end-to-end bez modelu** (tryb
+  deterministyczny jest ścieżką domyślną, nie okrojoną). Kontrakt
+  dostawcy (`propose_json`) jest przetestowany na atrapie w pięciu
+  wariantach, więc podłączenie realnego modelu nie wymaga pisania
+  nowych testów integracji. Samo podłączenie to decyzja operatora —
+  wymaga klucza API poza repozytorium, uzupełnienia polityki
+  prywatności o nazwę i region dostawcy oraz podbicia
+  `CONSENT_DOC_VERSION` (patrz DATA_PROCESSING_MAP.md §AI);
 * ~~powiadomienia push PWA~~ — ZROBIONE (0.6.x Web Push/VAPID, a od
   0.18.0 wspólny system powiadomień z centrum w aplikacji, preferencjami,
   cichymi godzinami i harmonogramem serwerowym — `docs/POWIADOMIENIA.md`);

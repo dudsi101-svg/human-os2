@@ -26,6 +26,21 @@ Migracje: `db.py` — rejestr `schema_migrations`, wersja 1 = schemat MVP.
 | `profile_fields` | **append-only, wersjonowanie per pole**: field_key, value, source, author_id, purpose, version, is_current, sensitive |
 | `goals` | cel główny/dodatkowy, target_date, status, created_by, version |
 
+## Rozmowa startowa (onboarding — migracja 17, `ONBOARDING_AI.md`)
+
+Dwie drogi wejścia zapisują **te same** pola `profile_fields` tą samą
+wersjonowaną ścieżką (`profile_service.apply_profile_fields`): klasyczny
+formularz `Intake` (`/ankieta`) i konwersacyjna rozmowa (`/rozmowa`).
+Poniższe tabele przechowują wyłącznie sam przebieg rozmowy — dane
+zatwierdzone przez klienta żyją w `profile_fields` i `goals`.
+
+| Tabela | Uwagi |
+|---|---|
+| `onboarding_sessions` | jedna rozmowa: status IN_PROGRESS → SUMMARY_READY → CLIENT_APPROVED → COACH_APPROVED (albo ABANDONED), `current_step_id` (wznowienie w tym samym miejscu), `summary_mode` FORM/AI_DRAFT + `summary_mode_reason` (**powód trybu deterministycznego jest zapisany i pokazywany wprost**, nigdy jako błąd), `safety_flag`/`safety_flag_at`, znaczniki obu akceptacji |
+| `onboarding_answers` | **append-only**: poprawka = nowa wersja (`version`, `is_current`), poprzednia zostaje — sprzeczne odpowiedzi są widoczne, nie nadpisane. `skipped` = świadome pominięcie (jawne, nie pusta wartość). `safety_flagged` + `safety_signals` oznaczają odpowiedź, która **nigdy nie jedzie do dostawcy modelu** |
+| `onboarding_summary_items` | **append-only**: pole podsumowania przed zapisem do profilu — `origin` (DETERMINISTIC / AI_DRAFT / CLIENT_EDITED), `confidence` (HIGH/MEDIUM/LOW), `needs_confirmation`, `coach_confirmed`. Poprawka klienta = nowa wersja z origin CLIENT_EDITED i pewnością HIGH |
+| `ai_usage_counters` | kontrola kosztów modelu: unique(user_id, usage_date, feature), `calls`, `tokens_in`, `tokens_out` — **same liczby**, zero treści rozmowy i promptów |
+
 ## Trening
 
 | Tabela | Uwagi |

@@ -75,13 +75,20 @@ export default function Today() {
     <div className="page">
       <TopBar title="Dzisiaj" />
       {needsIntake && (
-        <Link to="/ankieta" className="card card--accent" style={{ display: "block", marginBottom: 10 }}>
-          <b style={{ color: "var(--text)" }}>👋 Zacznijmy od wywiadu startowego</b>
-          <p className="dim" style={{ margin: "4px 0 0", fontSize: "0.85rem" }}>
-            Kilka pytań o cel, doświadczenie i zdrowie — trener od razu
-            dopasuje plan do Ciebie. Zajmie 2 minuty.
+        <div className="card card--accent" style={{ marginBottom: 10 }}>
+          <b style={{ color: "var(--text)" }}>👋 Zacznijmy od rozmowy startowej</b>
+          <p className="dim" style={{ margin: "4px 0 8px", fontSize: "0.85rem" }}>
+            Kilka pytań o cel, doświadczenie i zdrowie — jedno po drugim,
+            spokojnie. Każde możesz pominąć, a rozmowę przerwać i dokończyć
+            później. Na koniec sam(a) zatwierdzasz podsumowanie.
           </p>
-        </Link>
+          <div className="row">
+            <Link to="/rozmowa" className="btn btn--small">Porozmawiajmy</Link>
+            <Link to="/ankieta" className="btn btn--ghost btn--small">
+              Wolę formularz
+            </Link>
+          </div>
+        </div>
       )}
       {(data.schedule?.length ?? 0) > 0 && (
         <PushContextPrompt context="today"

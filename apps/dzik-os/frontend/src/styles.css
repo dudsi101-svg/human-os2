@@ -255,6 +255,19 @@ h3.section-label:first-of-type, .card h3.section-label:first-of-type {
 .alert--info { background: var(--accent-soft); color: var(--accent); }
 .alert--warn { background: rgba(240, 180, 80, 0.12); color: var(--warn); }
 
+/* Pasek postępu rozmowy startowej (onboarding). Wartość dla czytników
+   ekranu niesie role="progressbar" + aria-valuenow na kontenerze —
+   ten element jest wyłącznie warstwą wizualną. */
+.onb-bar {
+  height: 8px; border-radius: 999px; background: var(--bg-raised);
+  border: 1px solid var(--border); overflow: hidden;
+}
+.onb-bar__fill {
+  display: block; height: 100%; background: var(--accent);
+  transition: width 260ms var(--ease-out);
+}
+@media (prefers-reduced-motion: reduce) { .onb-bar__fill { transition: none; } }
+
 /* Tabele: na szerszych ekranach klasyczna tabela w kontenerze z
    kontrolowanym przewijaniem poziomym; na wąskich — karty wierszy z
    etykietami danych (data-label na każdej komórce). */

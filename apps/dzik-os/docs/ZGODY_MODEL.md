@@ -21,13 +21,15 @@ lit. a) nigdy nie są łączone w jedną decyzję.
 | `zywienie_alergie` | Żywienie i alergie | coaching/nutrition_data | trener | nie | tak | 9(2)(a) |
 | `zdjecia_progresu` | Zdjęcia progresu | coaching/progress_photos | trener | nie | tak | 9(2)(a) |
 | `przypomnienia` | Push/przypomnienia | reminders/push_notifications | SYSTEM | nie | nie | 6(1)(a) |
-| `funkcje_ai` | Funkcje AI | ai_features/checkin_summaries | SYSTEM | nie | tak | 9(2)(a) |
+| `funkcje_ai` | Funkcje AI (podsumowania raportów i rozmowy startowej) | ai_features/checkin_summaries | SYSTEM | nie | tak | 9(2)(a) |
 | `marketing` | Marketing | marketing/contact_data | trener | nie | nie | 6(1)(a) |
 
 Każda kategoria niesie pełny opis prezentowany klientowi przed decyzją:
 **cel, zakres danych, odbiorców, okres przechowywania, informację o
 dobrowolności, sposób wycofania i wersję dokumentu**
-(`CONSENT_DOC_VERSION`, obecnie `2.0`).
+(`CONSENT_DOC_VERSION`, obecnie `2.1` — wersja podbita w 0.22.0 wraz
+z rozszerzeniem opisu kategorii `funkcje_ai` o drugi cel przetwarzania:
+wersję roboczą podsumowania rozmowy startowej, `docs/ONBOARDING_AI.md`).
 
 Mapowanie kategorii na endpointy (egzekwowane w
 `authz.resolve_client_access(domain=...)`):
@@ -40,7 +42,8 @@ Mapowanie kategorii na endpointy (egzekwowane w
   obserwacje, agregat monitoringu, pole profilu `urazy`, podsumowania AI
   (dodatkowo bramka `funkcje_ai`);
 * `nutrition_data` — plany żywieniowe, dziennik kaloryczny, pola profilu
-  `alergie` i `preferencje_zywieniowe`, dokumenty kategorii DIETA;
+  `alergie`, `preferencje_zywieniowe` i `suplementacja_deklaracja`,
+  dokumenty kategorii DIETA;
 * `progress_photos` — lista zdjęć i pliki zdjęć progresu;
 * `messages` — wątki wiadomości i załączniki wiadomości. (Terminarz
   konsultacji działa na samej aktywnej relacji — rezerwacja jest akcją
@@ -49,6 +52,15 @@ Mapowanie kategorii na endpointy (egzekwowane w
 Pola wrażliwe profilu są filtrowane per pole: cofnięcie zgody
 „żywienie i alergie" ukrywa przed trenerem `alergie` i
 `preferencje_zywieniowe`, nie cały profil.
+
+Od 0.22.0 zgody `dane_zdrowotne` i `zywienie_alergie` sterują dodatkowo
+**samym zadawaniem pytań** w konwersacyjnym onboardingu: bez aktywnej
+zgody krok wrażliwy w ogóle nie powstaje (nie zbieramy danych, których
+nie wolno nam przechowywać), a przy zatwierdzeniu podsumowania pola
+z tych kategorii nie trafiają do profilu. Zgoda `funkcje_ai` jest
+osobną, niezależną bramką wysyłki do dostawcy modelu — jej brak nie
+blokuje rozmowy, tylko przełącza podsumowanie w tryb deterministyczny
+z jawnym komunikatem (`docs/ONBOARDING_AI.md`).
 
 ## 2. Model danych
 

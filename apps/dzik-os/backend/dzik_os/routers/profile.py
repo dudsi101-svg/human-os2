@@ -15,6 +15,7 @@ from ..authz import (
 from ..db import get_db
 from ..hos_bridge import record_event
 from ..models import Goal, ProfileField, User, new_id, now_iso
+from ..profile_service import FieldWrite, apply_profile_fields
 from ..schemas import GoalIn, GoalStatusIn, ProfileFieldIn
 from ..security import current_user
 
@@ -26,6 +27,10 @@ SENSITIVE_FIELD_DOMAINS = {
     "alergie": DOMAIN_NUTRITION,
     "preferencje_zywieniowe": DOMAIN_NUTRITION,
     "urazy": DOMAIN_HEALTH,
+    # Deklaracja klienta o przyjmowanych preparatach zbierana w rozmowie
+    # onboardingowej — rządzi nią zgoda „żywienie i alergie" (ta sama, co
+    # planem diety). Aplikacja nie tworzy z niej planu suplementacji.
+    "suplementacja_deklaracja": DOMAIN_NUTRITION,
 }
 
 
@@ -122,37 +127,21 @@ def set_profile_fields(
                 domain=_sensitive_field_domain(item.field_key),
             ):
                 deny(user.id, f"profile_field:{item.field_key}")
-    changed: list[str] = []
-    for item in fields:
-        current = (
-            db.query(ProfileField)
-            .filter(
-                ProfileField.client_id == client_id,
-                ProfileField.field_key == item.field_key,
-                ProfileField.is_current.is_(True),
-            )
-            .one_or_none()
-        )
-        if current is not None and current.value == item.value:
-            continue
-        version = 1
-        if current is not None:
-            current.is_current = False
-            version = current.version + 1
-        db.add(
-            ProfileField(
-                id=new_id("PRF"),
-                client_id=client_id,
+    changed = apply_profile_fields(
+        db,
+        client_id=client_id,
+        author_id=user.id,
+        source=source,
+        items=[
+            FieldWrite(
                 field_key=item.field_key,
                 value=item.value,
-                source=source,
-                author_id=user.id,
                 purpose=item.purpose,
-                version=version,
                 sensitive=item.sensitive,
             )
-        )
-        changed.append(item.field_key)
+            for item in fields
+        ],
+    )
     receipt = None
     if changed:
         receipt = record_event(

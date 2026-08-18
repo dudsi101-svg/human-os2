@@ -179,6 +179,15 @@ class Metrics:
                 "notif_sent_email": counters.get("notif_sent_email", 0),
                 "notif_email_failures": counters.get("notif_email_failures", 0),
                 "notif_suppressed": counters.get("notif_suppressed", 0),
+                # Konwersacyjny onboarding: koszty i jakość ścieżki z
+                # modelem — wyłącznie liczby, NIGDY treść rozmowy ani
+                # promptów (docs/ONBOARDING_AI.md §limity i koszty).
+                "onboarding_ai_calls": counters.get("onboarding_ai_calls", 0),
+                "onboarding_ai_rejected": counters.get("onboarding_ai_rejected", 0),
+                "onboarding_ai_fallback": counters.get("onboarding_ai_fallback", 0),
+                "onboarding_ai_tokens_in": counters.get("onboarding_ai_tokens_in", 0),
+                "onboarding_ai_tokens_out": counters.get("onboarding_ai_tokens_out", 0),
+                "onboarding_safety_flags": counters.get("onboarding_safety_flags", 0),
                 "frontend_error_reports": counters.get("frontend_error_reports", 0),
                 "frontend_error_reports_dropped": counters.get(
                     "frontend_error_reports_dropped", 0
