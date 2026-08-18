@@ -27,6 +27,13 @@ jobs:
           pip install -e "apps/dzik-os/backend[dev]"
       - name: Lint (ruff)
         run: ruff check apps/dzik-os/backend
+      - name: Kontrola spójności (kolizje między równoległymi rundami)
+        # Wykrywa to, czego git nie widzi: powtórzony numer migracji lub
+        # wersji, trasę przesłoniętą przez parametr, router bez
+        # include_router, test frontendu spoza test:helpers.
+        # Patrz apps/dzik-os/docs/KOORDYNACJA.md
+        run: python apps/dzik-os/tools/spojnosc.py
+
       - name: Core regression tests (hos_engine)
         run: pytest tests/ -q
       - name: Dzik OS backend tests

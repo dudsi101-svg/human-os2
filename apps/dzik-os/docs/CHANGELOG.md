@@ -1,5 +1,45 @@
 # Changelog — Dzik OS
 
+## 0.35.0 — 2026-08-18
+
+**Porządki: bramka przeciw kolizjom między równoległymi rundami.**
+Pełny opis mechanizmu, rezerwacji zasobów globalnych i tego, czego bramka
+NIE złapie: `docs/KOORDYNACJA.md`.
+
+* **Problem, który to rozwiązuje.** Rundy bywają rozwijane równolegle, w
+  osobnych kopiach repozytorium; każda widzi kod sprzed swojego startu i
+  nie wie, co robią pozostałe. Git wykrywa kolizje **tekstu** — kolizje
+  **znaczenia** przechodzą przez scalenie bez jednego konfliktu.
+* **`tools/spojnosc.py` — sześć kontroli, każda z prawdziwego błędu:**
+  powtórzony numer migracji (zdarzyło się przy nr 24), ta sama wersja w
+  CHANGELOG-u przydzielona dwa razy (0.29.0), **trasa statyczna
+  przesłonięta przez wcześniejszą parametryzowaną** (`import-schema` w
+  0.32.0 — kod poprawny, funkcja nieosiągalna), router bez
+  `include_router`, plik `scripts/test-*.mjs` spoza `test:helpers` (czyli
+  test, który nigdy się nie uruchamia), martwy odnośnik do dokumentu.
+* **Bramka w CI** (`dzik-os-ci.yml`) — kolizja nie ma jak przejść
+  niezauważona, nawet gdy nikt o niej nie pamięta.
+* **Kontrola, która sama nie zgnije.** Pierwsza wersja kontroli tras
+  widziała **35 z około 200 tras** (ta wersja FastAPI nie spłaszcza
+  dołączonych routerów do `app.routes`) i przechodziła zawsze. Wyszło to
+  dopiero przy próbie z celowo wstrzykniętym błędem. Stąd dwa
+  zabezpieczenia: `PROG_TRAS` wywraca kontrolę, gdy widzi podejrzanie mało
+  tras, a `tests/test_spojnosc.py` **wstrzykuje każdy z tych błędów** i
+  sprawdza, że kontrola się zapala — oraz że przy poprawnej kolejności
+  milczy.
+* **Rezerwacja zasobów globalnych** (numer migracji, numer wersji, lista
+  plików) w tabeli w `KOORDYNACJA.md` — do wypełnienia PRZED pracą.
+* **Wypisane wprost, czego bramka nie złapie:** sprzeczności logicznej
+  między rundami (realny przypadek: jedna filtrowała płatności po
+  `PENDING`, druga wprowadziła `OVERDUE` — scalenie po cichu wyłączyło
+  przypomnienia o zaległościach), testu sprawdzającego nieaktualne
+  założenie, dublującego się pomysłu. Przy scalaniu **czyta się obie
+  zmiany**; bramka zdejmuje część mechaniczną, nie zastępuje czytania.
+* **Brief dla pracy równoległej** — jeden zestaw ograniczeń w jednym
+  miejscu, łącznie z wymogiem raportowania, **co uruchomiono i co widać**.
+* Testy: 7 nowych (`tests/test_spojnosc.py`), w tym próba z wstrzykniętym
+  błędem dla każdej kontroli.
+
 ## 0.34.0 — 2026-08-18
 
 **Jedno „Dodaj do bazy" zamiast czterech paneli + zasada uruchomienia.**
