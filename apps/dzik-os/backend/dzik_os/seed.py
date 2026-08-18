@@ -22,6 +22,7 @@ from datetime import UTC, datetime, timedelta
 
 from .authz import CONSENT_DOMAIN, CONSENT_PURPOSE
 from .config import settings
+from .dates import local_today
 from .db import db_session, run_migrations
 from .hos_bridge import ConsentService, record_event
 from .models import (
@@ -147,7 +148,10 @@ def seed() -> dict[str, str]:
                 summary=f"Seed: rejestracja tożsamości {user.display_name}",
             )
 
-        today = datetime.now(UTC).date()
+        # Daty kalendarzowe demo liczone w strefie lokalnej (DZIK_TZ),
+        # żeby seed odpalony po północy czasu polskiego nie tworzył
+        # danych "z wczoraj".
+        today = local_today()
         monday = today - timedelta(days=today.isoweekday() - 1)
 
         for client in (client_a, client_b, client_c, client_d, client_e):

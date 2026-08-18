@@ -118,3 +118,20 @@ zmienia diety autonomicznie.
 Wspólne atrybuty encji istotnych: stabilny identyfikator, created_at,
 created_by/author, wersja lub rewizja, status, źródło/proweniencja,
 właściciel danych oraz powiązanie z łańcuchem zdarzeń przez `receipts`.
+
+## Konwencje dat
+
+Jedno źródło prawdy: `backend/dzik_os/dates.py` i `frontend/src/dates.ts`.
+
+| Typ daty | Przykładowe pola | Format | Strefa |
+|---|---|---|---|
+| Data kalendarzowa użytkownika | `performed_on`, `logged_on`, `occurred_on`, `completed_on`, `week_start`, `measured_at` (pomiary), `taken_at`, `start_date`/`end_date`, `target_date` | `YYYY-MM-DD` | lokalna strefa użytkownika (frontend: przeglądarka; backend: `tz_for_user()` → `DZIK_TZ`, domyślnie Europe/Warsaw) |
+| Dokładny moment zdarzenia | `created_at`, `updated_at`, `paid_at`, `read_at`, `booked_at`, `granted_at`, audyt | pełny timestamp ISO z offsetem | UTC (`now_iso()`); do strefy lokalnej przeliczany dopiero przy prezentacji (`plDateTime`) |
+| Termin lokalny | `consult_slots.starts_at` | naiwny `YYYY-MM-DDTHH:MM` | lokalna (`DZIK_TZ`); porównywany wyłącznie z `local_now_minute()` / `localNowMinute()` |
+| Data rozliczeniowa | `payment_records.due_date` | `YYYY-MM-DD` | jak data kalendarzowa; zaległość względem `local_today()` |
+
+Zakazane wzorce: `new Date().toISOString().slice(0, 10)` i
+`datetime.now(UTC).date()` dla dat kalendarzowych (o 00:00–02:00 czasu
+polskiego wskazują wczorajszy dzień) oraz porównywanie `starts_at`
+z czasem UTC. Strefa per użytkownik: punkt rozszerzenia
+`tz_for_user(user)` honoruje przyszłe pole `User.timezone`.

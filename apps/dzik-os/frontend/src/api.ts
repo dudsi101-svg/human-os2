@@ -99,15 +99,8 @@ export async function fetchFileUrl(fileId: string): Promise<string> {
   return URL.createObjectURL(blob);
 }
 
-export const todayIso = () => new Date().toISOString().slice(0, 10);
+// Logika dat (localToday, plDate, plDateTime, WEEKDAYS...) mieszka w
+// jednym wspólnym module: src/dates.ts — importuj stamtąd.
 
 export const money = (cents: number, currency = "PLN") =>
   `${(cents / 100).toFixed(2).replace(".", ",")} ${currency}`;
-
-export const plDate = (iso: string | null | undefined) =>
-  iso ? new Date(iso).toLocaleDateString("pl-PL", { day: "numeric", month: "long", year: "numeric" }) : "—";
-
-export const plDateTime = (iso: string | null | undefined) =>
-  iso ? new Date(iso).toLocaleString("pl-PL", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "—";
-
-export const WEEKDAYS = ["pon", "wt", "śr", "czw", "pt", "sob", "niedz"];

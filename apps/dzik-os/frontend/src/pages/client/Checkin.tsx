@@ -1,14 +1,8 @@
 import { FormEvent, useEffect, useState } from "react";
-import { api, getUser, plDate } from "../../api";
+import { api, getUser } from "../../api";
+import { mondayOfWeek, plDate } from "../../dates";
 import { ErrorBox, SectionLabel, Spinner, TopBar } from "../../components";
 import { CheckinData } from "../../types";
-
-function mondayOfCurrentWeek(): string {
-  const d = new Date();
-  const day = d.getDay() || 7;
-  d.setDate(d.getDate() - day + 1);
-  return d.toISOString().slice(0, 10);
-}
 
 const SCALES: [string, string, string][] = [
   ["energy", "Energia", "niska–wysoka"],
@@ -25,7 +19,7 @@ export default function Checkin() {
   const [error, setError] = useState<string | null>(null);
   const [ok, setOk] = useState<string | null>(null);
   const [form, setForm] = useState<Record<string, unknown>>({
-    week_start: mondayOfCurrentWeek(),
+    week_start: mondayOfWeek(),
     energy: 3, sleep: 3, hunger: 3, stress: 3, recovery: 3, diet_adherence: 3,
   });
   const [photos, setPhotos] = useState<File[]>([]);

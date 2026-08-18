@@ -13,10 +13,9 @@ from __future__ import annotations
 
 import asyncio
 from datetime import datetime
-from zoneinfo import ZoneInfo
 
 from . import push_service
-from .config import settings
+from .dates import local_now
 from .db import db_session
 from .models import Reminder, ScheduleItem
 
@@ -76,10 +75,9 @@ def _tick(now: datetime) -> int:
 
 
 async def run_reminder_loop() -> None:
-    tz = ZoneInfo(settings.timezone)
     while True:
         try:
-            _tick(datetime.now(tz))
+            _tick(local_now())
         except Exception as exc:  # noqa: BLE001 - pętla nie może umrzeć
             print(f"[dzik-os] pętla przypomnień: {exc}")
         await asyncio.sleep(60)

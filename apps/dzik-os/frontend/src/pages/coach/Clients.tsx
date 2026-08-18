@@ -1,6 +1,7 @@
 import { FormEvent, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { api, plDate } from "../../api";
+import { api } from "../../api";
+import { plDate } from "../../dates";
 import { ErrorBox, LogoutButton, Spinner, TopBar } from "../../components";
 import { CoachClientRow, CoachDashboardData } from "../../types";
 

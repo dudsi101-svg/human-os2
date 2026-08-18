@@ -12,12 +12,13 @@ NIEPOKOJACE obserwacje są jedynie flagowane do przeglądu przez trenera
 from __future__ import annotations
 
 import json
-from datetime import UTC, datetime, timedelta
+from datetime import timedelta
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from ..authz import resolve_client_access
+from ..dates import local_today, parse_iso_date
 from ..db import get_db
 from ..hos_bridge import record_event
 from ..models import (
@@ -216,7 +217,7 @@ def list_nutrition_log(
     db: Session = Depends(get_db),
 ):
     resolve_client_access(db, user, client_id)
-    since = (datetime.now(UTC).date() - timedelta(days=days)).isoformat()
+    since = (local_today() - timedelta(days=days)).isoformat()
     rows = (
         db.query(DailyNutritionLog)
         .filter(DailyNutritionLog.client_id == client_id, DailyNutritionLog.logged_on >= since)
@@ -247,7 +248,9 @@ def monitoring(
     harmonogramu per kategoria oraz najnowsze obserwacje (niepokojące
     pierwsze) — jeden przegląd zamiast przeklikiwania kilku ekranów."""
     resolve_client_access(db, user, client_id)
-    today = datetime.now(UTC).date()
+    # Dzień kalendarzowy w strefie lokalnej użytkownika — dane dzienne
+    # (logged_on/occurred_on/completed_on) są datami lokalnymi.
+    today = local_today()
     since_date = today - timedelta(days=days)
     since = since_date.isoformat()
 
@@ -262,7 +265,7 @@ def monitoring(
         days_remaining = None
         if goal.target_date:
             try:
-                days_remaining = (datetime.fromisoformat(goal.target_date).date() - today).days
+                days_remaining = (parse_iso_date(goal.target_date) - today).days
             except ValueError:
                 days_remaining = None
         goal_out = {
@@ -342,13 +345,13 @@ def monitoring(
         start = since_date
         if item.start_date:
             try:
-                start = max(start, datetime.fromisoformat(item.start_date).date())
+                start = max(start, parse_iso_date(item.start_date))
             except ValueError:
                 pass
         end = today
         if item.end_date:
             try:
-                end = min(end, datetime.fromisoformat(item.end_date).date())
+                end = min(end, parse_iso_date(item.end_date))
             except ValueError:
                 pass
         total = 0

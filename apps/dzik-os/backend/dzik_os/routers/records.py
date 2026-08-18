@@ -12,12 +12,13 @@ from __future__ import annotations
 
 import json
 import re
-from datetime import UTC, datetime, timedelta
+from datetime import timedelta
 
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from ..authz import resolve_client_access
+from ..dates import local_today
 from ..db import get_db
 from ..models import Measurement, User, WorkoutEntry, WorkoutSession
 from ..security import current_user
@@ -72,7 +73,9 @@ def personal_records(
     poprawiony w ostatnich 14 dniach względem WCZEŚNIEJSZEGO własnego
     wyniku — pierwszy zapis ćwiczenia nie jest "nowym rekordem"."""
     resolve_client_access(db, user, client_id)
-    today = datetime.now(UTC).date()
+    # performed_on jest datą lokalną — okno "nowego rekordu" liczymy od
+    # lokalnego "dziś", nie od daty UTC.
+    today = local_today()
     recent_since = (today - timedelta(days=NEW_RECORD_WINDOW_DAYS)).isoformat()
 
     rows = (

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { api, getUser, money, plDate } from "../../api";
+import { api, getUser, money } from "../../api";
+import { localToday, plDate } from "../../dates";
 import { ErrorBox, Spinner, TopBar } from "../../components";
 import { PAYMENT_LABELS, PaymentScheduleRow } from "../../types";
 
@@ -16,7 +17,8 @@ export default function Payments() {
 
   if (error) return <div className="page"><ErrorBox error={error} /></div>;
   if (!schedules) return <div className="page"><Spinner /></div>;
-  const today = new Date().toISOString().slice(0, 10);
+  // Zaległość liczona względem LOKALNEJ daty kalendarzowej (nie UTC).
+  const today = localToday();
 
   return (
     <div className="page">

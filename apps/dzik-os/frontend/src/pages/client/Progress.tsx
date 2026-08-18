@@ -1,5 +1,6 @@
 import { FormEvent, useEffect, useState } from "react";
-import { api, getUser, plDate, todayIso } from "../../api";
+import { api, getUser } from "../../api";
+import { localToday, plDate } from "../../dates";
 import {
   AuthImage,
   ErrorBox,
@@ -52,7 +53,7 @@ export default function Progress() {
     try {
       await api.post(`/api/clients/${user.id}/measurements`, {
         kind, value: Number(value), unit,
-        measured_at: todayIso(),
+        measured_at: localToday(),
       });
       setValue("");
       load();
@@ -211,7 +212,7 @@ function NutritionLogCard({ target, series, userId, onSaved }: {
     setBusy(true);
     try {
       await api.post(`/api/clients/${userId}/nutrition-log`, {
-        logged_on: todayIso(),
+        logged_on: localToday(),
         kcal: kcal ? Number(kcal) : null,
         water_l: waterL ? Number(waterL) : null,
       });
@@ -290,7 +291,7 @@ function ObservationsCard({ userId, onSaved }: {
     setError(null);
     try {
       await api.post(`/api/clients/${userId}/observations`, {
-        occurred_on: todayIso(),
+        occurred_on: localToday(),
         schedule_item_id: scheduleItemId || null,
         category, severity, text,
       });

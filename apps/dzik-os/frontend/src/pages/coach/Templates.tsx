@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { api, plDate } from "../../api";
+import { api } from "../../api";
+import { plDate } from "../../dates";
 import { ErrorBox, Spinner, TopBar } from "../../components";
 import { TrainingPlan } from "../../types";
 import PlanEditor from "./PlanEditor";

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { api, plDate } from "../api";
+import { api } from "../api";
+import { plDate } from "../dates";
 import { ErrorBox, Logo, Spinner } from "../components";
 import { ConsentRow } from "../types";
 

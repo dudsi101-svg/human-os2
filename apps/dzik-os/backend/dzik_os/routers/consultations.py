@@ -6,8 +6,7 @@ przed terminem, trener w każdej chwili (z powiadomieniem drugiej strony);
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta
-from zoneinfo import ZoneInfo
+from datetime import timedelta
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
@@ -15,7 +14,7 @@ from sqlalchemy.orm import Session
 
 from .. import push_service
 from ..authz import active_relationship
-from ..config import settings
+from ..dates import local_now, local_now_minute
 from ..db import get_db
 from ..hos_bridge import record_event
 from ..models import CoachClientRelationship, ConsultSlot, User, new_id, now_iso
@@ -24,10 +23,6 @@ from ..security import current_user, require_role
 router = APIRouter(prefix="/api", tags=["consultations"])
 
 CLIENT_CANCEL_HOURS = 12
-
-
-def _now_local() -> datetime:
-    return datetime.now(ZoneInfo(settings.timezone)).replace(tzinfo=None)
 
 
 class SlotIn(BaseModel):
@@ -54,7 +49,7 @@ def create_slot(
     coach: User = Depends(require_role("COACH")),
     db: Session = Depends(get_db),
 ):
-    if body.starts_at <= _now_local().strftime("%Y-%m-%dT%H:%M"):
+    if body.starts_at <= local_now_minute():
         raise HTTPException(status_code=422, detail="Termin musi być w przyszłości")
     slot = ConsultSlot(
         id=new_id("CSL"), coach_id=coach.id, starts_at=body.starts_at,
@@ -120,7 +115,7 @@ def client_slots(user: User = Depends(current_user), db: Session = Depends(get_d
         .filter_by(client_id=user.id, status="ACTIVE")
         .all()
     ]
-    now = _now_local().strftime("%Y-%m-%dT%H:%M")
+    now = local_now_minute()
     open_rows = (
         db.query(ConsultSlot)
         .filter(
@@ -158,7 +153,7 @@ def book_slot(
         raise HTTPException(status_code=404, detail="Termin niedostępny")
     if not active_relationship(db, slot.coach_id, user.id):
         raise HTTPException(status_code=404, detail="Termin niedostępny")
-    if slot.starts_at <= _now_local().strftime("%Y-%m-%dT%H:%M"):
+    if slot.starts_at <= local_now_minute():
         raise HTTPException(status_code=422, detail="Termin już minął")
     slot.status = "BOOKED"
     slot.client_id = user.id
@@ -186,7 +181,7 @@ def unbook_slot(
     slot = db.get(ConsultSlot, slot_id)
     if slot is None or slot.status != "BOOKED" or slot.client_id != user.id:
         raise HTTPException(status_code=404, detail="Nie znaleziono rezerwacji")
-    limit = (_now_local() + timedelta(hours=CLIENT_CANCEL_HOURS)).strftime("%Y-%m-%dT%H:%M")
+    limit = (local_now() + timedelta(hours=CLIENT_CANCEL_HOURS)).strftime("%Y-%m-%dT%H:%M")
     if slot.starts_at <= limit:
         raise HTTPException(
             status_code=422,

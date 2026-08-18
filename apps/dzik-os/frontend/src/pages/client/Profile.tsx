@@ -1,5 +1,6 @@
 import { FormEvent, useEffect, useState } from "react";
-import { api, clearSession, getUser, plDate } from "../../api";
+import { api, clearSession, getUser } from "../../api";
+import { plDate } from "../../dates";
 import { ErrorBox, PushNotificationsCard, Spinner, TopBar } from "../../components";
 import { ConsentRow, GoalRow, ProfileFieldRow } from "../../types";
 
