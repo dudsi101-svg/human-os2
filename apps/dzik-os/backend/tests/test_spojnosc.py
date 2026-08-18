@@ -252,3 +252,95 @@ def test_repozytorium_jest_spojne():
     for _, kontrola in modul.KONTROLE:
         kontrola(wynik)
     assert wynik.bledy == [], "\n".join(wynik.bledy)
+
+
+# --- 7. Higiena gałęzi -------------------------------------------------
+#
+# Ta kontrola nie czyta plików, tylko pyta gita — więc zamiast kopii
+# repozytorium podstawiamy odpowiedzi `_git`. Dzięki temu test opisuje
+# REGUŁĘ (kiedy ostrzegamy), a nie bieżący stan gałęzi, na której akurat
+# stoi CI.
+
+
+def _z_gitem(modul, odpowiedzi: dict[tuple[str, ...], str | None]):
+    """Podstawia `_git` zwracające zadane odpowiedzi."""
+
+    def fake(*args: str):
+        return odpowiedzi.get(tuple(args))
+
+    modul._git = fake
+    return modul
+
+
+def _odpowiedzi(*, przed: int, moje: int, scalenia: int, godzin: float) -> dict:
+    import time
+
+    return {
+        ("merge-base", "HEAD", "origin/main"): "BAZA",
+        ("rev-parse", "HEAD"): "GLOWA",
+        ("rev-parse", "origin/main"): "MAIN",
+        ("rev-list", "--count", "BAZA..origin/main"): str(przed),
+        ("rev-list", "--count", "BAZA..HEAD"): str(moje),
+        ("rev-list", "--count", "--merges", "BAZA..HEAD"): str(scalenia),
+        ("log", "-1", "--format=%ct", "BAZA"): str(int(time.time() - godzin * 3600)),
+    }
+
+
+def test_swieza_galaz_nie_wywoluje_uwag(kopia):
+    """Rundy scalane na bieżąco mają przechodzić bez szumu — inaczej
+    kontrola nauczy wszystkich ignorować własne komunikaty."""
+    m = _z_gitem(zaladuj(kopia), _odpowiedzi(przed=1, moje=2, scalenia=0, godzin=0.4))
+    w = m.Wynik()
+    m.sprawdz_galaz(w)
+    assert w.uwagi == []
+    assert w.bledy == []
+
+
+def test_main_uciekl_do_przodu_jest_zglaszany(kopia):
+    m = _z_gitem(zaladuj(kopia), _odpowiedzi(przed=25, moje=3, scalenia=0, godzin=0.5))
+    w = m.Wynik()
+    m.sprawdz_galaz(w)
+    assert any("przybyło 25 commitów" in u for u in w.uwagi), w.uwagi
+
+
+def test_dluga_galaz_jest_zglaszana(kopia):
+    m = _z_gitem(zaladuj(kopia), _odpowiedzi(przed=1, moje=20, scalenia=0, godzin=6.5))
+    w = m.Wynik()
+    m.sprawdz_galaz(w)
+    assert any("odgałęziła się" in u for u in w.uwagi), w.uwagi
+
+
+def test_wielokrotne_nadganianie_main_jest_zglaszane(kopia):
+    m = _z_gitem(zaladuj(kopia), _odpowiedzi(przed=1, moje=20, scalenia=8, godzin=0.5))
+    w = m.Wynik()
+    m.sprawdz_galaz(w)
+    assert any("8 scaleń" in u for u in w.uwagi), w.uwagi
+
+
+def test_objawy_nigdy_nie_blokuja_builda(kopia):
+    """Wiek gałęzi to sygnał procesowy, nie defekt kodu. Zatrzymanie builda
+    z powodu upływu czasu byłoby karą za zegar."""
+    m = _z_gitem(zaladuj(kopia), _odpowiedzi(przed=99, moje=99, scalenia=99, godzin=99))
+    w = m.Wynik()
+    m.sprawdz_galaz(w)
+    assert w.uwagi, "powinny paść uwagi"
+    assert w.bledy == [], "ale żadna nie może blokować"
+
+
+def test_praca_na_main_nie_jest_galezia(kopia):
+    """Na main nie ma czego mierzyć — kontrola ma milczeć."""
+    odp = _odpowiedzi(przed=0, moje=0, scalenia=0, godzin=99)
+    odp[("rev-parse", "HEAD")] = "TO_SAMO"
+    odp[("rev-parse", "origin/main")] = "TO_SAMO"
+    m = _z_gitem(zaladuj(kopia), odp)
+    w = m.Wynik()
+    m.sprawdz_galaz(w)
+    assert w.uwagi == [] and w.bledy == []
+
+
+def test_brak_origin_main_nie_wywraca_kontroli(kopia):
+    """Świeży klon albo praca offline: brak danych to nie powód do alarmu."""
+    m = _z_gitem(zaladuj(kopia), {})
+    w = m.Wynik()
+    m.sprawdz_galaz(w)
+    assert w.uwagi == [] and w.bledy == []
