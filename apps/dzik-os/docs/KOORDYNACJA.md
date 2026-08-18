@@ -72,13 +72,28 @@ w tabeli niżej **przed** rozpoczęciem pracy, w jednym commicie na `main`:
   wskazują ten sam plik, jedna z nich musi poczekać. To nie jest
   uprzejmość, tylko jedyny sposób uniknięcia sprzeczności znaczeniowej.
 
+### Plan pracy każdej sesji
+
+Zanim zaczniesz rundę, połóż swój plan w **`docs/plan-sesji/<nazwa-gałęzi>.md`**.
+Nazwa pliku bierze się z gałęzi, więc dwa plany nie mogą się zderzyć —
+inaczej niż numer wersji, który zderzył się już dwa razy.
+
+Plan ma odpowiadać na cztery pytania: **co uważam za swój obszar**,
+**czego nie dotykam** (żeby ktoś inny mógł to zająć bez pytania), **co
+rezerwuję** (numery, pliki) i **czego świadomie nie robię**. Ostatnie
+pytanie bywa najważniejsze — kolizje biorą się z rzeczy, których nikt nie
+zadeklarował.
+
 ### Aktualne rezerwacje
 
-| Runda | Migracja | Wersja | Główne pliki | Status |
+| Gałąź / runda | Migracja | Wersja | Główne pliki | Status |
 |---|---|---|---|---|
-| _(wolne)_ | następna: **26** | następna: **0.36.0** | — | — |
+| `dzik-os-personal-trainer-app` — dostawca AI + sprzątnięcie styków | **26** (rezerwacja warunkowa) | **0.38.0** | `ai_provider.py`, `sheet_import.py`, `routers/`, `pages/coach/`, `components.tsx`, `docs/` | plan złożony, czeka na uzgodnienie |
 
-> Po zakończeniu rundy usuń wiersz i podnieś „następne" numery.
+Następny wolny numer migracji: **27** · następna wolna wersja: **0.39.0**
+
+> Po zakończeniu rundy usuń wiersz i podnieś „następne" numery. Rezerwację
+> warunkową, której nie użyto, **zwolnij** — inaczej numer przepada.
 
 ---
 
