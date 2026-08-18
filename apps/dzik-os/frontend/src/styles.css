@@ -268,9 +268,10 @@ h3.section-label:first-of-type, .card h3.section-label:first-of-type {
   width: 30px; height: 3px; border-radius: 0 0 3px 3px;
   background: var(--accent);
 }
-/* 26 px, nie 22: ikony nawigacji były powiększone już po odgałęzieniu
-   pracy nad czytelnością — zostaje nowszy rozmiar. */
-.nav svg { width: 26px; height: 26px; transition: transform 200ms var(--ease-out); }
+/* 22 px, nie 26: mniejsza ikona robi miejsce na wskaznik aktywnej
+   sekcji (.nav a.active::before). Rozstrzygniete na rzecz rozwiazania
+   sesji produktowej — Karta wspolpracy §III. */
+.nav svg { width: 22px; height: 22px; transition: transform 200ms var(--ease-out); }
 .nav a.active svg { transform: translateY(-1px); }
 
 /* Wiersze łamią się zamiast wypychać stronę w bok na wąskich ekranach;

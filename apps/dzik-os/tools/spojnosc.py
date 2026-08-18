@@ -539,6 +539,37 @@ def sprawdz_konsultacje(w: Wynik) -> None:
                     f"{numer} otwarte od {wiek:.1f} h, adresat: {do}"
                     + (" [BLOKUJE]" if blokuje else ""))
 
+# --- 10. Przekazanie: czy STAN_PRZEKAZANIA mówi prawdę ------------------
+
+def sprawdz_przekazanie(w: Wynik) -> None:
+    """`STAN_PRZEKAZANIA.md` musi wskazywać AKTUALNĄ wersję z CHANGELOG-a.
+
+    Karta współpracy (§VII) mówi: runda kończy się dopiero wtedy, gdy
+    dokument przekazania mówi prawdę. Nieaktualny dokument przekazania
+    jest gorszy niż jego brak — następna sesja ufa mu i buduje na
+    nieprawdziwym obrazie stanu. Skąd zasada: przez jeden dzień dwa razy
+    przydzielono ten sam numer wersji, bo nikt nie miał jednego miejsca
+    z prawdą o tym, gdzie jesteśmy.
+
+    Kontrola jest celowo wąska — sprawdza jedną, weryfikowalną rzecz
+    (numer wersji), a nie „czy treść jest sensowna", bo tego maszyna nie
+    oceni."""
+    changelog = DOCS / "CHANGELOG.md"
+    przekazanie = DOCS / "STAN_PRZEKAZANIA.md"
+    if not przekazanie.exists():
+        w.blad("przekazanie", "brak docs/STAN_PRZEKAZANIA.md — następna sesja nie ma "
+                              "skąd wziąć stanu projektu")
+        return
+    wersje = re.findall(r"^## (\d+\.\d+\.\d+)", changelog.read_text(encoding="utf-8"), re.MULTILINE)
+    if not wersje:
+        return  # brakiem wersji zajmuje się kontrola `changelog`
+    biezaca = wersje[0]
+    tresc = przekazanie.read_text(encoding="utf-8")
+    if biezaca not in tresc:
+        w.blad("przekazanie",
+               f"STAN_PRZEKAZANIA.md nie wspomina bieżącej wersji {biezaca} — "
+               "dokument jest nieaktualny, a następna sesja mu zaufa")
+
 
 KONTROLE = (
     ("migracje", sprawdz_migracje),
@@ -550,6 +581,8 @@ KONTROLE = (
     ("higiena gałęzi", sprawdz_galaz),
     ("pliki poza gitem", sprawdz_pliki_poza_gitem),
     ("konsultacje", sprawdz_konsultacje),
+
+    ("przekazanie", sprawdz_przekazanie),
 )
 
 

@@ -11,6 +11,7 @@ patrzymy, czy zgłasza. To jedyny sposób, żeby kontrola nie zgniła w ciszy.
 
 import importlib.util
 import json
+import re
 import shutil
 import sys
 from pathlib import Path
@@ -545,3 +546,54 @@ def test_data_z_przyszlosci_jest_bledem(kopia):
     wersja kontroli wypisywała „otwarte od -0.2 h" i szła dalej."""
     w = _dziennik(kopia, _wpis(stempel="2099-01-01 00:00"))
     assert any("z przyszlosci" in b for b in w.bledy), w.bledy
+
+# --- Narzędzie mutacyjne nie może niszczyć repozytorium ----------------
+
+
+def test_narzedzie_mutacyjne_nie_przywraca_starej_kopii():
+    """`tools/mutacje.py` psuje `spojnosc.py`, a potem go przywraca.
+
+    Pierwsza wersja trzymała kopię roboczą pod STAŁĄ ścieżką w /tmp i
+    tworzyła ją tylko „gdy nie istnieje". Uruchomienie po scaleniu cudzej
+    zmiany przywracało kopię SPRZED tego scalenia i **po cichu kasowało
+    cudzą pracę** — 2026-08-18 zniknęło w ten sposób 88 linii kontroli
+    higieny gałęzi napisanej przez inną sesję. Narzędzie mające chronić
+    kod niszczyło go bez słowa; wyszło to przypadkiem, bo po przebiegu
+    zmieniła się liczba kontroli.
+
+    Test pilnuje dwóch zabezpieczeń wprowadzonych po tym zdarzeniu:
+    świeżego katalogu tymczasowego na każde uruchomienie i sumy
+    kontrolnej potwierdzającej, że przywrócono DOKŁADNIE stan sprzed."""
+    tresc = (APP / "tools" / "mutacje.py").read_text(encoding="utf-8")
+    assert "tempfile.mkdtemp" in tresc, (
+        "kopia robocza musi trafiać do świeżego katalogu tymczasowego, "
+        "nigdy pod stałą ścieżkę wielokrotnego użytku"
+    )
+    assert 'Path("/tmp/' not in tresc, "stała ścieżka w /tmp to ta sama pułapka"
+    assert "ODCISK_STARTOWY" in tresc and "sha256" in tresc, (
+        "po przywróceniu musi być sprawdzana suma kontrolna pliku"
+    )
+
+
+def test_wykrywa_nieaktualny_dokument_przekazania(kopia):
+    """`STAN_PRZEKAZANIA.md` bez bieżącej wersji z CHANGELOG-a to bramka,
+    nie ozdoba (Karta współpracy §VII).
+
+    Nieaktualny dokument przekazania jest gorszy niż jego brak: następna
+    sesja mu zaufa i zbuduje na nieprawdziwym obrazie stanu. Kontrola
+    powstała przy pisaniu karty i **od razu złapała** własny dokument,
+    który został przy 0.37.0, gdy CHANGELOG był już na 0.38.0."""
+    modul = zaladuj(kopia)
+    changelog = (kopia / "docs" / "CHANGELOG.md").read_text(encoding="utf-8")
+    biezaca = re.findall(r"^## (\d+\.\d+\.\d+)", changelog, re.MULTILINE)[0]
+    przekazanie = kopia / "docs" / "STAN_PRZEKAZANIA.md"
+
+    przekazanie.write_text(f"Wersja w main: {biezaca}\n", encoding="utf-8")
+    assert bledy(modul, modul.sprawdz_przekazanie) == []
+
+    przekazanie.write_text("Wersja w main: 0.0.1\n", encoding="utf-8")
+    znalezione = bledy(modul, modul.sprawdz_przekazanie)
+    assert any("nieaktualny" in b for b in znalezione), znalezione
+
+    przekazanie.unlink()
+    assert any("brak" in b for b in bledy(modul, modul.sprawdz_przekazanie))

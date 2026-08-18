@@ -109,14 +109,14 @@ na cichą utratę pracy.
   pilnuje. Dwanaście testów kontroli i pięć nowych mutacji — po nich **15 z 15
   mutacji wykrytych**. Druga rzecz złapana na sobie samej: wpis z datą
   z przyszłości dawał wiek ujemny i przechodził dalej; teraz to błąd.
-* **`WSPOLPRACA_SESJI.md` w wersji 1.0 — dokument obowiązujący, nie
+* **`KARTA_WSPOLPRACY.md` w wersji 1.0 — dokument obowiązujący, nie
   propozycja.** Jeden dokument nadrzędny; `KOORDYNACJA.md`, `KONSULTACJE.md`
   i `spojnosc.py` są jego narzędziami, nie wariantami. Zawiera konkretny
   podział obszarów, siedem zasad, tryb konsultacji, trzystopniowe
   rozstrzyganie różnic i jawną nadrzędność zadania nadrzędnego nad
   wszystkimi zasadami. **Zmiana dowolnego punktu przez drugą sesję jest
   z góry przyjęta** — wystarczy wpis w `KONSULTACJE.md`.
-* **Spisany status współpracy dwóch sesji** (`docs/WSPOLPRACA_SESJI.md`),
+* **Spisany status współpracy dwóch sesji** (`docs/KARTA_WSPOLPRACY.md`),
   na wyraźne polecenie właściciela produktu. Punkt wyjścia to policzenie,
   czego naprawdę dotyczyły dzisiejsze kolizje: **jedenaście z jedenastu
   dotyczyło zasobu współdzielonego albo różnicy założeń, ZERO było sporem
@@ -173,6 +173,68 @@ na cichą utratę pracy.
   `KOORDYNACJA.md`: gałąź odgałęzia się od `main` i wraca do `main`.
   Jeden konflikt: ikony nawigacji zostają w nowszym rozmiarze 26 px,
   wskaźnik aktywnej sekcji z tamtej pracy dochodzi obok.
+
+**Karta współpracy sesji — dziesięć zasad, każda z podpiętym zdarzeniem.**
+`docs/KARTA_WSPOLPRACY.md`, wskazana z `CLAUDE.md`, `KOORDYNACJA.md`
+i `STAN_PRZEKAZANIA.md`, więc każda sesja trafia na nią przed pracą.
+
+* **Punkt wyjścia, nie deklaracja.** Sesje nie mają wspólnej pamięci ani
+  kanału — żadna nie może drugiej zapytać ani ostrzec. Karta jest więc
+  zbudowana tak, żeby działała **asynchronicznie, przez artefakty, bez
+  rozmowy**; zasada wymagająca uzgodnienia w czasie rzeczywistym byłaby
+  tu martwa z definicji.
+* **Artykuł 0 definiuje „szczyt" mierzalnie**, nie liczbą funkcji: nic nie
+  ginie, nic nie wycieka, nic nie udaje, że działa.
+* **Każda zasada ma podpięte zdarzenie**, z którego się wzięła — od
+  skasowanych 88 linii cudzej pracy, przez raportowanie „chodzi w tle"
+  bez sprawdzenia, po uśpionego strażnika w kontroli tras. Zasada bez
+  zdarzenia za sobą jest ozdobą i podlega usunięciu.
+* **Role opisane jako obserwowane, nie przydzielone**: sesja produktowa
+  i sesja bramkowa mają udokumentowane mocne strony i żadna nie jest
+  kompletna sama — to jest ta „druga połówka", nie podział terytorium.
+* **Ósma kontrola: `przekazanie`.** Pierwsza wersja karty twierdziła, że
+  „sześć z dziesięciu zasad ma wsparcie maszynowe". Przy liczeniu okazało
+  się, że to nieprawda — więc zamiast poprawić liczbę w dół, doszła
+  kontrola pilnująca, żeby `STAN_PRZEKAZANIA.md` wskazywał bieżącą wersję
+  z CHANGELOG-a. **Złapała od razu własny dokument**, który został przy
+  0.37.0. Nieaktualne przekazanie jest gorsze niż jego brak: następna
+  sesja mu zaufa.
+* Karta podaje teraz **policzony, nie oszacowany** stan egzekwowalności:
+  trzy zasady ze wsparciem pełnym, dwie z częściowym, pięć na uczciwość.
+
+## 0.38.0 — 2026-08-18
+
+**Jedna sesja naraz + naprawa narzędzia, które niszczyło cudzą pracę.**
+
+* **Decyzja właściciela produktu: w jednym momencie pracuje JEDNA sesja.**
+  Kończy rundę, scala do `main`, dopiero potem uruchamiamy następną.
+  `KOORDYNACJA.md` przepisana wokół tej zasady; mechanizmy rezerwacji i
+  planów sesji zostają, ale w nowej roli — **przekazania pałeczki**, nie
+  sposobu na równoległość. Powód wypisany wprost: sesje nie mają ze sobą
+  kanału, a jeden dzień równoległej pracy kosztował dwie kolizje numerów
+  wersji, kolizję numerów migracji, po cichu wyłączone przypomnienia o
+  zaległych płatnościach, dwa katalogi E2E i bramkę jakości, o której
+  raportowano „chodzi w tle", choć nie istniała.
+* **Wszystkie gałęzie scalone — zostaje jedna linia.** Ściągnięte obie
+  zaległe prace: kontrola higieny gałęzi (siódma kontrola w
+  `spojnosc.py`, autorstwa drugiej sesji, na moim narzędziu) oraz
+  czytelność i responsywność UI (trzecia sesja). Przy konflikcie w
+  `styles.css` wzięto **ich** wersję: mniejsza ikona robi miejsce na
+  kreskę-wskaźnik aktywnej sekcji, moja zostawiłaby wskaźnik bez miejsca.
+* **`docs/STAN_PRZEKAZANIA.md`** — nowy dokument do przeczytania PRZED
+  rundą: gdzie jesteśmy, **co jest w toku** (żeby nikt nie zaczynał od
+  nowa), kolejka następnych rzeczy, czego nie wolno ruszać i komplet
+  poleceń weryfikacji.
+* **Naprawiony poważny błąd we własnym narzędziu.** `tools/mutacje.py`
+  trzymał kopię roboczą pod stałą ścieżką w `/tmp` i tworzył ją tylko
+  „gdy nie istnieje". Uruchomienie po scaleniu cudzej zmiany przywracało
+  kopię SPRZED scalenia i **po cichu skasowało 88 linii** kontroli
+  napisanej przez inną sesję. Narzędzie mające chronić kod niszczyło go
+  bez słowa — wyszło przypadkiem, bo po przebiegu zmieniła się liczba
+  kontroli. Teraz: świeży katalog tymczasowy na każde uruchomienie i
+  **suma kontrolna** potwierdzająca, że przywrócono dokładnie stan sprzed
+  (rozbieżność = kod wyjścia 2 i instrukcja naprawy). Praca drugiej sesji
+  odtworzona w całości; test pilnuje obu zabezpieczeń.
 
 ## 0.37.0 — 2026-08-18
 

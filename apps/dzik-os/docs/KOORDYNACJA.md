@@ -1,19 +1,36 @@
-# Koordynacja równoległych rund — jak nie wchodzić sobie w drogę
+# Koordynacja rund — jedna sesja naraz
 
-Rundy bywają rozwijane równolegle, w osobnych kopiach repozytorium. Każda
-praca widzi kod sprzed swojego startu i **nie wie, co robią pozostałe**.
-Git wykrywa kolizje TEKSTU. Kolizje ZNACZENIA przechodzą przez scalenie
-bez jednego konfliktu i wychodzą dopiero na produkcji.
+## ZASADA NADRZĘDNA (decyzja właściciela produktu, 2026-08-18)
 
-Ten dokument opisuje dwa mechanizmy: **rezerwację** (przed pracą) i
-**bramkę** (przed scaleniem). Pierwszy zależy od dyscypliny, drugi nie.
+> **W jednym momencie pracuje JEDNA sesja.** Kończy rundę, scala do `main`,
+> dopiero potem uruchamiamy następną.
+
+Ta reguła jest nadrzędna wobec całej reszty dokumentu. Powód jest prosty i
+sprawdzony na własnej skórze: **sesje nie mają ze sobą kanału**. Każda
+widzi kod sprzed swojego startu i nie wie, co robią pozostałe. Git wykrywa
+kolizje TEKSTU; kolizje ZNACZENIA przechodzą przez scalenie bez jednego
+konfliktu i wychodzą dopiero na produkcji.
+
+Przez jeden dzień pracy trzech równoległych sesji zdarzyło się:
+ten sam numer wersji przydzielony dwa razy (0.29.0, potem 0.36.0), kolizja
+numerów migracji, przypomnienia o zaległych płatnościach **po cichu
+wyłączone** przez mechaniczne scalenie sprzecznych zmian, dwa katalogi
+testów E2E, dwa wejścia do tego samego ekranu i bramka jakości, o której
+przez pół dnia raportowano „chodzi w tle", choć nie istniała.
+
+Mechanizmy niżej (rezerwacja, bramka, plany sesji) **zostają** — ale w
+nowej roli: nie jako sposób na równoległość, tylko jako **przekazanie
+pałeczki** między kolejnymi sesjami. Jeśli kiedyś świadomie wrócimy do
+równoległości, są gotowe; dopóki nie wrócimy, są tanie i nic nie kosztują.
+
+**Przed rozpoczęciem rundy przeczytaj dwa dokumenty:**
+`docs/KARTA_WSPOLPRACY.md` (jak pracujemy — zasady i skąd się wzięły) oraz
+`docs/STAN_PRZEKAZANIA.md` (gdzie jesteśmy — co zrobione, co w toku, co
+następne).
 
 ---
 
-> **Status współpracy i zasady, którym ten mechanizm służy, są w
-> `WSPOLPRACA_SESJI.md`.** Ten dokument opisuje NARZĘDZIA; tamten mówi,
-> po co są i kto nad czym pracuje. Nie powielają się — jeśli zaczną,
-> jeden z nich trzeba skreślić.
+---
 
 ## 1. Bramka: `tools/spojnosc.py`
 
@@ -22,7 +39,7 @@ python apps/dzik-os/tools/spojnosc.py     # 0 = czysto, 1 = są kolizje
 ```
 
 Uruchamiana w CI (`dzik-os-ci.yml`) i lokalnie przed każdym scaleniem.
-Dziewięć kontroli, każda wzięta z błędu, który **naprawdę się zdarzył**:
+Dziesięć kontroli, każda wzięta z błędu, który **naprawdę się zdarzył**:
 
 | Kontrola | Co łapie | Kiedy się zdarzyło |
 |---|---|---|
@@ -35,6 +52,7 @@ Dziewięć kontroli, każda wzięta z błędu, który **naprawdę się zdarzył*
 | `higiena gałęzi` | objawy gałęzi żyjącej za długo jak na tempo main (uwagi, nigdy błąd) | PR #11: 6,5 h życia, 8 scaleń nadążających |
 | `pliki poza gitem` | plik źródłowy ignorowany przez `.gitignore` (błąd) albo nigdy niedodany (uwaga) | `.coverage` dodany przez `git add -A`, potem gitignore — pytanie „czy nie giną nam pliki" |
 | `konsultacje` | otwarte pytanie między sesjami (uwaga); zepsuty format wpisu (błąd) | cztery pytania czekały w pliku planu i nic o nich nie powiadamiało |
+| `przekazanie` | `STAN_PRZEKAZANIA.md` bez bieżącej wersji z CHANGELOG-a | przy pisaniu Karty współpracy — dokument został przy 0.37.0, gdy repo było na 0.38.0 |
 
 Kontrola **niczego nie naprawia** — od tego jest człowiek albo agent,
 który zna zamiar. Ma wyłącznie nie pozwolić kolizji przejść niezauważenie.
@@ -53,7 +71,7 @@ dołóż test, który ją psuje.**
 python apps/dzik-os/tools/mutacje.py     # z korzenia repozytorium
 ```
 
-Narzędzie po kolei **psuje kontrolę** na piętnaście sposobów, po każdym
+Narzędzie po kolei **psuje kontrolę** na siedemnaście sposobów, po każdym
 uruchamia `tests/test_spojnosc.py` i na koniec przywraca oryginał.
 Mutacja, po której testy nadal są zielone, to luka — wypisana wprost.
 
@@ -63,7 +81,7 @@ Pierwsze uruchomienie (2026-08-18) znalazło **dwie luki**:
   przed cichą śmiercią kontroli tras samo nie było zabezpieczone;
 * zamiana kontroli dokumentów w atrapę przechodziła bez śladu.
 
-Obie naprawione tego samego dnia; po naprawie **15 z 15 mutacji wykrytych**
+Obie naprawione tego samego dnia; po naprawie **17 z 17 mutacji wykrytych**
 (siedem pierwotnych, trzy dla plików poza gitem, pięć dla konsultacji).
 
 **Samo narzędzie też miało błąd, i to niszczący.** Kopię oryginału robiło
@@ -145,9 +163,11 @@ a własny parser byłby kolejną rzeczą gnijącą po cichu.
 ---
 
 ## 2. Rezerwacja: zanim zaczniesz pracę
+## 2. Rezerwacja i przekazanie: zanim zaczniesz pracę
 
-Trzy zasoby są **globalne** i nie da się ich zająć dwa razy. Rezerwuj je
-w tabeli niżej **przed** rozpoczęciem pracy, w jednym commicie na `main`:
+Przy pracy jedna-sesja-naraz rezerwacja służy **przekazaniu**: następna
+sesja ma od razu wiedzieć, jakie numery są wolne i czego nie ruszać, bo
+jest w toku. Trzy zasoby są globalne i nie da się ich zająć dwa razy:
 
 * **numer migracji** — kolejny wolny z `backend/dzik_os/db.py`;
 * **numer wersji** w `docs/CHANGELOG.md`;
@@ -155,12 +175,24 @@ w tabeli niżej **przed** rozpoczęciem pracy, w jednym commicie na `main`:
   wskazują ten sam plik, jedna z nich musi poczekać. To nie jest
   uprzejmość, tylko jedyny sposób uniknięcia sprzeczności znaczeniowej.
 
+### Plan pracy każdej sesji
+
+Zanim zaczniesz rundę, połóż swój plan w **`docs/plan-sesji/<nazwa-gałęzi>.md`**.
+Nazwa pliku bierze się z gałęzi, więc dwa plany nie mogą się zderzyć —
+inaczej niż numer wersji, który zderzył się już dwa razy.
+
+Plan ma odpowiadać na cztery pytania: **co uważam za swój obszar**,
+**czego nie dotykam** (żeby ktoś inny mógł to zająć bez pytania), **co
+rezerwuję** (numery, pliki) i **czego świadomie nie robię**. Ostatnie
+pytanie bywa najważniejsze — kolizje biorą się z rzeczy, których nikt nie
+zadeklarował.
+
 ### Aktualne rezerwacje
 
 | Gałąź / runda | Migracja | Wersja | Główne pliki | Status |
 |---|---|---|---|---|
 | `dzik-os-personal-trainer-app` — dostawca AI + sprzątnięcie styków | **26** (rezerwacja warunkowa) | **0.38.0** | `ai_provider.py`, `sheet_import.py`, `routers/`, `pages/coach/`, `components.tsx`, `docs/` | plan złożony, czeka na uzgodnienie |
-| `ocena-projektu-dzik-os` — bramki, CI, E2E | — (nie dotyka schematu) | **0.39.0** | `tools/spojnosc.py`, `tools/mutacje.py`, `tests/test_spojnosc.py`, `.github/workflows/dzik-os-ci.yml`, `frontend/e2e/`, `e2e/`, `docs/KOORDYNACJA.md`, `docs/DOSTEPNOSC.md`, `docs/WSPOLPRACA_SESJI.md`, `docs/PRZEGLAD_KRZYZOWY_2026-08-18.md` | w scalaniu |
+| `ocena-projektu-dzik-os` — bramki, CI, E2E | — (nie dotyka schematu) | **0.39.0** | `tools/spojnosc.py`, `tools/mutacje.py`, `tests/test_spojnosc.py`, `.github/workflows/dzik-os-ci.yml`, `frontend/e2e/`, `e2e/`, `docs/KOORDYNACJA.md`, `docs/DOSTEPNOSC.md`, `docs/KARTA_WSPOLPRACY.md`, `docs/PRZEGLAD_KRZYZOWY_2026-08-18.md` | w scalaniu |
 
 Następny wolny numer migracji: **27** · następna wolna wersja: **0.40.0**
 
@@ -172,6 +204,11 @@ nadpisało świeżo wpisaną rezerwację drugiej sesji bez jednego konfliktu —
 git widział tylko dwie różne wersje tej samej linii tabeli. Przywrócone
 ręcznie. To przypadek nr 1 z §3 niżej i dowód, że tabelę trzeba przy
 scalaniu **przeczytać**, a nie tylko rozwiązać konflikt (którego tu nie było).
+
+Następny wolny numer migracji: **27** · następna wolna wersja: **0.39.0**
+
+> Po zakończeniu rundy usuń wiersz i podnieś „następne" numery. Rezerwację
+> warunkową, której nie użyto, **zwolnij** — inaczej numer przepada.
 
 ---
 

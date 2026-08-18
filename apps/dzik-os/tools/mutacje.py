@@ -59,6 +59,15 @@ def przywroc() -> None:
             f"PRZERWANE: przywrócenie {NARZEDZIE} nie powiodło się — "
             f"kopia leży w {ORYGINAL}, odtwórz ją ręcznie."
         )
+# Kopia robocza ZAWSZE w świeżym katalogu tymczasowym. Wcześniej była to
+# stała ścieżka w /tmp, tworzona tylko „gdy nie istnieje" — i to był realny
+# błąd: uruchomienie po scaleniu cudzej zmiany przywracało kopię SPRZED
+# tego scalenia i po cichu kasowało cudzą pracę (2026-08-18: 88 linii
+# kontroli higieny gałęzi). Narzędzie mające chronić kod niszczyło go bez
+# słowa. Świeży katalog na każde uruchomienie usuwa całą tę klasę błędu.
+ORYGINAL = Path(tempfile.mkdtemp(prefix="mutacje-spojnosc-")) / "spojnosc.oryginal.py"
+shutil.copy(NARZEDZIE, ORYGINAL)
+ODCISK_STARTOWY = hashlib.sha256(NARZEDZIE.read_bytes()).hexdigest()
 
 MUTACJE = [
     ("migracje: usunięta kontrola duplikatów",
@@ -121,6 +130,14 @@ MUTACJE = [
      '        if wiek < -0.05:',
      '        if False:'),
 
+    ("przekazanie: nieaktualny dokument przestaje być błędem",
+     '        w.blad("przekazanie",\n               f"STAN_PRZEKAZANIA.md nie wspomina',
+     '        w.uwaga("przekazanie",\n               f"STAN_PRZEKAZANIA.md nie wspomina'),
+
+    ("przekazanie: brak dokumentu przestaje być błędem",
+     '        w.blad("przekazanie", "brak docs/STAN_PRZEKAZANIA.md',
+     '        w.uwaga("przekazanie", "brak docs/STAN_PRZEKAZANIA.md'),
+
     ("pliki poza gitem: plik ignorowany zdegradowany do uwagi",
      '        w.blad("pliki", f"{sciezka} jest ignorowany',
      '        w.uwaga("pliki", f"{sciezka} jest ignorowany'),
@@ -166,8 +183,17 @@ for nazwa, szukaj, zamien in MUTACJE:
         print("  OK: testy wykryły zepsucie")
 
 przywroc()
+shutil.copy(ORYGINAL, NARZEDZIE)
+# Dowód, że przywrócono DOKŁADNIE to, co było — a nie coś podobnego.
+odcisk_koncowy = hashlib.sha256(NARZEDZIE.read_bytes()).hexdigest()
+if odcisk_koncowy != ODCISK_STARTOWY:
+    print("\n!!! PLIK PO PRZYWRÓCENIU RÓŻNI SIĘ OD STANU SPRZED URUCHOMIENIA !!!")
+    print(f"    przed: {ODCISK_STARTOWY[:16]}  po: {odcisk_koncowy[:16]}")
+    print("    Natychmiast: git checkout apps/dzik-os/tools/spojnosc.py")
+    raise SystemExit(2)
+shutil.rmtree(ORYGINAL.parent, ignore_errors=True)
 kod, opis = uruchom_testy()
-print(f"\n=== po przywróceniu oryginału ===\n  testy: {opis}  [kod {kod}]")
+print(f"\n=== po przywróceniu oryginału (suma kontrolna zgodna) ===\n  testy: {opis}  [kod {kod}]")
 print("\nPODSUMOWANIE:")
 if przezyly:
     print("  Mutacje, których testy NIE wykryły:")
