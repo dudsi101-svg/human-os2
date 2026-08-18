@@ -132,8 +132,14 @@ def test_wykrywa_trase_przeslonieta_przez_parametr(monkeypatch):
     Sprawdzamy regułę na sztucznej aplikacji o tym samym kształcie —
     zamiast psuć prawdziwy router — więc test mówi o regule, a nie o
     bieżącym stanie repozytorium."""
-    import dzik_os.main as main_modul
     from fastapi import APIRouter, FastAPI
+
+    # Przez importlib, a nie `import dzik_os.main`: `ruff` klasyfikuje
+    # `dzik_os` raz jako moduł pierwszej, raz trzeciej strony — zależnie od
+    # katalogu, z którego jest uruchamiany — i wymaga wtedy sprzecznego
+    # porządku importów lokalnie i w CI. Brak instrukcji importu = brak
+    # sporu o kolejność.
+    main_modul = importlib.import_module("dzik_os.main")
 
     modul = zaladuj(APP)
     monkeypatch.setattr(modul, "PROG_TRAS", 0, raising=False)
@@ -174,7 +180,7 @@ def test_kontrola_tras_nie_moze_przejsc_na_pusto():
     nie spłaszcza ich do `app.routes`. Naiwna implementacja widziała 35
     tras zamiast ~200 i przechodziła zawsze — złapane dopiero próbą z
     wstrzykniętym błędem. Próg pilnuje, żeby to się nie powtórzyło."""
-    from dzik_os.main import create_app
+    create_app = importlib.import_module("dzik_os.main").create_app
 
     def zbierz(routes):
         zebrane = []

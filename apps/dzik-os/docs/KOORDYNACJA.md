@@ -85,9 +85,21 @@ konflikty. Bramka zdejmuje mechaniczną część, nie zastępuje czytania.
 
 1. `python apps/dzik-os/tools/spojnosc.py` — zanim cokolwiek scalisz.
 2. Scalanie **po jednym**, nigdy hurtem: po każdym pełna weryfikacja.
-3. Pełna weryfikacja: `pytest -q` (backend), `ruff check .`,
-   `npx tsc --noEmit`, `npm run build`, `npm run test:helpers`,
-   `pytest tests/ -q` (Core Human OS — **275 testów musi zostać zielone**).
+3. Pełna weryfikacja — **dokładnie tymi poleceniami, z korzenia repozytorium**:
+
+   ```bash
+   python -m ruff check apps/dzik-os/backend     # tak samo jak CI
+   python -m pytest apps/dzik-os/backend/tests -q
+   python -m pytest tests/ -q                    # Core: 275 testów zielone
+   cd apps/dzik-os/frontend && npx tsc --noEmit && npm run build \
+     && npm run test:helpers
+   ```
+
+   **Uruchamiaj `ruff` tak jak CI, nie „jakoś".** Ta sama zmiana przeszła
+   lokalnie i wywróciła CI, bo lokalne `ruff` (starsza wersja z PATH)
+   czytało inną konfigurację niż `python -m ruff` (wersja z środowiska,
+   której używa CI). Weryfikacja innym poleceniem niż bramka to nie
+   weryfikacja.
 4. Uruchomienie tego, co nowe — patrz `docs/ZASADA_URUCHOMIENIA.md`.
 5. Dopiero potem push i wdrożenie.
 
