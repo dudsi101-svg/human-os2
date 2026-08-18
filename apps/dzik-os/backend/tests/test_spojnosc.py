@@ -344,3 +344,31 @@ def test_brak_origin_main_nie_wywraca_kontroli(kopia):
     w = m.Wynik()
     m.sprawdz_galaz(w)
     assert w.uwagi == [] and w.bledy == []
+
+
+# --- Narzędzie mutacyjne nie może niszczyć repozytorium ----------------
+
+
+def test_narzedzie_mutacyjne_nie_przywraca_starej_kopii():
+    """`tools/mutacje.py` psuje `spojnosc.py`, a potem go przywraca.
+
+    Pierwsza wersja trzymała kopię roboczą pod STAŁĄ ścieżką w /tmp i
+    tworzyła ją tylko „gdy nie istnieje". Uruchomienie po scaleniu cudzej
+    zmiany przywracało kopię SPRZED tego scalenia i **po cichu kasowało
+    cudzą pracę** — 2026-08-18 zniknęło w ten sposób 88 linii kontroli
+    higieny gałęzi napisanej przez inną sesję. Narzędzie mające chronić
+    kod niszczyło go bez słowa; wyszło to przypadkiem, bo po przebiegu
+    zmieniła się liczba kontroli.
+
+    Test pilnuje dwóch zabezpieczeń wprowadzonych po tym zdarzeniu:
+    świeżego katalogu tymczasowego na każde uruchomienie i sumy
+    kontrolnej potwierdzającej, że przywrócono DOKŁADNIE stan sprzed."""
+    tresc = (APP / "tools" / "mutacje.py").read_text(encoding="utf-8")
+    assert "tempfile.mkdtemp" in tresc, (
+        "kopia robocza musi trafiać do świeżego katalogu tymczasowego, "
+        "nigdy pod stałą ścieżkę wielokrotnego użytku"
+    )
+    assert 'Path("/tmp/' not in tresc, "stała ścieżka w /tmp to ta sama pułapka"
+    assert "ODCISK_STARTOWY" in tresc and "sha256" in tresc, (
+        "po przywróceniu musi być sprawdzana suma kontrolna pliku"
+    )

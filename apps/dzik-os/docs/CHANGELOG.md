@@ -1,5 +1,39 @@
 # Changelog — Dzik OS
 
+## 0.38.0 — 2026-08-18
+
+**Jedna sesja naraz + naprawa narzędzia, które niszczyło cudzą pracę.**
+
+* **Decyzja właściciela produktu: w jednym momencie pracuje JEDNA sesja.**
+  Kończy rundę, scala do `main`, dopiero potem uruchamiamy następną.
+  `KOORDYNACJA.md` przepisana wokół tej zasady; mechanizmy rezerwacji i
+  planów sesji zostają, ale w nowej roli — **przekazania pałeczki**, nie
+  sposobu na równoległość. Powód wypisany wprost: sesje nie mają ze sobą
+  kanału, a jeden dzień równoległej pracy kosztował dwie kolizje numerów
+  wersji, kolizję numerów migracji, po cichu wyłączone przypomnienia o
+  zaległych płatnościach, dwa katalogi E2E i bramkę jakości, o której
+  raportowano „chodzi w tle", choć nie istniała.
+* **Wszystkie gałęzie scalone — zostaje jedna linia.** Ściągnięte obie
+  zaległe prace: kontrola higieny gałęzi (siódma kontrola w
+  `spojnosc.py`, autorstwa drugiej sesji, na moim narzędziu) oraz
+  czytelność i responsywność UI (trzecia sesja). Przy konflikcie w
+  `styles.css` wzięto **ich** wersję: mniejsza ikona robi miejsce na
+  kreskę-wskaźnik aktywnej sekcji, moja zostawiłaby wskaźnik bez miejsca.
+* **`docs/STAN_PRZEKAZANIA.md`** — nowy dokument do przeczytania PRZED
+  rundą: gdzie jesteśmy, **co jest w toku** (żeby nikt nie zaczynał od
+  nowa), kolejka następnych rzeczy, czego nie wolno ruszać i komplet
+  poleceń weryfikacji.
+* **Naprawiony poważny błąd we własnym narzędziu.** `tools/mutacje.py`
+  trzymał kopię roboczą pod stałą ścieżką w `/tmp` i tworzył ją tylko
+  „gdy nie istnieje". Uruchomienie po scaleniu cudzej zmiany przywracało
+  kopię SPRZED scalenia i **po cichu skasowało 88 linii** kontroli
+  napisanej przez inną sesję. Narzędzie mające chronić kod niszczyło go
+  bez słowa — wyszło przypadkiem, bo po przebiegu zmieniła się liczba
+  kontroli. Teraz: świeży katalog tymczasowy na każde uruchomienie i
+  **suma kontrolna** potwierdzająca, że przywrócono dokładnie stan sprzed
+  (rozbieżność = kod wyjścia 2 i instrukcja naprawy). Praca drugiej sesji
+  odtworzona w całości; test pilnuje obu zabezpieczeń.
+
 ## 0.37.0 — 2026-08-18
 
 **Bramka jakości GO/NO-GO — wykonana, z dowodami i dwoma znalezionymi
