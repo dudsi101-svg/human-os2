@@ -1,10 +1,17 @@
 # Changelog — Dzik OS
 
-## 0.38.0 — 2026-08-18
+## 0.39.0 — 2026-08-18
 
 **Ósma kontrola bramki: pliki poza gitem. Plus uratowane dwie wiszące
 gałęzie.** Runda o stabilności — nic nowego dla użytkownika, mniej sposobów
 na cichą utratę pracy.
+
+* **Numer wersji — trzecia kolizja tego dnia, tym razem rozwiązana przez
+  mechanizm, a nie przez spór.** Ta praca była pisana jako 0.38.0; równolegle
+  druga sesja zarezerwowała 0.38.0 w tabeli `KOORDYNACJA.md` i wypchnęła
+  rezerwację na `main`. Rezerwacja była pierwsza, więc ustępuję: 0.39.0.
+  Tak ma to działać — kto rezerwuje, ten ma; sprawdzenie kosztowało
+  jedno `git fetch`.
 
 * **Odpowiedź na pytanie „czy nie giną nam pliki": dotąd żaden nie zginął,
   ale dwie drogi stały otworem.** Changelog jest kompletny (wpisy 1–36 bez
@@ -31,6 +38,13 @@ na cichą utratę pracy.
   zostaje domknięta (żadna gałąź jej nie trzyma, wpis jest już w main
   i wdrożony), a kolizja wersji 0.36.0 rozwiązana przez przesunięcie
   tamtej pracy na 0.37.0.
+* **Złapana kolizja znaczeniowa, której git nie pokazał.** Scalenie
+  z `main` po cichu nadpisało wiersz rezerwacji, który druga sesja dopiero
+  co wpisała do `KOORDYNACJA.md` — bez jednego konfliktu, bo git widział
+  tylko dwie wersje tej samej linii tabeli. Przywrócony ręcznie i opisany
+  w dokumencie. Podręcznikowy przypadek nr 1 z §3 „Czego bramka NIE
+  złapie": maszyna nie zobaczy sprzeczności ZNACZENIA, trzeba przeczytać
+  obie zmiany.
 * **Znaleziony test-widmo: zestaw dostępności nie chodził w CI.**
   `e2e/test_a11y.mjs` (własny runner, starszy od `playwright.config.ts`)
   jest opisany w `DOSTEPNOSC.md`, ale żaden przebieg CI go nie uruchamiał —
@@ -103,17 +117,23 @@ błędami.** Pełny protokół: `docs/BRAMKA_GO_NOGO.md`.
   cichu połykane (201, pole znika). Dziś bez skutku dla użytkownika, bo
   jedynym klientem API jest nasz frontend; `extra="forbid"` wymaga osobnej
   decyzji o zgodności ze starszą, zacache'owaną wersją PWA.
-* `tools/spojnosc.py` raportuje teraz wolne numery migracji w środku
-  numeracji (nie brać ich pod nowe migracje — mogą je trzymać niescalone
-  gałęzie). Usunięty mylący komentarz „numer 23 zarezerwowany". Luki 21
-  nie otwieramy z powrotem: pusty wpis domykający ją jest już w main
-  i wdrożony, a sprawdzenie 18.08 nie znalazło gałęzi trzymającej 21
-  z treścią. Zasada z tej uwagi obowiązuje mimo to: **nowe migracje
-  bierz od największego istniejącego numeru, nigdy z luki.**
-* **Numer wersji.** Ta praca powstawała równolegle jako 0.36.0; numer
-  był już wtedy zajęty przez wydane szablony treningowe, więc przy
-  scalaniu dostała 0.37.0. Dokładnie ta kolizja, którą kontrola
-  `changelog` w `tools/spojnosc.py` ma łapać.
+* `tools/spojnosc.py` traktuje lukę w numeracji migracji jako **błąd** i
+  podpowiada domknięcie jej pustym wpisem. Przy scalaniu z równoległą
+  rundą 0.36.0 przyjęto **ich** rozwiązanie luki nr 21 jako lepsze od
+  mojego: sama dokumentacja nie wystarcza, bo `run_migrations` stosuje
+  wyłącznie numery brakujące i migracja dopisana później wykonałaby się
+  po tych o wyższych numerach. Usunięty mylący komentarz „numer 23
+  zarezerwowany".
+* Bramka **powtórzona na stanie po scaleniu** z 0.36.0 — wyniki bez zmian
+  (732 testy backendu, 275 Core, 140 pomocniczych, mutacje 7/7 i 9/9).
+  `BRAMKA_GO_NOGO.md` §8 odnotowuje, co z tamtej rundy wzmacnia bramkę:
+  testy E2E w CI, macierz uprawnień z bramką pokrycia, PostgreSQL jako
+  bramka blokująca, egzekwowanie kluczy obcych i test wykrywania
+  manipulacji w łańcuchu audytu.
+* **Numer wersji.** Ta praca powstawała równolegle jako 0.36.0;
+  numer był już wtedy zajęty przez wydane szablony treningowe,
+  więc przy scalaniu dostała 0.37.0. Dokładnie ta kolizja, którą
+  kontrola `changelog` w `tools/spojnosc.py` ma łapać.
 
 ## 0.36.0 — 2026-08-18
 

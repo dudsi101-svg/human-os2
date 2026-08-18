@@ -121,7 +121,7 @@ Stan po rundzie 0.15.0 (2026-08-18). Punkt odniesienia: **WCAG 2.2 AA**
 
 ### Automatycznie
 
-**Ten test chodzi w CI** (job `e2e` w `dzik-os-ci.yml`) — od 0.38.0. Do
+**Ten test chodzi w CI** (job `e2e` w `dzik-os-ci.yml`) — od 0.39.0. Do
 tej pory był opisany tutaj, ale żaden przebieg go nie uruchamiał; jedyna
 bramka łapiąca poziomy scroll na 320 px stała bezczynnie.
 

@@ -142,11 +142,21 @@ w tabeli niżej **przed** rozpoczęciem pracy, w jednym commicie na `main`:
 
 ### Aktualne rezerwacje
 
-| Runda | Migracja | Wersja | Główne pliki | Status |
+| Gałąź / runda | Migracja | Wersja | Główne pliki | Status |
 |---|---|---|---|---|
-| _(wolne)_ | następna: **26** | następna: **0.39.0** | — | — |
+| `dzik-os-personal-trainer-app` — dostawca AI + sprzątnięcie styków | **26** (rezerwacja warunkowa) | **0.38.0** | `ai_provider.py`, `sheet_import.py`, `routers/`, `pages/coach/`, `components.tsx`, `docs/` | plan złożony, czeka na uzgodnienie |
+| `ocena-projektu-dzik-os` — bramki, CI, E2E | — (nie dotyka schematu) | **0.39.0** | `tools/spojnosc.py`, `tools/mutacje.py`, `tests/test_spojnosc.py`, `.github/workflows/dzik-os-ci.yml`, `frontend/e2e/`, `e2e/`, `docs/KOORDYNACJA.md`, `docs/DOSTEPNOSC.md` | w scalaniu |
 
-> Po zakończeniu rundy usuń wiersz i podnieś „następne" numery.
+Następny wolny numer migracji: **27** · następna wolna wersja: **0.40.0**
+
+> Po zakończeniu rundy usuń wiersz i podnieś „następne" numery. Rezerwację
+> warunkową, której nie użyto, **zwolnij** — inaczej numer przepada.
+
+**Ten wiersz raz już zniknął po cichu.** Scalenie mojej gałęzi z `main`
+nadpisało świeżo wpisaną rezerwację drugiej sesji bez jednego konfliktu —
+git widział tylko dwie różne wersje tej samej linii tabeli. Przywrócone
+ręcznie. To przypadek nr 1 z §3 niżej i dowód, że tabelę trzeba przy
+scalaniu **przeczytać**, a nie tylko rozwiązać konflikt (którego tu nie było).
 
 ---
 
