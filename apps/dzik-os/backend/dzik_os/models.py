@@ -461,6 +461,12 @@ class Document(Base):
     uploaded_by: Mapped[str] = mapped_column(String(40))
     created_at: Mapped[str] = mapped_column(String(40), default=now_iso)
     status: Mapped[str] = mapped_column(String(20), default="ACTIVE")
+    # Migracja nr 20 — tekst przepisany ze skanu (OCR), żeby dokument dało
+    # się przeszukać. Zawsze zatwierdzony przez człowieka; oryginał pliku
+    # pozostaje nietknięty. NULL = dokument bez przepisanego tekstu.
+    ocr_text: Mapped[str | None] = mapped_column(Text, nullable=True)
+    ocr_engine: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    ocr_at: Mapped[str | None] = mapped_column(String(40), nullable=True)
 
 
 class ProgressPhoto(Base):
@@ -812,6 +818,13 @@ class FoodProduct(Base):
     # uśrednione”) i uwagi („wartości dla produktu ugotowanego”).
     source: Mapped[str | None] = mapped_column(String(200), nullable=True)
     note: Mapped[str | None] = mapped_column(String(300), nullable=True)
+    # Migracja nr 20 — proweniencja wpisu: skąd wzięły się te wartości.
+    # NULL = produkt wpisany ręcznie albo z importu CSV (jak dotychczas);
+    # "OCR" = wstępnie wypełnione ze zdjęcia etykiety i ZATWIERDZONE przez
+    # trenera, z odniesieniem do pliku źródłowego i użytego silnika.
+    origin_kind: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    origin_file_id: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    origin_engine: Mapped[str | None] = mapped_column(String(20), nullable=True)
     status: Mapped[str] = mapped_column(String(20), default="ACTIVE")  # ACTIVE/ARCHIVED
     created_by: Mapped[str] = mapped_column(String(40))
     created_at: Mapped[str] = mapped_column(String(40), default=now_iso)
@@ -1239,6 +1252,45 @@ class AIUsageCounter(Base):
     tokens_in: Mapped[int] = mapped_column(Integer, default=0)
     tokens_out: Mapped[int] = mapped_column(Integer, default=0)
     updated_at: Mapped[str] = mapped_column(String(40), default=now_iso)
+
+
+class OcrTask(Base):
+    """Zadanie przepisania tekstu ze zdjęcia (OCR) — migracja nr 20.
+
+    Wynik jest ZAWSZE propozycją: dopóki człowiek go nie zatwierdzi, nie
+    powstaje żaden produkt, dokument ani plan. Wiersz niesie proweniencję
+    (plik źródłowy + użyty silnik), a `text`/`proposal_json` to dane
+    osobowe (bywa, że zdrowotne) — objęte eksportem i usunięciem konta,
+    nigdy w logach ani metrykach."""
+
+    __tablename__ = "ocr_tasks"
+
+    id: Mapped[str] = mapped_column(String(40), primary_key=True)
+    # Podmiot danych (właściciel pliku i wyniku), nie zawsze zlecający.
+    owner_user_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
+    created_by: Mapped[str] = mapped_column(String(40), index=True)
+    file_id: Mapped[str] = mapped_column(ForeignKey("files.id"))
+    purpose: Mapped[str] = mapped_column(String(20))  # PRODUKT/PLAN/DOKUMENT
+    document_id: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    # PENDING (w kolejce) / RUNNING / DONE / FAILED / CANCELLED
+    status: Mapped[str] = mapped_column(String(20), default="PENDING", index=True)
+    # LOCAL (silnik na serwerze) / EXTENDED (model widzenia).
+    engine: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    # Dlaczego akurat ten tryb (np. brak zgody funkcje_ai) — komunikat dla
+    # człowieka, nigdy błąd techniczny.
+    mode_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    text: Mapped[str | None] = mapped_column(Text, nullable=True)
+    proposal_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    error_code: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    chars: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    duration_ms: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    approved_at: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    # Co powstało po zatwierdzeniu (id produktu albo dokumentu).
+    result_ref: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    created_at: Mapped[str] = mapped_column(String(40), default=now_iso)
+    started_at: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    finished_at: Mapped[str | None] = mapped_column(String(40), nullable=True)
 
 
 class Receipt(Base):

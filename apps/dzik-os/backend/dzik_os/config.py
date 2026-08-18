@@ -101,6 +101,28 @@ class Settings:
     ai_max_input_chars: int = field(
         default_factory=lambda: int(_env("DZIK_AI_MAX_INPUT_CHARS", "6000"))
     )
+    # --- Przepisywanie tekstu ze zdjęcia (OCR) — docs/OCR.md ---
+    # Binarka silnika lokalnego. Brak binarki NIE jest błędem: funkcja
+    # zgłasza wtedy jawny stan „silnik niedostępny" (środowisko testowe i
+    # deweloperskie nie mają Tesseracta).
+    ocr_binary: str = field(default_factory=lambda: _env("DZIK_OCR_BINARY", "tesseract"))
+    ocr_languages: str = field(default_factory=lambda: _env("DZIK_OCR_LANGS", "pol+eng"))
+    # Układ strony Tesseracta: 6 = jednolity blok tekstu (etykiety, kartki).
+    ocr_psm: int = field(default_factory=lambda: int(_env("DZIK_OCR_PSM", "6")))
+    # Fly.io shared-cpu-1x ma 512 MB RAM — obraz jest zmniejszany PRZED
+    # rozpoznaniem, a zadanie ma twardy limit czasu.
+    ocr_max_px: int = field(default_factory=lambda: int(_env("DZIK_OCR_MAX_PX", "1600")))
+    ocr_timeout_s: int = field(default_factory=lambda: int(_env("DZIK_OCR_TIMEOUT_S", "25")))
+    # Górny limit rozmiaru pliku wejściowego (osobno od limitu uploadu:
+    # OCR czyta plik do pamięci i zmniejsza go Pillow).
+    ocr_max_input_mb: int = field(default_factory=lambda: int(_env("DZIK_OCR_MAX_INPUT_MB", "8")))
+    # Kolejka JEDNOSLOTOWA: jedno rozpoznanie naraz. To liczba zadań
+    # CZEKAJĄCYCH — po przepełnieniu zlecenie dostaje czytelne 429.
+    ocr_queue_max: int = field(default_factory=lambda: int(_env("DZIK_OCR_QUEUE_MAX", "20")))
+    # Limit dzienny zadań na konto (ochrona maszyny, nie kosztów modelu).
+    ocr_daily_tasks_user: int = field(
+        default_factory=lambda: int(_env("DZIK_OCR_DAILY_TASKS_USER", "50"))
+    )
     cors_origins: str = field(default_factory=lambda: _env("DZIK_CORS_ORIGINS", ""))
     # Marka konfigurowalna (nazwa/kolor — używane też przez frontend przez /api/branding).
     brand_name: str = field(default_factory=lambda: _env("DZIK_BRAND_NAME", "Dzik OS"))

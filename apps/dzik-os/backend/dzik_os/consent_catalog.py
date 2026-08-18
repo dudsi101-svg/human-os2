@@ -27,7 +27,7 @@ from dataclasses import asdict, dataclass
 SYSTEM_GRANTEE = "SYSTEM"
 
 # Bieżąca wersja treści dokumentu zgód (patrz docstring modułu).
-CONSENT_DOC_VERSION = "2.1"
+CONSENT_DOC_VERSION = "2.2"
 
 # Ile czasu po zakończeniu współpracy dane są przechowywane, zanim klient
 # powinien je usunąć/wyeksportować — wartość opisowa używana w treściach
@@ -240,7 +240,8 @@ CONSENT_CATEGORIES: dict[str, ConsentCategory] = {
         ),
         ConsentCategory(
             key="funkcje_ai",
-            label="Funkcje AI (podsumowania raportów i rozmowy startowej)",
+            label="Funkcje AI (podsumowania i dokładniejsze przepisywanie "
+            "tekstu ze zdjęcia)",
             purpose="ai_features",
             domain="checkin_summaries",
             grantee_kind="SYSTEM",
@@ -251,11 +252,16 @@ CONSENT_CATEGORIES: dict[str, ConsentCategory] = {
             cel="generowanie propozycji: (1) dla trenera — streszczenia "
             "Twojego raportu tygodniowego i szkicu odpowiedzi; (2) dla "
             "Ciebie — wersji roboczej podsumowania rozmowy startowej "
-            "(onboardingu). Tryb propose-only: podsumowanie zatwierdzasz "
-            "Ty, plan zatwierdza trener — model nie decyduje o niczym "
-            "i nie tworzy planu ani diety",
-            zakres="treść raportu tygodniowego oraz Twoje odpowiedzi "
-            "z rozmowy startowej (bez imienia, nazwiska, e-maila i "
+            "(onboardingu); (3) dokładniejszego przepisania tekstu ze "
+            "zdjęcia (etykieta produktu, kartka z planem lub dietą, skan "
+            "dokumentu) — bez tej zgody przepisywanie działa dalej, tyle "
+            "że silnikiem uruchomionym na naszym serwerze. Tryb "
+            "propose-only: podsumowanie zatwierdzasz Ty, plan zatwierdza "
+            "trener — model nie decyduje o niczym i nie tworzy planu ani "
+            "diety",
+            zakres="treść raportu tygodniowego, Twoje odpowiedzi z rozmowy "
+            "startowej oraz zdjęcie przekazane do przepisania wraz z "
+            "rodzajem zadania (bez imienia, nazwiska, e-maila i "
             "identyfikatorów; bez odpowiedzi oznaczonych sygnałem "
             "alarmowym) przekazywane do dostawcy AI skonfigurowanego "
             "przez operatora (obecnie ŻADEN dostawca nie jest "
@@ -266,6 +272,7 @@ CONSENT_CATEGORIES: dict[str, ConsentCategory] = {
             okres="do wycofania zgody",
             dobrowolnosc="w pełni dobrowolna; odmowa nie blokuje niczego — "
             "rozmowa startowa i podsumowanie działają wtedy krok po kroku, "
+            "przepisywanie tekstu ze zdjęcia działa silnikiem lokalnym, "
             "a trener po prostu nie użyje podsumowań AI",
         ),
         ConsentCategory(

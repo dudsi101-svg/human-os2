@@ -553,6 +553,30 @@ class FoodProductIn(BaseModel):
     note: str | None = Field(default=None, max_length=300)
 
 
+class OcrTaskIn(BaseModel):
+    """Zlecenie przepisania tekstu ze zdjęcia.
+
+    `client_id` podaje trener, gdy zdjęcie dotyczy danych klienta (wtedy
+    podmiotem danych i właścicielem wyniku jest klient). `document_id`
+    dotyczy wyłącznie zastosowania DOKUMENT (tekst przy skanie)."""
+
+    file_id: str = Field(min_length=1, max_length=40)
+    purpose: str = Field(pattern="^(PRODUKT|PLAN|DOKUMENT)$")
+    client_id: str | None = Field(default=None, max_length=40)
+    document_id: str | None = Field(default=None, max_length=40)
+    idempotency_key: str | None = Field(default=None, min_length=8, max_length=80)
+
+
+class OcrApproveIn(BaseModel):
+    """Zatwierdzenie propozycji przez CZŁOWIEKA — dopiero tu cokolwiek
+    powstaje. `product` dla etykiety produktu, `text` dla skanu dokumentu;
+    zastosowanie PLAN nie zapisuje nic po stronie serwera (tekst trafia do
+    edytora planu/diety i zapisuje go dopiero trener jako wersję planu)."""
+
+    product: FoodProductIn | None = None
+    text: str | None = Field(default=None, max_length=20000)
+
+
 class PortionCalcIn(BaseModel):
     """Kalkulator porcji: gramy ALBO liczba sztuk (jednostka produktu).
     Podanie obu naraz jest błędem — wynik ma być jednoznaczny."""

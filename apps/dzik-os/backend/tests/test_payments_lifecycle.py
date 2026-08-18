@@ -404,6 +404,12 @@ def test_migration_v1_to_v15_preserves_payment_data(tmp_path):
         conn.execute(text(
             "CREATE TABLE messages (id VARCHAR(40) PRIMARY KEY, "
             "thread_id VARCHAR(40), author_id VARCHAR(40), created_at VARCHAR(40))"))
+        # Stub dla migracji nr 20 (ALTER-y tekstu OCR przy dokumencie).
+        conn.execute(text(
+            "CREATE TABLE documents (id VARCHAR(40) PRIMARY KEY, "
+            "client_id VARCHAR(40), file_id VARCHAR(40), title VARCHAR(300), "
+            "category VARCHAR(40), uploaded_by VARCHAR(40), "
+            "created_at VARCHAR(40), status VARCHAR(20))"))
         # Płatności w kształcie v1 — z prawdziwymi danymi.
         conn.execute(text(
             "CREATE TABLE payment_schedules (id VARCHAR(40) PRIMARY KEY, "

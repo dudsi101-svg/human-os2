@@ -32,6 +32,7 @@ Administratorem Twoich danych osobowych jest trener prowadzący usługę
 | Wiadomości i pliki | treść rozmów z trenerem, załączniki | od obu stron |
 | Ewidencja płatności | pakiet, kwota, termin, status (opłacona/oczekująca) | od trenera |
 | Subskrypcje push | techniczny adres subskrypcji Twojej przeglądarki | od Ciebie, po włączeniu powiadomień |
+| Zdjęcia do przepisania i przepisany tekst | zdjęcie etykiety produktu, kartki z planem lub dietą, skanu dokumentu — oraz tekst z niego odczytany (skan wyniku badań może zawierać dane zdrowotne) | od Ciebie i od trenera, tylko wtedy gdy ktoś świadomie zrobi zdjęcie |
 | Dziennik zdarzeń (audyt) | kto i kiedy zmienił plan, zgodę, płatność (identyfikatory, bez treści zdrowotnych) | generowane przez aplikację |
 
 **Czego NIE przetwarzamy:** danych kart płatniczych (aplikacja tylko
@@ -56,7 +57,8 @@ wersja dokumentu) i o każdej decydujesz osobno. Zgody wymagane
 | Żywienie i alergie dla trenera | art. 9 ust. 2 lit. a RODO — **odrębna wyraźna zgoda** | opcjonalne |
 | Zdjęcia progresu dla trenera | art. 9 ust. 2 lit. a RODO — **odrębna wyraźna zgoda** | opcjonalne |
 | Powiadomienia push / przypomnienia | art. 6 ust. 1 lit. a RODO — zgoda | opcjonalne |
-| Funkcje AI (podsumowania raportów dla trenera) | art. 9 ust. 2 lit. a RODO — zgoda | opcjonalne; obecnie żaden dostawca AI nie jest skonfigurowany |
+| Funkcje AI (podsumowania raportów dla trenera, wersja robocza podsumowania rozmowy startowej, dokładniejsze przepisywanie tekstu ze zdjęcia) | art. 9 ust. 2 lit. a RODO — zgoda | opcjonalne; obecnie żaden dostawca AI nie jest skonfigurowany |
+| Przepisywanie tekstu ze zdjęcia (tryb lokalny, na naszym serwerze) | art. 6 ust. 1 lit. b RODO; art. 9 ust. 2 lit. a, gdy zdjęcie dotyczy danych zdrowotnych | wymagane w zakresie umowy — **bez zgody `funkcje_ai` nic nie opuszcza aplikacji**; wynik jest zawsze propozycją do zatwierdzenia przez człowieka |
 | Marketing trenera | art. 6 ust. 1 lit. a RODO — zgoda | opcjonalne; nigdy nie jest rejestrowana przy zakładaniu konta |
 | Ewidencja płatności i rozliczenia | art. 6 ust. 1 lit. b i c RODO | wymagane (umowa + przepisy podatkowe) |
 
@@ -94,9 +96,20 @@ zakresie:
   aplikacja nie wysyła e-maili. Jeżeli administrator uruchomi
   powiadomienia e-mail, wskaże tu dostawcę i zakres danych.
 - **AI:** obecnie żaden dostawca AI nie jest skonfigurowany — dane nie
-  są nigdzie wysyłane. Funkcja (propozycja streszczenia raportu dla
-  trenera) działa wyłącznie za Twoją odrębną zgodą; jeżeli administrator
-  skonfiguruje dostawcę, wskaże go w tej polityce przed uruchomieniem.
+  są nigdzie wysyłane. Funkcje AI (propozycja streszczenia raportu dla
+  trenera, wersja robocza podsumowania rozmowy startowej oraz
+  dokładniejsze przepisywanie tekstu ze zdjęcia) działają wyłącznie za
+  Twoją odrębną zgodą; jeżeli administrator skonfiguruje dostawcę,
+  wskaże go w tej polityce **jako podmiot przetwarzający** przed
+  uruchomieniem (nazwa, region, mechanizm transferu, umowa powierzenia).
+  W trybie rozszerzonym przepisywania tekstu do dostawcy trafia
+  **wyłącznie samo zdjęcie i rodzaj zadania** — bez identyfikatorów,
+  adresu e-mail, imienia i nazwiska.
+- **Przepisywanie tekstu ze zdjęcia bez zgody na funkcje AI:** działa
+  silnik uruchomiony na naszym serwerze — zdjęcie ani odczytany tekst
+  **nie opuszczają aplikacji**. Wynik jest zawsze propozycją: pokazujemy
+  go obok zdjęcia, poprawiasz go Ty (albo trener) i dopiero
+  zatwierdzenie cokolwiek zapisuje.
 - **Płatności:** aplikacja prowadzi wyłącznie ewidencję statusów — nie
   ma płatności online i żaden operator płatności nie otrzymuje danych.
 - **Czcionki i zasoby:** wszystkie zasoby (w tym czcionki Unbounded i

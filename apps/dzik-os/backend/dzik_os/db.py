@@ -713,6 +713,45 @@ MIGRATIONS: list[tuple[int, str, list[str]]] = [
         "ALTER TABLE exercises ADD COLUMN tempo_hint VARCHAR(200)",
         "ALTER TABLE exercises ADD COLUMN breathing VARCHAR(400)",
     ]),
+    (20, "przepisywanie tekstu ze zdjęcia (OCR): zadania, tekst przy dokumencie, proweniencja produktu", [
+        # Wyłącznie addytywne: jedna nowa tabela + kolumny NULLable na
+        # istniejących. Dane sprzed migracji działają bez backfillu, a
+        # wycofanie sprowadza się do usunięcia tabeli i kolumn
+        # (plan wycofania: docs/OCR.md §migracja nr 20).
+        """
+        CREATE TABLE IF NOT EXISTS ocr_tasks (
+            id VARCHAR(40) PRIMARY KEY,
+            owner_user_id VARCHAR(40) NOT NULL REFERENCES users(id),
+            created_by VARCHAR(40) NOT NULL,
+            file_id VARCHAR(40) NOT NULL REFERENCES files(id),
+            purpose VARCHAR(20) NOT NULL,
+            document_id VARCHAR(40),
+            status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
+            engine VARCHAR(20),
+            mode_reason TEXT,
+            text TEXT,
+            proposal_json TEXT,
+            error_code VARCHAR(40),
+            error TEXT,
+            chars INTEGER,
+            duration_ms INTEGER,
+            approved_at VARCHAR(40),
+            result_ref VARCHAR(40),
+            created_at VARCHAR(40) NOT NULL,
+            started_at VARCHAR(40),
+            finished_at VARCHAR(40)
+        )
+        """,
+        "CREATE INDEX IF NOT EXISTS ix_ocr_tasks_owner ON ocr_tasks(owner_user_id)",
+        "CREATE INDEX IF NOT EXISTS ix_ocr_tasks_created_by ON ocr_tasks(created_by)",
+        "CREATE INDEX IF NOT EXISTS ix_ocr_tasks_status ON ocr_tasks(status)",
+        "ALTER TABLE documents ADD COLUMN ocr_text TEXT",
+        "ALTER TABLE documents ADD COLUMN ocr_engine VARCHAR(20)",
+        "ALTER TABLE documents ADD COLUMN ocr_at VARCHAR(40)",
+        "ALTER TABLE food_products ADD COLUMN origin_kind VARCHAR(20)",
+        "ALTER TABLE food_products ADD COLUMN origin_file_id VARCHAR(40)",
+        "ALTER TABLE food_products ADD COLUMN origin_engine VARCHAR(20)",
+    ]),
 ]
 
 

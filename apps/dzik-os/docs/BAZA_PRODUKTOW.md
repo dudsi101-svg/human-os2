@@ -109,6 +109,20 @@ danych:
    jednostki sztukowe, źródła i uwagi. Wcześniejszy eksport CSV (punkt 5)
    zachowuje te dane poza aplikacją.
 
+### Proweniencja wpisu (migracja nr 20)
+
+Trzy kolejne kolumny **NULLable** (`origin_kind`, `origin_file_id`,
+`origin_engine`) mówią, skąd wzięły się wartości produktu:
+
+* `NULL` — wpis ręczny albo z importu CSV (jak dotychczas),
+* `"OCR"` — formularz wypełniono wstępnie ze zdjęcia etykiety i
+  **zatwierdził go trener**; `origin_file_id` wskazuje plik źródłowy,
+  `origin_engine` użyty silnik (`LOCAL`/`EXTENDED`).
+
+Zdjęcie samo z siebie nigdy nie tworzy produktu — patrz `docs/OCR.md` §5
+(wynik to zawsze propozycja). Zakresy walidacji propozycji są dokładnie
+te same co przy imporcie CSV; wartość nierozpoznana zostaje pusta.
+
 ## 4. API: wyszukiwanie, filtrowanie, stronicowanie
 
 `GET /api/coach/food-products` (trener, własny katalog) oraz

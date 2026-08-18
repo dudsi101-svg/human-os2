@@ -1,5 +1,89 @@
 # Changelog — Dzik OS
 
+## 0.27.0 — 2026-08-18
+
+**Przepisywanie tekstu ze zdjęcia (OCR) w dwóch trybach.** Pełna
+architektura, limity maszyny, format propozycji, prywatność i plan
+wycofania migracji nr 20: `docs/OCR.md`.
+
+* **Silnik lokalny działa zawsze, tryb rozszerzony włącza się sam.**
+  Domyślnie rozpoznaje Tesseract uruchomiony na naszym serwerze (`pol+eng`,
+  wywoływany przez `subprocess` — uzasadnienie wyboru zamiast `pytesseract`
+  w `docs/OCR.md` §1). Gdy operator skonfiguruje dostawcę modelu ORAZ
+  podmiot danych ma aktywną zgodę `funkcje_ai`, to samo zadanie idzie
+  trybem rozszerzonym (model widzenia, który dodatkowo **strukturyzuje**
+  tabelę wartości odżywczych). **Kod wywołujący nie ma przełącznika** —
+  wybiera `ocr_queue.resolve_mode`, a widok tylko pokazuje `mode` i powód.
+* **Brak Tesseracta to STAN, nie awaria.** Środowisko testowe i
+  deweloperskie nie ma binarki: `GET /api/ocr/status` zwraca wtedy
+  `engine_available: false` z powodem po polsku, a zlecone zadanie kończy
+  się statusem FAILED i kodem `ENGINE_UNAVAILABLE` — nigdy wyjątkiem ani
+  500. Cały zestaw testów przechodzi bez Tesseracta (przebieg testowany na
+  atrapie silnika; obecność binarki to osobny, pomijany test).
+* **Kolejka jednoslotowa pod 512 MB RAM** (Fly.io shared-cpu-1x): jeden
+  wątek roboczy + semafor(1), poczekalnia 20 zadań (potem czytelne 429),
+  zmniejszenie obrazu do 1600 px w skali szarości PRZED rozpoznaniem,
+  twardy limit 25 s z zabiciem procesu, limit wejścia 8 MB i limit dzienny
+  na konto. Endpoint oddaje identyfikator zadania (202), front odpytuje, a
+  zdarzenie `ocr.task` (sam status, bez treści) idzie na **istniejącą**
+  magistralę `realtime.bus`. W `docs/OCR.md` §2 wprost: przy większym
+  ruchu maszynę trzeba podbić do 1 GB.
+* **Wynik to ZAWSZE propozycja.** Człowiek widzi rozpoznany tekst obok
+  zdjęcia, poprawia go i dopiero zatwierdza; samo rozpoznanie nie zapisuje
+  niczego poza własnym wierszem zadania. Zapisane dane niosą proweniencję
+  (źródło OCR + plik źródłowy + użyty silnik). Rezygnacja kasuje wiersz
+  razem z tekstem.
+* **Trzy zastosowania:** (a) **etykieta produktu** → wstępnie wypełniony
+  formularz nowego produktu (zakresy walidacji te same co przy imporcie
+  CSV; wartość nierozpoznana zostaje PUSTA, nigdy zgadywana ani
+  wyzerowana, a UI wypisuje, czego nie odczytano); (b) **kartka z planem
+  lub dietą** → tekst do edytora planu treningowego (nowy dzień: jedna
+  linia = jedna pozycja do poprawienia, bez zgadywania serii i powtórzeń)
+  albo do zaleceń w edytorze diety; (c) **skan dokumentu** → tekst
+  przeszukiwalny przy `Document` (oryginał pliku bez zmian; można przepisać
+  plik już wgrany do aplikacji albo sfotografować dokument na nowo) plus
+  wyszukiwarka dokumentów działająca również po tym tekście.
+* **Prywatność i konstytucja.** Cudzy plik i cudze zadanie = 404;
+  zdjęcie klienta przechodzi przez te same bramki relacji i zgód co każdy
+  inny plik. Do zewnętrznego dostawcy nie idzie nic bez zgody `funkcje_ai`
+  (jedna reguła `authz.ai_features_consent_active` dla wszystkich funkcji
+  AI), a gdy idzie — **wyłącznie zdjęcie i rodzaj zadania**, bez
+  identyfikatorów, e-maili i nazwisk. Odpowiedź modelu jest walidowana
+  ścisłym schematem: niezgodna = odrzucona, jedno ponowienie, potem wynik
+  lokalny. Rozpoznany tekst NIGDY nie trafia do logów ani metryk (tylko
+  liczniki i czasy), audyt notuje sam fakt rozpoznania, a zadania wchodzą
+  do eksportu danych (`export_version` 1.5) i znikają przy usunięciu konta.
+  Zaktualizowane: rejestr czynności (poz. 13), polityka prywatności
+  (dostawca modelu jako procesor — tylko gdy włączony), `ZGODY_MODEL.md`
+  i opis kategorii `funkcje_ai` (`CONSENT_DOC_VERSION` 2.1 → 2.2).
+* **Migracja nr 20** (jedna krotka, wyłącznie addytywna, wszystkie kolumny
+  NULLable): tabela `ocr_tasks` + `documents.ocr_text/ocr_engine/ocr_at` +
+  `food_products.origin_kind/origin_file_id/origin_engine`. Plan wycofania
+  w `docs/OCR.md` §3.
+* **Frontend:** wspólny komponent `OcrCapture` („Przepisz ze zdjęcia") —
+  zrobienie zdjęcia telefonem (`capture="environment"`), podgląd OBOK
+  edytowalnego tekstu, zatwierdzenie, ponowienie, anulowanie, jawny stan
+  „silnik niedostępny" i „tryb lokalny vs rozszerzony". Dostępność jak w
+  P10 (etykiety `for`/`id`, `aria-live` na zmianę stanu zadania,
+  `aria-expanded` na przełącznikach), kompresja obrazu po stronie klienta
+  jak w P11 — wydzielona do `src/imageCompress.ts` i wspólna z raportem
+  tygodniowym (jedna ścieżka zamiast dwóch kopii).
+* **Znane ograniczenia** (spisane w `docs/OCR.md` §7): Tesseract słabo
+  radzi sobie z **pismem odręcznym**; PDF nie jest obsługiwany (tylko
+  zdjęcia); kolumna „na porcję" na etykiecie potrafi zostać wzięta zamiast
+  „w 100 g" (dlatego wartości stoją obok zdjęcia do porównania); kolejka
+  żyje w pamięci jednego procesu (restart porzuca zadania w toku); brak
+  automatycznego czyszczenia starych zadań.
+* Testy: `backend/tests/test_ocr.py` (26 — brak silnika jako czytelny stan,
+  rozpoznanie na atrapie, propozycja pól produktu, odrzucenie niezgodnej
+  odpowiedzi modelu, brak zgody `funkcje_ai` → tryb lokalny z powodem,
+  cudze zadanie i cudzy plik → 404, limity typu i rozmiaru, kolejka
+  jednoslotowa, propozycja vs zatwierdzenie, eksport i usunięcie konta,
+  brak treści w logach i metrykach, audyt bez treści, idempotencja, limit
+  dzienny, zmniejszanie obrazu) oraz `frontend/scripts/test-ocr-utils.mjs`
+  (9). Migracja nr 20 na starej bazie: stub tabeli `documents` dołożony do
+  wszystkich testów migracji v1.
+
 ## 0.26.0 — 2026-08-18
 
 **Cotygodniowy digest trenera** (runda 6b.8 ze `SPEC_NASTEPNE_RUNDY.md`).

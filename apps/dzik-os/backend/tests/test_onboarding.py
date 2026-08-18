@@ -942,7 +942,9 @@ def test_eksport_obejmuje_rozmowe_z_historia_poprawek(seeded):
     seeded.post(f"/api/clients/{id_b}/onboarding/back", headers=hb)
     answer_ok(seeded, hb, id_b, "cel_glowny", "Druga wersja celu")
     export = seeded.get("/api/me/export", headers=hb).json()
-    assert export["export_version"] == "1.4"
+    # 1.5 = wersja eksportu po dołożeniu zadań przepisywania tekstu ze
+    # zdjęcia (ocr_tasks); rozmowa startowa wchodzi do eksportu jak wcześniej.
+    assert export["export_version"] == "1.5"
     assert len(export["onboarding_sessions"]) == 1
     wartosci = {a["value"] for a in export["onboarding_answers"]}
     assert {"Pierwsza wersja celu", "Druga wersja celu"} <= wartosci
@@ -1030,6 +1032,14 @@ def test_migrations_apply_to_existing_v1_database(tmp_path):
         conn.execute(text(
             "CREATE TABLE payment_records (id VARCHAR(40) PRIMARY KEY, "
             "paid_at VARCHAR(40))"))
+        # Stub tabeli documents w kształcie sprzed migracji nr 20 (na
+        # świeżej bazie tworzy ją ORM w migracji nr 1, więc tutaj musi
+        # powstać ręcznie, żeby ALTER-y nr 20 miały co zmieniać).
+        conn.execute(text(
+            "CREATE TABLE documents (id VARCHAR(40) PRIMARY KEY, "
+            "client_id VARCHAR(40), file_id VARCHAR(40), title VARCHAR(300), "
+            "category VARCHAR(40), uploaded_by VARCHAR(40), "
+            "created_at VARCHAR(40), status VARCHAR(20))"))
     applied = run_migrations(eng)
     assert applied == [v for v, _, _ in MIGRATIONS if v != 1]
     assert 17 in applied
