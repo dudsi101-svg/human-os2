@@ -40,6 +40,14 @@ class Settings:
         default_factory=lambda: _env("DZIK_BRAND_COACH", "Lubelski Dzik")
     )
     brand_accent: str = field(default_factory=lambda: _env("DZIK_BRAND_ACCENT", "#b8f339"))
+    # Web Push (VAPID): klucz prywatny trwały na wolumenie danych —
+    # generowany automatycznie przy pierwszym użyciu, bez sekretów w repo.
+    vapid_key_path: str = field(default_factory=lambda: _env("DZIK_VAPID_KEY", "data/vapid.pem"))
+    push_contact: str = field(
+        default_factory=lambda: _env("DZIK_PUSH_CONTACT", "mailto:admin@example.com")
+    )
+    # Strefa czasowa przypomnień harmonogramu (czas lokalny użytkowników).
+    timezone: str = field(default_factory=lambda: _env("DZIK_TZ", "Europe/Warsaw"))
 
     ALLOWED_UPLOAD_TYPES: ClassVar[dict[str, str]] = {
         "image/jpeg": ".jpg",
@@ -57,6 +65,7 @@ class Settings:
     def ensure_dirs(self) -> None:
         Path(self.upload_dir).mkdir(parents=True, exist_ok=True)
         Path(self.audit_db_path).parent.mkdir(parents=True, exist_ok=True)
+        Path(self.vapid_key_path).parent.mkdir(parents=True, exist_ok=True)
         if self.database_url.startswith("sqlite:///"):
             Path(self.database_url.removeprefix("sqlite:///")).parent.mkdir(
                 parents=True, exist_ok=True

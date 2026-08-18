@@ -19,6 +19,41 @@ self.addEventListener("message", (event) => {
   if (event.data && event.data.type === "SKIP_WAITING") self.skipWaiting();
 });
 
+// Web Push — treść przychodzi z backendu (nigdy dane zdrowotne,
+// tylko neutralne wezwanie do wejścia do aplikacji).
+self.addEventListener("push", (event) => {
+  let data = { title: "Dzik OS", body: "", url: "/" };
+  try {
+    data = { ...data, ...event.data.json() };
+  } catch {
+    /* pusty payload */
+  }
+  event.waitUntil(
+    self.registration.showNotification(data.title, {
+      body: data.body,
+      icon: "/icons/icon-192.png",
+      badge: "/icons/icon-192.png",
+      data: { url: data.url },
+    })
+  );
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const url = (event.notification.data && event.notification.data.url) || "/";
+  event.waitUntil(
+    clients.matchAll({ type: "window", includeUncontrolled: true }).then((wins) => {
+      for (const win of wins) {
+        if ("focus" in win) {
+          win.navigate(url);
+          return win.focus();
+        }
+      }
+      return clients.openWindow(url);
+    })
+  );
+});
+
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>

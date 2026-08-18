@@ -1,6 +1,6 @@
 import { FormEvent, useEffect, useState } from "react";
 import { api, clearSession, getUser, plDate } from "../../api";
-import { ErrorBox, Spinner, TopBar } from "../../components";
+import { ErrorBox, PushNotificationsCard, Spinner, TopBar } from "../../components";
 import { ConsentRow, GoalRow, ProfileFieldRow } from "../../types";
 
 const FIELD_LABELS: Record<string, string> = {
@@ -113,6 +113,7 @@ export default function Profile() {
   return (
     <div className="page">
       <TopBar title="Profil" />
+      <PushNotificationsCard />
       <ErrorBox error={error} />
       {ok && <div className="alert alert--info">{ok}</div>}
 

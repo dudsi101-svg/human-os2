@@ -5,6 +5,7 @@ import json
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
+from .. import push_service
 from ..authz import resolve_client_access
 from ..db import get_db
 from ..hos_bridge import record_event
@@ -134,6 +135,11 @@ def create_plan_version(
         payload={"plan_id": plan.id, "version_no": next_no, "reason": body.reason},
         summary=f"Plan '{plan.title}': nowa wersja v{next_no} — {body.reason}",
     )
+    if plan.client_id is not None:
+        push_service.send_to_user(
+            db, plan.client_id, "Nowa wersja planu treningowego",
+            "Trener zaktualizował Twój plan — sprawdź, co się zmieniło.", "/plan",
+        )
     db.commit()
     return {"version_id": version.id, "version_no": next_no}
 

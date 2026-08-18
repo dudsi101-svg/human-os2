@@ -3,6 +3,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
+from .. import push_service
 from ..authz import resolve_client_access
 from ..db import get_db
 from ..models import Message, MessageThread, User, new_id, now_iso
@@ -113,5 +114,11 @@ def send_message(
         file_id=body.file_id,
     )
     db.add(message)
+    # Push do drugiej strony wątku — bez treści wiadomości (tylko wezwanie).
+    recipient_id = thread.coach_id if user.id == thread.client_id else thread.client_id
+    push_service.send_to_user(
+        db, recipient_id, "Nowa wiadomość",
+        f"{user.display_name} napisał(a) do Ciebie.", f"/wiadomosci/{thread.id}",
+    )
     db.commit()
     return {"id": message.id, "created_at": message.created_at}

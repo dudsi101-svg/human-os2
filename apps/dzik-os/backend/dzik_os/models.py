@@ -543,6 +543,21 @@ class FoodProduct(Base):
     updated_at: Mapped[str] = mapped_column(String(40), default=now_iso)
 
 
+class PushSubscription(Base):
+    """Subskrypcja Web Push (opt-in użytkownika). Treść powiadomień nigdy
+    nie zawiera danych zdrowotnych — tylko neutralne wezwanie do wejścia
+    do aplikacji. Wygaśnięte subskrypcje (404/410 od dostawcy) są usuwane."""
+
+    __tablename__ = "push_subscriptions"
+
+    id: Mapped[str] = mapped_column(String(40), primary_key=True)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
+    endpoint: Mapped[str] = mapped_column(String(1000), unique=True)
+    p256dh: Mapped[str] = mapped_column(String(200))
+    auth: Mapped[str] = mapped_column(String(100))
+    created_at: Mapped[str] = mapped_column(String(40), default=now_iso)
+
+
 class ConsentRecord(Base):
     """Rejestr zgód — trwała warstwa dla kontraktu
     hos_engine.consent.ConsentRegistry (patrz hos_bridge.ConsentService).

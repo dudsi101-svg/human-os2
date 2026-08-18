@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { getUser } from "../api";
-import { LogoutButton, TopBar } from "../components";
+import { LogoutButton, PushNotificationsCard, TopBar } from "../components";
 
 export default function More() {
   const user = getUser()!;
@@ -13,6 +13,7 @@ export default function More() {
         <div><small>{user.email}</small></div>
         <div><small>Rola: {user.roles.join(", ")}</small></div>
       </div>
+      {!isClient && <PushNotificationsCard />}
       <div className="list">
         {isClient && (
           <>

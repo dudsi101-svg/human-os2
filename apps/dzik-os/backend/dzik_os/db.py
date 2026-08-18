@@ -146,6 +146,22 @@ MIGRATIONS: list[tuple[int, str, list[str]]] = [
         """,
         "CREATE INDEX IF NOT EXISTS ix_food_products_coach ON food_products(coach_id)",
     ]),
+    (6, "web push subscriptions", [
+        """
+        CREATE TABLE IF NOT EXISTS push_subscriptions (
+            id VARCHAR(40) PRIMARY KEY,
+            user_id VARCHAR(40) NOT NULL REFERENCES users(id),
+            endpoint VARCHAR(1000) NOT NULL UNIQUE,
+            p256dh VARCHAR(200) NOT NULL,
+            auth VARCHAR(100) NOT NULL,
+            created_at VARCHAR(40) NOT NULL
+        )
+        """,
+        (
+            "CREATE INDEX IF NOT EXISTS ix_push_subscriptions_user "
+            "ON push_subscriptions(user_id)"
+        ),
+    ]),
 ]
 
 

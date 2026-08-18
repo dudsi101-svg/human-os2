@@ -20,6 +20,9 @@ dependencies = [
   "email-validator>=2",
   "jsonschema>=4.20,<5",
   "openpyxl>=3.1,<4",
+  "pywebpush>=2,<3",
+  # zoneinfo wymaga bazy stref czasowych także na obrazach slim bez tzdata
+  "tzdata",
 ]
 
 [project.optional-dependencies]

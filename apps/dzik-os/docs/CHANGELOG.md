@@ -1,5 +1,25 @@
 # Changelog — Dzik OS
 
+## 0.7.0 — 2026-08-18
+
+Runda 6b.5 specyfikacji: **powiadomienia push (PWA)**.
+
+* Web Push z kluczami VAPID generowanymi automatycznie i trwałymi na
+  wolumenie danych (zero sekretów w repo); tabela `push_subscriptions`
+  (migracja nr 6), jawny opt-in w Profilu (klient) / Więcej (trener),
+  wyłączane jednym przyciskiem; zdarzenia PUSH_SUBSCRIBED/UNSUBSCRIBED
+  w audycie.
+* Powiadomienia przy: nowej wiadomości (bez treści!), odpowiedzi trenera
+  na raport, nowym raporcie od klienta (do trenera), nowej wersji planu.
+* Pętla przypomnień (co 60 s, strefa DZIK_TZ): elementy harmonogramu z
+  ustawioną porą + jednorazowe przypomnienia trenera o 08:00; dedup per
+  dzień. Wymaga stale działającej maszyny — `min_machines_running = 1`
+  w fly.toml (koszt: kilka USD/mies., opisany w komentarzu).
+* Zasady: treść push nigdy nie zawiera danych zdrowotnych ani treści
+  wiadomości; liczba wysłanych powiadomień nie jest metryką niczego.
+* Testy: 100 → 105 (subskrypcje, triggery z podmienioną wysyłką,
+  pętla przypomnień z dedupem).
+
 ## 0.6.0 — 2026-08-18
 
 Runda 6a wg zatwierdzonej specyfikacji (docs/SPEC_NASTEPNE_RUNDY.md;

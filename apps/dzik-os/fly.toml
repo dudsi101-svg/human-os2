@@ -29,7 +29,11 @@ primary_region = "fra"   # Frankfurt (najbliższy region Fly dla Polski)
   force_https = true
   auto_stop_machines = "stop"
   auto_start_machines = true
-  min_machines_running = 0
+  # 1 maszyna zawsze aktywna: pętla przypomnień push (reminder_loop.py)
+  # musi działać także, gdy nikt nie ma otwartej aplikacji. Uwaga: to
+  # wychodzi poza w pełni darmowy tryb Fly (maszyna nie usypia) — koszt
+  # rzędu kilku USD/mies. przy shared-cpu-1x/512MB.
+  min_machines_running = 1
 
 [[mounts]]
   source = "dzik_data"

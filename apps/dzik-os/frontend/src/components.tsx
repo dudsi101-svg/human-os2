@@ -157,6 +157,66 @@ export function AuthImage({ fileId, alt }: { fileId: string; alt: string }) {
   return <img src={url} alt={alt} />;
 }
 
+/** Opt-in powiadomień push — status + włącz/wyłącz jednym przyciskiem. */
+export function PushNotificationsCard() {
+  const [state, setState] = useState<"unsupported" | "off" | "on" | "busy">("busy");
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    import("./push").then(async (push) => {
+      if (!push.pushSupported()) return setState("unsupported");
+      const sub = await push.currentSubscription();
+      setState(sub ? "on" : "off");
+    }).catch(() => setState("unsupported"));
+  }, []);
+
+  async function toggle() {
+    setError(null);
+    const push = await import("./push");
+    const prev = state;
+    setState("busy");
+    try {
+      if (prev === "on") {
+        await push.disablePush();
+        setState("off");
+      } else {
+        await push.enablePush();
+        setState("on");
+      }
+    } catch (e) {
+      setError((e as Error).message);
+      setState(prev);
+    }
+  }
+
+  return (
+    <div className="card">
+      <h3>Przypomnienia push</h3>
+      {state === "unsupported" ? (
+        <p className="dim" style={{ fontSize: "0.85rem" }}>
+          Ta przeglądarka nie obsługuje powiadomień push. Na iPhonie
+          zainstaluj aplikację na ekranie głównym (Udostępnij → „Do ekranu
+          początkowego") i spróbuj ponownie.
+        </p>
+      ) : (
+        <>
+          <p className="dim" style={{ fontSize: "0.85rem" }}>
+            Przypomnienia o harmonogramie i powiadomienia o wiadomościach,
+            raportach i planie — bez treści zdrowotnych. Możesz wyłączyć w
+            każdej chwili.
+          </p>
+          <ErrorBox error={error} />
+          <button className={`btn btn--small ${state === "on" ? "btn--ghost" : ""}`}
+            disabled={state === "busy"} onClick={toggle}>
+            {state === "busy" ? "…" : state === "on" ? "Wyłącz powiadomienia" : "Włącz powiadomienia"}
+          </button>
+          {state === "on" && <span className="badge badge--ok" style={{ marginLeft: 8 }}>włączone</span>}
+        </>
+      )}
+    </div>
+  );
+}
+
 export interface ProgressPhotoRow {
   id: string;
   file_id: string;

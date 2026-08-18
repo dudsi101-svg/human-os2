@@ -87,6 +87,12 @@ produkt jako **sugestię do ręcznego wpisania** w `nutrition_plan_versions`
 — zgodnie z zasadą Human OS, że AI/algorytm nigdy nie generuje ani nie
 zmienia diety autonomicznie.
 
+## Powiadomienia push
+
+| Tabela | Uwagi |
+|---|---|
+| `push_subscriptions` | subskrypcja Web Push (endpoint unique, klucze p256dh/auth, user_id). **Opt-in**: powstaje wyłącznie po jawnej zgodzie w UI (zdarzenie PUSH_SUBSCRIBED), usuwana jednym przyciskiem (PUSH_UNSUBSCRIBED) lub automatycznie po 404/410 od dostawcy. Treść powiadomień nigdy nie zawiera danych zdrowotnych ani treści wiadomości — wyłącznie neutralne wezwanie (push_service.py). Klucz VAPID generowany automatycznie, trwały na wolumenie danych (poza repo). Przypomnienia harmonogramu wysyła pętla w procesie (reminder_loop.py, strefa DZIK_TZ). |
+
 ## Komunikacja i płatności
 
 | Tabela | Uwagi |

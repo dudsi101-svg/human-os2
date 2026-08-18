@@ -9,6 +9,7 @@ _tmp = tempfile.mkdtemp(prefix="dzik-tests-")
 os.environ["DZIK_DATABASE_URL"] = f"sqlite:///{_tmp}/test.db"
 os.environ["DZIK_AUDIT_DB"] = f"{_tmp}/audit.db"
 os.environ["DZIK_UPLOAD_DIR"] = f"{_tmp}/uploads"
+os.environ["DZIK_VAPID_KEY"] = f"{_tmp}/vapid.pem"
 os.environ["DZIK_ENV"] = "test"
 os.environ["DZIK_BCRYPT_ROUNDS"] = "4"  # szybkie hasła w testach
 

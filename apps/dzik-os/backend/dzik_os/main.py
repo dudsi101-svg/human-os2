@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import os
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -28,6 +29,7 @@ from .routers import (
     plans,
     privacy,
     profile,
+    push,
     records,
     schedule,
     today,
@@ -49,7 +51,15 @@ async def lifespan(app: FastAPI):
         # zatrzymać startu aplikacji na stagingu.
         except Exception as exc:  # noqa: BLE001  # pragma: no cover - diagnostyka staging
             print(f"[dzik-os] seed demo nieudany: {exc}")
-    yield
+    # Pętla przypomnień push (harmonogram + jednorazowe przypomnienia).
+    # Wymaga działającej maszyny — patrz fly.toml (min_machines_running).
+    from . import reminder_loop
+
+    reminders = asyncio.create_task(reminder_loop.run_reminder_loop())
+    try:
+        yield
+    finally:
+        reminders.cancel()
 
 
 def create_app() -> FastAPI:
@@ -74,7 +84,7 @@ def create_app() -> FastAPI:
         measurements.router, messages.router, files.router,
         payments.router, privacy.router, today.router, admin.router,
         monitoring.router, knowledge.router, exercises.router, food_catalog.router,
-        records.router,
+        records.router, push.router,
     ):
         app.include_router(router)
 

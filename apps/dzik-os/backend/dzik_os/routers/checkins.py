@@ -5,11 +5,20 @@ import json
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
+from .. import push_service
 from ..ai_provider import provider as ai_provider
 from ..authz import require_client_self, resolve_client_access
 from ..db import get_db
 from ..hos_bridge import record_event
-from ..models import CheckinRevision, ProgressPhoto, User, WeeklyCheckin, new_id, now_iso
+from ..models import (
+    CheckinRevision,
+    CoachClientRelationship,
+    ProgressPhoto,
+    User,
+    WeeklyCheckin,
+    new_id,
+    now_iso,
+)
 from ..schemas import CheckinIn, CheckinReviewIn
 from ..security import current_user, require_role
 
@@ -98,6 +107,18 @@ def submit_checkin(
                  "revision": checkin.revision},
         summary=f"Raport tygodniowy {body.week_start} (rewizja {checkin.revision})",
     )
+    # Push do trenera prowadzącego (bez treści raportu).
+    rels = (
+        db.query(CoachClientRelationship)
+        .filter_by(client_id=client_id, status="ACTIVE")
+        .all()
+    )
+    for rel in rels:
+        push_service.send_to_user(
+            db, rel.coach_id, "Nowy raport tygodniowy",
+            f"{user.display_name} wysłał(a) raport do oceny.",
+            f"/trener/klient/{client_id}",
+        )
     db.commit()
     return {"id": checkin.id, "revision": checkin.revision}
 
@@ -168,6 +189,10 @@ def review_checkin(
                  "rating": body.rating},
         summary=f"Odpowiedź trenera na raport {checkin.week_start}"
         + (f" (ocena {body.rating}/5)" if body.rating else ""),
+    )
+    push_service.send_to_user(
+        db, checkin.client_id, "Trener odpowiedział na Twój raport",
+        "Zajrzyj do aplikacji, żeby przeczytać odpowiedź.", "/raport",
     )
     db.commit()
     return {"ok": True}
