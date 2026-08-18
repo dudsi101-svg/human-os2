@@ -1,6 +1,6 @@
 import { FormEvent, useEffect, useState } from "react";
 import { api, clearSession, getUser, plDate } from "../../api";
-import { ErrorBox, PushNotificationsCard, Spinner, TopBar } from "../../components";
+import { ErrorBox, PushNotificationsCard, SessionsCard, Spinner, TopBar } from "../../components";
 import { ConsentRow, GoalRow, ProfileFieldRow } from "../../types";
 
 const FIELD_LABELS: Record<string, string> = {
@@ -185,6 +185,8 @@ export default function Profile() {
           </div>
         ))}
       </div>
+
+      <SessionsCard />
 
       <div className="card">
         <h3>Twoje dane</h3>

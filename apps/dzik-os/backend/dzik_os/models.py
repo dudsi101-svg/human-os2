@@ -65,6 +65,11 @@ class RoleGrant(Base):
 
 
 class AuthSession(Base):
+    """Sesja uwierzytelnienia. Serwer przechowuje WYŁĄCZNIE hash SHA-256
+    tokenu (token_hash) — sam token zna tylko klient; wyciek bazy nie
+    pozwala przejąć sesji. Unieważnienie = revoked_at (append-only,
+    wiersz nigdy nie jest usuwany)."""
+
     __tablename__ = "auth_sessions"
 
     id: Mapped[str] = mapped_column(String(40), primary_key=True)
@@ -74,6 +79,9 @@ class AuthSession(Base):
     expires_at: Mapped[str] = mapped_column(String(40))
     revoked_at: Mapped[str | None] = mapped_column(String(40), nullable=True)
     user_agent: Mapped[str | None] = mapped_column(String(300), nullable=True)
+    # Ostatnie użycie tokenu (rozdzielczość ~5 min — patrz security.current_user);
+    # pokazywane na ekranie aktywnych sesji.
+    last_used_at: Mapped[str | None] = mapped_column(String(40), nullable=True)
 
 
 class CoachClientRelationship(Base):

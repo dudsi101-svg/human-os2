@@ -31,7 +31,11 @@ def verify_password(password: str, password_hash: str) -> bool:
 
 
 def _token_hash(token: str) -> str:
-    return hashlib.sha256(token.encode("ascii")).hexdigest()
+    """Serwer przechowuje wyłącznie hash SHA-256 tokenu (AuthSession.token_hash);
+    sam token nigdy nie trafia do bazy, logów ani zdarzeń audytu. Kodowanie
+    utf-8 (identyczne z ascii dla tokenów z secrets.token_urlsafe) chroni
+    przed 500 przy spreparowanym nagłówku spoza ASCII."""
+    return hashlib.sha256(token.encode("utf-8")).hexdigest()
 
 
 def create_session(db: Session, user: User, user_agent: str | None = None) -> str:
@@ -49,12 +53,20 @@ def create_session(db: Session, user: User, user_agent: str | None = None) -> st
     return token
 
 
-def revoke_session(db: Session, token: str) -> None:
-    row = (
+def session_for_token(db: Session, token: str) -> AuthSession | None:
+    return (
         db.query(AuthSession).filter(AuthSession.token_hash == _token_hash(token)).one_or_none()
     )
-    if row is not None:
+
+
+def revoke_session(db: Session, token: str) -> AuthSession | None:
+    """Unieważnia sesję wskazaną tokenem. Zwraca wiersz, jeśli sesja była
+    aktywna (do zdarzenia audytu); None dla nieznanego/już unieważnionego."""
+    row = session_for_token(db, token)
+    if row is not None and row.revoked_at is None:
         row.revoked_at = now_iso()
+        return row
+    return None
 
 
 class LoginRateLimiter:
@@ -84,6 +96,11 @@ class LoginRateLimiter:
 
 
 login_rate_limiter = LoginRateLimiter()
+
+# Ten sam mechanizm chroni zmianę hasła (klucz: id użytkownika) — endpoint
+# przyjmuje obecne hasło, więc bez limitu byłby wektorem brute force na
+# hasło już zalogowanego (np. przejęta karta przeglądarki).
+password_change_rate_limiter = LoginRateLimiter()
 
 
 def _extract_token(request: Request) -> str | None:
@@ -116,6 +133,15 @@ def current_user(request: Request, db: Session = Depends(get_db)) -> User:
     user = db.get(User, row.user_id)
     if user is None or user.status != "ACTIVE":
         raise HTTPException(status_code=401, detail="Konto nieaktywne")
+    # Znacznik ostatniego użycia sesji (ekran aktywnych sesji). Rozdzielczość
+    # ~5 min: zapis nie przy każdym żądaniu, tylko gdy poprzedni znacznik jest
+    # starszy — commit tutaj jest bezpieczny (pierwsza operacja żądania,
+    # brak innych oczekujących zmian w tej sesji ORM).
+    now = datetime.now(UTC)
+    threshold = (now - timedelta(minutes=5)).isoformat()
+    if row.last_used_at is None or row.last_used_at < threshold:
+        row.last_used_at = now.isoformat()
+        db.commit()
     if (
         user.must_change_password
         and request.url.path not in _PASSWORD_CHANGE_ALLOWED_PATHS
@@ -126,16 +152,22 @@ def current_user(request: Request, db: Session = Depends(get_db)) -> User:
     return user
 
 
-def revoke_other_sessions(db: Session, user_id: str, keep_token: str | None) -> None:
+def revoke_other_sessions(db: Session, user_id: str, keep_token: str | None) -> int:
+    """Unieważnia wszystkie aktywne sesje użytkownika poza keep_token
+    (keep_token=None → wszystkie, także bieżącą). Zwraca liczbę
+    unieważnionych sesji (do zdarzenia audytu)."""
     keep_hash = _token_hash(keep_token) if keep_token else None
     rows = (
         db.query(AuthSession)
         .filter(AuthSession.user_id == user_id, AuthSession.revoked_at.is_(None))
         .all()
     )
+    revoked = 0
     for row in rows:
         if row.token_hash != keep_hash:
             row.revoked_at = now_iso()
+            revoked += 1
+    return revoked
 
 
 def active_roles(db: Session, user_id: str) -> set[str]:

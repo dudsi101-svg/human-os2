@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { getUser } from "../api";
-import { LogoutButton, PushNotificationsCard, TopBar } from "../components";
+import { LogoutButton, PushNotificationsCard, SessionsCard, TopBar } from "../components";
 
 export default function More() {
   const user = getUser()!;
@@ -14,6 +14,8 @@ export default function More() {
         <div><small>Rola: {user.roles.join(", ")}</small></div>
       </div>
       {!isClient && <PushNotificationsCard />}
+      {/* Klient ma sekcję aktywnych sesji w Profilu; trener/admin tutaj. */}
+      {!isClient && <SessionsCard />}
       {user.roles.includes("COACH") && (
         <div className="list" style={{ marginBottom: 10 }}>
           <Link className="card" to="/trener/konsultacje">📅 Terminarz konsultacji</Link>

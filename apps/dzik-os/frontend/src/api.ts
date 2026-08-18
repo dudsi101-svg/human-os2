@@ -56,7 +56,10 @@ async function request<T>(
     body: form ?? (body !== undefined ? JSON.stringify(body) : undefined),
     credentials: "same-origin",
   });
-  if (resp.status === 401) {
+  // 401 przy logowaniu to błędne dane (komunikat z serwera, bez przekierowania);
+  // każde inne 401 = sesja wygasła/unieważniona — czyścimy stan i wracamy do
+  // logowania (obsługuje też wygaśnięcie sesji w innej karcie).
+  if (resp.status === 401 && path !== "/api/auth/login") {
     clearSession();
     if (!location.pathname.startsWith("/login")) location.assign("/login");
     throw new ApiError(401, "Sesja wygasła");
@@ -89,6 +92,66 @@ export const api = {
     return request<T>("POST", path, undefined, form);
   },
 };
+
+// ——— Operacje uwierzytelniania — zawsze przez wspólnego klienta API ———
+// (żadnych gołych fetchy: nagłówek Authorization musi trafić do serwera,
+// inaczej sesja nie zostanie unieważniona po stronie backendu).
+
+export interface LoginResponse {
+  token: string;
+  user: SessionUser;
+}
+
+export async function login(email: string, password: string): Promise<SessionUser> {
+  const data = await api.post<LoginResponse>("/api/auth/login", { email, password });
+  setSession(data.token, data.user);
+  return data.user;
+}
+
+/** Wylogowanie: serwer unieważnia sesję (revoked_at), a lokalny stan jest
+ * czyszczony ZAWSZE — także przy utracie połączenia (finally). */
+export async function logout(): Promise<void> {
+  try {
+    await api.post("/api/auth/logout");
+  } catch {
+    // Brak sieci / wygasła sesja — lokalne wylogowanie i tak następuje.
+  } finally {
+    clearSession();
+    location.assign("/login");
+  }
+}
+
+/** Zmiana hasła z rotacją tokenu: stary token jest unieważniany na
+ * serwerze, odpowiedź niesie nowy — podmieniamy go w bieżącej sesji. */
+export async function changePassword(
+  currentPassword: string,
+  newPassword: string
+): Promise<void> {
+  const data = await api.post<{ ok: boolean; token: string }>(
+    "/api/auth/change-password",
+    { current_password: currentPassword, new_password: newPassword }
+  );
+  const user = getUser();
+  if (user) setSession(data.token, { ...user, must_change_password: false });
+}
+
+export interface AuthSessionRow {
+  id: string;
+  created_at: string;
+  last_used_at: string | null;
+  expires_at: string;
+  user_agent: string | null;
+  current: boolean;
+}
+
+export const listSessions = () =>
+  api.get<{ sessions: AuthSessionRow[] }>("/api/auth/sessions");
+
+export const revokeSession = (sessionId: string) =>
+  api.post<{ ok: boolean }>(`/api/auth/sessions/${sessionId}/revoke`);
+
+export const revokeOtherSessions = () =>
+  api.post<{ ok: boolean; revoked: number }>("/api/auth/sessions/revoke-others");
 
 export async function fetchFileBlob(fileId: string): Promise<Blob> {
   return api.get<Blob>(`/api/files/${fileId}`);

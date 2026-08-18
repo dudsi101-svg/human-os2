@@ -21,7 +21,7 @@ from dzik_os import seed as seed_module
 from dzik_os.db import Base, engine, run_migrations
 from dzik_os.main import app
 from dzik_os.models import RoleGrant, User, new_id
-from dzik_os.security import hash_password, login_rate_limiter
+from dzik_os.security import hash_password, login_rate_limiter, password_change_rate_limiter
 
 COACH = {"email": "dzik@example.com", "password": "DzikTrener#2026"}
 CLIENT_A = {"email": "klient.a@example.com", "password": "KlientA#2026!x"}
@@ -40,6 +40,7 @@ def _reset_state() -> None:
     if audit.exists():
         audit.unlink()
     login_rate_limiter._attempts.clear()
+    password_change_rate_limiter._attempts.clear()
     run_migrations()
 
 

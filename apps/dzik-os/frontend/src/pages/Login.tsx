@@ -1,5 +1,5 @@
 import { FormEvent, useState } from "react";
-import { setSession, SessionUser } from "../api";
+import { ApiError, login } from "../api";
 import { ErrorBox } from "../components";
 
 export default function Login() {
@@ -13,25 +13,17 @@ export default function Login() {
     setBusy(true);
     setError(null);
     try {
-      const resp = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
-      const data = await resp.json();
-      if (!resp.ok) {
-        setError(typeof data.detail === "string" ? data.detail : "Błąd logowania");
-        return;
-      }
-      setSession(data.token as string, data.user as SessionUser);
-      if (data.user.must_change_password) {
+      const user = await login(email, password);
+      if (user.must_change_password) {
         location.assign("/haslo");
         return;
       }
-      const roles: string[] = data.user.roles;
-      location.assign(roles.includes("COACH") ? "/trener" : roles.includes("ADMIN") ? "/admin" : "/");
-    } catch {
-      setError("Brak połączenia z serwerem");
+      location.assign(
+        user.roles.includes("COACH") ? "/trener" : user.roles.includes("ADMIN") ? "/admin" : "/"
+      );
+    } catch (err) {
+      // Serwer odpowiada jednym komunikatem niezależnie od istnienia konta.
+      setError(err instanceof ApiError ? err.message : "Brak połączenia z serwerem");
     } finally {
       setBusy(false);
     }

@@ -31,12 +31,11 @@ def test_login_rate_limit(seeded):
 
 
 def test_logout_revokes_session(seeded):
+    """Wylogowanie z nagłówkiem Bearer (tak wysyła klient API frontendu)
+    unieważnia sesję po stronie serwera — bez polegania na ciasteczku."""
     headers = login(seeded, ADMIN)
     assert seeded.get("/api/auth/me", headers=headers).status_code == 200
-    token = headers["Authorization"].removeprefix("Bearer ")
-    seeded.cookies.set("dzik_session", token)
-    seeded.post("/api/auth/logout")
-    seeded.cookies.clear()
+    seeded.post("/api/auth/logout", headers=headers)
     assert seeded.get("/api/auth/me", headers=headers).status_code == 401
 
 
