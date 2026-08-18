@@ -42,6 +42,7 @@ from ..models import (
     now_iso,
 )
 from ..notifications_provider import provider as notifications
+from ..payment_state import DUE_STATUSES
 from ..schemas import RelationshipIn
 from ..security import _token_hash, active_roles, require_role
 
@@ -341,7 +342,9 @@ def _client_flags(db: Session, coach: User, client: User, today) -> dict:
         .filter(
             PaymentSchedule.client_id == client.id,
             PaymentSchedule.coach_id == coach.id,
-            PaymentRecord.status.in_(["PENDING", "OVERDUE"]),
+            # Wymagalne wg maszyny stanów płatności (runda 15) — FAILED
+            # (nieudana próba) to nadal należność do zapłaty.
+            PaymentRecord.status.in_(list(DUE_STATUSES)),
             PaymentRecord.due_date < today.isoformat(),
         )
         .count()

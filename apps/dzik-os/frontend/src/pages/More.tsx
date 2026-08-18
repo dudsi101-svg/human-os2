@@ -27,6 +27,9 @@ export default function More() {
           <Link className="card card--nav" to="/trener/konsultacje">
             <Icon name="calendar" /><span>Terminarz konsultacji</span>
           </Link>
+          <Link className="card card--nav" to="/trener/rozliczenia">
+            <Icon name="card" /><span>Pojednanie płatności</span>
+          </Link>
         </div>
       )}
       <div className="list">

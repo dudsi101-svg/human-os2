@@ -1,5 +1,76 @@
 # Changelog — Dzik OS
 
+## 0.18.0 — 2026-08-18
+
+Runda 15: **wiarygodny moduł płatności** — jednoznaczne rozdzielenie
+harmonogramu należności od faktycznie zarejestrowanych transakcji.
+Pełny opis modelu, diagram stanów, zasady idempotencji, migracja z planem
+wycofania i raport pojednania: `docs/PLATNOSCI.md`. System pozostaje
+**ewidencją ręczną** (realna integracja operatora świadomie odłożona —
+przygotowana wyłącznie architektura z testami kontraktu).
+
+* **Rozdzielone modele**: należność/okres rozliczeniowy (`payment_records`,
+  jak dotąd) vs append-only transakcje (`payment_transactions`: wpłata
+  ręczna, wpłata operatora, zwrot, korekta, korekta odwracająca) +
+  historia przejść statusu per rekord (`payment_status_changes`) + próby
+  płatności i zdarzenia operatora (`payment_attempts`,
+  `payment_provider_events`). Faktury: tylko pole referencji dokumentu
+  zewnętrznego (`document_ref`) — bez generatora.
+* **Kontrolowana maszyna stanów** (`payment_state.py`): PLANNED → PENDING
+  → (IN_PROGRESS) → PAID / OVERDUE / FAILED / CANCELLED /
+  PARTIALLY_REFUNDED / REFUNDED, z jawną tablicą dozwolonych przejść
+  egzekwowaną w backendzie — nieprawidłowe przejście = 422.
+* **Frontend nie ustawia „opłacona"**: ogólny endpoint `/status` przyjmuje
+  wyłącznie statusy administracyjne (PENDING/OVERDUE/CANCELLED); statusy
+  pieniężne wyłącznie przez dedykowane endpointy trenera-właściciela:
+  `mark-paid` (kto i kiedy oznaczył — widoczne w UI obu paneli), `refund`
+  (zwroty częściowe i pełne), `adjust` (korekta z obowiązkowym powodem),
+  `transactions/{id}/reverse` (cofnięcie omyłki bez usuwania śladu).
+  Wszystkie z idempotencją P11 (`idempotency_key`); podwójna wpłata bez
+  klucza = 422 (PAID→PAID nie istnieje).
+* **Kwoty w groszach + waluta przy każdej kwocie** (także zwroty/korekty);
+  waluta operacji musi się zgadzać z walutą należności (422), sumy nigdy
+  nie mieszają walut.
+* **Architektura operatora (bez integracji)**: port
+  `PaymentProviderPort` (podpis webhooka, parsowanie zdarzeń) +
+  `NullPaymentProvider` + wspólne przetwarzanie
+  `payment_events.process_webhook()` (idempotencja po `event_id`,
+  powtórka=DUPLICATE, konflikt treści=CONFLICT, zła kolejność=STALE,
+  PAID nigdy nie cofane, zły podpis odrzucany bez zapisu; przekierowanie
+  przeglądarki niezaufane — żaden kod nie czyta parametrów powrotu).
+  Endpoint HTTP webhooka celowo nie istnieje; instrukcja podłączenia
+  prawdziwego operatora w `docs/PLATNOSCI.md` §7.
+* **Przypomnienia o płatności** w pętli przypomnień: wyłącznie dla
+  należności realnie wymagalnych (status sprawdzany w chwili wysyłki —
+  zero przypomnień po opłaceniu), w dniu terminu i co 7 dni zaległości;
+  treść neutralna bez kwot i nazw pakietów (ekran blokady).
+* **Widok klienta** (Płatności): podział na należności i historię,
+  wpisy transakcji (kto/kiedy oznaczył, zwroty, cofnięcia — przekreślone,
+  nigdy usuwane).
+* **Widok trenera** (karta klienta → Płatności): filtry
+  zaległe/nadchodzące/opłacone, licznik zaległych, akcje wg stanu,
+  rozwijana historia per rekord (przejścia + transakcje z możliwością
+  cofnięcia). Nowy widok **„Pojednanie płatności"** (`/trener/rozliczenia`
+  + `GET /api/payments/reconciliation`): należności vs zebrane/zwroty/
+  korekty per okres, sumy per waluta, kolumna źródła (dziś adnotacje
+  ręczne; format gotowy pod operatora).
+* **Migracja schematu nr 15** (nr 14 zarezerwowany dla równoległej rundy):
+  addytywna — statusy starych rekordów są podzbiorem nowego słownika
+  (mapowanie tożsamościowe, zero utraty danych), `marked_at` uzupełnione
+  z `paid_at`, nowe tabele startują puste (bez fabrykowania historii);
+  plan wycofania w `docs/PLATNOSCI.md` §5.
+* **Świadome zmiany starych testów**: `test_payments.py` i
+  `test_e2e_paths.py` oznaczają płatność przez `mark-paid` (zamiast
+  `/status PAID`); `test_idor.py` testuje IDOR statusem administracyjnym
+  + `mark-paid` (schemat odrzuca „PAID" w `/status` zanim dojdzie do
+  autoryzacji); stub `payment_records` dopisany do testu migracji v1.
+* Testy: 335 → 365 backend (maszyna stanów, podwójna płatność
+  z idempotencją i bez, zwrot częściowy/pełny/ponad stan, korekta
+  + cofnięcie z pełnym śladem, różne waluty, kontrakt webhooka na Null
+  — powtórka/zły podpis/zła kolejność/konflikt, IDOR wszystkich nowych
+  endpointów, przypomnienia wg realnego statusu, migracja v1→v15
+  z danymi płatności).
+
 ## 0.17.0 — 2026-08-18
 
 Runda czysto prezentacyjna: **responsywność, wygląd i dostępność**

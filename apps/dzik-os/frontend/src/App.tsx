@@ -25,6 +25,7 @@ import Messages from "./pages/Messages";
 import Thread from "./pages/Thread";
 import Clients from "./pages/coach/Clients";
 import ClientDetail from "./pages/coach/ClientDetail";
+import Reconciliation from "./pages/coach/Reconciliation";
 import Templates from "./pages/coach/Templates";
 import CoachKnowledge from "./pages/coach/Knowledge";
 import Admin from "./pages/Admin";
@@ -102,6 +103,7 @@ export default function App() {
             <Route path="/trener/szablony" element={<Templates />} />
             <Route path="/trener/wiedza" element={<CoachKnowledge />} />
             <Route path="/trener/konsultacje" element={<CoachConsultations />} />
+            <Route path="/trener/rozliczenia" element={<Reconciliation />} />
           </>
         )}
         {roles.includes("ADMIN") && <Route path="/admin" element={<Admin />} />}

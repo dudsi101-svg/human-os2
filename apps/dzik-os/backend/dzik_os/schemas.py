@@ -238,8 +238,59 @@ class PaymentScheduleIn(BaseModel):
 
 
 class PaymentStatusIn(BaseModel):
-    status: str = Field(pattern="^(PENDING|PAID|OVERDUE|CANCELLED)$")
+    """Ogólna zmiana statusu należności — WYŁĄCZNIE statusy administracyjne
+    (payment_state.ADMINISTRATIVE_TARGETS). Statusy pieniężne (PAID,
+    REFUNDED, ...) mają dedykowane endpointy rejestrujące transakcję —
+    frontend nie może dowolnie ustawić „opłacona"."""
+
+    status: str = Field(pattern="^(PENDING|OVERDUE|CANCELLED)$")
     note: str | None = Field(default=None, max_length=1000)
+
+
+class PaymentMarkPaidIn(BaseModel):
+    """Ręczne oznaczenie „opłacona": tworzy transakcję MANUAL_PAYMENT
+    (kto/kiedy widoczne w UI) + przejście statusu. document_ref to numer
+    dokumentu zewnętrznego (faktura/przelew) — bez generatora faktur."""
+
+    amount_cents: int | None = Field(default=None, gt=0)  # domyślnie kwota należności
+    currency: str | None = Field(default=None, max_length=10)
+    note: str | None = Field(default=None, max_length=1000)
+    document_ref: str | None = Field(default=None, max_length=120)
+    idempotency_key: str | None = Field(default=None, min_length=8, max_length=80)
+
+
+class PaymentRefundIn(BaseModel):
+    """Zwrot (pełny lub częściowy) — zawsze w groszach, w walucie należności."""
+
+    amount_cents: int = Field(gt=0)
+    currency: str | None = Field(default=None, max_length=10)
+    note: str | None = Field(default=None, max_length=1000)
+    document_ref: str | None = Field(default=None, max_length=120)
+    idempotency_key: str | None = Field(default=None, min_length=8, max_length=80)
+
+
+class PaymentAdjustIn(BaseModel):
+    """Korekta księgowa (dodatnia lub ujemna, nigdy 0) — nowy wpis,
+    nie edycja; wymaga powodu."""
+
+    amount_cents: int
+    currency: str | None = Field(default=None, max_length=10)
+    reason: str = Field(min_length=1, max_length=1000)
+    document_ref: str | None = Field(default=None, max_length=120)
+    idempotency_key: str | None = Field(default=None, min_length=8, max_length=80)
+
+    @model_validator(mode="after")
+    def _nonzero(self) -> PaymentAdjustIn:
+        if self.amount_cents == 0:
+            raise ValueError("Korekta nie może wynosić 0")
+        return self
+
+
+class PaymentReverseIn(BaseModel):
+    """Korekta odwracająca omyłkową transakcję — ślad zostaje (append-only)."""
+
+    reason: str = Field(min_length=1, max_length=1000)
+    idempotency_key: str | None = Field(default=None, min_length=8, max_length=80)
 
 
 class ReminderIn(BaseModel):

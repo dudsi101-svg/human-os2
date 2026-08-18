@@ -17,10 +17,55 @@ from datetime import datetime, timedelta
 from . import push_service
 from .dates import local_now
 from .db import db_session
-from .models import Reminder, ScheduleItem
+from .models import PaymentRecord, PaymentSchedule, Reminder, ScheduleItem
 from .observability import exception_fields, log_json, metrics
+from .payment_state import DUE_STATUSES
 
 REMINDER_HOUR = "08:00"  # jednorazowe przypomnienia trenera — rano
+
+# Przypomnienie o płatności: w dniu terminu, a przy zaległości co 7 dni
+# (bez codziennego nękania). Wysyłane WYŁĄCZNIE dla należności realnie
+# wymagalnych (DUE_STATUSES sprawdzane w zapytaniu w chwili wysyłki —
+# opłacona/anulowana/planowana rata nigdy nie dostaje przypomnienia).
+PAYMENT_REMINDER_EVERY_DAYS = 7
+
+
+def _payment_reminders(db, today: str) -> int:
+    """Przypomnienia powiązane z RZECZYWISTYM statusem należności.
+    Treść neutralna: bez kwot, walut i nazw pakietów (powiadomienie może
+    wyświetlić się na ekranie blokady)."""
+    from datetime import date
+
+    sent = 0
+    rows = (
+        db.query(PaymentRecord, PaymentSchedule)
+        .join(PaymentSchedule, PaymentRecord.schedule_id == PaymentSchedule.id)
+        .filter(
+            PaymentRecord.status.in_(DUE_STATUSES),
+            PaymentRecord.due_date <= today,
+        )
+        .all()
+    )
+    for record, schedule in rows:
+        try:
+            days_over = (date.fromisoformat(today) - date.fromisoformat(record.due_date)).days
+        except ValueError:
+            continue
+        if days_over != 0 and days_over % PAYMENT_REMINDER_EVERY_DAYS != 0:
+            continue
+        key = (record.id, today)
+        if key in _sent:
+            continue
+        _sent.add(key)
+        body = (
+            "Dziś mija termin płatności — szczegóły w aplikacji."
+            if days_over == 0
+            else "Masz zaległą płatność — szczegóły w aplikacji."
+        )
+        sent += push_service.send_to_user(
+            db, schedule.client_id, "Przypomnienie o płatności", body, "/platnosci",
+        )
+    return sent
 
 _sent: set[tuple[str, str]] = set()
 _sent_date: str | None = None
@@ -59,6 +104,7 @@ def _tick(now: datetime) -> int:
                 "/",
             )
         if hhmm == REMINDER_HOUR:
+            sent += _payment_reminders(db, today)
             reminders = (
                 db.query(Reminder)
                 .filter(Reminder.status == "ACTIVE", Reminder.due_date == today)

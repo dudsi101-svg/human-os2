@@ -122,15 +122,85 @@ export interface MeasurementRow {
   source: string;
 }
 
+export interface PaymentTransactionRow {
+  id: string;
+  kind: string; // MANUAL_PAYMENT / PROVIDER_PAYMENT / REFUND / ADJUSTMENT / REVERSAL
+  amount_cents: number;
+  currency: string;
+  document_ref: string | null;
+  note: string | null;
+  reverses_transaction_id: string | null;
+  reversed: boolean;
+  provider: string | null;
+  created_by: string;
+  created_by_name: string | null;
+  created_at: string;
+}
+
 export interface PaymentRecordRow {
   id: string;
   due_date: string;
   amount_cents: number;
   currency: string;
   status: string;
+  effective_status: string; // status z zaległością liczoną serwerowo
   paid_at: string | null;
+  marked_by: string | null;
+  marked_by_name: string | null;
+  marked_at: string | null;
   note: string | null;
+  transactions: PaymentTransactionRow[];
   payment_link: string | null;
+}
+
+export interface PaymentStatusChangeRow {
+  id: string;
+  from_status: string;
+  to_status: string;
+  reason: string | null;
+  transaction_id: string | null;
+  changed_by: string;
+  changed_by_name: string | null;
+  changed_at: string;
+}
+
+export interface PaymentHistory {
+  record: {
+    id: string; due_date: string; amount_cents: number; currency: string;
+    status: string; paid_at: string | null; marked_by: string | null;
+    marked_by_name: string | null; marked_at: string | null; note: string | null;
+  };
+  status_changes: PaymentStatusChangeRow[];
+  transactions: PaymentTransactionRow[];
+}
+
+export interface ReconciliationRow {
+  record_id: string;
+  client_id: string;
+  client_name: string | null;
+  package_name: string;
+  due_date: string;
+  status: string;
+  currency: string;
+  expected_cents: number;
+  collected_cents: number;
+  refunded_cents: number;
+  adjustments_cents: number;
+  balance_cents: number;
+  difference_cents: number;
+  source: string; // MANUAL / PROVIDER / MIXED / LEGACY / NONE
+  legacy_mark: boolean;
+}
+
+export interface ReconciliationSummary {
+  expected_cents: number;
+  collected_cents: number;
+  refunded_cents: number;
+  adjustments_cents: number;
+  balance_cents: number;
+  difference_cents: number;
+  records: number;
+  legacy_marks: number;
 }
 
 export interface PaymentScheduleRow {
@@ -360,11 +430,33 @@ export const CATEGORY_LABELS: Record<string, string> = {
 };
 
 export const PAYMENT_LABELS: Record<string, string> = {
+  PLANNED: "Zaplanowana",
   PENDING: "Oczekuje",
+  IN_PROGRESS: "W trakcie",
   PAID: "Opłacona",
   OVERDUE: "Zaległa",
+  FAILED: "Nieudana",
   CANCELLED: "Anulowana",
+  PARTIALLY_REFUNDED: "Częściowy zwrot",
+  REFUNDED: "Zwrócona",
 };
+
+export const PAYMENT_TX_LABELS: Record<string, string> = {
+  MANUAL_PAYMENT: "Wpłata (adnotacja trenera)",
+  PROVIDER_PAYMENT: "Wpłata (operator)",
+  REFUND: "Zwrot",
+  ADJUSTMENT: "Korekta",
+  REVERSAL: "Korekta odwracająca",
+};
+
+/** Klasa badge dla statusu płatności — jedna definicja dla obu paneli. */
+export function paymentBadgeClass(status: string): string {
+  if (status === "PAID") return "badge badge--ok";
+  if (status === "OVERDUE" || status === "FAILED") return "badge badge--danger";
+  if (status === "CANCELLED" || status === "PLANNED") return "badge";
+  if (status === "REFUNDED" || status === "PARTIALLY_REFUNDED") return "badge badge--accent";
+  return "badge badge--warn"; // PENDING / IN_PROGRESS
+}
 
 export interface GoalProgress {
   id: string;
