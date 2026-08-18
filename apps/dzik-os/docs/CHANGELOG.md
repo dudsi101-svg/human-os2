@@ -106,8 +106,16 @@ na cichą utratę pracy.
 * **Kontrola konsultacji złapała błąd we własnej dokumentacji.** Pierwsza
   wersja parsera czytała przykładowy nagłówek z instrukcji (wewnątrz bloku
   kodu) jako prawdziwy wpis i zgłaszała błąd. Poprawione, osobny test tego
-  pilnuje. Jedenaście testów kontroli i cztery nowe mutacje — po nich
-  **14 z 14 mutacji wykrytych**.
+  pilnuje. Dwanaście testów kontroli i pięć nowych mutacji — po nich **15 z 15
+  mutacji wykrytych**. Druga rzecz złapana na sobie samej: wpis z datą
+  z przyszłości dawał wiek ujemny i przechodził dalej; teraz to błąd.
+* **`WSPOLPRACA_SESJI.md` w wersji 1.0 — dokument obowiązujący, nie
+  propozycja.** Jeden dokument nadrzędny; `KOORDYNACJA.md`, `KONSULTACJE.md`
+  i `spojnosc.py` są jego narzędziami, nie wariantami. Zawiera konkretny
+  podział obszarów, siedem zasad, tryb konsultacji, trzystopniowe
+  rozstrzyganie różnic i jawną nadrzędność zadania nadrzędnego nad
+  wszystkimi zasadami. **Zmiana dowolnego punktu przez drugą sesję jest
+  z góry przyjęta** — wystarczy wpis w `KONSULTACJE.md`.
 * **Spisany status współpracy dwóch sesji** (`docs/WSPOLPRACA_SESJI.md`),
   na wyraźne polecenie właściciela produktu. Punkt wyjścia to policzenie,
   czego naprawdę dotyczyły dzisiejsze kolizje: **jedenaście z jedenastu
