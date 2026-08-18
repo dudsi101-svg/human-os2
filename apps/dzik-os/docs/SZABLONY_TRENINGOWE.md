@@ -65,8 +65,23 @@ zapisana w planie, a `exercise_id` to miękkie odniesienie. Odpowiedź importu
 zwraca `linked_exercises`, a interfejs mówi trenerowi wprost, ile pozycji
 zostało bez karty i gdzie je podpiąć.
 
-To naturalny punkt do poprawy: ujednolicenie nazewnictwa arkusza z biblioteką
-podniosłoby pokrycie bez żadnej zmiany w kodzie.
+**W praktyce pokrycie jest niemal pełne** — pod warunkiem, że trener ma
+zaimportowaną bibliotekę ćwiczeń V2 („Importuj bibliotekę ćwiczeń" w bazie
+ćwiczeń). Arkusz schematów i biblioteka pochodzą od tego samego trenera, więc
+nazewnictwo się pokrywa: **430 z 431 pozycji** trafia w kartę ćwiczenia.
+Wyjątkiem jest „Przysiad z masą własnego ciała", którego biblioteka nie ma.
+
+Kolejność ma znaczenie: import schematu wiąże ćwiczenia w momencie importu,
+więc bibliotekę warto zaimportować **przed** schematami. Trener, który zrobi
+to odwrotnie, dostanie plany bez linków — nadal działające, ale bez instrukcji
+przy ćwiczeniu. Osobny test pilnuje, żeby pokrycie po imporcie biblioteki nie
+spadło poniżej 90%: rozjazd nazewnictwa po którejkolwiek stronie odbiera
+klientowi instrukcje, nie psując przy tym niczego widocznego gdzie indziej.
+
+Uwaga na trzy równoległe nazewnictwa w projekcie: `exercise_catalog.py`
+(155 pozycji, starsze), `exercise_catalog_v2.py` (120 pozycji, biblioteka
+trenera) i arkusz schematów. Schematy pokrywają się z **V2**, nie ze starszym
+katalogiem.
 
 ## API
 

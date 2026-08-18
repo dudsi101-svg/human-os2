@@ -175,6 +175,9 @@ MATRIX: dict[tuple[str, str], Access] = {
     # wyłącznie propozycję pól edytora z wklejonego opisu.
     ("POST", "/api/coach/exercises/parse-description"): Access.COACH_ONLY,
     # Ostatnio używane ćwiczenia TEGO trenera (identyfikator z sesji).
+    # Import biblioteki do katalogu ZALOGOWANEGO trenera (identyfikator
+    # z sesji, nie ze ścieżki) — domyślnie w trybie próby (dry_run).
+    ("POST", "/api/coach/exercises/import-library"): Access.COACH_ONLY,
     ("GET", "/api/coach/exercises/recent"): Access.COACH_ONLY,
     ("GET", "/api/coach/exercises/{item_id}"): Access.COACH_ONLY,
     ("PUT", "/api/coach/exercises/{item_id}"): Access.COACH_ONLY,

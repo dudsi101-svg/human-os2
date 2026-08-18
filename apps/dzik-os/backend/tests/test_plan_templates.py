@@ -187,3 +187,25 @@ def test_import_zostawia_slad_w_audycie(seeded):
     assert len(zdarzenia) == 1
     assert zdarzenia[0]["payload"]["is_template"] is True
     assert verify_audit_chain() is True
+
+
+def test_po_imporcie_biblioteki_schemat_wiaze_niemal_wszystkie_cwiczenia(seeded):
+    """Biblioteka ćwiczeń V2 i arkusz schematów pochodzą od tego samego
+    trenera, więc nazewnictwo się pokrywa — po zaimportowaniu biblioteki
+    prawie każda pozycja schematu dostaje kartę z techniką i filmem.
+
+    Test pilnuje tej spójności: rozjazd nazewnictwa po którejkolwiek stronie
+    odbiera klientowi instrukcje przy ćwiczeniach, nie psując przy tym
+    niczego widocznego w testach jednostkowych.
+    """
+    h = _coach(seeded)
+    r = seeded.post("/api/coach/exercises/import-library", headers=h)
+    assert r.status_code in (200, 201), r.text
+
+    body = seeded.post("/api/coach/plan-templates/TPL-005/import", headers=h).json()
+    assert body["exercises"] > 0
+    pokrycie = body["linked_exercises"] / body["exercises"]
+    assert pokrycie >= 0.9, (
+        f"tylko {body['linked_exercises']}/{body['exercises']} pozycji ma kartę — "
+        "prawdopodobny rozjazd nazewnictwa między biblioteką a schematami"
+    )

@@ -48,7 +48,13 @@ SOURCE_MANUAL = "MANUAL"
 SOURCE_TEXT_PARSED = "TEXT_PARSED"
 #: Tabela powstała z wklejonego opisu, w trybie rozszerzonym.
 SOURCE_AI_ASSISTED = "AI_ASSISTED"
-SOURCE_KINDS: tuple[str, ...] = (SOURCE_MANUAL, SOURCE_TEXT_PARSED, SOURCE_AI_ASSISTED)
+#: Pozycja przyszła z importu gotowej biblioteki ćwiczeń (nie z opisu i nie
+#: z ręki trenera) — patrz `import_exercises.py`. Nazwa konkretnej
+#: biblioteki i data trafiają osobno do `exercises.source_ref`.
+SOURCE_IMPORTED = "IMPORTED"
+SOURCE_KINDS: tuple[str, ...] = (
+    SOURCE_MANUAL, SOURCE_TEXT_PARSED, SOURCE_AI_ASSISTED, SOURCE_IMPORTED,
+)
 
 #: Nazwy silników (to samo słownictwo co OCR — nigdy nazwa dostawcy modelu).
 ENGINE_LOCAL = "LOCAL"
@@ -196,7 +202,7 @@ MUSCLE_SYNONYMS: list[tuple[str, str]] = [
     ("trapez", "CZWOROBOCZNY"), ("trapezius", "CZWOROBOCZNY"),
     # równoległoboczne
     ("romboidaln", "ROMBOIDALNE"), ("rownolegloboczn", "ROMBOIDALNE"),
-    ("rhomboid", "ROMBOIDALNE"),
+    ("rhomboid", "ROMBOIDALNE"), ("miedzylopatkow", "ROMBOIDALNE"),
     # prostowniki grzbietu
     ("prostownik grzbietu", "PROSTOWNIKI_GRZBIETU"),
     ("prostowniki plecow", "PROSTOWNIKI_GRZBIETU"),
@@ -206,12 +212,21 @@ MUSCLE_SYNONYMS: list[tuple[str, str]] = [
     ("bark przedni", "BARK_PRZEDNI"), ("przedni akton", "BARK_PRZEDNI"),
     ("akton przedni", "BARK_PRZEDNI"), ("naramienny przedni", "BARK_PRZEDNI"),
     ("przednia glowa barku", "BARK_PRZEDNI"),
+    ("przedni bark", "BARK_PRZEDNI"),
+    ("przednia czesc miesnia naramiennego", "BARK_PRZEDNI"),
+    ("przednia czesc barkow", "BARK_PRZEDNI"),
     ("bark boczny", "BARK_BOCZNY"), ("boczny akton", "BARK_BOCZNY"),
     ("akton boczny", "BARK_BOCZNY"), ("naramienny boczny", "BARK_BOCZNY"),
     ("akton srodkowy", "BARK_BOCZNY"), ("srodkowy akton", "BARK_BOCZNY"),
+    ("boczny bark", "BARK_BOCZNY"),
+    ("boczna czesc miesnia naramiennego", "BARK_BOCZNY"),
+    ("boczna czesc barkow", "BARK_BOCZNY"),
     ("bark tylny", "BARK_TYLNY"), ("tylny akton", "BARK_TYLNY"),
     ("akton tylny", "BARK_TYLNY"), ("naramienny tylny", "BARK_TYLNY"),
     ("tylna glowa barku", "BARK_TYLNY"),
+    ("tylny bark", "BARK_TYLNY"),
+    ("tylna czesc miesnia naramiennego", "BARK_TYLNY"),
+    ("tylna czesc barkow", "BARK_TYLNY"),
     # ramiona
     ("biceps uda", "DWUGLOWY_UDA"),  # rozstrzygane przed samym „biceps”
     ("biceps", "BICEPS"), ("dwuglowy ramienia", "BICEPS"),
@@ -219,10 +234,23 @@ MUSCLE_SYNONYMS: list[tuple[str, str]] = [
     ("triceps", "TRICEPS"), ("trojglowy ramienia", "TRICEPS"),
     ("trojglowy ramion", "TRICEPS"),
     ("przedrami", "PRZEDRAMIE"), ("forearm", "PRZEDRAMIE"),
+    # przedramię — mięśnie nazwane wprost (wszystkie leżą na przedramieniu,
+    # więc nie ma tu wyboru między kluczami; dodane przy imporcie
+    # biblioteki V2, patrz docs/BAZA_CWICZEN.md §11).
+    ("ramienno promieniow", "PRZEDRAMIE"),
+    ("zginacz nadgarstka", "PRZEDRAMIE"), ("zginacze nadgarstkow", "PRZEDRAMIE"),
+    ("prostownik nadgarstka", "PRZEDRAMIE"),
+    ("prostowniki nadgarstkow", "PRZEDRAMIE"),
+    ("zginacz palcow", "PRZEDRAMIE"), ("prostownik palcow", "PRZEDRAMIE"),
+    ("miesnie chwytu", "PRZEDRAMIE"),
     # brzuch i głęboki gorset
     ("prosty brzucha", "BRZUCH_PROSTY"), ("brzuch prosty", "BRZUCH_PROSTY"),
     ("rectus abdominis", "BRZUCH_PROSTY"), ("brzuch", "BRZUCH_PROSTY"),
     ("brzuszn", "BRZUCH_PROSTY"),
+    # „skośne brzucha” jako całe wyrażenie — dłuższy rdzeń jest dopasowywany
+    # pierwszy i wymazuje „brzucha”, więc nie dokleja się BRZUCH_PROSTY.
+    ("miesnie skosne brzucha", "BRZUCH_SKOSNY"),
+    ("skosne brzucha", "BRZUCH_SKOSNY"),
     ("skosn", "BRZUCH_SKOSNY"), ("oblique", "BRZUCH_SKOSNY"),
     ("core", "MIESNIE_GLEBOKIE"), ("miesnie glebokie", "MIESNIE_GLEBOKIE"),
     ("glebokie", "MIESNIE_GLEBOKIE"), ("stabilizacj", "MIESNIE_GLEBOKIE"),
@@ -245,6 +273,48 @@ MUSCLE_SYNONYMS: list[tuple[str, str]] = [
     ("biodrowo ledzwiow", "ZGINACZE_BIODRA"), ("iliopsoas", "ZGINACZE_BIODRA"),
     ("psoas", "ZGINACZE_BIODRA"),
 ]
+
+#: Wyrażenia, które NIGDY nie mają być mapowane, choć zawierają rdzeń z
+#: powyższego słownika. Sprawdzane wyłącznie przez `map_muscle_phrase()`,
+#: czyli przy mapowaniu POJEDYNCZEJ nazwy anatomicznej (import gotowej
+#: biblioteki, gdzie kolumna „mięśnie” jest listą rozdzieloną średnikami) —
+#: nie zmienia czytania ciągłego opisu przez `parse_description`.
+#:
+#: Uzasadnienie jest zawsze to samo: nazwa wskazuje na WIĘCEJ NIŻ JEDEN
+#: klucz `MUSCLE_LABELS` i żaden z nich nie jest domyślny. „Górne plecy”
+#: to czworoboczny i romboidalne, nie najszerszy; „barki” to trzy aktony;
+#: „nogi” to pół dolnej połowy słownika. Zgadnięcie wyglądałoby w bazie
+#: dokładnie tak samo jak wiedza trenera, więc nie zgadujemy.
+AMBIGUOUS_MUSCLE_PHRASES: frozenset[str] = frozenset({
+    "barki",
+    "obrecz barkowa",
+    "miesnie obreczy barkowej",
+    "miesien naramienny",
+    "naramienny",
+    "gorne plecy",
+    "plecy",
+    "nogi",
+    "miesnie lopatki",
+    "miesnie stabilizujace biodro",
+})
+
+
+def map_muscle_phrase(phrase: str) -> list[str]:
+    """Pojedyncza nazwa anatomiczna → klucze `MUSCLE_LABELS` (może być
+    pusta lista).
+
+    Używane przy imporcie gotowych bibliotek, gdzie mięśnie przychodzą
+    jako lista nazw („mięsień piersiowy większy”, „przednia część mięśnia
+    naramiennego”), a nie jako zdanie. Pusta lista znaczy „nie
+    rozpoznano” i ma trafić do raportu importu — nigdy do najbliższego
+    klucza."""
+    folded = fold(phrase).replace("—", " ").replace("–", " ")
+    folded = " ".join(folded.replace("­", "").split())
+    if not folded or folded in AMBIGUOUS_MUSCLE_PHRASES:
+        return []
+    hits = [value for _, value in _find_terms(folded, MUSCLE_SYNONYMS)]
+    return list(dict.fromkeys(hits))
+
 
 #: Markery podziału na mięśnie główne i pomocnicze.
 PRIMARY_MARKERS: tuple[str, ...] = (
@@ -343,6 +413,14 @@ def _assert_dictionaries() -> None:
     unknown_patterns = (
         {value for _, value in PATTERN_TERMS} | {value for _, value in PATTERN_PAIRS}
     ) - set(MOVEMENT_PATTERNS)
+    # Lista wyrażeń dwuznacznych działa przez porównanie do postaci
+    # znormalizowanej — wpis z polskim znakiem nigdy by nie zadziałał.
+    unfolded = {p for p in AMBIGUOUS_MUSCLE_PHRASES if fold(p) != p}
+    if unfolded:
+        raise RuntimeError(
+            "Wyrażenia dwuznaczne muszą być zapisane bez polskich znaków: "
+            f"{sorted(unfolded)}"
+        )
     if unknown_muscles or unknown_levels or unknown_patterns:
         raise RuntimeError(
             "Słownik parsera wskazuje wartości spoza kontraktu: "

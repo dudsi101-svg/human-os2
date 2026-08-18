@@ -18,7 +18,9 @@ from sqlalchemy.orm import Session
 from .. import exercise_parser, exercise_parser_ai
 from ..authz import require_owned_resource
 from ..db import get_db
+from ..exercise_catalog_v2 import LIBRARY_REF
 from ..hos_bridge import record_event
+from ..import_exercises import import_library
 from ..models import (
     CoachClientRelationship,
     Exercise,
@@ -72,9 +74,17 @@ def _dump_list(values: list[str]) -> str | None:
     return json.dumps(cleaned, ensure_ascii=False) if cleaned else None
 
 
-def _out(item: Exercise) -> dict:
-    return {
+def _out(item: Exercise, *, for_coach: bool = False) -> dict:
+    """Ćwiczenie w postaci API.
+
+    `review_reason` („opis techniki jest szablonem z importu, warto opisać
+    po swojemu”) jest NOTATKĄ ROBOCZĄ TRENERA i wychodzi wyłącznie na
+    widoki trenera. Klientowi nie pokazujemy jej w żadnej postaci: dla
+    niego wyglądałaby jak ocena jakości ćwiczenia, którą wystawił system —
+    a system tu niczego nie ocenia."""
+    out = {
         "id": item.id, "coach_id": item.coach_id, "name": item.name,
+        "name_en": item.name_en,
         "muscle_group": item.muscle_group, "how_to": item.how_to,
         "benefit": item.benefit, "equipment": item.equipment,
         "video_url": item.video_url, "status": item.status,
@@ -84,11 +94,16 @@ def _out(item: Exercise) -> dict:
         "steps": _load_list(item.steps_json),
         "mistakes": _load_list(item.mistakes_json),
         "cues": _load_list(item.cues_json),
+        "tags": _load_list(item.tags_json),
         "safety": item.safety, "easier": item.easier, "harder": item.harder,
         "tempo_hint": item.tempo_hint, "breathing": item.breathing,
         "source_kind": item.source_kind, "source_engine": item.source_engine,
+        "source_ref": item.source_ref,
         "created_at": item.created_at, "updated_at": item.updated_at,
     }
+    if for_coach:
+        out["review_reason"] = item.review_reason
+    return out
 
 
 def _apply_fields(item: Exercise, body: ExerciseLibraryItemIn) -> None:
@@ -103,6 +118,12 @@ def _apply_fields(item: Exercise, body: ExerciseLibraryItemIn) -> None:
     item.safety, item.easier, item.harder = body.safety, body.easier, body.harder
     item.tempo_hint, item.breathing = body.tempo_hint, body.breathing
     item.source_kind, item.source_engine = body.source_kind, body.source_engine
+    item.name_en = body.name_en
+    item.tags_json = _dump_list(body.tags)
+    item.source_ref = body.source_ref
+    # Trener zdejmuje notatkę „opis ogólny” po prostu przez zapis bez niej —
+    # to jego notatka, nie flaga systemu.
+    item.review_reason = body.review_reason
 
 
 def _matches(
@@ -114,7 +135,10 @@ def _matches(
     SQLite LIKE nie zapewnia)."""
     if q:
         needle = fold(q)
-        haystack = fold(" ".join(filter(None, [item.name, item.equipment or ""])))
+        haystack = fold(" ".join(filter(None, [
+            item.name, item.name_en or "", item.equipment or "",
+            " ".join(_load_list(item.tags_json)),
+        ])))
         if needle not in haystack:
             return False
     if muscle and muscle not in (
@@ -131,12 +155,13 @@ def _matches(
 
 
 def _page(
-    rows: list[Exercise], *, limit: int, offset: int, filters: dict
+    rows: list[Exercise], *, limit: int, offset: int, filters: dict,
+    for_coach: bool = False,
 ) -> dict:
     matched = [r for r in rows if _matches(r, **filters)]
     window = matched[offset:offset + limit]
     return {
-        "items": [_out(i) for i in window],
+        "items": [_out(i, for_coach=for_coach) for i in window],
         "total": len(matched),
         "limit": limit,
         "offset": offset,
@@ -239,6 +264,42 @@ def parse_exercise_description(
     }
 
 
+@router.post("/coach/exercises/import-library")
+def import_exercise_library(
+    dry_run: bool = Query(True),
+    coach: User = Depends(require_role("COACH")),
+    db: Session = Depends(get_db),
+):
+    """Import gotowej biblioteki ćwiczeń do katalogu ZALOGOWANEGO trenera.
+
+    Domyślnie `dry_run=true`, czyli PRÓBA: zwraca dokładnie ten sam raport,
+    ale nie zapisuje ani jednego wiersza. Interfejs pokazuje raport
+    trenerowi i dopiero jego kliknięcie uruchamia `dry_run=false` — ten sam
+    układ „propozycja przed zapisem”, co przy czytaniu opisu i przy OCR.
+
+    Import nigdy nie nadpisuje wypełnionych pól istniejącego ćwiczenia i
+    nigdy nie dotyka katalogu innego trenera (pełny opis reguł:
+    `dzik_os/import_exercises.py`)."""
+    report = import_library(db, coach.id, dry_run=dry_run)
+    if not dry_run:
+        record_event(
+            db, action="EXERCISE_LIBRARY_IMPORTED", actor_id=coach.id,
+            subject_ids=[coach.id],
+            payload={
+                "library": LIBRARY_REF, "created": report.created,
+                "enriched": report.enriched, "skipped": report.skipped,
+                "unmapped_muscles": len(report.unmapped_muscles),
+                "unmapped_patterns": len(report.unmapped_patterns),
+                "source": "panel",
+            },
+            summary=f"Baza ćwiczeń: import biblioteki „{LIBRARY_REF}” — "
+                    f"{report.created} nowych, {report.enriched} uzupełnionych",
+        )
+        metrics.inc("exercise_library_import")
+        db.commit()
+    return report.as_dict()
+
+
 @router.post("/coach/exercises", status_code=201)
 def create_exercise(
     body: ExerciseLibraryItemIn,
@@ -254,7 +315,7 @@ def create_exercise(
         summary=f"Baza ćwiczeń: dodano „{item.name}” ({item.muscle_group})",
     )
     db.commit()
-    return _out(item)
+    return _out(item, for_coach=True)
 
 
 @router.get("/coach/exercises")
@@ -278,7 +339,7 @@ def list_own_exercises(
         query = query.filter(Exercise.status == status)
     rows = query.order_by(Exercise.muscle_group, Exercise.name).all()
     return _page(
-        rows, limit=limit, offset=offset,
+        rows, limit=limit, offset=offset, for_coach=True,
         filters=_filters(q, muscle, muscle_group, equipment, level, pattern),
     )
 
@@ -351,7 +412,7 @@ def get_own_exercise(
     item = require_owned_resource(
         db.get(Exercise, item_id), actor=coach, resource=f"exercise:{item_id}"
     )
-    return _out(item)
+    return _out(item, for_coach=True)
 
 
 @router.put("/coach/exercises/{item_id}")
@@ -372,7 +433,7 @@ def update_exercise(
         summary=f"Baza ćwiczeń: zaktualizowano „{item.name}”",
     )
     db.commit()
-    return _out(item)
+    return _out(item, for_coach=True)
 
 
 @router.post("/coach/exercises/{item_id}/status")

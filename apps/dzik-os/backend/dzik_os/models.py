@@ -787,10 +787,26 @@ class Exercise(Base):
     breathing: Mapped[str | None] = mapped_column(String(400), nullable=True)
     # --- Proweniencja wpisu (migracja nr 22; NULL = ćwiczenie sprzed tej
     # migracji, o którym po prostu nie wiemy — nigdy nie udajemy MANUAL). ---
-    # MANUAL / TEXT_PARSED / AI_ASSISTED, patrz exercise_parser.SOURCE_KINDS.
+    # MANUAL / TEXT_PARSED / AI_ASSISTED / IMPORTED,
+    # patrz exercise_parser.SOURCE_KINDS.
     source_kind: Mapped[str | None] = mapped_column(String(20), nullable=True)
     # Nazwa użytego silnika (LOCAL/EXTENDED) — nigdy nazwa dostawcy modelu.
     source_engine: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    # --- Import gotowej biblioteki ćwiczeń (migracja nr 24; wszystkie pola
+    # opcjonalne — ćwiczenia sprzed migracji mają same NULL-e). ---
+    # Nazwa angielska ze źródła; pomaga w wyszukiwaniu („bench press”).
+    name_en: Mapped[str | None] = mapped_column(String(300), nullable=True)
+    # Etykiety ze źródła (JSON w kolumnie tekstowej, jak steps/mistakes/cues).
+    # Mieści też „rodzaj ćwiczenia” (wielostawowe/izolowane/…), dla którego
+    # nie zakładamy osobnej kolumny.
+    tags_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Skąd DOKŁADNIE przyszła pozycja: nazwa biblioteki + data przekazania.
+    # Uzupełnia `source_kind="IMPORTED"`, które mówi tylko „z importu”.
+    source_ref: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    # NOTATKA ROBOCZA TRENERA, nie ocena ćwiczenia: „opis techniki pochodzi
+    # z szablonu biblioteki, warto opisać po swojemu”. Widoczna WYŁĄCZNIE w
+    # panelu trenera — klient nie dostaje jej w API (routers/exercises.py).
+    review_reason: Mapped[str | None] = mapped_column(String(300), nullable=True)
     status: Mapped[str] = mapped_column(String(20), default="ACTIVE")  # ACTIVE/ARCHIVED
     created_by: Mapped[str] = mapped_column(String(40))
     created_at: Mapped[str] = mapped_column(String(40), default=now_iso)

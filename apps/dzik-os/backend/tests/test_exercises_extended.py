@@ -70,14 +70,21 @@ def test_seed_loads_full_catalog_without_duplicate_names(seeded):
         names = [r.name for r in rows]
     assert len(rows) >= 150
     assert len(names) == len(set(names)), "duplikaty nazw w bazie trenera"
-    # Każde ćwiczenie ma komplet opisu (kroki, błędy, wskazówki, mięśnie).
-    for row in rows:
+    # Komplet opisu dotyczy KATALOGU STARTOWEGO (pozycje pisane pod
+    # konkretne ćwiczenie). Pozycje z importu biblioteki (`source_kind`
+    # ustawione) świadomie nie mają wskazówek, uwag bezpieczeństwa ani
+    # tempa — źródło ich nie zawiera, a wymyślanie ich byłoby wpisaniem do
+    # bazy czegoś, czego nikt nie powiedział (docs/BAZA_CWICZEN.md §11).
+    for row in [r for r in rows if r.source_kind is None]:
         assert row.steps_json and row.mistakes_json and row.cues_json, row.name
         assert row.muscles_primary, row.name
         assert row.level and row.pattern and row.safety, row.name
         assert row.easier and row.harder, row.name
         # Zgodność wsteczna: how_to zawsze wypełnione.
         assert row.how_to
+    # Zgodność wsteczna obowiązuje jednak KAŻDE ćwiczenie w bazie.
+    for row in rows:
+        assert row.how_to, row.name
 
 
 def test_catalog_uses_only_dictionary_keys():

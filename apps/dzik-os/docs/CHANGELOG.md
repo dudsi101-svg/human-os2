@@ -1,6 +1,6 @@
 # Changelog — Dzik OS
 
-## 0.31.0 — 2026-08-18
+## 0.32.0 — 2026-08-18
 
 **Gotowe schematy treningowe — 24 szablony z materiału trenera.** Pełny
 opis: `docs/SZABLONY_TRENINGOWE.md`.
@@ -32,61 +32,174 @@ opis: `docs/SZABLONY_TRENINGOWE.md`.
 * Nowy helper odmiany liczebników (`plural.ts`) — komunikaty mówią
   „2 jednostki", nie „2 jednostek".
 
+**Import własnej biblioteki ćwiczeń trenera (120 pozycji) do bazy
+ćwiczeń.** Trener przekazał swoją bibliotekę w arkuszu kalkulacyjnym;
+zamiast przepisywać 120 pozycji ręcznie, klika „Importuj bibliotekę
+ćwiczeń”, ogląda raport i zatwierdza. Pełny opis mapowania, uruchomienia
+na produkcji i wycofania: `docs/BAZA_CWICZEN.md` §11.
+
+* **Arkusz zamieniony na moduł danych, nie na binarny blob w repo.**
+  `backend/dzik_os/exercise_catalog_v2.py` (wzorzec `food_catalog_data.py`)
+  jest czytelną i diffowalną postacią pliku
+  `DZIK_OS_Biblioteka_Cwiczen_V2_PL_120.xlsx` przekazanego 2026-08-18.
+  Sam plik xlsx **nie jest commitowany**; nazwa i data przekazania są
+  zapisane jako proweniencja w nagłówku modułu.
+* **Powiedziane wprost, co w źródle jest szablonem.** Kolumny
+  faktograficzne (nazwy, kategoria, mięśnie, sprzęt, poziom, rodzaj,
+  wzorzec, tagi) są unikalne per ćwiczenie. Kolumny **opisowe są
+  szablonowe**: na 120 wierszy przypada **17 różnych opisów wykonania, 2
+  opisy oddychania i 5 zestawów błędów** — technika jest opisana ogólnie
+  dla wzorca ruchu, nie pod konkretne ćwiczenie. Dlatego szablony leżą w
+  module jako nazwane stałe (szablonowość widać w kodzie), a każda nowo
+  utworzona pozycja dostaje notatkę roboczą „opis ogólny”.
+* **Notatka „do dopracowania” jest informacją trenera, nie oceną dla
+  klienta.** `review_reason` widać w panelu trenera (karta ćwiczenia i
+  edytor, z przyciskiem „Zdejmij notatkę”). Klient **nie dostaje tego
+  pola w żadnej odpowiedzi API** — dla niego wyglądałoby jak ocena
+  jakości ćwiczenia wystawiona przez system, a system tu niczego nie
+  ocenia.
+* **ZASADA NADRZĘDNA ta sama co przy czytaniu opisu: nie zgadujemy.**
+  Nazwa mięśnia, której nie da się jednoznacznie zmapować, zostaje
+  **pusta** i trafia na jawną listę w raporcie. Nie mapujemy nazw
+  zbiorczych (`barki`, `obręcz barkowa`, `górne plecy`, `nogi` —
+  wskazują na kilka kluczy naraz) ani mięśni, dla których słownik nie ma
+  klucza (`mięsień ramienny`, `obły większy`, `zębaty przedni`,
+  `piszczelowy przedni`). W efekcie 8 pozycji trafia do bazy bez mięśni
+  głównych — i to jest poprawny wynik, nie brak.
+* **Wzorzec ruchu: 48 wariantów źródła → nasze 13, jawną tablicą.**
+  W tablicy są wyłącznie przypisania, które da się obronić. Wariant
+  nierozpoznany dostaje `IZOLACJA` **tylko wtedy**, gdy źródło samo
+  nazywa ćwiczenie izolowanym; w przeciwnym razie pole zostaje puste.
+  Stąd 12 pozycji bez wzorca (`antywyprost` to nie antyrotacja, `chwyt
+  izometryczny` to nie noszenie) — nie upychamy ich na siłę.
+* **Poziom podwójny → NIŻSZY z pary** (25 wierszy ma
+  „początkujący/średniozaawansowany”). Świadoma decyzja: zawyżony poziom
+  odsiewa ćwiczenie z wyszukiwarki komuś, kto spokojnie może je robić.
+* **Praca trenera jest nienaruszalna.** W ćwiczeniu, które już jest w
+  bazie, import **uzupełnia wyłącznie puste pola** — nigdy nie nadpisuje
+  opisu pisanego pod konkretne ćwiczenie. Import jest w pełni
+  **idempotentny**: drugi przebieg to 0 nowych, 0 zmian i nietknięte
+  `updated_at`.
+* **Dwie drogi uruchomienia, jedna logika.** Komenda
+  `python -m dzik_os.import_exercises [--coach <e-mail>] [--dry-run]`
+  (wzorzec `dzik_os.backup`; bez `--coach` odmawia wyboru, gdy trenerów
+  jest więcej niż jeden) oraz przycisk w panelu trenera z **podglądem
+  raportu przed zatwierdzeniem** (`dry_run` domyślnie **true**). Import
+  zawsze idzie do katalogu **zalogowanego** trenera — katalog innego
+  trenera nie zmienia się o ani jeden wiersz.
+* **Raport jak przy imporcie CSV produktów:** `{created, enriched,
+  skipped, unmapped_muscles, unmapped_patterns, errors}`, z liczbą
+  wystąpień i przykładami przy każdej nierozpoznanej wartości. Błąd
+  pojedynczej pozycji nie przerywa importu.
+* **Proweniencja zapisana w danych.** `source_kind` zyskał wartość
+  `IMPORTED`, a nowa kolumna `source_ref` niesie nazwę biblioteki i datę
+  przekazania — pozycje z importu da się odróżnić od pisanych ręcznie
+  jednym zapytaniem, co jest też podstawą planu wycofania.
+* **Migracja nr 24** (numer 23 zarezerwowany dla równoległej rundy):
+  cztery kolumny NULLable na `exercises` — `name_en`, `tags_json`,
+  `source_ref`, `review_reason`. Czysto addytywna, bez backfillu; plan
+  wycofania w `docs/BAZA_CWICZEN.md` §11.7.
+* **Nazwa angielska i tagi w wyszukiwarce i edytorze.** `q=bench press`
+  znajduje „Wyciskanie sztangi na ławce poziomej”; rodzaj ćwiczenia
+  (wielostawowe/izolowane/…) mieszka w tagach, bez rozbudowywania modelu
+  o kolejną kolumnę.
+* **Seed zasiewa pełny katalog** (155 pozycji startowych + 101 nowych z
+  biblioteki) tą samą funkcją, której używa produkcja — demo i produkcja
+  dostają dokładnie to samo.
+* **Testy:** nowy `backend/tests/test_exercise_import.py` (23 przypadki):
+  mapowanie form anatomicznych, odmowa mapowania nazw zbiorczych, poziom
+  podwójny → niższy, wzorzec nierozpoznany → puste + raport, import na
+  czystą bazę (120 nowych), import powtórzony (pełna idempotencja wraz z
+  `updated_at`), uzupełnianie wyłącznie pustych pól, izolacja trenerów,
+  `--dry-run` niczego nie zapisuje, klient nie widzi notatki roboczej,
+  odmowa wyboru trenera w komendzie. Do tego 6 testów czystej logiki
+  raportu po stronie frontendu (`npm run test:helpers`).
+## 0.31.0 — 2026-08-18
+
+**Import własnej biblioteki ćwiczeń trenera (120 pozycji) do bazy
+ćwiczeń.** Trener przekazał swoją bibliotekę w arkuszu kalkulacyjnym;
+zamiast przepisywać 120 pozycji ręcznie, klika „Importuj bibliotekę
+ćwiczeń”, ogląda raport i zatwierdza. Pełny opis mapowania, uruchomienia
+na produkcji i wycofania: `docs/BAZA_CWICZEN.md` §11.
+
+* **Arkusz zamieniony na moduł danych, nie na binarny blob w repo.**
+  `backend/dzik_os/exercise_catalog_v2.py` (wzorzec `food_catalog_data.py`)
+  jest czytelną i diffowalną postacią pliku
+  `DZIK_OS_Biblioteka_Cwiczen_V2_PL_120.xlsx` przekazanego 2026-08-18.
+  Sam plik xlsx **nie jest commitowany**; nazwa i data przekazania są
+  zapisane jako proweniencja w nagłówku modułu.
+* **Powiedziane wprost, co w źródle jest szablonem.** Kolumny
+  faktograficzne (nazwy, kategoria, mięśnie, sprzęt, poziom, rodzaj,
+  wzorzec, tagi) są unikalne per ćwiczenie. Kolumny **opisowe są
+  szablonowe**: na 120 wierszy przypada **17 różnych opisów wykonania, 2
+  opisy oddychania i 5 zestawów błędów** — technika jest opisana ogólnie
+  dla wzorca ruchu, nie pod konkretne ćwiczenie. Dlatego szablony leżą w
+  module jako nazwane stałe (szablonowość widać w kodzie), a każda nowo
+  utworzona pozycja dostaje notatkę roboczą „opis ogólny”.
+* **Notatka „do dopracowania” jest informacją trenera, nie oceną dla
+  klienta.** `review_reason` widać w panelu trenera (karta ćwiczenia i
+  edytor, z przyciskiem „Zdejmij notatkę”). Klient **nie dostaje tego
+  pola w żadnej odpowiedzi API** — dla niego wyglądałoby jak ocena
+  jakości ćwiczenia wystawiona przez system, a system tu niczego nie
+  ocenia.
+* **ZASADA NADRZĘDNA ta sama co przy czytaniu opisu: nie zgadujemy.**
+  Nazwa mięśnia, której nie da się jednoznacznie zmapować, zostaje
+  **pusta** i trafia na jawną listę w raporcie. Nie mapujemy nazw
+  zbiorczych (`barki`, `obręcz barkowa`, `górne plecy`, `nogi` —
+  wskazują na kilka kluczy naraz) ani mięśni, dla których słownik nie ma
+  klucza (`mięsień ramienny`, `obły większy`, `zębaty przedni`,
+  `piszczelowy przedni`). W efekcie 8 pozycji trafia do bazy bez mięśni
+  głównych — i to jest poprawny wynik, nie brak.
+* **Wzorzec ruchu: 48 wariantów źródła → nasze 13, jawną tablicą.**
+  W tablicy są wyłącznie przypisania, które da się obronić. Wariant
+  nierozpoznany dostaje `IZOLACJA` **tylko wtedy**, gdy źródło samo
+  nazywa ćwiczenie izolowanym; w przeciwnym razie pole zostaje puste.
+  Stąd 12 pozycji bez wzorca (`antywyprost` to nie antyrotacja, `chwyt
+  izometryczny` to nie noszenie) — nie upychamy ich na siłę.
+* **Poziom podwójny → NIŻSZY z pary** (25 wierszy ma
+  „początkujący/średniozaawansowany”). Świadoma decyzja: zawyżony poziom
+  odsiewa ćwiczenie z wyszukiwarki komuś, kto spokojnie może je robić.
+* **Praca trenera jest nienaruszalna.** W ćwiczeniu, które już jest w
+  bazie, import **uzupełnia wyłącznie puste pola** — nigdy nie nadpisuje
+  opisu pisanego pod konkretne ćwiczenie. Import jest w pełni
+  **idempotentny**: drugi przebieg to 0 nowych, 0 zmian i nietknięte
+  `updated_at`.
+* **Dwie drogi uruchomienia, jedna logika.** Komenda
+  `python -m dzik_os.import_exercises [--coach <e-mail>] [--dry-run]`
+  (wzorzec `dzik_os.backup`; bez `--coach` odmawia wyboru, gdy trenerów
+  jest więcej niż jeden) oraz przycisk w panelu trenera z **podglądem
+  raportu przed zatwierdzeniem** (`dry_run` domyślnie **true**). Import
+  zawsze idzie do katalogu **zalogowanego** trenera — katalog innego
+  trenera nie zmienia się o ani jeden wiersz.
+* **Raport jak przy imporcie CSV produktów:** `{created, enriched,
+  skipped, unmapped_muscles, unmapped_patterns, errors}`, z liczbą
+  wystąpień i przykładami przy każdej nierozpoznanej wartości. Błąd
+  pojedynczej pozycji nie przerywa importu.
+* **Proweniencja zapisana w danych.** `source_kind` zyskał wartość
+  `IMPORTED`, a nowa kolumna `source_ref` niesie nazwę biblioteki i datę
+  przekazania — pozycje z importu da się odróżnić od pisanych ręcznie
+  jednym zapytaniem, co jest też podstawą planu wycofania.
+* **Migracja nr 24** (numer 23 zarezerwowany dla równoległej rundy):
+  cztery kolumny NULLable na `exercises` — `name_en`, `tags_json`,
+  `source_ref`, `review_reason`. Czysto addytywna, bez backfillu; plan
+  wycofania w `docs/BAZA_CWICZEN.md` §11.7.
+* **Nazwa angielska i tagi w wyszukiwarce i edytorze.** `q=bench press`
+  znajduje „Wyciskanie sztangi na ławce poziomej”; rodzaj ćwiczenia
+  (wielostawowe/izolowane/…) mieszka w tagach, bez rozbudowywania modelu
+  o kolejną kolumnę.
+* **Seed zasiewa pełny katalog** (155 pozycji startowych + 101 nowych z
+  biblioteki) tą samą funkcją, której używa produkcja — demo i produkcja
+  dostają dokładnie to samo.
+* **Testy:** nowy `backend/tests/test_exercise_import.py` (23 przypadki):
+  mapowanie form anatomicznych, odmowa mapowania nazw zbiorczych, poziom
+  podwójny → niższy, wzorzec nierozpoznany → puste + raport, import na
+  czystą bazę (120 nowych), import powtórzony (pełna idempotencja wraz z
+  `updated_at`), uzupełnianie wyłącznie pustych pól, izolacja trenerów,
+  `--dry-run` niczego nie zapisuje, klient nie widzi notatki roboczej,
+  odmowa wyboru trenera w komendzie. Do tego 6 testów czystej logiki
+  raportu po stronie frontendu (`npm run test:helpers`).
 ## 0.30.0 — 2026-08-18
 
-**Dowody tam, gdzie ich nie było.** Trzy bramki wynikające z audytu
-wykonawczego: testy E2E interfejsu, przebieg zestawu na PostgreSQL
-i ograniczenie precache'u PWA.
-
-* **Testy E2E (Playwright) w repozytorium i w CI.** Do tej pory ~15 700
-  linii interfejsu nie było chronione niczym, co uruchamia się w CI —
-  testy jednostkowe frontendu pokrywają wyłącznie funkcje pomocnicze,
-  a testy backendu wołają API z pominięciem przeglądarki. Siedem testów
-  (~20 s) przechodzi przez logowanie obu ról, pełną wysyłkę raportu
-  tygodniowego wraz z regułą „żadne pytanie nie ma wartości domyślnej"
-  oraz wiadomość, którą pisze klient, a **czyta trener** — dwie sesje,
-  dwa konta. Testy chodzą po zbudowanym `dist/` serwowanym przez backend,
-  czyli po ścieżce produkcyjnej. Szczegóły i świadome odstępstwa:
-  `docs/E2E.md`.
-
-* **PostgreSQL faktycznie uruchomiony — i naprawiony.** PostgreSQL był
-  zadeklarowany w `pyproject.toml`, w gałęzi kopii zapasowych i w indeksach
-  częściowych modeli, ale nie wykonała się na nim ani jedna linia. Pierwszy
-  przebieg ujawnił klasę błędów, której SQLite nie mógł pokazać: **SQLite
-  domyślnie nie egzekwuje kluczy obcych**, więc kod zapisywał wiersze
-  wskazujące na jeszcze nieistniejące rekordy — rola przed kontem, relacja
-  trener–klient przed klientem, rata przed harmonogramem, pozycja treningu
-  przed sesją. Na PostgreSQL każdy taki zapis kończy się błędem, w tym
-  **zakładanie konta klienta przez trenera** (`routers/clients.py`).
-  Naprawione; zestaw chodzi teraz na PostgreSQL w CI (job
-  `backend-postgres`) jako stała bramka. Rejestr ryzyk: R-17.
-
-* **Bramka przenośności migracji.** Surowy SQL migracji nie wykonuje się
-  w żadnym teście — świeża baza dostaje schemat z metadanych ORM i tylko
-  stempluje wersje, więc błąd dialektu ujawniłby się dopiero przy pierwszej
-  migracji nakładanej na działającą produkcję. Znalezione 16 instrukcji
-  `BOOLEAN … DEFAULT 0`, których PostgreSQL nie przyjmuje (wymaga `false`),
-  zostały poprawione, a `test_migracje_przenosnosc.py` pilnuje, żeby wzorzec
-  nie wrócił wraz z migracją 21.
-
-* **Łańcuch audytu: dowód, że wykrywa manipulację.** Testy sprawdzały dotąd
-  wyłącznie `verify_audit_chain() is True`, co dowodzi, że łańcuch nie psuje
-  się sam, ale nie że cokolwiek chroni. Dwa nowe testy modyfikują bazę
-  zdarzeń z pominięciem aplikacji — również z **przeliczonym `event_hash`**,
-  co łapie dopiero dowiązanie do przodu. Oba warianty wykrywane.
-
-* **Precache PWA: 2,46 MB → 1,28 MB.** Service worker instalował na
-  urządzenie 100 plików fontów (1,9 MB): 980 KB to format `.woff`, po który
-  żadna przeglądarka obsługująca service workery nie sięgnie, a ~271 KB to
-  subsety cyrylicy, greki i wietnamskiego w aplikacji polskojęzycznej.
-  Filtr działa wyłącznie na liście precache — w CSS zostają pełne pliki
-  `@fontsource` z `unicode-range`, dzięki czemu przeglądarka nadal pobiera
-  tylko potrzebny subset. Zweryfikowane renderowaniem: polskie znaki
-  diakrytyczne idą fontem Inter, nie zapasowym.
-
-* **Macierz uprawnień objęła router OCR** (182 operacje API). Bramka
-  pokrycia zadziałała zgodnie z projektem — nowe endpointy przerwały build,
-  dopóki nie dostały zadeklarowanej klasy dostępu.
 **Asystent trenera: wspólna warstwa + pierwsze zadanie „szkic planu z
 własnej bazy ćwiczeń".** Architektura, rejestr zadań, zamknięte słowniki,
 bramkowanie zgód, granica „asystent proponuje, trener decyduje", płynność
