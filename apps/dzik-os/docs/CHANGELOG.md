@@ -1,5 +1,13 @@
 # Changelog — Dzik OS
 
+## 0.11.1 — 2026-08-18
+
+* **Harmonogram kopii zapasowych (R-12, operacyjnie)**: nowy workflow
+  `.github/workflows/fly-backup.yml` — codzienny backup na maszynie
+  Fly.io (02:30 UTC) + uruchomienie na żądanie; archiwa na wolumenie
+  `/data/backups` (retencja 14), bez pobierania danych do artefaktów
+  GitHub Actions. Dokumentacja §4a zaktualizowana.
+
 ## 0.11.0 — 2026-08-18
 
 Zamknięcie dwóch ryzyk z rejestru: R-12 (kopie zapasowe) i R-02 w części
