@@ -764,6 +764,42 @@ MIGRATIONS: list[tuple[int, str, list[str]]] = [
         "ALTER TABLE exercises ADD COLUMN source_kind VARCHAR(20)",
         "ALTER TABLE exercises ADD COLUMN source_engine VARCHAR(20)",
     ]),
+    (23, "asystent trenera: wspólna tabela zadań (rejestr zadań, propozycje)", [
+        # Wyłącznie addytywna: JEDNA nowa tabela, zero ALTER-ów na
+        # istniejących. Wszystkie kolumny poza kluczami są NULLable, więc
+        # baza sprzed migracji działa bez backfillu, a wycofanie sprowadza
+        # się do `DROP TABLE assistant_tasks` (plan wycofania:
+        # docs/ASYSTENT_TRENERA.md §migracja nr 23).
+        """
+        CREATE TABLE IF NOT EXISTS assistant_tasks (
+            id VARCHAR(40) PRIMARY KEY,
+            task_key VARCHAR(40) NOT NULL,
+            owner_user_id VARCHAR(40) NOT NULL REFERENCES users(id),
+            client_id VARCHAR(40),
+            status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
+            input_json TEXT,
+            result_json TEXT,
+            engine VARCHAR(20),
+            mode_reason TEXT,
+            error_code VARCHAR(40),
+            error TEXT,
+            idem_key VARCHAR(80),
+            duration_ms INTEGER,
+            approved_at VARCHAR(40),
+            provenance_json TEXT,
+            result_ref VARCHAR(40),
+            created_at VARCHAR(40) NOT NULL,
+            started_at VARCHAR(40),
+            finished_at VARCHAR(40)
+        )
+        """,
+        (
+            "CREATE INDEX IF NOT EXISTS ix_assistant_tasks_owner "
+            "ON assistant_tasks(owner_user_id)"
+        ),
+        "CREATE INDEX IF NOT EXISTS ix_assistant_tasks_key ON assistant_tasks(task_key)",
+        "CREATE INDEX IF NOT EXISTS ix_assistant_tasks_status ON assistant_tasks(status)",
+    ]),
 ]
 
 

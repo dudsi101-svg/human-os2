@@ -601,6 +601,30 @@ class OcrApproveIn(BaseModel):
     text: str | None = Field(default=None, max_length=20000)
 
 
+class AssistantTaskIn(BaseModel):
+    """Zlecenie zadania asystenta trenera.
+
+    `task_key` musi być kluczem z rejestru (`coach_assistant.REGISTRY`);
+    `input` waliduje dopiero schemat tego zadania — tutaj jest surowym
+    słownikiem, żeby dołożenie kolejnego zadania nie wymagało zmiany tej
+    klasy. `idempotency_key` chroni przed podwójnym kliknięciem: powtórka
+    zwraca to samo zadanie, nie tworzy drugiego."""
+
+    task_key: str = Field(min_length=1, max_length=40)
+    input: dict = Field(default_factory=dict)
+    idempotency_key: str | None = Field(default=None, min_length=8, max_length=80)
+
+
+class AssistantAppliedIn(BaseModel):
+    """Potwierdzenie trenera, że wstawił propozycję do planu — TU zapisuje
+    się proweniencja. Sam zapis planu idzie zwykłą, wersjonowaną ścieżką
+    (`POST /api/plans...`), a nie tym endpointem."""
+
+    plan_id: str | None = Field(default=None, max_length=40)
+    version_no: int | None = Field(default=None, ge=1, le=100000)
+    note: str | None = Field(default=None, max_length=500)
+
+
 class PortionCalcIn(BaseModel):
     """Kalkulator porcji: gramy ALBO liczba sztuk (jednostka produktu).
     Podanie obu naraz jest błędem — wynik ma być jednoznaczny."""

@@ -1,5 +1,106 @@
 # Changelog — Dzik OS
 
+## 0.30.0 — 2026-08-18
+
+**Asystent trenera: wspólna warstwa + pierwsze zadanie „szkic planu z
+własnej bazy ćwiczeń".** Architektura, rejestr zadań, zamknięte słowniki,
+bramkowanie zgód, granica „asystent proponuje, trener decyduje", płynność
+i plan wycofania migracji nr 23: `docs/ASYSTENT_TRENERA.md`.
+
+* **Jedna warstwa zamiast wywołania modelu w każdym oknie**
+  (`backend/dzik_os/coach_assistant.py`). Zadanie to **deskryptor**
+  (klucz, schemat wejścia, schemat wyjścia, prompt systemowy, czy wolno
+  użyć danych klienta, limit, ścieżka lokalna). Dołożenie kolejnego
+  zadania (progresja planu, opis szablonu) to dopisanie deskryptora —
+  bez dotykania routera, kolejki, magistrali, liczników i proweniencji.
+  Dzięki temu jest jedno miejsce walidacji, jedno miejsce sprawdzania
+  zgód i jedno miejsce do audytu.
+* **Zamknięte słowniki.** Model wskazuje wyłącznie `exercise_id` z bazy
+  TEGO trenera (status ACTIVE — ten sam kontrakt co
+  `_validate_exercise_refs`), a nazwy, tempo i linki bierze aplikacja
+  z bazy. Identyfikator spoza słownika odrzuca **całą** odpowiedź: jedno
+  ponowienie, potem jawny komunikat z listą niepoprawnych wartości.
+  **Nigdy nie podmieniamy po cichu na „najbliższe" ćwiczenie** — to
+  byłoby zgadywanie decyzji trenera na planie żywego człowieka.
+* **Asystent NIE podaje kilogramów.** W schemacie wyjścia nie ma pola na
+  ciężar (granica strukturalna, nie tylko zapis w promptcie), a jednostka
+  masy przemycona w innym polu odrzuca całą odpowiedź. Proponowane są
+  serie, zakresy powtórzeń, tempo i przerwa; obciążenie zostaje decyzją
+  trenera — napisane wprost w interfejsie i w docs.
+* **Nic nie zapisuje się samo.** Żaden endpoint asystenta nie tworzy
+  planu ani wersji planu (potwierdzone testem liczącym wersje). Wynik to
+  propozycja obok edytora; zapis idzie zwykłą, wersjonowaną ścieżką
+  z powodem zmiany. `POST /tasks/{id}/applied` zapisuje wyłącznie
+  **proweniencję** (że powstało z pomocą asystenta i jakim silnikiem).
+* **Zgody bramkowane per RODZAJ DANYCH.** Zadanie na zasobach trenera
+  (baza ćwiczeń, szablon bez klienta) nie wymaga żadnej zgody
+  podopiecznego. Zadanie z danymi konkretnego klienta wymaga jego
+  aktywnej zgody `funkcje_ai` — bez niej pola profilu (urazy,
+  ograniczenia ruchu) **w ogóle nie powstają**, a interfejs mówi o tym
+  wprost. Do dostawcy nie idzie żaden identyfikator osoby, e-mail ani
+  nazwisko; lista pól profilu, które wolno wysłać, jest zamknięta.
+* **Płynność jako kryterium akceptacji.** Zadanie idzie przez tabelę
+  `assistant_tasks` + **istniejącą** magistralę SSE (`assistant.task`,
+  sam status bez treści) z odpytywaniem zapasowym, więc edytor planu
+  pozostaje w pełni używalny w trakcie generowania. Widoczny postęp,
+  „trwa dłużej niż zwykle" po 8 s, anulowanie jednym kliknięciem, twardy
+  timeout 60 s zamiast wiszącej kręciołki. Propozycja pojawia się OBOK
+  planu, wstawienie to jedno kliknięcie, a zaraz po nim dostępne jest
+  **„cofnij wstawienie"** (migawka stanu edytora). Domyślnie dni są
+  DOKŁADANE, nigdy nie kasują pracy trenera. Bez przeładowań i skoków:
+  `aria-live`, etykiety `for`/`id`, pełna obsługa klawiaturą. Powtórne
+  kliknięcie nie mnoży zadań (klucz idempotencji z treści formularza),
+  a szkic roboczy formularza przeżywa utratę sieci (wzorzec z P11).
+* **Bez klucza API funkcja NIE jest ślepym zaułkiem.** Gdy dostawca
+  modelu jest niedostępny (albo limit wyczerpany, albo odpowiedź
+  odrzucona), ten sam przycisk otwiera **ścieżkę lokalną**: gotowy
+  podział tygodnia zależny od liczby dni, wstępnie odfiltrowana baza
+  ćwiczeń dla każdego wzorca ruchu (sprzęt, poziom), liczba pozycji
+  wyliczona z czasu sesji i lista szablonów do skopiowania. Komunikat
+  zawsze mówi, który tryb działa i dlaczego — brak dostawcy to STAN,
+  nie awaria.
+* **Wyszukiwanie ćwiczeń przy dużym katalogu** (baza rośnie do ~250
+  pozycji): skrót **„ostatnio używane"** nad wynikami
+  (`GET /api/coach/exercises/recent` — do 12 pozycji wyznaczonych
+  z najświeższych wersji planów tego trenera, wyłącznie własne i aktywne,
+  bez informacji o kliencie; widoczny tylko przy pustym wyszukiwaniu),
+  pełna **obsługa klawiaturą** (fokus w polu wyszukiwania po otwarciu,
+  strzałki po wynikach z zawijaniem, Enter dodaje, Escape zamyka i wraca
+  fokusem do przycisku) oraz **czytelny licznik** („Znaleziono 84 —
+  pokazano 20, zostało 64…") z konkretną podpowiedzią przy zerze trafień.
+* **Migracja nr 23** (jedna krotka, wyłącznie addytywna): tabela
+  `assistant_tasks` — klucz zadania, właściciel, status, **zredagowane**
+  wejście (parametry, nigdy treść urazów), wynik, silnik, powód trybu,
+  błąd, czasy, klucz idempotencji, proweniencja. Zero ALTER-ów, wszystkie
+  kolumny NULLable. Plan wycofania w `docs/ASYSTENT_TRENERA.md` §11.
+* **Prywatność.** Ani wejście, ani propozycja nie trafiają do logów,
+  metryk i audytu — audyt notuje sam fakt (zadanie, silnik, liczba dni,
+  czas). Koszty w istniejących licznikach `ai_usage_counters` (cecha
+  `coach_assistant`), limit dzienny zadań na konto, limit kolejki.
+  Cudze zadanie i cudze ćwiczenie = 404; klient i administrator dostają
+  403 (asystent to narzędzie trenera).
+* **Znane ograniczenia** (spisane w `docs/ASYSTENT_TRENERA.md` §12):
+  kolejka żyje w pamięci jednego procesu (restart porzuca zadania w toku);
+  brak automatycznego czyszczenia starych zadań; ścieżka lokalna nie zna
+  urazów; brak progresji planu w czasie; katalog wysyłany do modelu jest
+  przycięty do 120 pozycji; uzasadnienie dnia zostaje w panelu (plan nie
+  ma pola na taki komentarz); „ostatnio używane" liczą się z 60
+  najświeższych wersji planów.
+* Testy: `backend/tests/test_coach_assistant.py` (26 — odrzucenie
+  nieistniejącego i cudzego `exercise_id` bez cichej podmiany, ćwiczenie
+  zarchiwizowane poza słownikiem, brak pola na ciężar i odrzut kilogramów,
+  poprawna propozycja na atrapie dostawcy, minimalizacja wysyłanych
+  danych, brak dostawcy → ścieżka lokalna z powodem, pusta baza jako
+  czytelny stan, zadanie bez klienta bez zgody, dane klienta bez zgody
+  pomijane i powiedziane wprost, dane klienta ze zgodą, 403 dla klienta
+  i admina, cudze zadanie 404, klient spoza relacji 404, zero zapisów
+  w planach, proweniencja po zatwierdzeniu, idempotencja, anulowanie,
+  limit dzienny, brak treści w logach/metrykach/wejściu, liczniki
+  kosztów, migracja nr 23 na starej bazie),
+  `backend/tests/test_exercise_recent.py` (8) oraz helpery frontendu:
+  `frontend/scripts/test-assistant-utils.mjs` (12) i
+  `test-exercise-picker.mjs` (9).
+
 ## 0.29.0 — 2026-08-18
 
 **Maszyna produkcyjna: 512 MB → 1 GB RAM** (`fly.toml`, `[[vm]] memory`).

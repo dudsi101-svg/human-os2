@@ -123,6 +123,27 @@ class Settings:
     ocr_daily_tasks_user: int = field(
         default_factory=lambda: int(_env("DZIK_OCR_DAILY_TASKS_USER", "50"))
     )
+    # --- Asystent trenera (docs/ASYSTENT_TRENERA.md) ---
+    # Poczekalnia zadań asystenta. Po przepełnieniu zlecenie dostaje
+    # czytelne 429 zamiast rosnącej w nieskończoność kolejki.
+    assistant_queue_max: int = field(
+        default_factory=lambda: int(_env("DZIK_ASSISTANT_QUEUE_MAX", "20"))
+    )
+    # Limit dzienny zadań asystenta na konto trenera (ochrona kosztów
+    # i maszyny; osobno od limitu wywołań modelu ai_daily_calls_user).
+    assistant_daily_tasks_user: int = field(
+        default_factory=lambda: int(_env("DZIK_ASSISTANT_DAILY_TASKS_USER", "40"))
+    )
+    # Po tylu sekundach interfejs mówi wprost „trwa dłużej niż zwykle”
+    # (płynność: żadnej wiszącej kręciołki bez wyjaśnienia).
+    assistant_slow_after_s: int = field(
+        default_factory=lambda: int(_env("DZIK_ASSISTANT_SLOW_AFTER_S", "8"))
+    )
+    # Twardy limit czasu CAŁEGO zadania asystenta. Po nim zadanie kończy
+    # się statusem FAILED z komunikatem, nigdy wiszącym stanem RUNNING.
+    assistant_timeout_s: int = field(
+        default_factory=lambda: int(_env("DZIK_ASSISTANT_TIMEOUT_S", "60"))
+    )
     cors_origins: str = field(default_factory=lambda: _env("DZIK_CORS_ORIGINS", ""))
     # Marka konfigurowalna (nazwa/kolor — używane też przez frontend przez /api/branding).
     brand_name: str = field(default_factory=lambda: _env("DZIK_BRAND_NAME", "Dzik OS"))

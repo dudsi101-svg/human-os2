@@ -1299,6 +1299,49 @@ class OcrTask(Base):
     finished_at: Mapped[str | None] = mapped_column(String(40), nullable=True)
 
 
+class AssistantTask(Base):
+    """Zadanie asystenta trenera (migracja nr 23) — wspólna tabela dla
+    WSZYSTKICH zadań warstwy `coach_assistant` (dziś: szkic planu).
+
+    Zadanie jest ZAWSZE propozycją: wynik trafia obok edytora i nic się nie
+    zapisuje, dopóki trener sam nie wstawi go do planu i nie zapisze wersji
+    z powodem zmiany. `input_json` jest ZREDAGOWANE — trzyma wyłącznie
+    parametry zadania (dni, sprzęt, poziom, cel, czas sesji) i informację,
+    czy dane klienta były w ogóle użyte; nigdy treści urazów, nazwisk ani
+    e-maili. `provenance_json` (zapisywana przy zatwierdzeniu przez trenera)
+    mówi, że wynik powstał z pomocą asystenta i jakim silnikiem."""
+
+    __tablename__ = "assistant_tasks"
+
+    id: Mapped[str] = mapped_column(String(40), primary_key=True)
+    # Klucz zadania z rejestru (coach_assistant.REGISTRY), np. PLAN_DRAFT.
+    task_key: Mapped[str] = mapped_column(String(40), index=True)
+    # Właściciel zadania — zawsze trener (asystent nie działa dla klienta).
+    owner_user_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
+    # Klient, którego dotyczy zadanie (opcjonalnie) — sam identyfikator,
+    # bez jego danych.
+    client_id: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    # PENDING / RUNNING / DONE / FAILED / CANCELLED
+    status: Mapped[str] = mapped_column(String(20), default="PENDING", index=True)
+    input_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    result_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # MODEL (dostawca modelu) / LOCAL (ścieżka lokalna, bez modelu).
+    engine: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    # Dlaczego akurat ten tryb — komunikat dla człowieka, nigdy błąd.
+    mode_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    error_code: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    idem_key: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    duration_ms: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    # Proweniencja zapisana w chwili, gdy trener zatwierdził propozycję.
+    approved_at: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    provenance_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    result_ref: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    created_at: Mapped[str] = mapped_column(String(40), default=now_iso)
+    started_at: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    finished_at: Mapped[str | None] = mapped_column(String(40), nullable=True)
+
+
 class Receipt(Base):
     """Pokwitowanie operacji o wysokim znaczeniu: wiąże odpowiedź API z
     niemutowalnym zdarzeniem w łańcuchu audytu Human OS (event_hash)."""

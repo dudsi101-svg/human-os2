@@ -30,6 +30,7 @@ from .observability import (
 )
 from .routers import (
     admin,
+    assistant,
     auth,
     challenges,
     checkins,
@@ -130,7 +131,7 @@ def create_app() -> FastAPI:
         monitoring.router, knowledge.router, exercises.router, food_catalog.router,
         records.router, push.router, consultations.router, telemetry.router,
         challenges.router, notifications_router.router, onboarding.router,
-        ocr.router,
+        ocr.router, assistant.router,
     ):
         app.include_router(router)
 
