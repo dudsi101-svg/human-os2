@@ -23,6 +23,29 @@ nowej roli: nie jako sposób na równoległość, tylko jako **przekazanie
 pałeczki** między kolejnymi sesjami. Jeśli kiedyś świadomie wrócimy do
 równoległości, są gotowe; dopóki nie wrócimy, są tanie i nic nie kosztują.
 
+### Protokół jednego piszącego
+
+1. **Właściciel wyznacza jednego piszącego albo integratora.** Brak takiego
+   wskazania oznacza pracę tylko do odczytu.
+2. Piszący odgałęzia `agent/<zadanie>` od aktualnego `main`. Pierwszy
+   commit zawiera wyłącznie `docs/plan-sesji/<zadanie>.md`; natychmiast po
+   jego pushu powstaje draft PR do `main` z prefiksem **`[WRITER]`**.
+   Kod i pliki integracyjne wolno zmieniać dopiero po utworzeniu tego PR-a.
+3. W repozytorium może istnieć tylko jeden otwarty PR `[WRITER]`. Każdy
+   kolejny agent najpierw sprawdza PR-y; jeśli widzi taki PR, zatrzymuje
+   własne zapisy i może wyłącznie recenzować lub testować.
+4. Zakres dozwolonych i zabronionych plików trafia do
+   `docs/plan-sesji/<zadanie>.md`. Rozszerzenie zakresu wymaga jawnej zgody.
+5. Konflikt, nieaktualna baza albo sprzeczność znaczeniowa oznaczają
+   **STOP**. Bez automatycznego `ours`/`theirs`, force-pusha i cichego
+   przepisywania cudzej pracy.
+6. Po bramkach piszący przekazuje PR właścicielowi. Nie scala go, nie usuwa
+   gałęzi i nie zmienia ustawień repozytorium. Następny piszący startuje
+   dopiero po zamknięciu poprzedniego PR-a i ponownym pobraniu `main`.
+
+`main` jest gałęzią kanoniczną niezależnie od chwilowej konfiguracji
+gałęzi domyślnej na GitHubie. Inna baza PR-a jest błędem procesu.
+
 **Przed rozpoczęciem rundy przeczytaj dwa dokumenty:**
 `docs/KARTA_WSPOLPRACY.md` (jak pracujemy — zasady i skąd się wzięły) oraz
 `docs/STAN_PRZEKAZANIA.md` (gdzie jesteśmy — co zrobione, co w toku, co
@@ -162,7 +185,6 @@ a własny parser byłby kolejną rzeczą gnijącą po cichu.
 
 ---
 
-## 2. Rezerwacja: zanim zaczniesz pracę
 ## 2. Rezerwacja i przekazanie: zanim zaczniesz pracę
 
 Przy pracy jedna-sesja-naraz rezerwacja służy **przekazaniu**: następna
@@ -187,28 +209,20 @@ rezerwuję** (numery, pliki) i **czego świadomie nie robię**. Ostatnie
 pytanie bywa najważniejsze — kolizje biorą się z rzeczy, których nikt nie
 zadeklarował.
 
-### Aktualne rezerwacje
+### Rezerwacja bez wspólnej tabeli
 
-| Gałąź / runda | Migracja | Wersja | Główne pliki | Status |
-|---|---|---|---|---|
-| `dzik-os-personal-trainer-app` — dostawca AI + sprzątnięcie styków | **26** (rezerwacja warunkowa) | **0.38.0** | `ai_provider.py`, `sheet_import.py`, `routers/`, `pages/coach/`, `components.tsx`, `docs/` | plan złożony, czeka na uzgodnienie |
-| `ocena-projektu-dzik-os` — bramki, CI, E2E | — (nie dotyka schematu) | **0.39.0** | `tools/spojnosc.py`, `tools/mutacje.py`, `tests/test_spojnosc.py`, `.github/workflows/dzik-os-ci.yml`, `frontend/e2e/`, `e2e/`, `docs/KOORDYNACJA.md`, `docs/DOSTEPNOSC.md`, `docs/KARTA_WSPOLPRACY.md`, `docs/PRZEGLAD_KRZYZOWY_2026-08-18.md` | w scalaniu |
+Nie utrzymujemy już centralnej tabeli „aktywnych rezerwacji”. Sama stała
+się współdzielonym plikiem, który jedna sesja nadpisała bez konfliktu.
+Źródłem prawdy są teraz dwa artefakty:
 
-Następny wolny numer migracji: **27** · następna wolna wersja: **0.40.0**
+- jedyny otwarty draft PR z prefiksem `[WRITER]` — wskazuje aktywnego
+  piszącego i jego gałąź;
+- plan tej gałęzi w `docs/plan-sesji/` — wskazuje zakres plików oraz
+  rezerwację wersji i migracji.
 
-> Po zakończeniu rundy usuń wiersz i podnieś „następne" numery. Rezerwację
-> warunkową, której nie użyto, **zwolnij** — inaczej numer przepada.
-
-**Ten wiersz raz już zniknął po cichu.** Scalenie mojej gałęzi z `main`
-nadpisało świeżo wpisaną rezerwację drugiej sesji bez jednego konfliktu —
-git widział tylko dwie różne wersje tej samej linii tabeli. Przywrócone
-ręcznie. To przypadek nr 1 z §3 niżej i dowód, że tabelę trzeba przy
-scalaniu **przeczytać**, a nie tylko rozwiązać konflikt (którego tu nie było).
-
-Następny wolny numer migracji: **27** · następna wolna wersja: **0.39.0**
-
-> Po zakończeniu rundy usuń wiersz i podnieś „następne" numery. Rezerwację
-> warunkową, której nie użyto, **zwolnij** — inaczej numer przepada.
+Jeżeli plan i PR mówią co innego, praca zatrzymuje się do wyjaśnienia.
+Numer migracji i wersję przydziela integrator tuż przed zmianą; nie wolno
+zgadywać ich na podstawie starego dokumentu przekazania.
 
 ---
 
@@ -238,7 +252,7 @@ konflikty. Bramka zdejmuje mechaniczną część, nie zastępuje czytania.
 3. Pełna weryfikacja — **dokładnie tymi poleceniami, z korzenia repozytorium**:
 
    ```bash
-   python -m ruff check apps/dzik-os/backend     # tak samo jak CI
+   python -m ruff check apps/dzik-os/backend apps/dzik-os/tools
    python -m pytest apps/dzik-os/backend/tests -q
    python -m pytest tests/ -q                    # Core: 275 testów zielone
    cd apps/dzik-os/frontend && npx tsc --noEmit && npm run build \
@@ -251,23 +265,35 @@ konflikty. Bramka zdejmuje mechaniczną część, nie zastępuje czytania.
    której używa CI). Weryfikacja innym poleceniem niż bramka to nie
    weryfikacja.
 4. Uruchomienie tego, co nowe — patrz `docs/ZASADA_URUCHOMIENIA.md`.
-5. Dopiero potem push i wdrożenie.
+5. Dopiero potem push wyłącznie na własną gałąź i przekazanie PR-a
+   właścicielowi. Wdrożenie jest osobną decyzją.
 
 ---
 
-## 5. Brief dla pracy równoległej
+## 5. Brief dla każdej sesji
 
-Każda praca prowadzona równolegle dostaje ten sam zestaw ograniczeń:
+Każda sesja dostaje ten sam zestaw ograniczeń. Jeżeli nie jest aktywnym
+piszącym, pierwszy wiersz briefu brzmi „tylko odczyt i recenzja”:
 
 ```
-Przeczytaj: /CLAUDE.md, apps/dzik-os/docs/KOORDYNACJA.md,
+Przeczytaj: /AGENTS.md, /CLAUDE.md,
+            apps/dzik-os/docs/KARTA_WSPOLPRACY.md,
+            apps/dzik-os/docs/STAN_PRZEKAZANIA.md,
+            apps/dzik-os/docs/KOORDYNACJA.md,
             apps/dzik-os/docs/ZASADA_URUCHOMIENIA.md.
+Rola: <aktywny piszący | tylko odczyt i recenzja>.
+Jeśli nie jesteś aktywnym piszącym albo istnieje inny PR `[WRITER]`, STOP:
+  nie twórz ani nie zmieniaj plików.
 Pracujesz WYŁĄCZNIE w apps/dzik-os/. Core (hos_engine/, tests/) jest
   nietykalny — 275 testów Core musi zostać zielone.
+Gałąź `agent/<zadanie>` startuje z aktualnego `main`; PR wraca do `main`.
+Pierwszy commit zawiera tylko plan sesji; otwórz draft PR `[WRITER]`, zanim
+  dotkniesz kodu lub plików integracyjnych.
 Twoja rezerwacja: migracja nr <N>, wersja <X.Y.0>, pliki <lista>.
   Nie dotykaj plików spoza tej listy; jeśli musisz — zgłoś to zamiast
   zmieniać po cichu.
-Nie pushuj. Commituj po polsku, bez nazw modeli AI w treści commita.
+Nie rozwiązuj konfliktów automatycznie i nie rób force-pusha. Commituj po
+  polsku, bez nazw modeli AI w treści commita. Nie scalaj własnego PR-a.
 Przed zakończeniem: pełna weryfikacja (punkt 4 wyżej) plus
   `python apps/dzik-os/tools/spojnosc.py`.
 W raporcie napisz, CO URUCHOMIŁEŚ I CO ZOBACZYŁEŚ — nie „sprawdzone".

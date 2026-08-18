@@ -437,7 +437,20 @@ will flag it as an unused import.
 
 ## Praca nad aplikacją Dzik OS (`apps/dzik-os/`)
 
-Pracuje **jedna sesja naraz**. Zanim cokolwiek dotkniesz, przeczytaj
+Obowiązuje także `/AGENTS.md`. Pracuje **jedna sesja pisząca naraz**.
+Jeśli właściciel nie wyznaczył Cię jawnie jako aktywnego piszącego albo
+integratora, działasz tylko do odczytu: możesz analizować, testować i
+recenzować, ale nie zmieniasz plików.
+
+`main` jest jedyną gałęzią kanoniczną nawet wtedy, gdy GitHub chwilowo
+wskazuje inną gałąź domyślną. Nowa gałąź powstaje z bieżącego `main`, a PR
+zawsze ma bazę `main`. Przed pierwszą zmianą sprawdź otwarte PR-y: inny
+otwarty PR z prefiksem `[WRITER]` oznacza STOP. Nie rozwiązuj konfliktów
+automatycznie, nie rób force-pusha i nie scalaj własnego PR-a.
+Pierwszy commit nowej rundy zawiera tylko plan sesji; draft PR `[WRITER]`
+powstaje przed pierwszą zmianą w kodzie albo pliku integracyjnym.
+
+Zanim cokolwiek dotkniesz, przeczytaj
 `apps/dzik-os/docs/KARTA_WSPOLPRACY.md` (zasady współpracy między sesjami,
 każda z podpiętym zdarzeniem, z którego się wzięła) i
 `apps/dzik-os/docs/STAN_PRZEKAZANIA.md` (gdzie jesteśmy, co jest w toku —
