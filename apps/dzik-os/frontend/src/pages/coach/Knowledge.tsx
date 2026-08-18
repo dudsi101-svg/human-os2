@@ -8,9 +8,21 @@ import { EMPTY_FILTERS, ExerciseFilters, exerciseQuery } from "../../exerciseFil
 import OcrCapture from "../../OcrCapture";
 import {
   OcrTask,
+  appendText,
   missingProductFields,
+  modeLabel,
   productFormFromProposal,
 } from "../../ocrUtils";
+import {
+  ExerciseFormValues,
+  ExerciseProposal,
+  ParseDescriptionResponse,
+  fieldLabels,
+  fieldsToInsert,
+  mergeProposalIntoForm,
+  proposalMessage,
+  provenanceFor,
+} from "../../exerciseParser";
 import {
   FoodDisclaimer,
   FoodFilters,
@@ -221,26 +233,9 @@ function ArticlesTab() {
   );
 }
 
-interface ExerciseForm {
-  name: string;
-  muscle_group: string;
-  how_to: string;
-  benefit: string;
-  equipment: string;
-  video_url: string;
-  muscles_primary: string[];
-  muscles_secondary: string[];
-  level: string;
-  pattern: string;
-  steps: string[];
-  mistakes: string[];
-  cues: string[];
-  safety: string;
-  easier: string;
-  harder: string;
-  tempo_hint: string;
-  breathing: string;
-}
+/** Kształt formularza mieszka w `exerciseParser.ts` — ta sama definicja
+ * służy scalaniu propozycji z opisu (jedno źródło prawdy). */
+type ExerciseForm = ExerciseFormValues;
 
 const EMPTY_EXERCISE_FORM: ExerciseForm = {
   name: "", muscle_group: "NOGI", how_to: "", benefit: "", equipment: "", video_url: "",
@@ -320,6 +315,11 @@ function ExercisesTab() {
   const [showArchived, setShowArchived] = useState(false);
   const [filters, setFilters] = useState<ExerciseFilters>(EMPTY_FILTERS);
   const [loadingMore, setLoadingMore] = useState(false);
+  // Proweniencja wpisu: `null` = trener wypełnił tabelę sam (w bazie
+  // zostaje NULL — nie deklarujemy za nikogo, skąd wzięły się dane).
+  const [provenance, setProvenance] = useState<
+    { source_kind: string; source_engine: string | null } | null
+  >(null);
 
   const load = useCallback((offset = 0) => {
     if (offset > 0) setLoadingMore(true);
@@ -343,10 +343,17 @@ function ExercisesTab() {
 
   function startNew() {
     setForm(EMPTY_EXERCISE_FORM);
+    setProvenance(null);
     setEditing("new");
   }
 
   function startEdit(item: ExerciseLibraryItem) {
+    // Zwykła edycja nie ma prawa skasować proweniencji zapisanej wcześniej.
+    setProvenance(
+      item.source_kind
+        ? { source_kind: item.source_kind, source_engine: item.source_engine }
+        : null
+    );
     setForm({
       name: item.name, muscle_group: item.muscle_group, how_to: item.how_to,
       benefit: item.benefit ?? "", equipment: item.equipment ?? "",
@@ -390,6 +397,7 @@ function ExercisesTab() {
         harder: form.harder || null,
         tempo_hint: form.tempo_hint || null,
         breathing: form.breathing || null,
+        ...(provenance ?? {}),
       };
       if (editing === "new") {
         await api.post("/api/coach/exercises", payload);
@@ -436,6 +444,13 @@ function ExercisesTab() {
       {editing && (
         <form className="card card--accent" onSubmit={save}>
           <h2>{editing === "new" ? "Nowe ćwiczenie" : "Edytuj ćwiczenie"}</h2>
+          <DescriptionAssist
+            form={form}
+            onInsert={(next, engine) => {
+              setForm(next);
+              setProvenance(provenanceFor(engine));
+            }}
+          />
           <label htmlFor="ex-name">Nazwa</label>
           <input id="ex-name" required value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })} />
@@ -577,6 +592,190 @@ function ExercisesTab() {
       )}
     </>
   );
+}
+
+/** Panel „Uzupełnij z opisu”: wklejony opis ćwiczenia → propozycja pól.
+ *
+ * Reguły interfejsu (te same co przy OCR):
+ * * wynik jest PROPOZYCJĄ — nic nie trafia do formularza bez kliknięcia
+ *   „Wstaw do formularza”, a do bazy dopiero po zapisaniu ćwiczenia;
+ * * domyślnie uzupełniamy WYŁĄCZNIE puste pola (praca trenera nie znika);
+ * * widać, który tryb zadziałał i dlaczego, czego nie udało się odczytać i
+ *   co warto potwierdzić — brak nigdy nie udaje wartości;
+ * * pojawienie się propozycji ogłasza `aria-live`, a każde pole ma
+ *   etykietę powiązaną `for`/`id` (runda P10). */
+function DescriptionAssist({ form, onInsert }: {
+  form: ExerciseFormValues;
+  onInsert: (next: ExerciseFormValues, engine: "LOCAL" | "EXTENDED") => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [text, setText] = useState("");
+  const [result, setResult] = useState<ParseDescriptionResponse | null>(null);
+  const [overwrite, setOverwrite] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [ocrOpen, setOcrOpen] = useState(false);
+
+  async function read() {
+    setBusy(true);
+    setError(null);
+    try {
+      const data = await api.post<ParseDescriptionResponse>(
+        "/api/coach/exercises/parse-description", { description: text }
+      );
+      setResult(data);
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const willInsert = result ? fieldsToInsert(form, result.proposal, overwrite) : [];
+
+  return (
+    <div className="card" style={{ marginBottom: 12 }}>
+      <div className="row row--between">
+        <b>Uzupełnij z opisu</b>
+        <button type="button" className="btn btn--ghost btn--small" aria-expanded={open}
+          onClick={() => setOpen(!open)}>
+          {open ? "Zwiń" : "Rozwiń"}
+        </button>
+      </div>
+      {open && (
+        <>
+          <p className="dim" style={{ marginTop: 4 }}>
+            Wklej jednolity opis ćwiczenia — wyciągniemy z niego, co się da, i
+            pokażemy propozycję do zatwierdzenia. Czego nie da się odczytać,
+            zostaje puste i jest wypisane wprost. Nic nie zapisuje się samo.
+          </p>
+          <label htmlFor="ex-src-desc">Opis ćwiczenia (wklej tekst)</label>
+          <textarea id="ex-src-desc" value={text} style={{ minHeight: 130 }}
+            placeholder={"Np.\nPrzysiad ze sztangą\nMięśnie: głównie czworogłowy uda "
+              + "i pośladki, wspomagająco core\nWykonanie:\n1. …"}
+            onChange={(e) => setText(e.target.value)} />
+          <div className="row" style={{ flexWrap: "wrap" }}>
+            <button type="button" className="btn btn--small" disabled={busy || !text.trim()}
+              onClick={read}>
+              {busy ? "Czytanie…" : "Uzupełnij z opisu"}
+            </button>
+            <button type="button" className="btn btn--ghost btn--small" aria-expanded={ocrOpen}
+              onClick={() => setOcrOpen(!ocrOpen)}>
+              {ocrOpen ? "Zamknij przepisywanie" : "Przepisz ze zdjęcia"}
+            </button>
+            {text && (
+              <button type="button" className="btn btn--ghost btn--small"
+                onClick={() => { setText(""); setResult(null); }}>
+                Wyczyść opis
+              </button>
+            )}
+          </div>
+          <ErrorBox error={error} />
+          {ocrOpen && (
+            <OcrCapture
+              purpose="PLAN"
+              title="Opis ćwiczenia ze zdjęcia"
+              hint={"Zrób zdjęcie kartki albo strony z książki. Przepisany tekst "
+                + "wstawimy do pola opisu powyżej — stamtąd uzupełnisz tabelę."}
+              approveLabel="Wstaw tekst do opisu"
+              onApprove={(_task, recognized) => {
+                // Dopisujemy na końcu — nigdy nie kasujemy tego, co już jest.
+                setText((current) => appendText(current, recognized));
+                setOcrOpen(false);
+                return true;
+              }}
+              onClose={() => setOcrOpen(false)}
+            />
+          )}
+          <p className="dim" aria-live="polite" style={{ marginTop: 8 }}>
+            {proposalMessage(result, form, modeLabel(result?.engine), overwrite)}
+          </p>
+          {result && (
+            <div className="card card--accent" style={{ marginTop: 6 }}>
+              <p className="meta" style={{ marginTop: 0 }}>
+                Odczytano w trybie: {modeLabel(result.engine)}.
+                {result.mode_reason ? ` ${result.mode_reason}` : ""}
+              </p>
+              <ProposalPreview title="Zostanie wstawione" keys={willInsert}
+                proposal={result.proposal} labels={result.field_labels}
+                empty="Nic — wszystkie odczytane pola są już wypełnione." />
+              {result.needs_confirmation.length > 0 && (
+                <p className="meta">
+                  <b>Sprawdź szczególnie:</b>{" "}
+                  {fieldLabels(result.needs_confirmation, result.field_labels).join(", ")}
+                  {result.needs_confirmation.includes("muscles_primary")
+                    ? " — w opisie nie było podziału na mięśnie główne i pomocnicze, "
+                      + "więc wszystko trafiło do głównych."
+                    : ""}
+                </p>
+              )}
+              {result.unrecognized.length > 0 && (
+                <p className="meta">
+                  <b>Nie udało się odczytać:</b>{" "}
+                  {fieldLabels(result.unrecognized, result.field_labels).join(", ")} —
+                  te pola zostają puste, uzupełnij je sam.
+                </p>
+              )}
+              <div className="row" style={{ alignItems: "center" }}>
+                <input type="checkbox" id="ex-src-overwrite" checked={overwrite}
+                  onChange={(e) => setOverwrite(e.target.checked)} />
+                <label htmlFor="ex-src-overwrite" style={{ margin: 0 }}>
+                  Nadpisz także pola, które już wypełniłem
+                </label>
+              </div>
+              <div className="row" style={{ marginTop: 8 }}>
+                <button type="button" className="btn btn--small"
+                  disabled={willInsert.length === 0}
+                  onClick={() => onInsert(
+                    mergeProposalIntoForm(form, result.proposal, overwrite), result.engine
+                  )}>
+                  Wstaw do formularza
+                </button>
+                <button type="button" className="btn btn--ghost btn--small"
+                  onClick={() => setResult(null)}>
+                  Odrzuć propozycję
+                </button>
+              </div>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+/** Podgląd propozycji: etykieta pola + wartość, którą wstawimy. */
+function ProposalPreview({ title, keys, proposal, labels, empty }: {
+  title: string;
+  keys: string[];
+  proposal: ExerciseProposal;
+  labels: Record<string, string>;
+  empty: string;
+}) {
+  if (keys.length === 0) return <p className="meta">{empty}</p>;
+  return (
+    <>
+      <p className="meta" style={{ marginBottom: 4 }}><b>{title}:</b></p>
+      <ul className="meta" style={{ margin: "0 0 6px 18px" }}>
+        {keys.map((key) => (
+          <li key={key}>
+            {labels[key] ?? key}: {proposalValue(key, proposal)}
+          </li>
+        ))}
+      </ul>
+    </>
+  );
+}
+
+function proposalValue(key: string, proposal: ExerciseProposal): string {
+  const value = proposal[key as keyof ExerciseProposal];
+  if (key === "muscles_primary" || key === "muscles_secondary") {
+    return muscleLabels(value as string[]);
+  }
+  if (key === "level") return EXERCISE_LEVEL_LABELS[value as string] ?? String(value);
+  if (key === "pattern") return MOVEMENT_PATTERN_LABELS[value as string] ?? String(value);
+  if (Array.isArray(value)) return value.join(" • ");
+  return String(value ?? "");
 }
 
 function CoachExerciseCard({ item, onEdit, onStatus }: {

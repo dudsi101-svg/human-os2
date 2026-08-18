@@ -63,8 +63,8 @@ przegląd prawny (patrz RISK_REGISTER R-01).
 
 * **AI**: domyślnie żaden dostawca nie jest skonfigurowany
   (`ai_provider.NullAIProvider` — nic nie wysyła, zawsze zwraca „wymaga
-  konfiguracji"). Trzy podpięte, propose-only use case'y, wszystkie
-  bramkowane zgodą klienta `funkcje_ai`:
+  konfiguracji"). Cztery podpięte, propose-only use case'y; trzy pierwsze
+  operują na danych klienta i są bramkowane jego zgodą `funkcje_ai`:
   1. **podsumowanie raportu tygodniowego** + szkic odpowiedzi dla trenera
      — wynik nigdy nie trafia do klienta bez edycji/zatwierdzenia przez
      trenera;
@@ -78,6 +78,17 @@ przegląd prawny (patrz RISK_REGISTER R-01).
      przepisuje silnik lokalny na naszym serwerze i nic nie opuszcza
      aplikacji; wynik zawsze jest propozycją do zatwierdzenia przez
      człowieka (`docs/OCR.md`).
+
+  Czwarty use case ma **inną podstawę i inną bramkę**:
+
+  4. **czytanie opisu ćwiczenia** („Uzupełnij z opisu”) — do dostawcy
+     jedzie WYŁĄCZNIE wklejony przez trenera opis ćwiczenia. To know-how
+     trenera, nie dane klienta (klient w tym przepływie nie występuje),
+     więc bramką nie jest zgoda `funkcje_ai` podmiotu danych, tylko
+     dostępność dostawcy plus jawna decyzja trenera. Dostawca jest tu
+     procesorem danych **trenera** (rejestr czynności poz. 14). Bez
+     klucza czyta parser lokalny i nic nie opuszcza aplikacji; wynik
+     zawsze jest propozycją do zatwierdzenia (`docs/BAZA_CWICZEN.md` §10).
 
   Zakres wysyłany w (2) jest zminimalizowany do listy
   `{pole, zagadnienie, pytanie, odpowiedź}` — bez identyfikatorów,

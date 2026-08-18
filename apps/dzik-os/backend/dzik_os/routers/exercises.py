@@ -15,6 +15,7 @@ import json
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
+from .. import exercise_parser, exercise_parser_ai
 from ..authz import require_owned_resource
 from ..db import get_db
 from ..hos_bridge import record_event
@@ -30,7 +31,8 @@ from ..muscles import (
     join_muscles,
     split_muscles,
 )
-from ..schemas import ExerciseLibraryItemIn
+from ..observability import metrics
+from ..schemas import ExerciseDescriptionIn, ExerciseLibraryItemIn
 from ..security import current_user, require_role
 
 router = APIRouter(prefix="/api", tags=["exercises"])
@@ -68,6 +70,7 @@ def _out(item: Exercise) -> dict:
         "cues": _load_list(item.cues_json),
         "safety": item.safety, "easier": item.easier, "harder": item.harder,
         "tempo_hint": item.tempo_hint, "breathing": item.breathing,
+        "source_kind": item.source_kind, "source_engine": item.source_engine,
         "created_at": item.created_at, "updated_at": item.updated_at,
     }
 
@@ -83,6 +86,7 @@ def _apply_fields(item: Exercise, body: ExerciseLibraryItemIn) -> None:
     item.cues_json = _dump_list(body.cues)
     item.safety, item.easier, item.harder = body.safety, body.easier, body.harder
     item.tempo_hint, item.breathing = body.tempo_hint, body.breathing
+    item.source_kind, item.source_engine = body.source_kind, body.source_engine
 
 
 def _matches(
@@ -150,6 +154,72 @@ def exercise_dictionaries(_: User = Depends(current_user)):
         "levels": LEVEL_LABELS,
         "patterns": PATTERN_LABELS,
         "muscle_groups": list(MUSCLE_GROUPS),
+    }
+
+
+@router.post("/coach/exercises/parse-description")
+def parse_exercise_description(
+    body: ExerciseDescriptionIn,
+    coach: User = Depends(require_role("COACH")),
+    db: Session = Depends(get_db),
+):
+    """Czyta wklejony opis ćwiczenia i zwraca PROPOZYCJĘ pól edytora.
+
+    **Nic nie zapisuje.** Ani ćwiczenia, ani opisu, ani propozycji — jedyne,
+    co ten endpoint może zmienić w bazie, to licznik zużycia modelu w
+    trybie rozszerzonym. Zapis następuje wyłącznie zwykłym
+    `POST/PUT /api/coach/exercises`, po tym jak trener zobaczył propozycję,
+    poprawił ją i zatwierdził.
+
+    Tryb wybiera się SAM (``exercise_parser_ai.resolve_mode``): silnik
+    lokalny działa zawsze, tryb rozszerzony włącza się, gdy operator
+    skonfigurował dostawcę i limity nie są wyczerpane. Bramką NIE jest tu
+    zgoda `funkcje_ai` podmiotu danych — opis ćwiczenia to know-how
+    trenera, nie dane klienta (pełne uzasadnienie w nagłówku
+    `exercise_parser_ai.py` i w docs/BAZA_CWICZEN.md).
+
+    Do logów i metryk nie trafia ani jeden znak opisu — wyłącznie liczniki."""
+    local = exercise_parser.parse_description(body.description)
+    proposal = local.proposal
+    unrecognized = local.unrecognized
+    needs_confirmation = local.needs_confirmation
+    engine = exercise_parser.ENGINE_LOCAL
+    mode, mode_reason = exercise_parser_ai.resolve_mode(db, coach.id)
+    if mode == exercise_parser.ENGINE_EXTENDED:
+        outcome = exercise_parser_ai.request_draft(
+            db, user_id=coach.id, description=body.description
+        )
+        db.commit()  # liczniki zużycia; propozycja nadal nigdzie nie ląduje
+        if outcome.ok:
+            engine = exercise_parser.ENGINE_EXTENDED
+            proposal = outcome.proposal
+            # Model dostał w prompcie tę samą regułę podziału mięśni co
+            # silnik lokalny: brak rozróżnienia w opisie = wszystko główne.
+            # Skoro nie wiemy, czy rozróżnienie było, prosimy o
+            # potwierdzenie dokładnie tak samo.
+            needs_confirmation = (
+                ["muscles_primary", "muscles_secondary"]
+                if proposal["muscles_primary"] and not proposal["muscles_secondary"]
+                else []
+            )
+            # Obie listy zostają rozłączne — dokładnie jak w trybie lokalnym.
+            unrecognized = [
+                key for key in exercise_parser.unrecognized_fields(proposal)
+                if key not in needs_confirmation
+            ]
+            mode_reason = ""
+        else:
+            mode_reason = outcome.reason
+    if engine == exercise_parser.ENGINE_LOCAL and not mode_reason:
+        mode_reason = exercise_parser_ai.LOCAL_OK_REASON
+    metrics.inc(f"exercise_parse_{engine.lower()}")
+    return {
+        "engine": engine,
+        "mode_reason": mode_reason,
+        "proposal": proposal,
+        "unrecognized": unrecognized,
+        "needs_confirmation": needs_confirmation,
+        "field_labels": exercise_parser.FIELD_LABELS,
     }
 
 

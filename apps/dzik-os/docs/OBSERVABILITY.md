@@ -127,6 +127,13 @@ wieloprocesowym — per proces). Bez sekretów i bez danych użytkowników.
     "ocr_ai_fallback": 0,
     "ocr_ai_tokens_in": 0,
     "ocr_ai_tokens_out": 0,
+    "exercise_parse_local": 0,
+    "exercise_parse_extended": 0,
+    "exercise_parse_ai_calls": 0,
+    "exercise_parse_ai_rejected": 0,
+    "exercise_parse_ai_fallback": 0,
+    "exercise_parse_ai_tokens_in": 0,
+    "exercise_parse_ai_tokens_out": 0,
     "frontend_error_reports": 0,
     "frontend_error_reports_dropped": 0,
     "unhandled_exceptions": 0,
@@ -193,6 +200,9 @@ endpoint kontem ADMIN; dziś: przegląd ręczny):
 | `ocr_tasks_started` vs `ocr_tasks_done` | zbliżone | rosnąca różnica | zadania nie kończą się — sprawdź czasy (`duration_ms` w logu `ocr_task_finished`) i pamięć maszyny; przy większym ruchu podbij Fly do 1 GB (OCR.md §2) |
 | `ocr_ai_calls` / `ocr_ai_tokens_in` / `_tokens_out` | — (informacyjny, kontrola kosztów) | nagły skok | nietypowe zużycie modelu w trybie rozszerzonym — limity `DZIK_AI_DAILY_CALLS_*`; liczniki są **bez treści** zdjęcia ani tekstu |
 | `ocr_ai_rejected` / `ocr_ai_fallback` | pojedyncze | > 30% wywołań | dostawca przestał trzymać kontrakt wyjścia — przepisywanie schodzi na silnik lokalny (funkcja działa dalej) |
+| `exercise_parse_local` / `exercise_parse_extended` | — (informacyjny) | — | ile opisów ćwiczeń przeczytał który silnik; same liczniki, **bez treści opisu** |
+| `exercise_parse_ai_calls` / `_tokens_in` / `_tokens_out` | — (informacyjny, kontrola kosztów) | nagły skok | nietypowe zużycie modelu przy czytaniu opisów — limity `DZIK_AI_DAILY_CALLS_*` (BAZA_CWICZEN.md §10.5) |
+| `exercise_parse_ai_rejected` / `exercise_parse_ai_fallback` | pojedyncze | > 30% wywołań | dostawca przestał trzymać kontrakt wyjścia (np. wartości spoza słownika mięśni) — uzupełnianie schodzi na silnik lokalny, funkcja działa dalej |
 | `audit_log_failures` | **każdy** | — | łańcuch audytu nie zapisuje — uruchom `/api/admin/audit/verify` |
 | `access_denied` | skok ponad linię bazową | seria z jednego konta | próby IDOR — przejrzyj zdarzenia `ACCESS_DENIED` w audycie |
 | `frontend_error_reports` | skok po wdrożeniu | ciągły wzrost | regresja UI — sprawdź `frontend_error` w logach |
