@@ -5,7 +5,7 @@ Po co to istnieje
 Zewnętrzny audyt (18.08.2026) wskazał, że publiczne 401 nie dowodzi izolacji
 między prawidłowo zalogowanymi kontami — brakowało systematycznego dowodu,
 że klient A nie sięgnie po dane klienta B, a trener bez relacji po cudzego
-podopiecznego. Aplikacja ma 177 operacji API; ręczna lista przypadków
+podopiecznego. Aplikacja ma 182 operacje API; ręczna lista przypadków
 zardzewiałaby przy pierwszym nowym endpoincie.
 
 Dlatego macierz jest **wyliczana z aplikacji**, a nie pisana z pamięci:
@@ -211,6 +211,18 @@ MATRIX: dict[tuple[str, str], Access] = {
     ("POST", "/api/nutrition/{plan_id}/supplements/reminders"): Access.RESOURCE_SCOPED,
     ("GET", "/api/nutrition/{plan_id}/versions"): Access.RESOURCE_SCOPED,
     ("POST", "/api/nutrition/{plan_id}/versions"): Access.RESOURCE_SCOPED,
+    # Gotowość silnika dla WŁASNEGO konta (owner z sesji). Opcjonalne
+    # `client_id` przechodzi przez resolve_client_access, ale nie jest
+    # wymagane, więc klasą bazową operacji jest AUTHENTICATED.
+    ("GET", "/api/ocr/status"): Access.AUTHENTICATED,
+    # Zlecenie idzie na konto zlecającego; cudzy plik/dokument w ciele
+    # żądania kończy się odmową (ocr.py: _require_ocr_file, deny na
+    # document.client_id) — ale ścieżka nie niesie cudzego id, więc to nie
+    # jest RESOURCE_SCOPED w rozumieniu tej macierzy.
+    ("POST", "/api/ocr/tasks"): Access.AUTHENTICATED,
+    ("DELETE", "/api/ocr/tasks/{task_id}"): Access.RESOURCE_SCOPED,
+    ("GET", "/api/ocr/tasks/{task_id}"): Access.RESOURCE_SCOPED,
+    ("POST", "/api/ocr/tasks/{task_id}/approve"): Access.RESOURCE_SCOPED,
     ("GET", "/api/payments/reconciliation"): Access.RESOURCE_SCOPED,
     ("POST", "/api/payments/records/{record_id}/adjust"): Access.RESOURCE_SCOPED,
     ("GET", "/api/payments/records/{record_id}/history"): Access.RESOURCE_SCOPED,

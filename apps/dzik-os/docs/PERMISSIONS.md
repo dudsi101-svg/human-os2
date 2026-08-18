@@ -520,7 +520,7 @@ prawidłowo zalogowanymi kontami**. Odpowiedzią jest macierz w
 **Nie jest to ręczna lista przypadków**, która zardzewiałaby przy pierwszym
 nowym endpoincie. Macierz jest porównywana ze schematem OpenAPI aplikacji:
 
-* każda z **177 operacji API** ma zadeklarowaną klasę dostępu;
+* każda z **182 operacji API** ma zadeklarowaną klasę dostępu;
 * operacja bez deklaracji **przerywa build** — „kto ma tu dostęp" musi być
   świadomą decyzją, a nie przeoczeniem;
 * wpis po usuniętej trasie też przerywa build (macierz nie gnije).
