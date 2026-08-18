@@ -33,9 +33,21 @@ jobs:
         run: flyctl apps create "$APP_NAME" || true
 
       - name: Create data volume (first run only)
+        # UWAGA: `flyctl volumes create` NIE jest idempotentne — nazwy
+        # wolumenów w Fly nie są unikalne, więc bezwarunkowe wywołanie
+        # tworzy nowy wolumen 1 GB przy KAŻDYM deployu (tak narosło 26
+        # niepodpiętych sierot). Tworzymy wyłącznie, gdy wolumenu o tej
+        # nazwie jeszcze nie ma.
         run: |
-          flyctl volumes create dzik_data --app "$APP_NAME" \
-            --region fra --size 1 --yes || true
+          existing=$(flyctl volumes list --app "$APP_NAME" --json \
+            | jq '[.[] | select(.name == "dzik_data")] | length')
+          if [ "$existing" -eq 0 ]; then
+            echo "Brak wolumenu dzik_data — tworzę."
+            flyctl volumes create dzik_data --app "$APP_NAME" \
+              --region fra --size 1 --yes
+          else
+            echo "Wolumen dzik_data już istnieje ($existing szt.) — pomijam tworzenie."
+          fi
 
       - name: Deploy
         run: |
