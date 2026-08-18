@@ -132,6 +132,27 @@ jobs:
         env:
           DZIK_E2E_STAMP: ${{ github.run_id }}
         run: npx playwright test
+      # Zestaw dostepnosci/responsywnosci lezy poza Playwrightem (wlasny
+      # runner, starszy od playwright.config.ts) i przez to dotad NIE CHODZIL
+      # w CI — mimo ze to jedyna bramka lapiaca poziomy scroll na 320 px,
+      # etykiety pol, porzadek naglowkow i obsluge zakladek z klawiatury.
+      # NODE_PATH: runner szuka `playwright` obok wlasnego pliku i globalnie,
+      # a w CI pakiet stoi tylko w node_modules frontendu.
+      - name: E2E dostępności i responsywności
+        working-directory: apps/dzik-os
+        env:
+          NODE_PATH: ${{ github.workspace }}/apps/dzik-os/frontend/node_modules
+        run: node e2e/test_a11y.mjs
+      # Ten sam problem: jedyna bramka sprawdzajaca service workera
+      # (precache, "API nigdy w cache", flow aktualizacji bez auto-reloadu)
+      # tez nie chodzila w CI. Bez niej zmiana listy precache — np. odsianie
+      # nieuzywanych subsetow fontow — nie miala zadnego automatycznego
+      # sprawdzenia, ze tryb offline nadal dziala.
+      - name: E2E PWA i trybu offline
+        working-directory: apps/dzik-os
+        env:
+          NODE_PATH: ${{ github.workspace }}/apps/dzik-os/frontend/node_modules
+        run: node e2e/test_pwa_offline.mjs
       - name: Raport z nieudanego przebiegu
         if: failure()
         uses: actions/upload-artifact@v4

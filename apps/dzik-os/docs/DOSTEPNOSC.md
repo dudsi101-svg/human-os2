@@ -121,10 +121,19 @@ Stan po rundzie 0.15.0 (2026-08-18). Punkt odniesienia: **WCAG 2.2 AA**
 
 ### Automatycznie
 
+**Ten test chodzi w CI** (job `e2e` w `dzik-os-ci.yml`) — od 0.38.0. Do
+tej pory był opisany tutaj, ale żaden przebieg go nie uruchamiał; jedyna
+bramka łapiąca poziomy scroll na 320 px stała bezczynnie.
+
+Lokalnie:
+
 ```bash
 cd apps/dzik-os/frontend && npm run build
-cd .. && NODE_PATH=/opt/node22/lib/node_modules node e2e/test_a11y.mjs
+cd .. && NODE_PATH=$PWD/frontend/node_modules node e2e/test_a11y.mjs
 ```
+
+`NODE_PATH` wskazuje na cokolwiek, gdzie stoi pakiet `playwright` —
+`node_modules` frontendu albo instalacja globalna (`/opt/node22/lib/node_modules`).
 
 Test uruchamia backend z seedem i Chromium (Playwright). Jeśli w
 środowisku dostępny jest pakiet **axe-core**, jest wstrzykiwany i

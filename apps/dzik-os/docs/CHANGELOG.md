@@ -31,6 +31,26 @@ na cichą utratę pracy.
   zostaje domknięta (żadna gałąź jej nie trzyma, wpis jest już w main
   i wdrożony), a kolizja wersji 0.36.0 rozwiązana przez przesunięcie
   tamtej pracy na 0.37.0.
+* **Znaleziony test-widmo: zestaw dostępności nie chodził w CI.**
+  `e2e/test_a11y.mjs` (własny runner, starszy od `playwright.config.ts`)
+  jest opisany w `DOSTEPNOSC.md`, ale żaden przebieg CI go nie uruchamiał —
+  a to jedyna bramka łapiąca poziomy scroll na 320 px, etykiety pól,
+  porządek nagłówków i obsługę zakładek z klawiatury. Dopięty do joba
+  `e2e`. Uruchomiony na scalonym CSS: wszystkie kontrole przechodzą,
+  w tym brak poziomego scrolla na 320/375/768/1024 px.
+* **Ten sam problem z testem PWA/offline** (`e2e/test_pwa_offline.mjs`) —
+  jedyna bramka sprawdzająca service workera, „API nigdy w cache" i flow
+  aktualizacji bez auto-przeładowania. Też dopięta do CI. Bez niej zmiana
+  listy precache (np. odsianie nieużywanych subsetów fontów w 0.34.0)
+  nie miała żadnego automatycznego potwierdzenia, że offline nadal działa.
+* **Usunięty duplikat: `e2e/test_e2e_browser.py`.** Dwa z trzech jego
+  testów (logowanie klienta i trenera) dublowały `logowanie.spec.ts`,
+  które chodzi w CI przy każdym pushu. Unikalną część — serwowanie
+  `manifest.webmanifest` i `sw.js` — przeniosłem do nowego
+  `frontend/e2e/pwa.spec.ts`, dokładając sprawdzenie, że service worker
+  ma wstrzykniętą listę precache (bez niej PWA online wygląda normalnie,
+  a offline nie działa wcale). Netto: zero utraconego pokrycia, jeden
+  mechanizm zamiast dwóch — przypadek nr 3 z `KOORDYNACJA.md` §3.
 * **Uratowany PR #10** (czytelność i responsywność UI, 60 linii CSS).
   Wisiał 8 godzin nie dlatego, że był sporny — jego **bazą była inna
   gałąź robocza zamiast `main`**, więc po scaleniu tamtej stracił punkt
