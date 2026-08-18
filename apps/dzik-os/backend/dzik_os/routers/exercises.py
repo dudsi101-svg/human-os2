@@ -17,6 +17,7 @@ from sqlalchemy.orm import Session
 
 from .. import exercise_parser, exercise_parser_ai, sheet_import
 from ..authz import require_owned_resource
+from ..config import settings
 from ..db import get_db
 from ..exercise_catalog_v2 import LIBRARY_REF
 from ..hos_bridge import record_event
@@ -44,6 +45,7 @@ from ..muscles import (
 from ..observability import metrics
 from ..schemas import ExerciseDescriptionIn, ExerciseLibraryItemIn
 from ..security import current_user, require_role
+from ..storage import _read_limited
 
 router = APIRouter(prefix="/api", tags=["exercises"])
 
@@ -478,7 +480,9 @@ async def exercises_import_file(
     czytaniu opisu, OCR i imporcie gotowej biblioteki. Tryb `UZUPELNIJ`
     (domyślny) wypełnia w istniejących pozycjach wyłącznie puste pola;
     `ZASTAP` nadpisuje, ale pusta komórka nigdy nie kasuje danych."""
-    raw = await file.read()
+    # Limit jak przy każdym uploadzie — bez tego jeden plik zapełnia RAM
+    # (znalezisko K-002 z przeglądu krzyżowego 2026-08-18).
+    raw = await _read_limited(file, settings.max_upload_mb * 1024 * 1024)
     source_ref = (file.filename or "plik")[:200]
     try:
         rows, unknown, warnings = sheet_import.read_table(

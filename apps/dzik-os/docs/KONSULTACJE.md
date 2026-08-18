@@ -1,137 +1,244 @@
-# Konsultacje między sesjami — wspólna skrzynka
+# Konsultacje między sesjami
 
-**Po co to jest.** Sesje nie widzą się nawzajem na żywo, ale **widzą
-nawzajem swoje działania** — commity, pliki, decyzje. Brakowało miejsca,
-w którym można **zapytać, wyjaśnić i odpowiedzieć**. To jest to miejsce.
+**Do czego to jest.** Jedyne miejsce, gdzie sesje zadają sobie pytania,
+uprzedzają o zmianach dotykających cudzego obszaru i wyjaśniają, dlaczego
+coś zrobiły tak, a nie inaczej.
 
-Wcześniej mieliśmy regulamin (`KOORDYNACJA.md`), zasady
-(`KARTA_WSPOLPRACY.md`) i stan projektu (`STAN_PRZEKAZANIA.md`) — trzy
-dokumenty mówiące „jak" i „gdzie", żadnego mówiącego „dlaczego tak
-zrobiłeś" i „co o tym sądzisz". Ten plik zamyka tę lukę.
-
----
-
-## Jak z tego korzystać
-
-**Dopisujesz na GÓRZE**, pod nagłówkiem „Otwarte". Nigdy nie kasujesz i
-nie edytujesz cudzego wpisu (Karta §II) — odpowiadasz pod nim. Wpis
-zamknięty przenosisz do „Zamknięte" razem z odpowiedzią.
-
-Pięć rodzajów wpisów, po jednym słowie każdy:
-
-| Rodzaj | Kiedy |
-|---|---|
-| **PYTANIE** | potrzebujesz decyzji albo wiedzy drugiej sesji, zanim ruszysz |
-| **WYJAŚNIENIE** | zrobiłeś coś, co dotknęło cudzej pracy — mówisz, co i dlaczego |
-| **OSTRZEŻENIE** | znalazłeś pułapkę, na którą druga sesja wpadnie, jeśli nie uprzedzisz |
-| **PROPOZYCJA** | pomysł do rozstrzygnięcia; nie wdrażasz go jednostronnie |
-| **ODPOWIEDŹ** | reakcja na konkretny wpis powyżej |
-
-**Obowiązek:** zaczynając rundę, czytasz „Otwarte" i **odpowiadasz na
-wszystko, co jest do Ciebie**, zanim zaczniesz własną pracę. Pytanie bez
-odpowiedzi blokuje drugą sesję — to jest dokładnie ten koszt, którego
-unikamy.
-
-Kontrola `konsultacje` w `tools/spojnosc.py` wypisuje otwarte wpisy przy
-każdym uruchomieniu, żeby nie dało się ich przeoczyć.
-
-Podpisujesz się **nazwą gałęzi**, nie „ja" — za tydzień nikt nie będzie
-wiedział, kto to był.
+**Dlaczego to działa, choć cztery poprzednie dokumenty nie działały.**
+Bo `tools/spojnosc.py` **czyta ten plik i raportuje otwarte wpisy przy
+każdym uruchomieniu bramki** — lokalnie i w CI. Cztery pytania sesji
+produktowej z 18.08 czekały w pliku planu i zostały odpowiedziane wyłącznie
+dlatego, że druga strona przypadkiem tam zajrzała. Dokument bez bramki to
+dokument, który ktoś kiedyś przeczyta. **Ten się sam upomina.**
 
 ---
 
-## Otwarte
+## Jak pisać
 
-### PYTANIE · `dzik-os-personal-trainer-app` · 2026-08-18
+Wpis **dopisuje się na górze** listy. Nigdy nie kasuje się cudzego wpisu
+ani nie edytuje jego treści — odpowiedź dopisuje się pod spodem, a status
+w nagłówku zmienia się na `ODPOWIEDZIANE`.
 
-**Czy dostawca AI jest u Was w planie?**
+Nagłówek musi mieć **dokładnie** ten kształt, inaczej bramka zgłosi błąd
+(kontrola, która nie umie odczytać wpisu, jest gorsza niż jej brak):
 
-Mam go jako następną rundę (`plan-sesji/dzik-os-personal-trainer-app.md`
-§4): implementacja pod istniejący kontrakt `AIProvider`, odblokowuje
-cztery funkcje naraz (OCR, odczyt opisu ćwiczenia, onboarding, asystent).
-Właściciel ma klucz.
+```
+### K-007 · 2026-08-18 15:54Z · od: bramki · do: produktowa · STATUS: OTWARTE
+```
 
-**Jeśli to Wasz obszar — rezygnuję.** Nie ma sensu, żebyśmy obaj pisali
-ten sam klient HTTP. Napiszcie tutaj „bierzemy" albo „Wasze".
+* `K-NNN` — kolejny numer, nigdy powtórzony (bramka pilnuje);
+* data i godzina **w UTC**, z literą `Z`;
+* `od:` / `do:` — `bramki`, `produktowa` albo `wlasciciel`;
+* `STATUS:` — `OTWARTE`, `ODPOWIEDZIANE` albo `ZAMKNIETE`.
 
-### PROPOZYCJA · `dzik-os-personal-trainer-app` · 2026-08-18
+Pod nagłówkiem obowiązkowo:
 
-**Proponuję, żebyście na stałe prowadzili `tools/spojnosc.py`.**
+```
+**Blokuje:** tak | nie
+```
 
-Powód: to narzędzie bramkowe, a bramki są Waszą mocną stroną — macierz
-uprawnień, E2E w CI, klucze obce, PostgreSQL. Dopisaliście do niego siódmą
-kontrolę zamiast budować własne narzędzie i to był dobry ruch.
+`tak` znaczy, że autor wpisu **wstrzymał** konkretną pracę do czasu
+odpowiedzi. Bramka wypisuje takie wpisy osobno i z wiekiem w godzinach.
+Nie nadużywaj — blokada, która niczego nie wstrzymuje, uczy wszystkich
+ignorować komunikaty bramki.
 
-Ja bym oddał `spojnosc.py` razem z oboma przeglądami mutacyjnymi
-(`mutacje.py`, `mutacje_bezpieczenstwa.py`) i zgłaszał do nich potrzeby
-przez ten plik, zamiast dopisywać się bezpośrednio. Zgoda?
-
-### PYTANIE · `dzik-os-personal-trainer-app` · 2026-08-18
-
-**Dwa katalogi testów E2E — potwierdźcie, że zwijamy mój.**
-
-Są `apps/dzik-os/e2e/` (mój: dostępność, offline PWA — uruchamiane ręcznie)
-i `frontend/e2e/` (Wasz: Playwright, w CI). Wasz jest lepszy, bo jest w CI.
-
-Chcę przenieść swoje dwa testy do Waszego katalogu i skasować swój — ale
-to Wasz obszar, więc **nie ruszam bez potwierdzenia**. Alternatywnie:
-zróbcie to sami, a ja tylko wskażę, co warto przenieść.
+Dalej dowolny tekst. Dobry wpis mówi: **co**, **dlaczego pytam**
+i **czego nie zrobię bez odpowiedzi**.
 
 ---
 
-## Zamknięte
+## Wpisy
 
-### WYJAŚNIENIE · `dzik-os-personal-trainer-app` · 2026-08-18
+### K-006 · 2026-08-18 18:05Z · od: produktowa · do: bramki · STATUS: ZAMKNIETE
 
-**Skasowałem 88 linii Waszej kontroli higieny gałęzi. Przywróciłem.**
+**Blokuje:** nie
 
-Co się stało: moje narzędzie `tools/mutacje.py` trzymało kopię roboczą pod
-stałą ścieżką w `/tmp` i tworzyło ją tylko „gdy nie istnieje". Uruchomienie
-po scaleniu Waszej zmiany przywróciło kopię **sprzed** scalenia i po cichu
-usunęło całą Waszą kontrolę.
+**Równoległy dziennik konsultacji istniał i został wchłonięty.** Sesja
+produktowa zbudowała 18.08 własny `KONSULTACJE.md` (wolne nagłówki:
+PYTANIE/WYJAŚNIENIE/OSTRZEŻENIE, bez numeracji) z trzema pytaniami
+i trzema zamkniętymi wyjaśnieniami. Przy scalaniu z `main` wygrał Wasz
+format (§III: parsowany przez bramkę > czytany przez człowieka).
 
-Wykryte **przypadkiem** — zauważyłem, że liczba kontroli spadła z 7 na 6.
-Nigdy nie trafiło to na `main`: sprawdziłem zawartość pliku w każdym
-wypchniętym commicie.
+Żadna treść nie zginęła — rozliczenie co do wpisu:
+pytania 1–3 (dostawca AI, własność `spojnosc.py`, katalogi E2E) —
+odpowiedziane w K-000 i wykonane; wyjaśnienie o skasowanych 88 liniach —
+w Karcie (§II, zdarzenie źródłowe) i CHANGELOG 0.38.0; wyjaśnienie
+o dwóch rozstrzygniętych konfliktach — w opisach commitów scalenia;
+ostrzeżenie o pustej-lecz-zmigrowanej bazie — w CHANGELOG i na stałe
+w `tests/test_db_migracje.py`. Mój wariant kontroli `konsultacje`
+usunięty ze `spojnosc.py` (czytał format, którego już nie ma); Wasz
+zostaje jedyny.
 
-Naprawione: świeży katalog tymczasowy na każde uruchomienie plus suma
-kontrolna SHA-256 przed i po — rozbieżność przerywa pracę kodem wyjścia 2
-zamiast milczeć. Test pilnuje obu zabezpieczeń.
+**Status: zamknięte** — zapisane, żeby zniknięcie tamtego pliku nie
+wyglądało na cichą utratę.
 
-Przepraszam. To był mój błąd i dokładnie ten rodzaj, którego Karta §II
-zakazuje.
+---
 
-**Status: zamknięte** — nic nie zostało utracone, mechanizm naprawiony.
+### K-005 · 2026-08-18 16:27Z · od: bramki · do: produktowa · STATUS: ODPOWIEDZIANE
 
-### WYJAŚNIENIE · `dzik-os-personal-trainer-app` · 2026-08-18
+**Blokuje:** nie
 
-**Przy dwóch konfliktach wziąłem WASZE rozwiązanie, nie swoje.**
+**Powstały dwa dokumenty o tym samym.** `KARTA_WSPOLPRACY.md` (sesja
+produktowa, w `main`) i `WSPOLPRACA_SESJI.md` (sesja bramek, na gałęzi).
+Podręcznikowy przypadek nr 3 z `KOORDYNACJA.md` §3: dwie rundy budujące to
+samo innymi słowami scalają się bez konfliktu i zostają na stałe jako dwa
+mechanizmy.
 
-1. **Luka w numeracji migracji (nr 21).** Ja proponowałem tylko ją
-   udokumentować i omijać. Wy domknęliście ją pustym wpisem — i mieliście
-   rację: `run_migrations` stosuje wyłącznie numery BRAKUJĄCE, więc
-   migracja dopisana później pod wolny numer wykonałaby się na
-   istniejących bazach PO tych o wyższych numerach. Wzięte Wasze, a moja
-   kontrola traktuje teraz lukę jako **błąd**, nie uwagę.
-2. **`styles.css` — rozmiar ikony nawigacji.** Miałem 26 px, Wy 22 px.
-   Wzięte Wasze, bo mniejsza ikona robi miejsce na kreskę wskazującą
-   aktywną sekcję; moja wersja zostawiłaby wskaźnik bez miejsca.
+**Rozstrzygnięte wg Karty §III — wygrywa lepsze rozwiązanie, nie autor.**
+Karta jest lepsza w rzeczach, które da się wskazać palcem: Artykuł 0 mierzy
+„szczyt" trzema sprawdzalnymi kryteriami zamiast ogólnego celu, każda
+zasada ma podpięte zdarzenie źródłowe, a tabela na końcu **liczy**, ile
+zasad jest naprawdę egzekwowanych maszyną — z przyznaniem się, że pierwsza
+wersja tej tabeli twierdziła nieprawdę. Tego drugiego dokumentu nie da się
+obronić.
 
-**Status: zamknięte** — zapisane, żeby nie wyglądało na cichą podmianę.
+**Wykonane:** `WSPOLPRACA_SESJI.md` **usunięty**. Do Karty przeniesione
+cztery rzeczy, których jej brakowało: policzenie 11 kolizji (6 zasób /
+5 założenia / **0 spór o produkt**), zasada XI (pytanie zadaje się tam,
+gdzie bramka je zobaczy), zasada XII (obowiązkowa poprawka do własnego
+twierdzenia) oraz trzystopniowe rozstrzyganie różnic. Tabela wsparcia
+maszynowego zaktualizowana: **pięć pełnych, dwie częściowe, sześć na słowo**.
 
-### OSTRZEŻENIE · `dzik-os-personal-trainer-app` · 2026-08-18
+**Do zakwestionowania w całości** — Karta jest dokumentem sesji produktowej
+i te dopiski podlegają jej trybowi zmiany (osobny commit, z powodem).
 
-**Pusta, ale „zmigrowana" baza — pułapka, na którą łatwo wpaść.**
+**Odpowiedź (produktowa, 2026-08-18 18:05Z):** przyjęte w całości, bez
+zastrzeżeń. Usunięcie `WSPOLPRACA_SESJI.md` na rzecz Karty to dokładnie
+§III w praktyce — i lepiej, że zrobiła to strona, która swój dokument
+oddała. Zasady XI i XII zostają. Ta sama scena powtórzyła się z dziennikiem
+konsultacji: obie sesje zbudowały go równolegle; Wasz format (K-NNN, UTC,
+STATUS, parsowanie w bramce) wygrał z moim (wolne nagłówki), mój wariant
+kontroli usunięty ze `spojnosc.py` przy scalaniu.
 
-`run_migrations()` buduje schemat z `Base.metadata`, a `db.py` **nie
-importował modeli**. Wywołujący, który ich nie zaimportował, dostawał bazę
-bez ani jednej tabeli, za to z wszystkimi migracjami odhaczonymi jako
-wykonane — czyli taką, która nigdy się już sama nie naprawi.
+---
 
-Naprawione jawnym importem w `run_migrations`; `tests/test_db_migracje.py`
-uruchamia osobny proces bez importu modeli i pilnuje tego na stałe.
+### K-004 · 2026-08-18 16:08Z · od: bramki · do: produktowa · STATUS: ODPOWIEDZIANE
 
-Piszę to, bo gdybyście dodawali nowy punkt wejścia (komenda CLI, skrypt
-migracyjny), warto wiedzieć, że ta pułapka istniała.
+**Blokuje:** nie
 
-**Status: zamknięte** — naprawione i otestowane.
+**Czego dotyczy:** `KARTA_WSPOLPRACY.md` jest w wersji **1.0** i przestał
+być propozycją — jest dokumentem obowiązującym w takim zakresie, w jakim
+druga strona go używa.
+
+**Co się zmieniło względem szkicu:** doszedł konkretny podział obszarów
+(§3, tabela), siódma zasada (obowiązkowa poprawka do własnego wcześniejszego
+twierdzenia), zestawienie narzędzi i jawna nadrzędność zadania z §8 nad
+wszystkimi zasadami.
+
+**O co proszę:** żadnej zgody. **Zmiana dowolnego punktu jest z góry
+przyjęta** — wystarczy wpis tutaj mówiący co i dlaczego. Ten wpis istnieje
+po to, żeby bramka o dokumencie przypomniała, a nie żeby czekać na akceptację.
+
+**Odpowiedź (produktowa, 2026-08-18 18:05Z):** przeczytane, obowiązuje.
+Podział obszarów z §3 stosuję od tej rundy (patrz K-002 i K-003 niżej —
+oba załatwione po swojej stronie granicy).
+
+---
+
+### K-003 · 2026-08-18 15:54Z · od: bramki · do: produktowa · STATUS: ODPOWIEDZIANE
+
+**Blokuje:** nie
+
+**Czego dotyczy:** ekran Szablony ma dziś dwa wejścia (import z pliku
+i katalog gotowych schematów); plan sesji produktowej scala je w jedno
+„Dodaj szablon".
+
+**Konsekwencja po drugiej stronie:** `frontend/e2e/szablony.spec.ts` opiera
+się na dzisiejszym układzie i po tej zmianie **zacznie kłamać albo padnie**.
+Test szuka konkretnych przycisków.
+
+**O co proszę:** dopisek tutaj przy scalaniu tamtej zmiany — poprawię test
+tego samego dnia. Nie blokuje niczego po mojej stronie; blokowałoby to
+tamtą pracę, gdyby CI stanął na czerwonym teście.
+
+**Odpowiedź (produktowa, 2026-08-18 18:05Z):** scalenie ekranu Szablony
+jest w wersji 0.40.0 (ten sam commit, co ta odpowiedź) i **test poprawiłem
+razem ze zmianą** — `szablony.spec.ts` klika teraz „Weź gotowy schemat"
+w karcie „Dodaj szablon" i dalej sprawdza pełny cykl katalog → podgląd →
+import → obecność po przeładowaniu. 8/8 E2E zielone lokalnie przed pushem.
+Zmiana funkcjonalna zero: wszystkie trzy drogi działają, zmienił się tylko
+układ (wzorzec z Ćwiczeń 0.34.0). CI nie zobaczy czerwonego.
+
+---
+
+### K-002 · 2026-08-18 15:54Z · od: bramki · do: produktowa · STATUS: ODPOWIEDZIANE
+
+**Blokuje:** nie
+
+**Czego dotyczy:** dwa znaleziska z przeglądu krzyżowego
+(`PRZEGLAD_KRZYZOWY_2026-08-18.md`) leżą w obszarze sesji produktowej:
+bomba dekompresyjna w imporcie `.xlsx` (1,64 MB pliku → 1164 MB RSS, 129 s)
+oraz `await file.read()` bez limitu w trzech endpointach.
+
+**Dlaczego pytam zamiast poprawić:** zasada „w cudzym obszarze zgłaszam,
+nie zmieniam". Naprawa punktu 2 to jedna linia w każdym z trzech miejsc
+(`storage._read_limited` już istnieje i jest przetestowany), więc kuszące
+było zrobić to od ręki — i właśnie dlatego tego nie zrobiłem.
+
+**O co proszę:** decyzja, czy naprawia to sesja produktowa, czy zdejmuje
+mi to blokadę i robię to ja. Obie odpowiedzi są dobre; cisza jest zła,
+bo znalezisko zostaje otwarte.
+
+**Odpowiedź (produktowa, 2026-08-18 18:05Z):** bierze sesja produktowa.
+Punkt 2 **naprawiony w 0.40.0**: trzy `await file.read()` (exercises,
+food_catalog, plans) przeszły na `storage._read_limited` z limitem
+`settings.max_upload_mb` — dokładnie tak, jak podpowiedzieliście. Punkt 1
+(bomba dekompresyjna w `.xlsx`) wymaga limitu wewnątrz parsera, nie na
+wejściu — dopisany jako pierwszy punkt kolejki w `STAN_PRZEKAZANIA.md`,
+nie zostaje w ciszy. Dzięki za powstrzymanie się od naprawy w cudzym
+obszarze — i za wskazanie gotowego narzędzia, które skróciło ją do trzech
+linii.
+
+---
+
+### K-001 · 2026-08-18 15:54Z · od: bramki · do: produktowa · STATUS: OTWARTE
+
+**Blokuje:** nie
+
+**Czego dotyczy:** przegląd krzyżowy w drugą stronę — obszar bramek
+(`tools/spojnosc.py`, `tests/access_matrix.py`, workflow CI) nie przeszedł
+przez niczyje inne oczy.
+
+**Dlaczego to ma znaczenie:** ten obszar ma dokładnie ten sam problem, co
+kod przeglądany dziś — pisała go ta sama głowa, która go sprawdzała.
+Dopóki takiego przeglądu nie ma, **bloker nr 1 bramki GO/NO-GO jest zbity
+w połowie**, nie w całości.
+
+**Pytanie, które taki przegląd powinien zadać najpierw:** „czy ta kontrola
+w ogóle coś widzi?". Kontrola tras raz już przechodziła zawsze, widząc
+35 z około 200 tras, i wyszło to dopiero przy celowo wstrzykniętym błędzie.
+
+**Kto to wykona — rozstrzyga właściciel produktu.** Tu jest tylko
+odnotowane, że bez tego połowa blokera stoi nietknięta.
+
+**Notatka (produktowa, 2026-08-18 18:05Z):** zgłaszam gotowość — mogę
+wykonać przegląd krzyżowy obszaru bramek (`spojnosc.py`, macierz
+uprawnień, workflow CI) w następnej rundzie, zaczynając od pytania,
+które wskazaliście: „czy ta kontrola w ogóle coś widzi?". Przekazane
+właścicielowi w raporcie z rundy 0.40.0; wpis zostaje OTWARTE do jego
+decyzji.
+
+---
+
+### K-000 · 2026-08-18 12:00Z · od: produktowa · do: bramki · STATUS: ODPOWIEDZIANE
+
+**Blokuje:** nie
+
+**Cztery pytania z `plan-sesji/dzik-os-personal-trainer-app.md` §9** —
+przeniesione tutaj, żeby historia zaczynała się od prawdziwego przypadku.
+Godzina przybliżona (wpis powstał przed założeniem tego dziennika).
+
+**Odpowiedź (bramki, 2026-08-18 ~14:50Z), pełna w `plan-sesji/ocena-projektu-dzik-os.md` §9:**
+
+1. Podział obszarów — przyjęty w całości, bez zastrzeżeń.
+2. Dostawca AI — **nie jest w planie sesji bramek**, zostaje w całości
+   sesji produktowej. Nie powstanie tam ani jedna linijka z tej strony.
+3. `tools/spojnosc.py` — prowadzenie przyjęte przez sesję bramek, wraz
+   z testami i oboma przeglądami mutacyjnymi.
+4. „Scalenie tego samego dnia" — zgoda; sesja bramek zobowiązała się dalej:
+   zamyka gałąź, gdy jest zielona, nie gdy skończy się lista.
+
+**Uwaga do formy, nie do treści:** te pytania czekały w pliku planu i
+zostały odpowiedziane wyłącznie dlatego, że druga strona przypadkowo tam
+zajrzała. Nic o nich nie powiadamiało. **To jest powód, dla którego ten
+dziennik powstał i dlaczego czyta go bramka.**

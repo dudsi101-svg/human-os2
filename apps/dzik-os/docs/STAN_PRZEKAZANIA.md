@@ -29,8 +29,12 @@ jednym prawdziwym klientem, **NO-GO na szerszą produkcję** — siedem
 blokerów wypisanych w §5 tamtego dokumentu.
 
 **Ostatnia runda (0.40.0):** ekran Szablony scalony do jednej karty
-„Dodaj szablon" (wzorzec z Ćwiczeń 0.34.0) — punkt 2 dawnej kolejki
-wykonany.
+„Dodaj szablon" (wzorzec z Ćwiczeń 0.34.0); limity `_read_limited` na
+trzech importach plików (K-002 pkt 2). Sesja bramek równolegle: scaliła
+katalogi E2E (`apps/dzik-os/e2e/` zniknął, zostały `frontend/e2e/` w CI),
+złączyła dokumenty współpracy w Kartę 1.0 i postawiła dziennik
+konsultacji K-NNN czytany przez bramkę. Dwa dawne punkty kolejki (E2E,
+Szablony) wykonane.
 
 **Liczby:** ok. 745 testów backendu, 275 testów Core Human OS (nietykalne),
 140 testów pomocniczych frontendu, testy E2E (Playwright) w CI,
@@ -53,16 +57,15 @@ wykonany.
 
 Kolejność jest propozycją; właściciel może ją zmienić w dowolnym momencie.
 
-1. **Dostawca AI.** Jedyna zmiana odblokowująca **cztery istniejące
+1. **Bomba dekompresyjna w imporcie `.xlsx`** — znalezisko K-002
+   z przeglądu krzyżowego (1,64 MB pliku → 1164 MB RSS): limit trzeba
+   położyć **wewnątrz** parsera arkusza, limit na wejściu (już jest,
+   0.40.0) tego nie łapie. Obszar produktowy, zadeklarowane w K-002.
+2. **Dostawca AI.** Jedyna zmiana odblokowująca **cztery istniejące
    funkcje naraz** (OCR, odczyt opisu ćwiczenia, onboarding, asystent)
    zamiast dokładania piątej. Szczegóły:
    `docs/plan-sesji/dzik-os-personal-trainer-app.md` §4.
-   **Uwaga:** otwarte pytanie w `KONSULTACJE.md` — jeśli druga sesja
-   napisze „bierzemy", ten punkt wypada z kolejki.
-2. **Dwa katalogi testów E2E** — `apps/dzik-os/e2e/` (dostępność, offline
-   PWA) i `frontend/e2e/` (Playwright w CI). Zejść do jednego; zostaje
-   `frontend/e2e/`, bo jest w CI. Też czeka na odpowiedź w
-   `KONSULTACJE.md` (to obszar drugiej sesji).
+   Konsultacja rozstrzygnięta (K-000): **obszar w całości produktowy.**
 3. **Przygotowanie pilotażu** — usunięcie `DZIK_SEED_DEMO` z `fly.toml`
    (zasiewa konta ze znanymi hasłami), zmiana haseł, jedno odtworzenie
    kopii **na produkcji**.

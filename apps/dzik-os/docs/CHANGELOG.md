@@ -24,8 +24,191 @@ które dostały Ćwiczenia w 0.34.0.**
 * Test E2E `szablony.spec.ts` idzie teraz nową drogą (klik „Weź gotowy
   schemat") i dalej sprawdza pełny cykl katalog → podgląd → import →
   obecność szablonu po przeładowaniu.
+* **Limit na trzech importach plików (K-002 pkt 2, przegląd krzyżowy).**
+  `await file.read()` bez limitu w `exercises`, `food_catalog` i `plans`
+  zastąpione `storage._read_limited` z progiem `DZIK_MAX_UPLOAD_MB` —
+  jeden plik nie zapełni już RAM. Bomba dekompresyjna `.xlsx` (pkt 1
+  znaleziska) wymaga limitu w parserze i jest pierwszym punktem kolejki.
+* **Scalenie z równoległą rundą sesji bramek** rozstrzygnięte wg Karty
+  §III: dziennik konsultacji zostaje w formacie K-NNN sesji bramek
+  (parsowany przez bramkę), mój równoległy wariant kontroli `konsultacje`
+  usunięty ze `spojnosc.py` — rozliczenie treści wpis po wpisie w K-006.
+  Odpowiedzi na K-002..K-005 dopisane; K-001 (przegląd krzyżowy obszaru
+  bramek) czeka na decyzję właściciela.
 
 ## 0.39.0 — 2026-08-18
+
+**Przegląd krzyżowy: dwa potwierdzone znaleziska w cudzym obszarze, zero
+commitów w cudzych plikach.** Pełny raport: `docs/PRZEGLAD_KRZYZOWY_2026-08-18.md`.
+
+* **Po co.** Bloker nr 1 bramki GO/NO-GO brzmi: *„bramkę wykonał ten sam
+  agent, który pisał kod"*. To jedyny z siedmiu blokerów, który da się dziś
+  ruszyć bez pieniędzy, klucza i cudzej zgody — bo pracują dwie sesje.
+  **Nie nazywam tego niezależnym audytem i nie zastępuje go**; bloker
+  zostaje otwarty, zmienia się tylko jego wysokość.
+* **Znalezisko 1 — bomba dekompresyjna w imporcie `.xlsx`.** `.xlsx` to
+  archiwum: plik **1,64 MB** przechodzący limit 5 MB rozpakowuje się do
+  **423 MB** arkusza (3 mln wierszy). `MAX_ROWS = 2000` przycina dopiero
+  WYNIK, gdy wszystko jest już w pamięci. Zmierzone: **1164 MB RSS
+  i 129 s** na jedno żądanie, po czym aplikacja odpowiada uprzejmie —
+  2000 wierszy i ostrzeżenie. `MAX_ROWS` chroni bazę, nie chroni procesu.
+* **Znalezisko 2 — upload czytany bez limitu, choć limit leży obok.** Trzy
+  endpointy importu (`exercises.py:481`, `food_catalog.py:396`,
+  `plans.py:513`) czytają całość przez `await file.read()`. Zmierzone na
+  prawdziwym żądaniu HTTP: plik 290 MB → **1057 MB RSS**, po czym kontrola
+  „większy niż 5 MB" go odrzuca — po zaalokowaniu ~935 MB. **Naprawa już
+  istnieje w tym repozytorium**: `storage._read_limited` czyta w kawałkach
+  i przerywa natychmiast, a jego docstring mówi wprost „klient nie może
+  zapełnić RAM jednym żądaniem".
+* **Waga obu: ŚREDNIA, nie wysoka** — wymagają zalogowanego trenera i nie
+  dotykają poufności ani spójności danych, tylko dostępności. Podnosi ją
+  to, że aplikacja jest jednoprocesowa (koszt ponoszą też klienci) i że
+  **ścieżka przypadkowa jest realna**: prawdziwa duża baza ćwiczeń wygląda
+  dla serwera identycznie jak atak.
+* **Co jest w porządku — powiedziane tak samo wyraźnie.** Nie znalazłem
+  dziury w izolacji na tej powierzchni: `coach.id` bierze się wyłącznie
+  z sesji, nigdy z żądania; cofnięcie importu przechodzi przez
+  `require_owned_resource` z 404 na cudzy identyfikator; podgląd naprawdę
+  niczego nie zapisuje; jedyne `except Exception` w routerach zamienia
+  wyjątek na 422, nie połyka go.
+* **Zdublowany identyfikator ryzyka — mój błąd.** W `RISK_REGISTER.md` dwa
+  różne ryzyka miały numer **R-17**: integralność referencyjna i błędy OCR.
+  Wpis o OCR był pierwszy (0.27.0), ten o integralności dołożyłem ja
+  w `830f74b` i nie sprawdziłem. Integralność referencyjna to teraz
+  **R-18**, jej ostatni otwarty punkt (`PRAGMA foreign_keys=ON`) zamknięty,
+  bo pragma jest włączana na każdym połączeniu SQLite. Znaleziska
+  z przeglądu dopisane jako **R-19**.
+
+### Bramki i uratowana praca
+
+**Ósma kontrola bramki: pliki poza gitem. Plus uratowane dwie wiszące
+gałęzie.** Runda o stabilności — nic nowego dla użytkownika, mniej sposobów
+na cichą utratę pracy.
+
+* **Numer wersji — trzecia kolizja tego dnia, tym razem rozwiązana przez
+  mechanizm, a nie przez spór.** Ta praca była pisana jako 0.38.0; równolegle
+  druga sesja zarezerwowała 0.38.0 w tabeli `KOORDYNACJA.md` i wypchnęła
+  rezerwację na `main`. Rezerwacja była pierwsza, więc ustępuję: 0.39.0.
+  Tak ma to działać — kto rezerwuje, ten ma; sprawdzenie kosztowało
+  jedno `git fetch`.
+
+* **Odpowiedź na pytanie „czy nie giną nam pliki": dotąd żaden nie zginął,
+  ale dwie drogi stały otworem.** Changelog jest kompletny (wpisy 1–36 bez
+  dziury), historia gita nie zawiera usunięcia pliku źródłowego bez
+  zastąpienia. Otwarte były dwie furtki i obie są teraz pilnowane:
+  plik źródłowy **ignorowany przez `.gitignore`** (BŁĄD — `git status` go
+  nie pokaże, `git add -A` przejdzie obok, w przeglądzie nie będzie go
+  widać) i plik **nieśledzony** (UWAGA — zniknie przy zmianie gałęzi albo
+  wraz z kontenerem). Zdarzyło się blisko: `.coverage` wpadł do repo przez
+  `git add -A` i został dopisany do `.gitignore`.
+* **Lista rozszerzeń celowo wąska** (`.py .ts .tsx .css .mjs .sh .md .sql`).
+  `.env`, klucze i bazy danych mają prawo być poza gitem — kontrola, która
+  zaczęłaby wymuszać commitowanie sekretów, byłaby gorsza od jej braku.
+  Reguły ignorowania rozstrzyga prawdziwy `git check-ignore`, nie własny
+  parser `.gitignore`.
+* **Siedem testów kontroli i trzy nowe mutacje.** `tools/mutacje.py`
+  sprawdza teraz **10 z 10** sposobów zepsucia bramki — w tym degradację
+  błędu do uwagi i usunięcie bezpiecznika pustej listy plików (ten sam
+  wzorzec co `PROG_TRAS`: kontrola, która nic nie widzi, ma się wywrócić,
+  a nie przejść na zielono).
+* **Uratowana praca z rundy równoległej** (bramka GO/NO-GO, przegląd
+  mutacyjny obron, test pustej-lecz-zmigrowanej bazy) — wisiała
+  niescalona. Dwa konflikty rozstrzygnięte faktami: luka migracji 21
+  zostaje domknięta (żadna gałąź jej nie trzyma, wpis jest już w main
+  i wdrożony), a kolizja wersji 0.36.0 rozwiązana przez przesunięcie
+  tamtej pracy na 0.37.0.
+* **Dziennik konsultacji (`docs/KONSULTACJE.md`) — i dziewiąta kontrola,
+  która go czyta.** Cztery dokumenty koordynacyjne już istniały; problem nie
+  polegał na braku miejsca do pisania, tylko na tym, że **żaden nie miał
+  właściwości upominania się**. Cztery pytania sesji produktowej czekały
+  w pliku planu, a odpowiedź padła wyłącznie dlatego, że druga strona
+  przypadkiem tam zajrzała. Teraz `tools/spojnosc.py` czyta dziennik przy
+  każdym uruchomieniu — lokalnie i w CI — i wypisuje otwarte wpisy z wiekiem;
+  wpisy oznaczone jako blokujące dostają głośniejszą uwagę po 4 godzinach.
+  Otwarte pytanie to **uwaga**, nigdy błąd; **błąd** jest zarezerwowany dla
+  zepsutego mechanizmu (zły format nagłówka, powtórzony numer, nieznany
+  adresat, brak pola `Blokuje`, pusty dziennik).
+* **Przegląd mutacyjny kasował pracę — najgroźniejszy błąd tego dnia.**
+  `tools/mutacje.py` robił kopię oryginału **tylko gdy jeszcze nie istniała**
+  (`if not ORYGINAL.exists()`), pod stałą ścieżką w `/tmp`. Plik przetrwał
+  z uruchomienia sprzed 90 minut, więc kolejny przebieg „przywrócił" ten
+  stary stan i **skasował świeżo dopisaną kontrolę** — bez ostrzeżenia,
+  z komunikatem o powodzeniu. To jest prawdziwa odpowiedź na pytanie „czy
+  nie giną nam pliki": tak, to narzędzie je zjadało. Naprawione trzema
+  zmianami: katalog tymczasowy unikalny dla przebiegu, kopia bezwarunkowa
+  oraz **weryfikacja hashem po przywróceniu** — rozbieżność przerywa
+  z błędem. Sprawdzone: hash `spojnosc.py` przed i po pełnym przeglądzie
+  identyczny.
+* **Kontrola konsultacji złapała błąd we własnej dokumentacji.** Pierwsza
+  wersja parsera czytała przykładowy nagłówek z instrukcji (wewnątrz bloku
+  kodu) jako prawdziwy wpis i zgłaszała błąd. Poprawione, osobny test tego
+  pilnuje. Dwanaście testów kontroli i pięć nowych mutacji — po nich **15 z 15
+  mutacji wykrytych**. Druga rzecz złapana na sobie samej: wpis z datą
+  z przyszłości dawał wiek ujemny i przechodził dalej; teraz to błąd.
+* **`KARTA_WSPOLPRACY.md` w wersji 1.0 — dokument obowiązujący, nie
+  propozycja.** Jeden dokument nadrzędny; `KOORDYNACJA.md`, `KONSULTACJE.md`
+  i `spojnosc.py` są jego narzędziami, nie wariantami. Zawiera konkretny
+  podział obszarów, siedem zasad, tryb konsultacji, trzystopniowe
+  rozstrzyganie różnic i jawną nadrzędność zadania nadrzędnego nad
+  wszystkimi zasadami. **Zmiana dowolnego punktu przez drugą sesję jest
+  z góry przyjęta** — wystarczy wpis w `KONSULTACJE.md`.
+* **Spisany status współpracy dwóch sesji** (`docs/KARTA_WSPOLPRACY.md`),
+  na wyraźne polecenie właściciela produktu. Punkt wyjścia to policzenie,
+  czego naprawdę dotyczyły dzisiejsze kolizje: **jedenaście z jedenastu
+  dotyczyło zasobu współdzielonego albo różnicy założeń, ZERO było sporem
+  o to, czym ma być produkt.** To zmienia diagnozę — z opisu „konflikt"
+  wynika rozjemca, z opisu „interferencja" wynika mechanizm; potrzebny
+  jest ten drugi. Podział budowa/weryfikacja opisany nie jako rana, tylko
+  jako odpowiedź na **bloker nr 1** bramki („bramkę wykonał ten sam agent,
+  który pisał kod") — dwie sesje z takim podziałem są strukturalnie lepsze
+  niż jedna robiąca obie rzeczy. Sześć zasad, każda wzięta z czegoś
+  zmierzonego, plus rozstrzyganie różnic i jawne stwierdzenie, że dokument
+  nie obowiązuje, dopóki druga sesja go nie przyjmie.
+* **Złapana kolizja znaczeniowa, której git nie pokazał.** Scalenie
+  z `main` po cichu nadpisało wiersz rezerwacji, który druga sesja dopiero
+  co wpisała do `KOORDYNACJA.md` — bez jednego konfliktu, bo git widział
+  tylko dwie wersje tej samej linii tabeli. Przywrócony ręcznie i opisany
+  w dokumencie. Podręcznikowy przypadek nr 1 z §3 „Czego bramka NIE
+  złapie": maszyna nie zobaczy sprzeczności ZNACZENIA, trzeba przeczytać
+  obie zmiany.
+* **Izolacja E2E była nieszczelna — mój błąd w `e2e/serve.sh`.** Skrypt
+  ustawiał `DZIK_EVENT_STORE` i `DZIK_FILES_DIR`, a kod czyta
+  `DZIK_AUDIT_DB` i `DZIK_UPLOAD_DIR`. Nazwy nie istniały, więc każdy
+  przebieg E2E pisał łańcuch audytu i uploady do `data/` **w katalogu
+  repozytorium**, zamiast do `/tmp/dzik-e2e`, który skrypt starannie
+  czyścił. Baza była izolowana (ta jedna nazwa była dobra), audyt i pliki
+  nie. Niewidoczne z dwóch powodów naraz: w CI checkout jest świeży, a
+  `data/*.db` jest w `.gitignore`. Znalezione przypadkiem — próba backupu
+  odmówiła nadpisania, wskazując `data/audit.db`, którego tam być nie
+  powinno. Poprawione i sprawdzone uruchomieniem: `data/` zostaje puste,
+  `audit.db` ląduje w `/tmp/dzik-e2e`, 9 testów zielonych.
+* **Znaleziony test-widmo: zestaw dostępności nie chodził w CI.**
+  `e2e/test_a11y.mjs` (własny runner, starszy od `playwright.config.ts`)
+  jest opisany w `DOSTEPNOSC.md`, ale żaden przebieg CI go nie uruchamiał —
+  a to jedyna bramka łapiąca poziomy scroll na 320 px, etykiety pól,
+  porządek nagłówków i obsługę zakładek z klawiatury. Dopięty do joba
+  `e2e`. Uruchomiony na scalonym CSS: wszystkie kontrole przechodzą,
+  w tym brak poziomego scrolla na 320/375/768/1024 px.
+* **Ten sam problem z testem PWA/offline** (`e2e/test_pwa_offline.mjs`) —
+  jedyna bramka sprawdzająca service workera, „API nigdy w cache" i flow
+  aktualizacji bez auto-przeładowania. Też dopięta do CI. Bez niej zmiana
+  listy precache (np. odsianie nieużywanych subsetów fontów w 0.34.0)
+  nie miała żadnego automatycznego potwierdzenia, że offline nadal działa.
+* **Usunięty duplikat: `e2e/test_e2e_browser.py`.** Dwa z trzech jego
+  testów (logowanie klienta i trenera) dublowały `logowanie.spec.ts`,
+  które chodzi w CI przy każdym pushu. Unikalną część — serwowanie
+  `manifest.webmanifest` i `sw.js` — przeniosłem do nowego
+  `frontend/e2e/pwa.spec.ts`, dokładając sprawdzenie, że service worker
+  ma wstrzykniętą listę precache (bez niej PWA online wygląda normalnie,
+  a offline nie działa wcale). Netto: zero utraconego pokrycia, jeden
+  mechanizm zamiast dwóch — przypadek nr 3 z `KOORDYNACJA.md` §3.
+* **Uratowany PR #10** (czytelność i responsywność UI, 60 linii CSS).
+  Wisiał 8 godzin nie dlatego, że był sporny — jego **bazą była inna
+  gałąź robocza zamiast `main`**, więc po scaleniu tamtej stracił punkt
+  odniesienia i nie dało się go przejrzeć. Zasada dopisana do
+  `KOORDYNACJA.md`: gałąź odgałęzia się od `main` i wraca do `main`.
+  Jeden konflikt: ikony nawigacji zostają w nowszym rozmiarze 26 px,
+  wskaźnik aktywnej sekcji z tamtej pracy dochodzi obok.
 
 **Karta współpracy sesji — dziesięć zasad, każda z podpiętym zdarzeniem.**
 `docs/KARTA_WSPOLPRACY.md`, wskazana z `CLAUDE.md`, `KOORDYNACJA.md`
@@ -146,6 +329,10 @@ błędami.** Pełny protokół: `docs/BRAMKA_GO_NOGO.md`.
   testy E2E w CI, macierz uprawnień z bramką pokrycia, PostgreSQL jako
   bramka blokująca, egzekwowanie kluczy obcych i test wykrywania
   manipulacji w łańcuchu audytu.
+* **Numer wersji.** Ta praca powstawała równolegle jako 0.36.0;
+  numer był już wtedy zajęty przez wydane szablony treningowe,
+  więc przy scalaniu dostała 0.37.0. Dokładnie ta kolizja, którą
+  kontrola `changelog` w `tools/spojnosc.py` ma łapać.
 
 ## 0.36.0 — 2026-08-18
 
@@ -261,6 +448,7 @@ na produkcji i wycofania: `docs/BAZA_CWICZEN.md` §11.
   `--dry-run` niczego nie zapisuje, klient nie widzi notatki roboczej,
   odmowa wyboru trenera w komendzie. Do tego 6 testów czystej logiki
   raportu po stronie frontendu (`npm run test:helpers`).
+
 ## 0.35.1 — 2026-08-18
 
 **Przegląd mutacyjny bramki spójności — i dwie luki, które znalazł.**

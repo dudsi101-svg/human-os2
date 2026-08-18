@@ -26,12 +26,14 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Response, UploadFi
 from sqlalchemy.orm import Session
 
 from ..authz import require_owned_resource
+from ..config import settings
 from ..db import get_db
 from ..food_catalog_data import FOOD_DISCLAIMER
 from ..hos_bridge import record_event
 from ..models import CoachClientRelationship, FoodProduct, User, new_id, now_iso
 from ..schemas import DietSuggestionIn, FoodProductIn, PortionCalcIn
 from ..security import current_user, require_role
+from ..storage import _read_limited
 
 router = APIRouter(prefix="/api", tags=["food-catalog"])
 
@@ -393,7 +395,9 @@ async def import_food_products(
     """Import katalogu z CSV. Dopisuje lub aktualizuje produkty TEGO trenera
     (dopasowanie po znormalizowanej nazwie) — nigdy cudze. Błędny wiersz jest
     pomijany z opisem przyczyny, reszta pliku importuje się dalej."""
-    raw = await file.read()
+    # Limit jak przy każdym uploadzie — bez tego jeden plik zapełnia RAM
+    # (znalezisko K-002 z przeglądu krzyżowego 2026-08-18).
+    raw = await _read_limited(file, settings.max_upload_mb * 1024 * 1024)
     try:
         text = raw.decode("utf-8-sig")
     except UnicodeDecodeError:

@@ -13,6 +13,7 @@ from ..authz import (
     require_owned_resource,
     resolve_client_access,
 )
+from ..config import settings
 from ..db import get_db
 from ..hos_bridge import record_event
 from ..models import (
@@ -27,6 +28,7 @@ from ..models import (
 )
 from ..schemas import PlanCreateIn, PlanDayIn, PlanVersionIn, WorkoutSessionIn
 from ..security import current_user, require_role
+from ..storage import _read_limited
 
 router = APIRouter(prefix="/api", tags=["plans"])
 
@@ -510,7 +512,9 @@ async def templates_import_file(
 
     Szablony NIE są przypisane do żadnego klienta (`client_id = NULL`) —
     import nie dotyka planów prowadzonych osób i nie wymaga ich zgód."""
-    raw = await file.read()
+    # Limit jak przy każdym uploadzie — bez tego jeden plik zapełnia RAM
+    # (znalezisko K-002 z przeglądu krzyżowego 2026-08-18).
+    raw = await _read_limited(file, settings.max_upload_mb * 1024 * 1024)
     source_ref = (file.filename or "plik")[:200]
     try:
         rows, unknown, warnings = sheet_import.read_table(
