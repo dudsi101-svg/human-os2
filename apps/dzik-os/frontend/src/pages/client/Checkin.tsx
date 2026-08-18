@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useRef, useState } from "react";
-import { api, getUser, isCancel, uploadFileWithProgress } from "../../api";
+import { DRAFT_KEY_PREFIX, api, getUser, isCancel, uploadFileWithProgress } from "../../api";
 import { mondayOfWeek, plDate } from "../../dates";
 import { ErrorBox, SectionLabel, Spinner, TopBar } from "../../components";
 import { CheckinData, POSE_LABELS, ScaleAnswerState } from "../../types";
@@ -91,9 +91,17 @@ interface DraftShape {
   answers: Record<string, ScaleAnswer>;
   idemKey: string;
   photoCount: number;
+  savedAt: number;
 }
 
-const draftKey = (userId: string, week: string) => `dzik_checkin_draft_${userId}_${week}`;
+// Wersja robocza zawiera dane zdrowotne (waga, ból, skale samopoczucia,
+// komentarze), więc: sessionStorage (nie localStorage — znika z zamknięciem
+// przeglądarki, nie tylko karty), TTL poniżej (stary draft nie wraca po
+// dniach nieaktywności) i wpis czyszczony centralnie przez clearSession()
+// przy wylogowaniu/usunięciu konta (patrz api.ts).
+const DRAFT_TTL_MS = 6 * 60 * 60 * 1000; // 6 h — przetrwa przerwę, nie tygodnie
+const draftKey = (userId: string, week: string) =>
+  `${DRAFT_KEY_PREFIX}checkin_${userId}_${week}`;
 
 export default function Checkin() {
   const user = getUser()!;
@@ -120,13 +128,17 @@ export default function Checkin() {
       .catch((e) => setError(e.message));
   useEffect(() => { load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Wersja robocza: przywrócenie po błędzie/zamknięciu karty (localStorage).
+  // Wersja robocza: przywrócenie po błędzie/przeładowaniu karty
+  // (sessionStorage — patrz komentarz przy DRAFT_TTL_MS powyżej).
   useEffect(() => {
     try {
-      const raw = localStorage.getItem(draftKey(user.id, currentWeek));
+      const key = draftKey(user.id, currentWeek);
+      const raw = sessionStorage.getItem(key);
       if (raw) {
         const draft = JSON.parse(raw) as DraftShape;
-        if (draft.week === currentWeek) {
+        const fresh = draft.week === currentWeek
+          && Date.now() - (draft.savedAt ?? 0) < DRAFT_TTL_MS;
+        if (fresh) {
           setForm(draft.form ?? {});
           setAnswers(draft.answers ?? {});
           if (draft.idemKey) setIdemKey(draft.idemKey);
@@ -136,6 +148,10 @@ export default function Checkin() {
               ? " Zdjęcia trzeba dodać ponownie (nie są zapisywane w wersji roboczej)."
               : "")
           );
+        } else {
+          // Nieaktualna (inny tydzień) albo zbyt stara — dane zdrowotne
+          // sprzed godzin/dni nie mają cicho wracać do formularza.
+          sessionStorage.removeItem(key);
         }
       }
     } catch {
@@ -149,10 +165,11 @@ export default function Checkin() {
     try {
       const draft: DraftShape = {
         week: currentWeek, form, answers, idemKey, photoCount: photos.length,
+        savedAt: Date.now(),
       };
-      localStorage.setItem(draftKey(user.id, currentWeek), JSON.stringify(draft));
+      sessionStorage.setItem(draftKey(user.id, currentWeek), JSON.stringify(draft));
     } catch {
-      /* Świadomie: pełny localStorage nie może wywrócić formularza. */
+      /* Świadomie: pełny sessionStorage nie może wywrócić formularza. */
     }
   }, [form, answers, idemKey, photos.length, user.id, currentWeek]);
 
@@ -273,9 +290,9 @@ export default function Checkin() {
     setSubmittedId(null);
     setIdemKey(newIdemKey());
     try {
-      localStorage.removeItem(draftKey(user.id, currentWeek));
+      sessionStorage.removeItem(draftKey(user.id, currentWeek));
     } catch {
-      /* Świadomie: brak dostępu do localStorage nie zmienia wyniku wysyłki. */
+      /* Świadomie: brak dostępu do sessionStorage nie zmienia wyniku wysyłki. */
     }
   }
 

@@ -23,6 +23,12 @@ export interface SessionUser {
 
 const TOKEN_KEY = "dzik_token";
 const USER_KEY = "dzik_user";
+// Prefiks wersji roboczych formularzy (np. raportu tygodniowego) trzymanych
+// w sessionStorage — patrz Checkin.tsx. Wspólny ze `clearSession`, żeby
+// wylogowanie i usunięcie konta miały JEDNO miejsce czyszczenia całego
+// stanu klienta, a nie osobną logikę w każdym formularzu (patrz audyt:
+// dane zdrowotne w wersji roboczej przetrwały wcześniej wylogowanie).
+export const DRAFT_KEY_PREFIX = "dzik_draft_";
 
 export function getToken(): string | null {
   return sessionStorage.getItem(TOKEN_KEY);
@@ -41,6 +47,13 @@ export function setSession(token: string, user: SessionUser) {
 export function clearSession() {
   sessionStorage.removeItem(TOKEN_KEY);
   sessionStorage.removeItem(USER_KEY);
+  // Wersje robocze formularzy (mogą zawierać dane zdrowotne — raport
+  // tygodniowy: waga, ból, sen, stres, komentarze) nie mogą przeżyć
+  // wylogowania ani usunięcia konta.
+  for (let i = sessionStorage.length - 1; i >= 0; i--) {
+    const key = sessionStorage.key(i);
+    if (key?.startsWith(DRAFT_KEY_PREFIX)) sessionStorage.removeItem(key);
+  }
 }
 
 export class ApiError extends Error {

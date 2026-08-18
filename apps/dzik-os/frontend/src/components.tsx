@@ -234,13 +234,16 @@ export function OfflineScreen() {
       <Logo size={52} />
       <h1>Brak połączenia z internetem</h1>
       <p>
-        Twoje dane zdrowotne nie są przechowywane na tym urządzeniu, dlatego
-        plan dnia, dieta, raporty, postępy, wiadomości, dokumenty i płatności
-        wymagają połączenia z siecią.
+        Twoje dane — plan dnia, dieta, raporty, postępy, wiadomości, dokumenty
+        i płatności — są przechowywane wyłącznie na serwerze, dlatego wymagają
+        połączenia z siecią.
       </p>
       <p className="dim">
         Gdy połączenie wróci, ekran zniknie automatycznie i zobaczysz aktualne
-        dane. Formularz wypełniany przed utratą sieci pozostaje zachowany.
+        dane. Wyjątek: formularz raportu, który akurat wypełniasz, jest
+        tymczasowo zachowywany w tej przeglądarce (nie na serwerze), żebyś nie
+        stracił/a wpisanych danych — znika automatycznie po wysłaniu raportu,
+        po wylogowaniu i po kilku godzinach nieaktywności.
       </p>
       <button className="btn" onClick={check} disabled={checking}>
         {checking ? "Sprawdzanie…" : "Sprawdź połączenie"}
