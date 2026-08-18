@@ -81,6 +81,33 @@ na cichą utratę pracy.
   zostaje domknięta (żadna gałąź jej nie trzyma, wpis jest już w main
   i wdrożony), a kolizja wersji 0.36.0 rozwiązana przez przesunięcie
   tamtej pracy na 0.37.0.
+* **Dziennik konsultacji (`docs/KONSULTACJE.md`) — i dziewiąta kontrola,
+  która go czyta.** Cztery dokumenty koordynacyjne już istniały; problem nie
+  polegał na braku miejsca do pisania, tylko na tym, że **żaden nie miał
+  właściwości upominania się**. Cztery pytania sesji produktowej czekały
+  w pliku planu, a odpowiedź padła wyłącznie dlatego, że druga strona
+  przypadkiem tam zajrzała. Teraz `tools/spojnosc.py` czyta dziennik przy
+  każdym uruchomieniu — lokalnie i w CI — i wypisuje otwarte wpisy z wiekiem;
+  wpisy oznaczone jako blokujące dostają głośniejszą uwagę po 4 godzinach.
+  Otwarte pytanie to **uwaga**, nigdy błąd; **błąd** jest zarezerwowany dla
+  zepsutego mechanizmu (zły format nagłówka, powtórzony numer, nieznany
+  adresat, brak pola `Blokuje`, pusty dziennik).
+* **Przegląd mutacyjny kasował pracę — najgroźniejszy błąd tego dnia.**
+  `tools/mutacje.py` robił kopię oryginału **tylko gdy jeszcze nie istniała**
+  (`if not ORYGINAL.exists()`), pod stałą ścieżką w `/tmp`. Plik przetrwał
+  z uruchomienia sprzed 90 minut, więc kolejny przebieg „przywrócił" ten
+  stary stan i **skasował świeżo dopisaną kontrolę** — bez ostrzeżenia,
+  z komunikatem o powodzeniu. To jest prawdziwa odpowiedź na pytanie „czy
+  nie giną nam pliki": tak, to narzędzie je zjadało. Naprawione trzema
+  zmianami: katalog tymczasowy unikalny dla przebiegu, kopia bezwarunkowa
+  oraz **weryfikacja hashem po przywróceniu** — rozbieżność przerywa
+  z błędem. Sprawdzone: hash `spojnosc.py` przed i po pełnym przeglądzie
+  identyczny.
+* **Kontrola konsultacji złapała błąd we własnej dokumentacji.** Pierwsza
+  wersja parsera czytała przykładowy nagłówek z instrukcji (wewnątrz bloku
+  kodu) jako prawdziwy wpis i zgłaszała błąd. Poprawione, osobny test tego
+  pilnuje. Jedenaście testów kontroli i cztery nowe mutacje — po nich
+  **14 z 14 mutacji wykrytych**.
 * **Spisany status współpracy dwóch sesji** (`docs/WSPOLPRACA_SESJI.md`),
   na wyraźne polecenie właściciela produktu. Punkt wyjścia to policzenie,
   czego naprawdę dotyczyły dzisiejsze kolizje: **jedenaście z jedenastu

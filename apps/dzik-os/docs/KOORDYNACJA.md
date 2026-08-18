@@ -22,7 +22,7 @@ python apps/dzik-os/tools/spojnosc.py     # 0 = czysto, 1 = są kolizje
 ```
 
 Uruchamiana w CI (`dzik-os-ci.yml`) i lokalnie przed każdym scaleniem.
-Osiem kontroli, każda wzięta z błędu, który **naprawdę się zdarzył**:
+Dziewięć kontroli, każda wzięta z błędu, który **naprawdę się zdarzył**:
 
 | Kontrola | Co łapie | Kiedy się zdarzyło |
 |---|---|---|
@@ -34,6 +34,7 @@ Osiem kontroli, każda wzięta z błędu, który **naprawdę się zdarzył**:
 | `dokumenty` | martwy odnośnik `docs/COŚ.md` (uwaga, nie błąd) | przy przenoszeniu dokumentacji |
 | `higiena gałęzi` | objawy gałęzi żyjącej za długo jak na tempo main (uwagi, nigdy błąd) | PR #11: 6,5 h życia, 8 scaleń nadążających |
 | `pliki poza gitem` | plik źródłowy ignorowany przez `.gitignore` (błąd) albo nigdy niedodany (uwaga) | `.coverage` dodany przez `git add -A`, potem gitignore — pytanie „czy nie giną nam pliki" |
+| `konsultacje` | otwarte pytanie między sesjami (uwaga); zepsuty format wpisu (błąd) | cztery pytania czekały w pliku planu i nic o nich nie powiadamiało |
 
 Kontrola **niczego nie naprawia** — od tego jest człowiek albo agent,
 który zna zamiar. Ma wyłącznie nie pozwolić kolizji przejść niezauważenie.
@@ -52,7 +53,7 @@ dołóż test, który ją psuje.**
 python apps/dzik-os/tools/mutacje.py     # z korzenia repozytorium
 ```
 
-Narzędzie po kolei **psuje kontrolę** na dziesięć sposobów, po każdym
+Narzędzie po kolei **psuje kontrolę** na czternaście sposobów, po każdym
 uruchamia `tests/test_spojnosc.py` i na koniec przywraca oryginał.
 Mutacja, po której testy nadal są zielone, to luka — wypisana wprost.
 
@@ -62,8 +63,17 @@ Pierwsze uruchomienie (2026-08-18) znalazło **dwie luki**:
   przed cichą śmiercią kontroli tras samo nie było zabezpieczone;
 * zamiana kontroli dokumentów w atrapę przechodziła bez śladu.
 
-Obie naprawione tego samego dnia; po naprawie **10 z 10 mutacji wykrytych**
-(siedem pierwotnych plus trzy dla kontroli plików poza gitem).
+Obie naprawione tego samego dnia; po naprawie **14 z 14 mutacji wykrytych**
+(siedem pierwotnych, trzy dla plików poza gitem, cztery dla konsultacji).
+
+**Samo narzędzie też miało błąd, i to niszczący.** Kopię oryginału robiło
+tylko wtedy, gdy jeszcze nie istniała (`if not ORYGINAL.exists()`), pod stałą
+ścieżką w `/tmp`. 18.08.2026 plik przetrwał z wcześniejszego uruchomienia,
+więc kolejny przebieg **„przywrócił” stan sprzed 90 minut**, kasując świeżo
+dopisaną kontrolę — po cichu, z komunikatem o powodzeniu. Naprawione trzema
+zmianami naraz: katalog tymczasowy unikalny dla przebiegu, kopia robiona
+bezwarunkowo, a po przywróceniu **sprawdzany hash** — rozbieżność przerywa
+z błędem zamiast meldować sukces.
 Uruchamiaj po każdej zmianie w `spojnosc.py` i po dołożeniu kontroli — bez
 tego „mamy testy" jest deklaracją, nie faktem.
 

@@ -19,16 +19,46 @@ tego samego dnia:
 
 Uruchamiaj po każdej zmianie w `spojnosc.py` i po dołożeniu kontroli.
 """
+import hashlib
 import shutil
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 NARZEDZIE = Path("apps/dzik-os/tools/spojnosc.py")
-ORYGINAL = Path("/tmp/spojnosc.oryginal.py")  # kopia robocza, tworzona niżej
 
-if not ORYGINAL.exists():
-    shutil.copy(NARZEDZIE, ORYGINAL)
+# KOPIA ROBOCZA — dlaczego akurat tak, a nie prościej.
+#
+# Pierwsza wersja trzymała kopię pod stałą ścieżką /tmp/spojnosc.oryginal.py
+# i tworzyła ją TYLKO gdy jeszcze nie istniała (`if not ORYGINAL.exists()`).
+# 18.08.2026 zjadło to półtorej godziny pracy: plik przetrwał w /tmp
+# z wcześniejszego uruchomienia, więc kolejny przebieg nie odświeżył kopii
+# i „przywrócił oryginał” sprzed 90 minut — kasując świeżo dopisaną
+# kontrolę. Po cichu, z komunikatem o powodzeniu.
+#
+# Narzędzie, którego zadaniem jest PSUĆ I PRZYWRACAĆ plik, musi mieć
+# przywracanie pewne. Stąd trzy zmiany naraz:
+#   1. katalog tymczasowy unikalny dla przebiegu — kopia z innego
+#      uruchomienia nie ma jak się podłożyć,
+#   2. kopia robiona ZAWSZE, bezwarunkowo,
+#   3. po przywróceniu sprawdzany hash — rozbieżność przerywa z błędem
+#      zamiast zameldować sukces.
+_KATALOG = Path(tempfile.mkdtemp(prefix="dzik-mutacje-"))
+ORYGINAL = _KATALOG / "spojnosc.oryginal.py"
+shutil.copy(NARZEDZIE, ORYGINAL)
+_HASH_ORYGINALU = hashlib.sha256(ORYGINAL.read_bytes()).hexdigest()
+
+
+def przywroc() -> None:
+    """Przywraca oryginał i SPRAWDZA, że naprawdę wrócił."""
+    shutil.copy(ORYGINAL, NARZEDZIE)
+    obecny = hashlib.sha256(NARZEDZIE.read_bytes()).hexdigest()
+    if obecny != _HASH_ORYGINALU:
+        raise SystemExit(
+            f"PRZERWANE: przywrócenie {NARZEDZIE} nie powiodło się — "
+            f"kopia leży w {ORYGINAL}, odtwórz ją ręcznie."
+        )
 
 MUTACJE = [
     ("migracje: usunięta kontrola duplikatów",
@@ -71,6 +101,22 @@ MUTACJE = [
      '    pliki = _pliki_zrodlowe()',
      '    return\n    pliki = _pliki_zrodlowe()'),
 
+    ("konsultacje: kontrola zamieniona w atrapę",
+     '    plik = DOCS / "KONSULTACJE.md"',
+     '    return\n    plik = DOCS / "KONSULTACJE.md"'),
+
+    ("konsultacje: otwarte pytanie przestaje być zgłaszane",
+     '        if status != "OTWARTE":\n            continue',
+     '        if status == "OTWARTE":\n            continue'),
+
+    ("konsultacje: zły kształt nagłówka zdegradowany do uwagi",
+     '            w.blad("konsultacje", f"wpis w linii {nr_linii + 1} ma zly ksztalt "',
+     '            w.uwaga("konsultacje", f"wpis w linii {nr_linii + 1} ma zly ksztalt "'),
+
+    ("konsultacje: usunięty bezpiecznik pustego dziennika",
+     '    if not naglowki:',
+     '    if False:'),
+
     ("pliki poza gitem: plik ignorowany zdegradowany do uwagi",
      '        w.blad("pliki", f"{sciezka} jest ignorowany',
      '        w.uwaga("pliki", f"{sciezka} jest ignorowany'),
@@ -99,7 +145,7 @@ if kod != 0:
 
 przezyly = []
 for nazwa, szukaj, zamien in MUTACJE:
-    shutil.copy(ORYGINAL, NARZEDZIE)
+    przywroc()
     tresc = NARZEDZIE.read_text(encoding="utf-8")
     if szukaj not in tresc:
         print(f"\n=== {nazwa} ===\n  NIE UDAŁO SIĘ WSTRZYKNĄĆ (wzorzec nie pasuje)")
@@ -115,7 +161,7 @@ for nazwa, szukaj, zamien in MUTACJE:
     else:
         print("  OK: testy wykryły zepsucie")
 
-shutil.copy(ORYGINAL, NARZEDZIE)
+przywroc()
 kod, opis = uruchom_testy()
 print(f"\n=== po przywróceniu oryginału ===\n  testy: {opis}  [kod {kod}]")
 print("\nPODSUMOWANIE:")

@@ -429,6 +429,110 @@ def sprawdz_pliki_poza_gitem(w: Wynik) -> None:
                          "zniknie przy zmianie gałęzi lub wraz z kontenerem")
 
 
+
+# --- 9. Konsultacje miedzy sesjami -------------------------------------
+
+#: Ile godzin otwarty wpis BLOKUJACY moze czekac, zanim bramka o nim krzyknie.
+PROG_KONSULTACJI_H = 4.0
+
+_NAGLOWEK_KONSULTACJI = re.compile(
+    r"^### (K-\d{3}) \u00b7 (\d{4}-\d{2}-\d{2} \d{2}:\d{2})Z \u00b7 "
+    r"od: (\w+) \u00b7 do: (\w+) \u00b7 STATUS: (OTWARTE|ODPOWIEDZIANE|ZAMKNIETE)$"
+)
+_STRONY = {"bramki", "produktowa", "wlasciciel"}
+
+
+def sprawdz_konsultacje(w: Wynik) -> None:
+    """Otwarte pytania miedzy sesjami — zeby nikt ich nie przeoczyl.
+
+    POWOD ISTNIENIA. 18.08.2026 sesja produktowa zadala cztery pytania
+    w swoim pliku planu. Odpowiedz padla wylacznie dlatego, ze druga strona
+    PRZYPADKIEM tam zajrzala — nic o nich nie powiadamialo. Cztery dokumenty
+    koordynacyjne istnialy i zaden nie mial wlasciwosci upominania sie.
+
+    Ta kontrola nie ocenia tresci. Pilnuje, zeby otwarty wpis byl WIDOCZNY
+    przy kazdym uruchomieniu bramki — lokalnie i w CI.
+
+    BLAD (blokuje) wylacznie wtedy, gdy zepsuty jest sam MECHANIZM: zly
+    ksztalt naglowka, powtorzony numer, nieznana strona, brak pola
+    `Blokuje`, pusty dziennik. Wpis, ktorego kontrola nie umie odczytac,
+    jest gorszy niz jego brak — ta sama zasada co PROG_TRAS.
+
+    UWAGA (nie blokuje) dla samych otwartych pytan. Otwarte pytanie to stan
+    normalny; zatrzymywanie builda z tego powodu nauczyloby wszystkich
+    obchodzic bramke. Wpisy `Blokuje: tak` starsze niz PROG_KONSULTACJI_H
+    dostaja glosniejsza uwage — tam ktos naprawde stoi.
+    """
+    plik = DOCS / "KONSULTACJE.md"
+    if not plik.exists():
+        return  # dziennik nieobowiazkowy — jego brak to nie awaria
+
+    linie = plik.read_text(encoding="utf-8").splitlines()
+    # Naglowki WEWNATRZ bloku kodu to przyklady z instrukcji, nie wpisy.
+    # Bez tego kontrola zglaszala blad na wlasnej dokumentacji — zlapane
+    # przy pierwszym uruchomieniu, patrz test_pomija_przyklady_w_bloku_kodu.
+    naglowki: list[tuple[int, str]] = []
+    w_bloku = False
+    for i, linia in enumerate(linie):
+        if linia.startswith("```"):
+            w_bloku = not w_bloku
+            continue
+        if not w_bloku and linia.startswith("### "):
+            naglowki.append((i, linia))
+
+    if not naglowki:
+        w.blad("konsultacje", "KONSULTACJE.md nie zawiera ani jednego wpisu — "
+                              "kontrola przestala cokolwiek widziec")
+        return
+
+    import time
+    from datetime import datetime
+
+    numery: set[str] = set()
+    otwarte: list[tuple[str, str, float, bool]] = []
+    for nr_linii, linia in naglowki:
+        dopasowanie = _NAGLOWEK_KONSULTACJI.match(linia)
+        if dopasowanie is None:
+            w.blad("konsultacje", f"wpis w linii {nr_linii + 1} ma zly ksztalt "
+                                  f"naglowka — bramka nie umie go odczytac: {linia[:70]!r}")
+            continue
+        numer, stempel, od, do, status = dopasowanie.groups()
+        if numer in numery:
+            w.blad("konsultacje", f"numer {numer} uzyty dwa razy")
+        numery.add(numer)
+        for strona, etykieta in ((od, "od"), (do, "do")):
+            if strona not in _STRONY:
+                w.blad("konsultacje", f"{numer}: nieznana strona w polu "
+                                      f"`{etykieta}: {strona}` "
+                                      f"(dozwolone: {', '.join(sorted(_STRONY))})")
+        koniec = next((i for i, _ in naglowki if i > nr_linii), len(linie))
+        cialo = "\n".join(linie[nr_linii:koniec])
+        blokuje_dop = re.search(r"^\*\*Blokuje:\*\* (tak|nie)$", cialo, re.MULTILINE)
+        if blokuje_dop is None:
+            w.blad("konsultacje", f"{numer}: brak pola `**Blokuje:** tak|nie`")
+            continue
+        if status != "OTWARTE":
+            continue
+        try:
+            kiedy = datetime.strptime(stempel + "+0000", "%Y-%m-%d %H:%M%z")
+        except ValueError:
+            w.blad("konsultacje", f"{numer}: nieczytelna data {stempel!r}")
+            continue
+        wiek = (time.time() - kiedy.timestamp()) / 3600
+        otwarte.append((numer, do, wiek, blokuje_dop.group(1) == "tak"))
+
+    for numer, do, wiek, blokuje in sorted(otwarte, key=lambda x: -x[2]):
+        if blokuje and wiek > PROG_KONSULTACJI_H:
+            w.uwaga("konsultacje",
+                    f"{numer} BLOKUJE prace i czeka {wiek:.1f} h "
+                    f"(prog {PROG_KONSULTACJI_H} h) — adresat: {do}. "
+                    "Ktos po drugiej stronie stoi.")
+        else:
+            w.uwaga("konsultacje",
+                    f"{numer} otwarte od {wiek:.1f} h, adresat: {do}"
+                    + (" [BLOKUJE]" if blokuje else ""))
+
+
 KONTROLE = (
     ("migracje", sprawdz_migracje),
     ("changelog", sprawdz_changelog),
@@ -438,6 +542,7 @@ KONTROLE = (
     ("dokumenty", sprawdz_dokumenty),
     ("higiena gałęzi", sprawdz_galaz),
     ("pliki poza gitem", sprawdz_pliki_poza_gitem),
+    ("konsultacje", sprawdz_konsultacje),
 )
 
 
