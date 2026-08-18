@@ -1,9 +1,23 @@
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import { api } from "../../api";
 import { WEEKDAYS } from "../../dates";
 import { ErrorBox, ExerciseFilterBar, Spinner } from "../../components";
-import { EMPTY_FILTERS, ExerciseFilters, exerciseQuery } from "../../exerciseFilters";
+import {
+  EMPTY_FILTERS,
+  ExerciseFilters,
+  exerciseQuery,
+  hasActiveFilters,
+} from "../../exerciseFilters";
+import {
+  KEYBOARD_HINT,
+  nextActiveIndex,
+  resultsMessage,
+  showRecent,
+  tabIndexFor,
+} from "../../exercisePicker";
 import OcrCapture from "../../OcrCapture";
+import PlanAssistant from "../../PlanAssistant";
+import { appendDays, snapshot } from "../../assistantUtils";
 import { linesToExerciseNames } from "../../ocrUtils";
 import {
   EXERCISE_LEVEL_LABELS,
@@ -23,17 +37,29 @@ const PICKER_PAGE = 20;
 /** Wyszukiwarka bazy ćwiczeń wbudowana w edytor planu. Jedno kliknięcie
  * dodaje pozycję do bieżącego dnia; wyszukiwarka zostaje otwarta, żeby
  * dało się dodać kilka ćwiczeń pod rząd. Nie zastępuje ręcznego wpisania
- * nazwy — trener zawsze może wpisać coś spoza bazy. */
-function ExercisePicker({ onPick, onClose }: {
+ * nazwy — trener zawsze może wpisać coś spoza bazy.
+ *
+ * Przy katalogu rzędu 250 pozycji liczą się trzy skróty:
+ * * „ostatnio używane” nad wynikami (trener korzysta z kilkudziesięciu
+ *   ćwiczeń, nie z całej bazy) — widoczne tylko przy pustym wyszukiwaniu;
+ * * pełna obsługa klawiaturą: fokus ląduje w polu wyszukiwania, strzałki
+ *   chodzą po wynikach (roving tabindex), Enter dodaje, Escape zamyka
+ *   i wraca fokusem do przycisku, który wyszukiwarkę otworzył;
+ * * komunikat mówiący wprost, ile wyników jeszcze zostało. */
+function ExercisePicker({ idPrefix, onPick, onClose }: {
+  idPrefix: string;
   onPick: (item: ExerciseLibraryItem) => void;
   onClose: () => void;
 }) {
   const [filters, setFilters] = useState<ExerciseFilters>(EMPTY_FILTERS);
   const [items, setItems] = useState<ExerciseLibraryItem[] | null>(null);
+  const [recent, setRecent] = useState<ExerciseLibraryItem[]>([]);
   const [total, setTotal] = useState(0);
   const [hasMore, setHasMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [added, setAdded] = useState<string | null>(null);
+  const [active, setActive] = useState(-1);
+  const resultRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
   const load = (offset = 0) => {
     setError(null);
@@ -43,6 +69,7 @@ function ExercisePicker({ onPick, onClose }: {
         setItems((prev) => (offset > 0 && prev ? [...prev, ...d.items] : d.items));
         setTotal(d.total);
         setHasMore(d.has_more);
+        if (offset === 0) setActive(-1);
       })
       .catch((e) => setError(e.message));
   };
@@ -54,33 +81,94 @@ function ExercisePicker({ onPick, onClose }: {
     filters.q, filters.muscle, filters.equipment, filters.level, filters.pattern,
   ]);
 
+  // Skrót „ostatnio używane” liczy serwer z wersji planów tego trenera.
+  // Brak planów = pusta lista i sekcja się po prostu nie pokazuje.
+  useEffect(() => {
+    api.get<{ items: ExerciseLibraryItem[] }>("/api/coach/exercises/recent")
+      .then((d) => setRecent(d.items))
+      .catch(() => setRecent([]));
+  }, []);
+
+  // Po otwarciu fokus ląduje w polu wyszukiwania — trener od razu pisze.
+  useEffect(() => {
+    document.getElementById(`${idPrefix}-ex-q`)?.focus();
+  }, [idPrefix]);
+
+  const pick = (item: ExerciseLibraryItem) => {
+    onPick(item);
+    setAdded(item.name);
+  };
+
+  /** Strzałki, Enter i Escape działają z dowolnego miejsca wyszukiwarki. */
+  function onKeyDown(event: React.KeyboardEvent<HTMLDivElement>) {
+    const count = items?.length ?? 0;
+    if (event.key === "Escape") {
+      event.preventDefault();
+      onClose();
+      return;
+    }
+    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+      event.preventDefault();
+      const next = nextActiveIndex(active, event.key === "ArrowDown" ? 1 : -1, count);
+      setActive(next);
+      if (next >= 0) resultRefs.current[next]?.focus();
+      return;
+    }
+    if (event.key === "Enter" && active >= 0 && items && items[active]) {
+      // Enter w polu wyszukiwania nie może wysłać formularza planu.
+      event.preventDefault();
+      pick(items[active]);
+    }
+  }
+
+  const message = resultsMessage({
+    loading: items === null,
+    error,
+    total,
+    shown: items?.length ?? 0,
+    hasMore,
+    hasFilters: hasActiveFilters(filters),
+  });
+
   return (
-    <div className="card exercise-picker" style={{ marginTop: 8 }}>
+    <div className="card exercise-picker" style={{ marginTop: 8 }} onKeyDown={onKeyDown}>
       <div className="row row--between">
         <b>Dodaj z bazy ćwiczeń</b>
         <button type="button" className="btn btn--ghost btn--small" onClick={onClose}>
           Zamknij wyszukiwarkę
         </button>
       </div>
-      <ExerciseFilterBar idPrefix="pe" value={filters} onChange={setFilters} />
+      <ExerciseFilterBar idPrefix={idPrefix} value={filters} onChange={setFilters} />
+      <p className="dim" style={{ marginTop: 2, fontSize: "0.78rem" }}>{KEYBOARD_HINT}</p>
+      {showRecent(hasActiveFilters(filters), recent.length) && (
+        <div style={{ marginTop: 6 }}>
+          <span className="meta">Ostatnio używane</span>
+          <div className="row" style={{ flexWrap: "wrap", gap: 6 }}>
+            {recent.map((item) => (
+              <button key={item.id} type="button" className="btn btn--ghost btn--small"
+                onClick={() => pick(item)}>
+                {item.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
       <p className="dim" aria-live="polite" style={{ marginTop: 4 }}>
-        {error
-          ? ""
-          : items === null
-            ? "Wyszukiwanie…"
-            : total === 0
-              ? "Brak ćwiczeń pasujących do wyszukiwania."
-              : `Znaleziono ${total} ćwiczeń — pokazano ${items.length}.`}
+        {message}
         {added && ` Dodano „${added}” do dnia.`}
       </p>
       <ErrorBox error={error} onRetry={() => load(0)} />
       {items === null && !error && <Spinner />}
       {items && items.length > 0 && (
         <ul className="exercise-picker__results">
-          {items.map((item) => (
+          {items.map((item, index) => (
             <li key={item.id}>
               <button type="button" className="exercise-picker__hit"
-                onClick={() => { onPick(item); setAdded(item.name); }}>
+                ref={(node) => { resultRefs.current[index] = node; }}
+                tabIndex={tabIndexFor(index, active)}
+                aria-current={index === active ? true : undefined}
+                onFocus={() => setActive(index)}
+                onClick={() => pick(item)}>
                 <b>{item.name}</b>
                 <span className="meta">
                   {[
@@ -127,6 +215,15 @@ export default function PlanEditor({
   const [pickerDay, setPickerDay] = useState<number | null>(null);
   const [ocrOpen, setOcrOpen] = useState(false);
   const [ocrNote, setOcrNote] = useState<string | null>(null);
+  const [assistantOpen, setAssistantOpen] = useState(false);
+  const [assistantNote, setAssistantNote] = useState<string | null>(null);
+  // Migawka sprzed OSTATNIEGO wstawienia — „cofnij wstawienie" przywraca
+  // dokładnie ten stan edytora. Trzymamy jedną: cofnięcie ma być
+  // natychmiastowe i zrozumiałe, a nie pełną historią zmian.
+  const [undoDays, setUndoDays] = useState<PlanDay[] | null>(null);
+  // Przyciski otwierające wyszukiwarkę — Escape wraca fokusem dokładnie
+  // tam, skąd trener ją otworzył (bez skoku na początek formularza).
+  const pickerButtons = useRef<(HTMLButtonElement | null)[]>([]);
 
   const setDay = (i: number, day: PlanDay) =>
     setDays(days.map((d, j) => (i === j ? day : d)));
@@ -162,6 +259,39 @@ export default function PlanEditor({
           : ex)
       : [...day.exercises, filled];
     setDay(dayIndex, { ...day, exercises });
+  }
+
+  /** Wstawienie propozycji asystenta: DOKŁADAMY dni, nigdy nie kasujemy
+   * pracy trenera, i zawsze zostawiamy drogę powrotu (migawka do cofnięcia).
+   * Bez przeładowania i bez przewijania — zmiana jest ogłaszana aria-live. */
+  function insertAssistantDays(incoming: PlanDay[], label: string) {
+    setUndoDays(snapshot(days));
+    setDays(appendDays(days, incoming));
+    setAssistantNote(`${label} Nic nie zostało jeszcze zapisane.`);
+  }
+
+  /** Pojedyncze ćwiczenie ze ścieżki lokalnej — do ostatniego dnia. */
+  function insertAssistantExercise(exercise: Exercise, label: string) {
+    setUndoDays(snapshot(days));
+    const target = days.length ? days.length - 1 : 0;
+    const base = days.length ? days : [emptyDay()];
+    const day = base[target];
+    const last = day.exercises[day.exercises.length - 1];
+    const isEmptyRow = last && !last.name?.trim() && !last.sets && !last.reps;
+    setDays(base.map((d, i) => (i !== target ? d : {
+      ...d,
+      exercises: isEmptyRow
+        ? [...d.exercises.slice(0, -1), exercise]
+        : [...d.exercises, exercise],
+    })));
+    setAssistantNote(`${label} Nic nie zostało jeszcze zapisane.`);
+  }
+
+  function undoInsert() {
+    if (!undoDays) return;
+    setDays(undoDays);
+    setUndoDays(null);
+    setAssistantNote("Cofnięto wstawienie — edytor wrócił do poprzedniego stanu.");
   }
 
   /** Tekst z kartki -> nowy dzień do ręcznej obróbki.
@@ -225,10 +355,32 @@ export default function PlanEditor({
         placeholder="np. progresja po raporcie z tygodnia 3" />
       <div className="row" style={{ marginTop: 10, flexWrap: "wrap" }}>
         <button type="button" className="btn btn--ghost btn--small"
+          aria-expanded={assistantOpen} onClick={() => setAssistantOpen(!assistantOpen)}>
+          {assistantOpen ? "Zamknij asystenta" : "Asystent: szkic planu z bazy"}
+        </button>
+        <button type="button" className="btn btn--ghost btn--small"
           aria-expanded={ocrOpen} onClick={() => setOcrOpen(!ocrOpen)}>
           {ocrOpen ? "Zamknij przepisywanie" : "Przepisz ze zdjęcia (kartka z planem)"}
         </button>
+        {undoDays && (
+          <button type="button" className="btn btn--ghost btn--small" onClick={undoInsert}>
+            Cofnij wstawienie
+          </button>
+        )}
       </div>
+      <p className="dim" role="status" aria-live="polite" style={{ marginTop: 4 }}>
+        {assistantNote ?? ""}
+      </p>
+      {assistantOpen && (
+        <PlanAssistant
+          clientId={clientId}
+          onInsertDays={insertAssistantDays}
+          onInsertExercise={insertAssistantExercise}
+          canUndo={undoDays !== null}
+          onUndo={undoInsert}
+          onClose={() => setAssistantOpen(false)}
+        />
+      )}
       <p className="dim" role="status" aria-live="polite" style={{ marginTop: 4 }}>
         {ocrNote ?? ""}
       </p>
@@ -329,6 +481,7 @@ export default function PlanEditor({
           ))}
           <div className="row" style={{ marginTop: 8, flexWrap: "wrap" }}>
             <button type="button" className="btn btn--small"
+              ref={(node) => { pickerButtons.current[di] = node; }}
               aria-expanded={pickerDay === di}
               onClick={() => setPickerDay(pickerDay === di ? null : di)}>
               {pickerDay === di ? "Zamknij bazę ćwiczeń" : "Wybierz z bazy ćwiczeń"}
@@ -343,8 +496,9 @@ export default function PlanEditor({
             </button>
           </div>
           {pickerDay === di && (
-            <ExercisePicker onPick={(item) => addFromLibrary(di, item)}
-              onClose={() => setPickerDay(null)} />
+            <ExercisePicker idPrefix={`pe-${di}`}
+              onPick={(item) => addFromLibrary(di, item)}
+              onClose={() => { setPickerDay(null); pickerButtons.current[di]?.focus(); }} />
           )}
         </div>
       ))}

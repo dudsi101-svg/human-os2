@@ -19,7 +19,15 @@ from .. import exercise_parser, exercise_parser_ai
 from ..authz import require_owned_resource
 from ..db import get_db
 from ..hos_bridge import record_event
-from ..models import CoachClientRelationship, Exercise, User, new_id, now_iso
+from ..models import (
+    CoachClientRelationship,
+    Exercise,
+    TrainingPlan,
+    TrainingPlanVersion,
+    User,
+    new_id,
+    now_iso,
+)
 from ..muscles import (
     EXERCISE_LEVELS,
     LEVEL_LABELS,
@@ -39,6 +47,14 @@ router = APIRouter(prefix="/api", tags=["exercises"])
 
 DEFAULT_LIMIT = 60
 MAX_LIMIT = 200
+
+#: Ile ćwiczeń pokazuje skrót „ostatnio używane”. Trener w praktyce
+#: korzysta z kilkudziesięciu pozycji, nie z całego katalogu — ten skrót
+#: ma oszczędzać szukanie, a nie być drugą listą do przewijania.
+RECENT_LIMIT = 12
+#: Ile NAJŚWIEŻSZYCH wersji planów przeglądamy, żeby je wyznaczyć.
+#: Stały koszt zapytania niezależnie od stażu trenera.
+RECENT_VERSIONS_SCANNED = 60
 
 
 def _load_list(value: str | None) -> list[str]:
@@ -265,6 +281,65 @@ def list_own_exercises(
         rows, limit=limit, offset=offset,
         filters=_filters(q, muscle, muscle_group, equipment, level, pattern),
     )
+
+
+@router.get("/coach/exercises/recent")
+def recent_exercises(
+    coach: User = Depends(require_role("COACH")),
+    db: Session = Depends(get_db),
+):
+    """Ostatnio używane ćwiczenia TEGO trenera — skrót przy układaniu planu.
+
+    Kolejność wyznaczają najświeższe wersje planów: ćwiczenie użyte
+    ostatnio stoi pierwsze. Trener bez żadnego planu dostaje pustą listę
+    (interfejs nie pokazuje wtedy nic — żadnych pustych ramek).
+
+    Prywatność: wynik to WYŁĄCZNIE ćwiczenia z bazy trenera (aktywne),
+    dokładnie w tym samym kształcie co lista bazy. Nie ma tu ani słowa
+    o tym, u którego podopiecznego ćwiczenie zostało użyte — to skrót do
+    własnego katalogu, nie zestawienie klientów.
+
+    Trasa stoi PRZED `/coach/exercises/{item_id}`, inaczej „recent”
+    trafiłoby do niej jako identyfikator."""
+    versions = (
+        db.query(TrainingPlanVersion.content_json)
+        .join(TrainingPlan, TrainingPlan.id == TrainingPlanVersion.plan_id)
+        .filter(TrainingPlan.coach_id == coach.id)
+        .order_by(TrainingPlanVersion.created_at.desc(), TrainingPlanVersion.id.desc())
+        .limit(RECENT_VERSIONS_SCANNED)
+        .all()
+    )
+    ordered: list[str] = []
+    seen: set[str] = set()
+    for (content,) in versions:
+        try:
+            data = json.loads(content)
+        except json.JSONDecodeError:
+            # Uszkodzona treść wersji nie może wywrócić skrótu — pomijamy.
+            continue
+        for day in data.get("days") or []:
+            for entry in day.get("exercises") or []:
+                item_id = entry.get("exercise_id") if isinstance(entry, dict) else None
+                if item_id and item_id not in seen:
+                    seen.add(item_id)
+                    ordered.append(item_id)
+        if len(ordered) >= RECENT_LIMIT * 3:
+            break
+    if not ordered:
+        return {"items": []}
+    rows = {
+        row.id: row
+        for row in db.query(Exercise)
+        .filter(
+            Exercise.id.in_(ordered),
+            Exercise.coach_id == coach.id,
+            Exercise.status == "ACTIVE",
+        )
+        .all()
+    }
+    # Zarchiwizowane i cudze wypadają; kolejność zostaje „od najświeższych”.
+    items = [_out(rows[i]) for i in ordered if i in rows][:RECENT_LIMIT]
+    return {"items": items}
 
 
 @router.get("/coach/exercises/{item_id}")

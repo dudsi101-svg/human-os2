@@ -146,6 +146,15 @@ MATRIX: dict[tuple[str, str], Access] = {
     ("GET", "/api/clients/{client_id}/strength-series"): Access.CLIENT_SCOPED,
     ("GET", "/api/clients/{client_id}/workouts"): Access.CLIENT_SCOPED,
     ("POST", "/api/clients/{client_id}/workouts"): Access.CLIENT_SCOPED,
+    # Asystent trenera: rola COACH plus własność zadania — cudze zadanie
+    # kończy się 404 (assistant.py::_owned_task), więc trasy z {task_id}
+    # są RESOURCE_SCOPED, a nie samym COACH_ONLY.
+    ("GET", "/api/coach/assistant/status"): Access.COACH_ONLY,
+    ("POST", "/api/coach/assistant/tasks"): Access.COACH_ONLY,
+    ("DELETE", "/api/coach/assistant/tasks/{task_id}"): Access.RESOURCE_SCOPED,
+    ("GET", "/api/coach/assistant/tasks/{task_id}"): Access.RESOURCE_SCOPED,
+    ("POST", "/api/coach/assistant/tasks/{task_id}/applied"): Access.RESOURCE_SCOPED,
+    ("POST", "/api/coach/assistant/tasks/{task_id}/cancel"): Access.RESOURCE_SCOPED,
     ("GET", "/api/coach/challenges"): Access.COACH_ONLY,
     ("POST", "/api/coach/challenges"): Access.COACH_ONLY,
     ("GET", "/api/coach/clients"): Access.COACH_ONLY,
@@ -165,6 +174,8 @@ MATRIX: dict[tuple[str, str], Access] = {
     # Wymaga roli COACH (require_role) i niczego nie zapisuje — zwraca
     # wyłącznie propozycję pól edytora z wklejonego opisu.
     ("POST", "/api/coach/exercises/parse-description"): Access.COACH_ONLY,
+    # Ostatnio używane ćwiczenia TEGO trenera (identyfikator z sesji).
+    ("GET", "/api/coach/exercises/recent"): Access.COACH_ONLY,
     ("GET", "/api/coach/exercises/{item_id}"): Access.COACH_ONLY,
     ("PUT", "/api/coach/exercises/{item_id}"): Access.COACH_ONLY,
     ("POST", "/api/coach/exercises/{item_id}/status"): Access.COACH_ONLY,
