@@ -47,3 +47,46 @@ jobs:
       - name: Dependency audit (informational)
         working-directory: apps/dzik-os/frontend
         run: npm audit --omit=dev || true
+
+  # Testy E2E: jedyna bramka, która sprawdza interfejs w działaniu.
+  # Testy jednostkowe frontendu pokrywają wyłącznie funkcje pomocnicze,
+  # a testy backendu wołają API z pominięciem przeglądarki — bez tego joba
+  # regresja w ekranie logowania czy raportu przechodziła niezauważona.
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install backend
+        run: |
+          pip install -e ".[dev]"
+          pip install -e "apps/dzik-os/backend[dev]"
+      - name: Install frontend and build
+        working-directory: apps/dzik-os/frontend
+        # E2E chodzi po zbudowanym `dist/` serwowanym przez backend,
+        # czyli po tej samej ścieżce co produkcja.
+        run: |
+          npm install --no-audit --no-fund
+          npm run build
+      - name: Install Chromium
+        working-directory: apps/dzik-os/frontend
+        run: npx playwright install --with-deps chromium
+      - name: E2E (Playwright)
+        working-directory: apps/dzik-os/frontend
+        env:
+          DZIK_E2E_STAMP: ${{ github.run_id }}
+        run: npx playwright test
+      - name: Raport z nieudanego przebiegu
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            apps/dzik-os/frontend/playwright-report
+            apps/dzik-os/frontend/test-results
+          retention-days: 7
