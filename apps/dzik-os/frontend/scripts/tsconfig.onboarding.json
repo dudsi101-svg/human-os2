@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    "module": "es2020",
+    "target": "es2020",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "types": [],
+    "skipLibCheck": true,
+    "lib": ["es2020", "dom"],
+    "outDir": "../node_modules/.cache/onboarding-test"
+  },
+  "files": ["../src/onboardingUtils.ts"]
+}

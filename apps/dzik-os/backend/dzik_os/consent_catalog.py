@@ -27,7 +27,7 @@ from dataclasses import asdict, dataclass
 SYSTEM_GRANTEE = "SYSTEM"
 
 # Bieżąca wersja treści dokumentu zgód (patrz docstring modułu).
-CONSENT_DOC_VERSION = "2.0"
+CONSENT_DOC_VERSION = "2.1"
 
 # Ile czasu po zakończeniu współpracy dane są przechowywane, zanim klient
 # powinien je usunąć/wyeksportować — wartość opisowa używana w treściach
@@ -240,7 +240,7 @@ CONSENT_CATEGORIES: dict[str, ConsentCategory] = {
         ),
         ConsentCategory(
             key="funkcje_ai",
-            label="Funkcje AI (podsumowania raportów)",
+            label="Funkcje AI (podsumowania raportów i rozmowy startowej)",
             purpose="ai_features",
             domain="checkin_summaries",
             grantee_kind="SYSTEM",
@@ -248,18 +248,25 @@ CONSENT_CATEGORIES: dict[str, ConsentCategory] = {
             sensitive=True,
             legal_basis="art. 9 ust. 2 lit. a RODO (wyraźna zgoda — "
             "raport zawiera dane zdrowotne)",
-            cel="generowanie dla trenera propozycji streszczenia Twojego "
-            "raportu tygodniowego i szkicu odpowiedzi (tryb propose-only: "
-            "nic nie trafia do Ciebie bez decyzji trenera)",
-            zakres="treść raportu tygodniowego przekazywana do dostawcy "
-            "AI skonfigurowanego przez operatora (obecnie ŻADEN dostawca "
-            "nie jest skonfigurowany — funkcja nieaktywna)",
+            cel="generowanie propozycji: (1) dla trenera — streszczenia "
+            "Twojego raportu tygodniowego i szkicu odpowiedzi; (2) dla "
+            "Ciebie — wersji roboczej podsumowania rozmowy startowej "
+            "(onboardingu). Tryb propose-only: podsumowanie zatwierdzasz "
+            "Ty, plan zatwierdza trener — model nie decyduje o niczym "
+            "i nie tworzy planu ani diety",
+            zakres="treść raportu tygodniowego oraz Twoje odpowiedzi "
+            "z rozmowy startowej (bez imienia, nazwiska, e-maila i "
+            "identyfikatorów; bez odpowiedzi oznaczonych sygnałem "
+            "alarmowym) przekazywane do dostawcy AI skonfigurowanego "
+            "przez operatora (obecnie ŻADEN dostawca nie jest "
+            "skonfigurowany — funkcja nieaktywna)",
             odbiorcy="dostawca AI wskazany w polityce prywatności, o ile "
             "operator go skonfiguruje; do tego czasu dane nie opuszczają "
             "aplikacji",
             okres="do wycofania zgody",
-            dobrowolnosc="w pełni dobrowolna; odmowa oznacza tylko, że "
-            "trener nie użyje podsumowań AI dla Twoich raportów",
+            dobrowolnosc="w pełni dobrowolna; odmowa nie blokuje niczego — "
+            "rozmowa startowa i podsumowanie działają wtedy krok po kroku, "
+            "a trener po prostu nie użyje podsumowań AI",
         ),
         ConsentCategory(
             key="marketing",

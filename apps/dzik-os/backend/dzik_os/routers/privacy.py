@@ -13,6 +13,7 @@ from ..authz import require_client_self
 from ..db import get_db
 from ..hos_bridge import ConsentService, record_event
 from ..models import (
+    AIUsageCounter,
     Challenge,
     ChallengeBlock,
     ChallengeEntry,
@@ -35,6 +36,9 @@ from ..models import (
     NutritionPlan,
     NutritionPlanVersion,
     Observation,
+    OnboardingAnswer,
+    OnboardingSession,
+    OnboardingSummaryItem,
     PaymentRecord,
     PaymentSchedule,
     ProfileField,
@@ -310,8 +314,16 @@ def _collect_export(db: Session, user: User) -> dict:
     challenge_entries = []
     for cp in challenge_participations:
         challenge_entries.extend(_rows(db, ChallengeEntry, participant_id=cp["id"]))
+    # Rozmowa startowa (onboarding): sesje, WSZYSTKIE wersje odpowiedzi
+    # (także poprawione — historia należy do klienta) i podsumowanie.
+    onboarding_sessions = _rows(db, OnboardingSession, client_id=client_id)
+    onboarding_answers = []
+    onboarding_summary = []
+    for onb in onboarding_sessions:
+        onboarding_answers.extend(_rows(db, OnboardingAnswer, session_id=onb["id"]))
+        onboarding_summary.extend(_rows(db, OnboardingSummaryItem, session_id=onb["id"]))
     return {
-        "export_version": "1.3",
+        "export_version": "1.4",
         "user": {
             "id": user.id, "email": user.email, "display_name": user.display_name,
             "identity_id": user.identity_id, "created_at": user.created_at,
@@ -344,6 +356,10 @@ def _collect_export(db: Session, user: User) -> dict:
         "notifications": _rows(db, Notification, user_id=client_id),
         "notification_preferences": _rows(db, NotificationPreference, user_id=client_id),
         "notification_settings": _rows(db, NotificationSetting, user_id=client_id),
+        "onboarding_sessions": onboarding_sessions,
+        "onboarding_answers": onboarding_answers,
+        "onboarding_summary_items": onboarding_summary,
+        "ai_usage_counters": _rows(db, AIUsageCounter, user_id=client_id),
         "audit_receipts": receipts,
         "challenge_participations": challenge_participations,
         "challenge_entries": challenge_entries,
@@ -523,6 +539,17 @@ def request_deletion(
     db.query(NotificationSetting).filter(
         NotificationSetting.user_id == client_id
     ).delete()
+    # Rozmowa startowa: odpowiedzi i podsumowanie zawierają wolny tekst
+    # klienta (w tym dane zdrowotne) — znikają w całości razem z kontem,
+    # tak jak treść raportów. Liczniki kosztów AI (same liczby) również.
+    for onb in db.query(OnboardingSession).filter_by(client_id=client_id).all():
+        db.query(OnboardingAnswer).filter_by(session_id=onb.id).delete()
+        db.query(OnboardingSummaryItem).filter_by(session_id=onb.id).delete()
+        onb.status = "ABANDONED"
+        onb.abandoned_at = now_iso()
+        onb.current_step_id = None
+        onb.summary_mode_reason = None
+    db.query(AIUsageCounter).filter(AIUsageCounter.user_id == client_id).delete()
     # Klucze idempotencji (metadane operacyjne z identyfikatorami zapisów)
     # znikają razem z kontem.
     db.query(IdempotencyKey).filter(IdempotencyKey.user_id == client_id).delete()

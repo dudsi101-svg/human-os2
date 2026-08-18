@@ -110,6 +110,12 @@ wieloprocesowym — per proces). Bez sekretów i bez danych użytkowników.
     "notif_sent_email": 0,
     "notif_email_failures": 0,
     "notif_suppressed": 0,
+    "onboarding_ai_calls": 0,
+    "onboarding_ai_rejected": 0,
+    "onboarding_ai_fallback": 0,
+    "onboarding_ai_tokens_in": 0,
+    "onboarding_ai_tokens_out": 0,
+    "onboarding_safety_flags": 0,
     "frontend_error_reports": 0,
     "frontend_error_reports_dropped": 0,
     "unhandled_exceptions": 0,
@@ -169,6 +175,9 @@ endpoint kontem ADMIN; dziś: przegląd ręczny):
 | `notif_sent_center` / `notif_sent_push` / `notif_sent_email` | spadek do 0 przy aktywnych użytkownikach | — | doręczenia stanęły (pętla/preferencje/subskrypcje) — liczniki per kanał, **bez treści** (POWIADOMIENIA.md) |
 | `notif_email_failures` | każdy nowy przy skonfigurowanym dostawcy | przyrost ciągły | awaria dostawcy e-mail (kanał awaryjny) |
 | `notif_suppressed` | — (informacyjny) | nagły skok | masowe tłumienie (np. źle ustawione preferencje/ciche godziny) |
+| `onboarding_ai_calls` / `onboarding_ai_tokens_in` / `_tokens_out` | — (informacyjny, kontrola kosztów) | nagły skok wywołań lub tokenów | nietypowe zużycie modelu — sprawdź limity `DZIK_AI_DAILY_CALLS_*` (ONBOARDING_AI.md §8); liczniki są **bez treści** rozmowy |
+| `onboarding_ai_rejected` / `onboarding_ai_fallback` | pojedyncze | > 30% wywołań | dostawca przestał trzymać kontrakt wyjścia — onboarding schodzi do trybu deterministycznego (funkcja działa, ale bez wersji roboczej) |
+| `onboarding_safety_flags` | — (informacyjny) | — | liczba rozmów skierowanych do konsultacji medycznej; **nie jest KPI** i nie służy do oceny klientów |
 | `audit_log_failures` | **każdy** | — | łańcuch audytu nie zapisuje — uruchom `/api/admin/audit/verify` |
 | `access_denied` | skok ponad linię bazową | seria z jednego konta | próby IDOR — przejrzyj zdarzenia `ACCESS_DENIED` w audycie |
 | `frontend_error_reports` | skok po wdrożeniu | ciągły wzrost | regresja UI — sprawdź `frontend_error` w logach |

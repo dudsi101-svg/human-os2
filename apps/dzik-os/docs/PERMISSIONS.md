@@ -111,6 +111,10 @@ domeny endpointu (`sensitive` wynika z katalogu kategorii).
 | POST /api/checkins | CLIENT (self) | wyłącznie własny raport | — | — | W |
 | GET /api/clients/{id}/checkins; GET /api/checkins/{checkin_id}/revisions | W, T | raporty jednego klienta (`checkin.client_id`) | T: tak | T: tak | R |
 | POST /api/checkins/{checkin_id}/review, /ai-summary | T | raport własnego klienta | tak | tak (write) | W |
+| GET /api/clients/{id}/onboarding | W, T | rozmowa startowa jednego klienta; odpowiedzi/pola WRAŻLIWE widoczne dla trenera tylko w zakresie zgody ich kategorii (inaczej `hidden`) | T: tak | T: tak (collaboration) | R |
+| POST /api/clients/{id}/onboarding/start, /answer, /back, /pause, /summary, PUT /summary, POST /approve | **wyłącznie W** | własna rozmowa startowa (trener dostaje 404 — nie odpowiada za klienta) | — | — | W |
+| GET /api/clients/{id}/onboarding/review | T | dane źródłowe + podsumowanie + niepewność per pole | tak | tak (collaboration) | R |
+| POST /api/clients/{id}/onboarding/coach-approve | T | zatwierdzenie podsumowania jako podstawy planu; wymaga wcześniejszego zatwierdzenia przez klienta (inaczej 409) | tak | tak (collaboration) | W |
 | POST/GET /api/clients/{id}/measurements; /metric-definitions | W, T (definicje: POST tylko T) | pomiary jednego klienta | T: tak | T: tak | R/W |
 | GET /api/threads | strona wątku | własne wątki; trener: tylko AKTYWNA relacja + nieocofnięta zgoda (inaczej wątek znika też z listy) | T: tak | T: tak (sens.=False) | R |
 | GET/POST /api/threads/{thread_id}/messages | strona wątku (`require_thread_party`) | jeden wątek (paginacja `limit`/`before`; kursor spoza wątku → 404) | T: tak | T: tak (sens.=False) | R/W |
@@ -243,8 +247,15 @@ Upload i podpinanie:
   migracji nr 10 — hydratowane w pierwotnym, pełnym zakresie
   (`ConsentService._hydrate`).
 * Zgoda klienta na **funkcje AI** (kategoria `funkcje_ai`) jest bramką
-  `POST /api/checkins/{id}/ai-summary` — decyzja trenera nie zastępuje
-  zgody podmiotu danych.
+  KAŻDEJ wysyłki do dostawcy modelu: `POST /api/checkins/{id}/ai-summary`
+  oraz wersji roboczej podsumowania rozmowy startowej
+  (`POST /api/clients/{id}/onboarding/summary`). Decyzja trenera nie
+  zastępuje zgody podmiotu danych; brak zgody = tryb deterministyczny
+  z jawnym komunikatem, nie błąd (`docs/ONBOARDING_AI.md` §5).
+* Zgody `dane_zdrowotne` i `zywienie_alergie` sterują też **zadawaniem
+  pytań** w rozmowie startowej: bez nich kroki wrażliwe w ogóle nie
+  powstają, a przy zatwierdzeniu podsumowania odpowiadające im pola nie
+  są zapisywane do profilu (minimalizacja — `docs/ONBOARDING_AI.md` §1).
 * Wycofanie zgody `przypomnienia` usuwa wszystkie subskrypcje push
   podmiotu (kanał doręczeń przestaje istnieć).
 * Cofnięcie **nie usuwa** wiersza (pełna historia); cofnąć może wyłącznie

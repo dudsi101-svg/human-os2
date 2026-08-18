@@ -39,6 +39,16 @@ klientów wymagających uwagi.
 
 * **Profil** — dane i cele; każde pole ma źródło (klient/trener), wersję
   i datę. Dodawaj cele przyciskiem pod listą.
+* **Rozmowa startowa** — jeśli klient przeszedł rozmowę onboardingową,
+  zobaczysz tu trzy rzeczy obok siebie: **dane źródłowe** (dokładnie to,
+  co powiedział klient, wraz z historią poprawek i oznaczeniem pytań
+  pominiętych), **podsumowanie** i **poziom niepewności per pole**.
+  Pola oznaczone jako niepewne musisz jawnie potwierdzić z klientem —
+  bez tego zatwierdzenie jest zablokowane. Zatwierdzasz **po** kliencie
+  (to jego dane, kolejność nie jest zamienna). Jeśli w rozmowie pojawił
+  się sygnał do konsultacji medycznej, zobaczysz go tu wyraźnie —
+  wstrzymaj się z obciążaniem tej okolicy do czasu konsultacji.
+  Podsumowanie **nie jest planem**: plan układasz Ty.
 * **Plan** — „+ Nowy plan" lub „Nowa wersja aktualnego planu".
   **Każda zmiana wymaga podania powodu** i tworzy nową wersję — stare
   wersje zostają w historii i są widoczne dla klienta. Dla ćwiczeń możesz

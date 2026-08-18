@@ -10,6 +10,7 @@ import MfaSetup from "./pages/MfaSetup";
 import ConsentGate, { ConsentSpinner, usePendingConsents } from "./pages/ConsentGate";
 import Today from "./pages/client/Today";
 import Intake from "./pages/client/Intake";
+import Onboarding from "./pages/client/Onboarding";
 import Plan from "./pages/client/Plan";
 import Nutrition from "./pages/client/Nutrition";
 import Checkin from "./pages/client/Checkin";
@@ -87,6 +88,7 @@ export default function App() {
         {roles.includes("CLIENT") && (
           <>
             <Route path="/" element={<Today />} />
+            <Route path="/rozmowa" element={<Onboarding />} />
             <Route path="/ankieta" element={<Intake />} />
             <Route path="/plan" element={<Plan />} />
             <Route path="/dieta" element={<Nutrition />} />

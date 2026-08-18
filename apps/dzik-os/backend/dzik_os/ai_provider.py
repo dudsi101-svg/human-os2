@@ -28,12 +28,34 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Protocol
 
+# Powód niedostępności pokazywany użytkownikowi, gdy operator nie
+# skonfigurował żadnego dostawcy. Jawna informacja, nigdy błąd techniczny —
+# funkcja ma wtedy działać w trybie formularza (patrz onboarding_ai.py).
+NO_PROVIDER_REASON = (
+    "Wersja robocza podsumowania od modelu wymaga konfiguracji przez "
+    "administratora (klucz dostawcy poza repozytorium). Rozmowa i "
+    "podsumowanie działają normalnie — przygotujemy je krok po kroku."
+)
+
 
 @dataclass(frozen=True)
 class AISummary:
     summary: str
     draft_response: str
     flags: list[str]
+
+
+@dataclass(frozen=True)
+class AIJsonResponse:
+    """Surowa odpowiedź dostawcy dla żądania o ustalonym schemacie.
+
+    `text` NIE jest zaufany — zawsze przechodzi walidację schematem po
+    stronie serwera (onboarding_ai.parse_summary_draft). Liczniki tokenów
+    służą wyłącznie kontroli kosztów; treść nigdy nie trafia do logów."""
+
+    text: str
+    tokens_in: int = 0
+    tokens_out: int = 0
 
 
 class AIProvider(Protocol):
@@ -43,6 +65,22 @@ class AIProvider(Protocol):
     def summarize_checkin(
         self, *, payload: dict, history_note: str | None
     ) -> AISummary | None: ...
+
+    def propose_json(
+        self,
+        *,
+        system_prompt: str,
+        data_section: str,
+        schema_hint: str,
+        timeout_s: int,
+    ) -> AIJsonResponse | None:
+        """Jedno wywołanie modelu z twardym kontraktem wyjściowym.
+
+        `system_prompt` to instrukcje aplikacji, `data_section` to wyłącznie
+        DANE użytkownika (nigdy instrukcje — patrz onboarding_ai.py
+        §ochrona przed wstrzyknięciem). Zwraca surowy tekst do walidacji
+        albo None, gdy dostawca nie odpowiedział."""
+        ...
 
 
 class NullAIProvider:
@@ -54,6 +92,16 @@ class NullAIProvider:
     def summarize_checkin(
         self, *, payload: dict, history_note: str | None
     ) -> AISummary | None:
+        return None
+
+    def propose_json(
+        self,
+        *,
+        system_prompt: str,
+        data_section: str,
+        schema_hint: str,
+        timeout_s: int,
+    ) -> AIJsonResponse | None:
         return None
 
 

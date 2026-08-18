@@ -580,6 +580,112 @@ MIGRATIONS: list[tuple[int, str, list[str]]] = [
             "ON challenge_reports(challenge_id)"
         ),
     ]),
+    (17, "konwersacyjny onboarding: rozmowa, odpowiedzi, podsumowanie, koszty AI", [
+        # Model, prompty, zabezpieczenia i plan wycofania tej migracji:
+        # docs/ONBOARDING_AI.md. Wyłącznie NOWE tabele — zero ALTER-ów
+        # istniejących (czysto addytywna, stara ankieta `Intake` działa
+        # dalej bez zmian jako tryb formularza).
+        """
+        CREATE TABLE IF NOT EXISTS onboarding_sessions (
+            id VARCHAR(40) PRIMARY KEY,
+            client_id VARCHAR(40) NOT NULL REFERENCES users(id),
+            status VARCHAR(20) NOT NULL DEFAULT 'IN_PROGRESS',
+            summary_mode VARCHAR(20) NOT NULL DEFAULT 'FORM',
+            summary_mode_reason TEXT,
+            current_step_id VARCHAR(40),
+            safety_flag BOOLEAN NOT NULL DEFAULT 0,
+            safety_flag_at VARCHAR(40),
+            ai_rejections INTEGER NOT NULL DEFAULT 0,
+            started_at VARCHAR(40) NOT NULL,
+            updated_at VARCHAR(40) NOT NULL,
+            summary_at VARCHAR(40),
+            client_approved_at VARCHAR(40),
+            applied_at VARCHAR(40),
+            coach_approved_at VARCHAR(40),
+            coach_approved_by VARCHAR(40),
+            abandoned_at VARCHAR(40)
+        )
+        """,
+        (
+            "CREATE INDEX IF NOT EXISTS ix_onboarding_sessions_client "
+            "ON onboarding_sessions(client_id)"
+        ),
+        # Odpowiedzi append-only: poprawka klienta to NOWA wersja, stara
+        # zostaje jako historia (sprzeczności są widoczne, nie nadpisane).
+        """
+        CREATE TABLE IF NOT EXISTS onboarding_answers (
+            id VARCHAR(40) PRIMARY KEY,
+            session_id VARCHAR(40) NOT NULL REFERENCES onboarding_sessions(id),
+            step_id VARCHAR(40) NOT NULL,
+            topic VARCHAR(80) NOT NULL,
+            value TEXT NOT NULL DEFAULT '',
+            skipped BOOLEAN NOT NULL DEFAULT 0,
+            sensitive BOOLEAN NOT NULL DEFAULT 0,
+            safety_flagged BOOLEAN NOT NULL DEFAULT 0,
+            safety_signals TEXT,
+            version INTEGER NOT NULL DEFAULT 1,
+            is_current BOOLEAN NOT NULL DEFAULT 1,
+            created_at VARCHAR(40) NOT NULL,
+            UNIQUE(session_id, step_id, version)
+        )
+        """,
+        (
+            "CREATE INDEX IF NOT EXISTS ix_onboarding_answers_session "
+            "ON onboarding_answers(session_id)"
+        ),
+        (
+            "CREATE INDEX IF NOT EXISTS ix_onboarding_answers_current "
+            "ON onboarding_answers(session_id, step_id, is_current)"
+        ),
+        """
+        CREATE TABLE IF NOT EXISTS onboarding_summary_items (
+            id VARCHAR(40) PRIMARY KEY,
+            session_id VARCHAR(40) NOT NULL REFERENCES onboarding_sessions(id),
+            field_key VARCHAR(80) NOT NULL,
+            value TEXT NOT NULL DEFAULT '',
+            step_id VARCHAR(40),
+            origin VARCHAR(20) NOT NULL DEFAULT 'DETERMINISTIC',
+            confidence VARCHAR(10) NOT NULL DEFAULT 'HIGH',
+            needs_confirmation BOOLEAN NOT NULL DEFAULT 0,
+            sensitive BOOLEAN NOT NULL DEFAULT 0,
+            coach_confirmed BOOLEAN NOT NULL DEFAULT 0,
+            version INTEGER NOT NULL DEFAULT 1,
+            is_current BOOLEAN NOT NULL DEFAULT 1,
+            created_at VARCHAR(40) NOT NULL,
+            UNIQUE(session_id, field_key, version)
+        )
+        """,
+        (
+            "CREATE INDEX IF NOT EXISTS ix_onboarding_summary_session "
+            "ON onboarding_summary_items(session_id)"
+        ),
+        (
+            "CREATE INDEX IF NOT EXISTS ix_onboarding_summary_current "
+            "ON onboarding_summary_items(session_id, field_key, is_current)"
+        ),
+        # Kontrola kosztów: same liczby (wywołania, tokeny), zero treści.
+        """
+        CREATE TABLE IF NOT EXISTS ai_usage_counters (
+            id VARCHAR(40) PRIMARY KEY,
+            user_id VARCHAR(40) NOT NULL REFERENCES users(id),
+            usage_date VARCHAR(10) NOT NULL,
+            feature VARCHAR(40) NOT NULL,
+            calls INTEGER NOT NULL DEFAULT 0,
+            tokens_in INTEGER NOT NULL DEFAULT 0,
+            tokens_out INTEGER NOT NULL DEFAULT 0,
+            updated_at VARCHAR(40) NOT NULL,
+            UNIQUE(user_id, usage_date, feature)
+        )
+        """,
+        (
+            "CREATE INDEX IF NOT EXISTS ix_ai_usage_counters_user "
+            "ON ai_usage_counters(user_id)"
+        ),
+        (
+            "CREATE INDEX IF NOT EXISTS ix_ai_usage_counters_date "
+            "ON ai_usage_counters(usage_date)"
+        ),
+    ]),
 ]
 
 

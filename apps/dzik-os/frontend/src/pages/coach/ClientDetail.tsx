@@ -45,15 +45,24 @@ import {
   WELLBEING_LABELS,
   WorkoutRow,
 } from "../../types";
+import {
+  CONFIDENCE_LABELS,
+  fieldLabel,
+  OnboardingState,
+  ORIGIN_LABELS,
+  pendingConfirmation,
+  summaryModeNote,
+} from "../../onboardingUtils";
 import PlanEditor from "./PlanEditor";
 
-type Tab = "profil" | "plan" | "dieta" | "harmonogram" | "raporty" | "pomiary"
-  | "monitoring" | "platnosci" | "historia";
+type Tab = "profil" | "rozmowa" | "plan" | "dieta" | "harmonogram" | "raporty"
+  | "pomiary" | "monitoring" | "platnosci" | "historia";
 
 const TABS: [Tab, string][] = [
-  ["profil", "Profil"], ["plan", "Plan"], ["dieta", "Dieta"],
-  ["harmonogram", "Harmonogram"], ["raporty", "Raporty"], ["pomiary", "Pomiary"],
-  ["monitoring", "Monitoring"], ["platnosci", "Płatności"], ["historia", "Historia"],
+  ["profil", "Profil"], ["rozmowa", "Rozmowa startowa"], ["plan", "Plan"],
+  ["dieta", "Dieta"], ["harmonogram", "Harmonogram"], ["raporty", "Raporty"],
+  ["pomiary", "Pomiary"], ["monitoring", "Monitoring"], ["platnosci", "Płatności"],
+  ["historia", "Historia"],
 ];
 
 interface NutritionPlanRow {
@@ -110,6 +119,7 @@ export default function ClientDetail() {
       <Tabs tabs={TABS} value={tab} onChange={setTab} label="Sekcje karty klienta" />
       <TabPanel id={tab}>
         {tab === "profil" && <ProfileTab clientId={clientId!} />}
+        {tab === "rozmowa" && <OnboardingTab clientId={clientId!} />}
         {tab === "plan" && <PlanTab clientId={clientId!} />}
         {tab === "dieta" && <NutritionTab clientId={clientId!} />}
         {tab === "harmonogram" && <ScheduleTab clientId={clientId!} />}
@@ -195,6 +205,227 @@ function ProfileTab({ clientId }: { clientId: string }) {
     </>
   );
 }
+
+/** Rozmowa startowa oczami trenera: dane źródłowe (odpowiedzi klienta wraz
+ * z historią poprawek), podsumowanie, poziom niepewności per pole i pola
+ * wymagające potwierdzenia. Trener zatwierdza DOPIERO po kliencie — i
+ * dopiero wtedy podsumowanie staje się podstawą planu. */
+function OnboardingTab({ clientId }: { clientId: string }) {
+  const [state, setState] = useState<OnboardingState | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [confirmed, setConfirmed] = useState<Set<string>>(new Set());
+  const [busy, setBusy] = useState(false);
+  const [note, setNote] = useState<string | null>(null);
+
+  const load = useCallback(() => {
+    setError(null);
+    api.get<OnboardingState>(`/api/clients/${clientId}/onboarding/review`)
+      .then((d) => { setState(d); setConfirmed(new Set()); })
+      .catch((e) => setError(e.message));
+  }, [clientId]);
+  useEffect(load, [load]);
+
+  async function approve() {
+    setBusy(true);
+    setNote(null);
+    setError(null);
+    try {
+      const next = await api.post<OnboardingState>(
+        `/api/clients/${clientId}/onboarding/coach-approve`,
+        { confirmed_fields: [...confirmed] },
+      );
+      setState(next);
+      setNote("Podsumowanie zatwierdzone jako podstawa planu.");
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (error && !state) return <ErrorBox error={error} onRetry={load} />;
+  if (!state) return <Spinner />;
+  const session = state.session;
+  if (!session) {
+    return (
+      <div className="card">
+        <h2>Rozmowa startowa</h2>
+        <p className="dim">
+          Klient nie zaczął jeszcze rozmowy startowej. Może ją przeprowadzić
+          w aplikacji („Porozmawiajmy” na ekranie Dzisiaj) albo wypełnić
+          klasyczny formularz — obie drogi zapisują te same pola profilu.
+        </p>
+      </div>
+    );
+  }
+  const summary = state.summary ?? [];
+  const answers = state.answers ?? [];
+  const pending = pendingConfirmation(summary).filter((r) => !confirmed.has(r.field_key));
+  return (
+    <>
+      {session.safety_flag && (
+        <div className="card" role="alert" style={{ borderColor: "var(--warn)" }}>
+          <h2>Sygnał do konsultacji medycznej</h2>
+          <p>
+            W rozmowie pojawił się opis, którego ani trener, ani aplikacja
+            nie ocenia. Klient dostał komunikat kierujący do lekarza.
+            Wstrzymaj się z planem obciążającym tę okolicę do czasu jego
+            konsultacji — poniżej zaznaczono, której odpowiedzi dotyczy.
+          </p>
+        </div>
+      )}
+
+      <div className="card">
+        <h2>Status rozmowy</h2>
+        <p className="dim">{summaryModeNote(session)}</p>
+        <div className="row" style={{ gap: 6, flexWrap: "wrap" }}>
+          <span className="badge">{STATUS_LABELS[session.status] ?? session.status}</span>
+          <span className="badge">
+            {session.summary_mode === "AI_DRAFT" ? "podsumowanie: propozycja AI"
+              : "podsumowanie: krok po kroku"}
+          </span>
+          {session.client_approved_at && (
+            <span className="badge badge--ok">
+              klient zatwierdził {plDateTime(session.client_approved_at)}
+            </span>
+          )}
+          {session.coach_approved_at && (
+            <span className="badge badge--ok">
+              Ty zatwierdziłeś(-aś) {plDateTime(session.coach_approved_at)}
+            </span>
+          )}
+        </div>
+      </div>
+
+      <div className="card">
+        <h2>Podsumowanie i poziom niepewności</h2>
+        {summary.length === 0 && (
+          <p className="dim">Klient nie przygotował jeszcze podsumowania.</p>
+        )}
+        <div className="table-wrap">
+          <table className="simple table--cards">
+            <thead>
+              <tr>
+                <th>Pole</th><th>Wartość</th><th>Źródło</th>
+                <th>Pewność</th><th>Potwierdzenie</th>
+              </tr>
+            </thead>
+            <tbody>
+              {summary.map((item) => (
+                <tr key={item.field_key}>
+                  <td data-label="Pole">{fieldLabel(item.field_key)}</td>
+                  <td data-label="Wartość">
+                    {item.hidden
+                      ? <span className="dim">ukryte — brak zgody na tę kategorię</span>
+                      : item.value}
+                  </td>
+                  <td data-label="Źródło">
+                    <small>{ORIGIN_LABELS[item.origin] ?? item.origin}</small>
+                  </td>
+                  <td data-label="Pewność">
+                    <span className={item.confidence === "HIGH"
+                      ? "badge badge--ok"
+                      : item.confidence === "LOW" ? "badge badge--danger" : "badge badge--warn"}>
+                      {CONFIDENCE_LABELS[item.confidence] ?? item.confidence}
+                    </span>
+                  </td>
+                  <td data-label="Potwierdzenie">
+                    {item.needs_confirmation ? (
+                      item.coach_confirmed ? (
+                        <span className="badge badge--ok">potwierdzone</span>
+                      ) : (
+                        <label className="row" style={{ gap: 6 }}>
+                          <input type="checkbox" checked={confirmed.has(item.field_key)}
+                            onChange={(e) => {
+                              const next = new Set(confirmed);
+                              if (e.target.checked) next.add(item.field_key);
+                              else next.delete(item.field_key);
+                              setConfirmed(next);
+                            }} />
+                          <span>Potwierdzam z klientem</span>
+                        </label>
+                      )
+                    ) : (
+                      <small className="dim">nie wymaga</small>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <ErrorBox error={error} />
+        {note && <p className="alert alert--info" role="status">{note}</p>}
+        {session.status === "COACH_APPROVED" ? (
+          <p className="alert alert--info">
+            Zatwierdzone. Podsumowanie jest podstawą planu — sam plan
+            układasz Ty, aplikacja niczego nie generuje.
+          </p>
+        ) : (
+          <>
+            {!state.can_approve && (
+              <p className="alert alert--warn">
+                Czekamy na zatwierdzenie podsumowania przez klienta. To jego
+                dane — kolejność nie jest zamienna.
+              </p>
+            )}
+            {pending.length > 0 && (
+              <p className="dim">
+                Do potwierdzenia z klientem:{" "}
+                {pending.map((r) => fieldLabel(r.field_key)).join(", ")}.
+              </p>
+            )}
+            <button className="btn btn--small" disabled={busy || !state.can_approve}
+              onClick={approve}>
+              {busy ? "Zapisuję…" : "Zatwierdzam jako podstawę planu"}
+            </button>
+          </>
+        )}
+      </div>
+
+      <div className="card">
+        <h2>Dane źródłowe — odpowiedzi klienta</h2>
+        <p className="dim">
+          Dokładnie to, co powiedział klient, wraz z historią poprawek.
+          Pominięte pytania są oznaczone — pominięcie to informacja, nie brak.
+        </p>
+        {answers.length === 0 && <p className="dim">Brak odpowiedzi.</p>}
+        {answers.map((row) => (
+          <div className="exercise" key={`${row.step_id}-${row.version}`}>
+            <div>
+              <b>{row.question}</b>
+              <div className="meta">
+                {row.skipped
+                  ? "pominięte przez klienta"
+                  : row.hidden
+                    ? "ukryte — brak zgody na tę kategorię danych"
+                    : row.value}
+              </div>
+              <div className="meta">
+                {row.topic} · v{row.version}
+                {!row.is_current && " · wersja wcześniejsza (poprawiona)"}
+                {" · "}{plDateTime(row.created_at)}
+              </div>
+            </div>
+            {row.safety_flagged && (
+              <span className="badge badge--warn">
+                do konsultacji: {row.safety_signals.join(", ")}
+              </span>
+            )}
+          </div>
+        ))}
+      </div>
+    </>
+  );
+}
+
+const STATUS_LABELS: Record<string, string> = {
+  IN_PROGRESS: "rozmowa w toku",
+  SUMMARY_READY: "podsumowanie gotowe",
+  CLIENT_APPROVED: "zatwierdzone przez klienta",
+  COACH_APPROVED: "zatwierdzone przez trenera",
+  ABANDONED: "porzucona",
+};
 
 function PlanTab({ clientId }: { clientId: string }) {
   const [plans, setPlans] = useState<TrainingPlan[] | null>(null);

@@ -1,5 +1,5 @@
 import { FormEvent, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { api, getUser } from "../../api";
 import { WEEKDAYS } from "../../dates";
 import { ErrorBox, SectionLabel, TopBar } from "../../components";
@@ -57,6 +57,12 @@ export default function Intake() {
         Obowiązkowy jest tylko cel — resztę możesz uzupełnić później w
         Profilu. Wszystko, co wpiszesz, należy do Ciebie i widzi to tylko
         Twój trener (za Twoją zgodą).
+      </p>
+      <p className="dim">
+        Wolisz przejść to jak rozmowę — jedno pytanie na raz, z wyjaśnieniem,
+        po co jest potrzebne? <Link to="/rozmowa">Przejdź do rozmowy startowej</Link>.
+        Ten formularz zostaje jako pełnoprawna alternatywa; obie drogi
+        zapisują dokładnie te same pola profilu.
       </p>
       <form className="card" onSubmit={submit}>
         <h2 className="sr-only">Pytania wywiadu</h2>

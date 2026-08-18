@@ -1092,6 +1092,123 @@ class ChallengeReport(Base):
     created_at: Mapped[str] = mapped_column(String(40), default=now_iso)
 
 
+class OnboardingSession(Base):
+    """Konwersacyjny onboarding klienta — jedna rozmowa.
+
+    Rozmowę można przerwać i wznowić: stan (bieżący krok, odpowiedzi)
+    żyje w bazie, nie w przeglądarce. Status prowadzi przez dwie odrębne
+    akceptacje wymagane przez Konstytucję Human OS: NAJPIERW klient
+    zatwierdza podsumowanie swoich danych, POTEM trener zatwierdza je
+    jako podstawę planu. Model nie zatwierdza niczego."""
+
+    __tablename__ = "onboarding_sessions"
+
+    id: Mapped[str] = mapped_column(String(40), primary_key=True)
+    client_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
+    # IN_PROGRESS / SUMMARY_READY / CLIENT_APPROVED / COACH_APPROVED / ABANDONED
+    status: Mapped[str] = mapped_column(String(20), default="IN_PROGRESS")
+    # Jak powstało ostatnie podsumowanie: FORM (deterministycznie) albo
+    # AI_DRAFT (wersja robocza modelu, zawsze edytowalna przez klienta).
+    summary_mode: Mapped[str] = mapped_column(String(20), default="FORM")
+    # Powód trybu formularza (brak zgody / brak dostawcy / limit / odrzucone
+    # wyjście modelu) — pokazywany wprost, nigdy jako błąd techniczny.
+    summary_mode_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    current_step_id: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    # Rozmowa dotknęła objawu z listy alarmowej (onboarding_flow) — trener
+    # widzi to jako sygnał „wstrzymaj plan do konsultacji", nie jako ocenę.
+    safety_flag: Mapped[bool] = mapped_column(Boolean, default=False)
+    safety_flag_at: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    ai_rejections: Mapped[int] = mapped_column(Integer, default=0)
+    started_at: Mapped[str] = mapped_column(String(40), default=now_iso)
+    updated_at: Mapped[str] = mapped_column(String(40), default=now_iso)
+    summary_at: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    client_approved_at: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    applied_at: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    coach_approved_at: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    coach_approved_by: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    abandoned_at: Mapped[str | None] = mapped_column(String(40), nullable=True)
+
+
+class OnboardingAnswer(Base):
+    """Odpowiedź klienta na jeden krok rozmowy — append-only.
+
+    Poprawienie odpowiedzi tworzy NOWĄ wersję; poprzednia zostaje jako
+    historia (sprzeczne odpowiedzi są widoczne, nie nadpisane). Świadome
+    pominięcie ma `skipped=True` i pustą wartość — pominięcie nigdy nie
+    udaje odpowiedzi."""
+
+    __tablename__ = "onboarding_answers"
+    __table_args__ = (
+        UniqueConstraint("session_id", "step_id", "version"),
+        Index("ix_onboarding_answers_current", "session_id", "step_id", "is_current"),
+    )
+
+    id: Mapped[str] = mapped_column(String(40), primary_key=True)
+    session_id: Mapped[str] = mapped_column(
+        ForeignKey("onboarding_sessions.id"), index=True
+    )
+    step_id: Mapped[str] = mapped_column(String(40))
+    topic: Mapped[str] = mapped_column(String(80))
+    value: Mapped[str] = mapped_column(Text, default="")
+    skipped: Mapped[bool] = mapped_column(Boolean, default=False)
+    sensitive: Mapped[bool] = mapped_column(Boolean, default=False)
+    # Odpowiedź trafiła na listę objawów alarmowych — NIE jest wysyłana do
+    # dostawcy modelu (to sprawa człowieka, nie modelu).
+    safety_flagged: Mapped[bool] = mapped_column(Boolean, default=False)
+    safety_signals: Mapped[str | None] = mapped_column(Text, nullable=True)
+    version: Mapped[int] = mapped_column(Integer, default=1)
+    is_current: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[str] = mapped_column(String(40), default=now_iso)
+
+
+class OnboardingSummaryItem(Base):
+    """Jedno pole podsumowania rozmowy przed zapisem do profilu.
+
+    `origin` mówi wprost, skąd wzięła się wartość: DETERMINISTIC (wprost
+    z odpowiedzi klienta), AI_DRAFT (propozycja modelu) albo CLIENT_EDITED
+    (klient poprawił). `confidence` i `needs_confirmation` niosą poziom
+    niepewności per pole — trener widzi go zanim cokolwiek zatwierdzi."""
+
+    __tablename__ = "onboarding_summary_items"
+    __table_args__ = (
+        UniqueConstraint("session_id", "field_key", "version"),
+        Index("ix_onboarding_summary_current", "session_id", "field_key", "is_current"),
+    )
+
+    id: Mapped[str] = mapped_column(String(40), primary_key=True)
+    session_id: Mapped[str] = mapped_column(
+        ForeignKey("onboarding_sessions.id"), index=True
+    )
+    field_key: Mapped[str] = mapped_column(String(80))
+    value: Mapped[str] = mapped_column(Text, default="")
+    step_id: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    origin: Mapped[str] = mapped_column(String(20), default="DETERMINISTIC")
+    confidence: Mapped[str] = mapped_column(String(10), default="HIGH")
+    needs_confirmation: Mapped[bool] = mapped_column(Boolean, default=False)
+    sensitive: Mapped[bool] = mapped_column(Boolean, default=False)
+    coach_confirmed: Mapped[bool] = mapped_column(Boolean, default=False)
+    version: Mapped[int] = mapped_column(Integer, default=1)
+    is_current: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[str] = mapped_column(String(40), default=now_iso)
+
+
+class AIUsageCounter(Base):
+    """Kontrola kosztów wywołań modelu: liczba wywołań i tokenów per
+    użytkownik, dzień i funkcja. Bez treści rozmowy — same liczby."""
+
+    __tablename__ = "ai_usage_counters"
+    __table_args__ = (UniqueConstraint("user_id", "usage_date", "feature"),)
+
+    id: Mapped[str] = mapped_column(String(40), primary_key=True)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
+    usage_date: Mapped[str] = mapped_column(String(10), index=True)
+    feature: Mapped[str] = mapped_column(String(40))
+    calls: Mapped[int] = mapped_column(Integer, default=0)
+    tokens_in: Mapped[int] = mapped_column(Integer, default=0)
+    tokens_out: Mapped[int] = mapped_column(Integer, default=0)
+    updated_at: Mapped[str] = mapped_column(String(40), default=now_iso)
+
+
 class Receipt(Base):
     """Pokwitowanie operacji o wysokim znaczeniu: wiąże odpowiedź API z
     niemutowalnym zdarzeniem w łańcuchu audytu Human OS (event_hash)."""

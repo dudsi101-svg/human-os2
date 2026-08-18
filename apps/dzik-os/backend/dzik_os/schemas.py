@@ -20,6 +20,39 @@ class ProfileFieldIn(BaseModel):
     sensitive: bool = False
 
 
+class OnboardingAnswerIn(BaseModel):
+    """Odpowiedź na JEDEN krok rozmowy startowej.
+
+    `skipped=True` to świadome pominięcie pytania (zapisywane jawnie) —
+    nigdy nie udajemy pominięcia pustą wartością. Treść jest walidowana
+    dodatkowo po stronie serwera regułami kroku
+    (`onboarding_flow.validate_answer`)."""
+
+    step_id: str = Field(min_length=1, max_length=40)
+    value: str = Field(default="", max_length=2000)
+    skipped: bool = False
+
+
+class OnboardingSummaryItemIn(BaseModel):
+    field_key: str = Field(min_length=1, max_length=80)
+    value: str = Field(max_length=2000)
+
+
+class OnboardingSummaryIn(BaseModel):
+    """Poprawki klienta w podsumowaniu przed zatwierdzeniem."""
+
+    items: list[OnboardingSummaryItemIn] = Field(default_factory=list, max_length=60)
+
+
+class OnboardingCoachApproveIn(BaseModel):
+    """Zatwierdzenie podsumowania przez trenera. `confirmed_fields` to pola,
+    które trener potwierdził po rozmowie z klientem (pola oznaczone
+    niepewnością wymagają tego wprost)."""
+
+    confirmed_fields: list[str] = Field(default_factory=list, max_length=60)
+    note: str | None = Field(default=None, max_length=2000)
+
+
 class GoalIn(BaseModel):
     title: str = Field(min_length=1, max_length=300)
     description: str | None = Field(default=None, max_length=5000)

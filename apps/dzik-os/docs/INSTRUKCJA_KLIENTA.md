@@ -27,6 +27,39 @@ Po zalogowaniu widzisz wszystko na dziś: trening z przyciskiem
 **„Wykonane ✓"**, cele diety, harmonogram (posiłki, suplementy, pomiary),
 termin raportu, status płatności i ostatnią wiadomość trenera.
 
+## Rozmowa startowa
+
+Na początku aplikacja proponuje **rozmowę startową**: kilkanaście pytań
+o cel, dostępność, sprzęt, zdrowie i preferencje — **jedno na raz**,
+z krótkim wyjaśnieniem, po co jest potrzebne.
+
+* każde pytanie możesz **pominąć** („Pomiń to pytanie") — to normalna
+  odpowiedź, nie brak;
+* możesz **wrócić** i poprawić wcześniejszą odpowiedź; poprzednia wersja
+  zostaje w historii, więc nic nie znika po cichu;
+* możesz **przerwać** w dowolnym momencie („Przerwij i wróć później") —
+  wrócisz dokładnie w to samo miejsce, także z innego urządzenia;
+* pytania o zdrowie i żywienie pojawiają się **tylko wtedy**, gdy masz
+  aktywną zgodę na te kategorie danych; cofnięcie zgody usuwa je
+  natychmiast;
+* na końcu widzisz **podsumowanie**: możesz je poprawić i dopiero potem
+  zatwierdzić. Dopiero Twoje zatwierdzenie zapisuje dane w profilu —
+  potem trener przegląda je i zatwierdza jako podstawę planu.
+
+Wolisz klasyczny formularz? „Wolę formularz" na ekranie Dzisiaj prowadzi
+do **wywiadu startowego** — zapisuje dokładnie te same pola.
+
+Jeśli w rozmowie opiszesz coś, co wykracza poza kompetencje trenera
+(np. ból w klatce piersiowej, omdlenia, duszność, ostry ból po urazie),
+aplikacja pokaże spokojny komunikat kierujący do lekarza. **Niczego nie
+ocenia ani nie diagnozuje** — po prostu zaznacza to trenerowi, żeby
+wstrzymał się z planem do czasu Twojej konsultacji.
+
+Podsumowanie rozmowy może przygotować model językowy — ale wyłącznie
+jako propozycję do Twojej korekty i tylko wtedy, gdy włączysz zgodę
+„Funkcje AI". Bez niej rozmowa i podsumowanie działają tak samo, tylko
+bez tej propozycji. Model nigdy nie układa planu ani diety.
+
 ## Trening (zakładka „Plan")
 
 * aktualny plan z rozpiską dni i ćwiczeń (serie × powtórzenia, ciężar,

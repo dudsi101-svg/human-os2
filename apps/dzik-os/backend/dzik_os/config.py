@@ -84,6 +84,23 @@ class Settings:
     public_base_url: str = field(default_factory=lambda: _env("DZIK_PUBLIC_URL", ""))
     # AI jest opcjonalne i domyślnie WYŁĄCZONE — aplikacja działa w pełni bez AI.
     ai_enabled: bool = field(default_factory=lambda: _env("DZIK_AI_ENABLED", "false") == "true")
+    # Limit czasu JEDNEGO wywołania dostawcy modelu. Po nim rozmowa schodzi
+    # do trybu formularza z jawnym komunikatem (nigdy wieczny spinner).
+    ai_timeout_s: int = field(default_factory=lambda: int(_env("DZIK_AI_TIMEOUT_S", "20")))
+    # Twarde limity dzienne wywołań modelu (kontrola kosztów): per konto
+    # i globalnie dla całej aplikacji. Przekroczenie = tryb formularza
+    # z wyjaśnieniem, nie błąd (docs/ONBOARDING_AI.md §limity).
+    ai_daily_calls_user: int = field(
+        default_factory=lambda: int(_env("DZIK_AI_DAILY_CALLS_USER", "20"))
+    )
+    ai_daily_calls_global: int = field(
+        default_factory=lambda: int(_env("DZIK_AI_DAILY_CALLS_GLOBAL", "500"))
+    )
+    # Górna granica rozmiaru sekcji DANE_KLIENTA wysyłanej do dostawcy —
+    # minimalizacja zakresu i przewidywalny koszt pojedynczego wywołania.
+    ai_max_input_chars: int = field(
+        default_factory=lambda: int(_env("DZIK_AI_MAX_INPUT_CHARS", "6000"))
+    )
     cors_origins: str = field(default_factory=lambda: _env("DZIK_CORS_ORIGINS", ""))
     # Marka konfigurowalna (nazwa/kolor — używane też przez frontend przez /api/branding).
     brand_name: str = field(default_factory=lambda: _env("DZIK_BRAND_NAME", "Dzik OS"))
