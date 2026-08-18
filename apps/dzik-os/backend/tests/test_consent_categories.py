@@ -1,7 +1,7 @@
 """Kategorie zgód RODO: odmowa opcjonalnej, wersje dokumentu, zgoda na
 funkcje AI, przypomnienia (push) i porządek onboardingu."""
 
-from conftest import CLIENT_A, COACH, get_user_id, login
+from conftest import CLIENT_A, COACH, activation_token, get_user_id, invite_client, login
 
 
 def _consents(client, headers):
@@ -134,17 +134,15 @@ def test_onboarding_registers_separate_declarations_per_category(seeded):
     zbiorczej zgody), bez kategorii czysto opcjonalnych (przypomnienia,
     AI, marketing)."""
     hc = login(seeded, COACH)
-    r = seeded.post("/api/coach/clients", headers=hc, json={
-        "client_email": "kategorie@example.com", "client_name": "Nowa Osoba",
-        "initial_password": "StartoweHaslo#1",
-    })
-    assert r.status_code == 201
+    # Przepływ zaproszeń (P8): trener podaje tylko e-mail i imię, klient
+    # aktywuje konto własnym hasłem — hasła startowe nie istnieją.
+    created = invite_client(seeded, hc, "kategorie@example.com", "Nowa Osoba")
+    token = activation_token(created)
+    r = seeded.post("/api/auth/activate", json={
+        "token": token, "password": "NoweWlasne#123"})
+    assert r.status_code == 200
     r = seeded.post("/api/auth/login", json={
-        "email": "kategorie@example.com", "password": "StartoweHaslo#1"})
-    hn = {"Authorization": f"Bearer {r.json()['token']}"}
-    r = seeded.post("/api/auth/change-password", headers=hn,
-                    json={"current_password": "StartoweHaslo#1",
-                          "new_password": "NoweWlasne#123"})
+        "email": "kategorie@example.com", "password": "NoweWlasne#123"})
     hn = {"Authorization": f"Bearer {r.json()['token']}"}
 
     rows = _consents(seeded, hn)
