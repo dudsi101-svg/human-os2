@@ -269,6 +269,28 @@ dostawcy plus jawna decyzja trenera (kliknięcie). Gdyby do tego
 przepływu miał trafić tekst opisujący konkretnego klienta, bramkowanie
 MUSI wrócić do reguły `funkcje_ai` — patrz rejestr czynności poz. 14.
 
+## Import biblioteki ćwiczeń (`/api/coach/exercises/import-library`, od 0.29.0)
+
+Pełny opis: `docs/BAZA_CWICZEN.md` §11.
+
+| Operacja | Kto | Warunek |
+|---|---|---|
+| `POST /api/coach/exercises/import-library?dry_run=true` | rola **COACH** | klient = **403**; **niczego nie zapisuje** — zwraca sam raport (podgląd przed zatwierdzeniem) |
+| `POST /api/coach/exercises/import-library?dry_run=false` | rola **COACH** | klient = **403**; zapis **wyłącznie do katalogu zalogowanego trenera**; nigdy nie nadpisuje wypełnionych pól istniejącego ćwiczenia |
+
+`dry_run` domyślnie **true** — wywołanie bez parametru nic nie zmienia.
+Import nie dotyka katalogu innego trenera (`coach_id` bierze się z
+sesji, nie z żądania), więc izolacja trenerów jest tu strukturalna, a
+nie regułą do sprawdzenia. Zapis zostawia zdarzenie audytowe
+`EXERCISE_LIBRARY_IMPORTED`.
+
+**Widoczność notatki roboczej.** Pozycje z importu niosą
+`review_reason` („opis techniki pochodzi z szablonu biblioteki”).
+To pole wychodzi **wyłącznie na widoki trenera** (`GET/POST/PUT
+/api/coach/exercises*`). Odpowiedzi dla klienta (`/api/me/exercises*`)
+w ogóle go nie zawierają — dla klienta byłoby to ocena jakości
+ćwiczenia wystawiona przez system, a system tu niczego nie ocenia.
+
 ## Zgody (rejestr wersjonowany, od 0.11.0 granularny per kategoria)
 
 * **Kategorie zgód** (`consent_catalog.py` — pełny opis w

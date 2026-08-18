@@ -764,6 +764,19 @@ MIGRATIONS: list[tuple[int, str, list[str]]] = [
         "ALTER TABLE exercises ADD COLUMN source_kind VARCHAR(20)",
         "ALTER TABLE exercises ADD COLUMN source_engine VARCHAR(20)",
     ]),
+    # Numer 23 jest zarezerwowany dla równoległej rundy — luka w numeracji
+    # jest świadoma (ten sam powód co przy numerze 21).
+    (24, ("baza ćwiczeń: import biblioteki trenera — nazwa angielska, tagi, "
+          "źródło pozycji i notatka o szablonowym opisie"), [
+        # Czysto addytywna: cztery kolumny NULLable na istniejącej tabeli,
+        # żadnego backfillu. NULL wszędzie znaczy „nie wiemy / nie dotyczy”,
+        # więc ćwiczenia sprzed tej migracji działają bez zmian.
+        # Plan wycofania: docs/BAZA_CWICZEN.md §migracja nr 24.
+        "ALTER TABLE exercises ADD COLUMN name_en VARCHAR(300)",
+        "ALTER TABLE exercises ADD COLUMN tags_json TEXT",
+        "ALTER TABLE exercises ADD COLUMN source_ref VARCHAR(200)",
+        "ALTER TABLE exercises ADD COLUMN review_reason VARCHAR(300)",
+    ]),
 ]
 
 

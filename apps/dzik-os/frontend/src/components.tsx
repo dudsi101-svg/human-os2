@@ -1114,6 +1114,11 @@ export function ExerciseDetail({ item }: { item: ExerciseLibraryItem }) {
           {badges.map((b) => <span className="badge" key={b}>{b}</span>)}
         </div>
       )}
+      {item.name_en && (
+        <p className="meta" style={{ marginTop: 0 }}>
+          Nazwa angielska: {item.name_en}
+        </p>
+      )}
 
       {item.steps.length > 0 ? (
         <section>

@@ -620,6 +620,16 @@ export interface ExerciseLibraryItem {
    * migracji, o którym po prostu nie wiemy — nigdy nie udajemy MANUAL. */
   source_kind: string | null;
   source_engine: string | null;
+  /** Import gotowej biblioteki (migracja nr 24). */
+  name_en: string | null;
+  tags: string[];
+  /** Z jakiej dokładnie biblioteki i z jakiej daty pochodzi pozycja. */
+  source_ref: string | null;
+  /** NOTATKA ROBOCZA TRENERA („opis techniki pochodzi z szablonu
+   * biblioteki”). API wysyła ją WYŁĄCZNIE na widoki trenera — w widoku
+   * klienta pola po prostu nie ma, bo dla niego wyglądałoby jak ocena
+   * jakości ćwiczenia wystawiona przez system. */
+  review_reason?: string | null;
   created_at: string;
   updated_at: string;
 }
