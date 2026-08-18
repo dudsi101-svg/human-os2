@@ -1,6 +1,6 @@
 # Stan przekazania — przeczytaj przed rozpoczęciem rundy
 
-**Aktualizacja:** 2026-08-18 · **Wersja w `main`:** 0.39.0
+**Aktualizacja:** 2026-08-18 · **Wersja w `main`:** 0.40.0
 **Tryb pracy:** jedna sesja naraz (`KOORDYNACJA.md`, zasada nadrzędna).
 
 **Zanim cokolwiek dotkniesz: `docs/KARTA_WSPOLPRACY.md`** — dziesięć

@@ -5,7 +5,7 @@ import json
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, UploadFile
 from sqlalchemy.orm import Session
 
-from .. import aggregates, notifications, plan_templates, sheet_import
+from .. import aggregates, notifications, plan_templates, sheet_import, storage
 from ..authz import (
     DOMAIN_TRAINING,
     deny,
@@ -510,7 +510,11 @@ async def templates_import_file(
 
     Szablony NIE są przypisane do żadnego klienta (`client_id = NULL`) —
     import nie dotyka planów prowadzonych osób i nie wymaga ich zgód."""
-    raw = await file.read()
+    # Czytamy najwyzej LIMIT+1 bajtow: przy wiekszym pliku ponizsze
+    # `read_table` wyda swoj wlasny blad 422 dokladnie jak dotad, ale
+    # pamiec nie urosnie do rozmiaru uploadu (patrz R-19 w rejestrze
+    # ryzyk: plik 290 MB dawal 1057 MB RSS, zanim zostal odrzucony).
+    raw = await storage.read_upload_capped(file, sheet_import.MAX_BYTES + 1)
     source_ref = (file.filename or "plik")[:200]
     try:
         rows, unknown, warnings = sheet_import.read_table(

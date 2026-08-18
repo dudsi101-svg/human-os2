@@ -15,7 +15,7 @@ import json
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, UploadFile
 from sqlalchemy.orm import Session
 
-from .. import exercise_parser, exercise_parser_ai, sheet_import
+from .. import exercise_parser, exercise_parser_ai, sheet_import, storage
 from ..authz import require_owned_resource
 from ..db import get_db
 from ..exercise_catalog_v2 import LIBRARY_REF
@@ -478,7 +478,11 @@ async def exercises_import_file(
     czytaniu opisu, OCR i imporcie gotowej biblioteki. Tryb `UZUPELNIJ`
     (domyślny) wypełnia w istniejących pozycjach wyłącznie puste pola;
     `ZASTAP` nadpisuje, ale pusta komórka nigdy nie kasuje danych."""
-    raw = await file.read()
+    # Czytamy najwyzej LIMIT+1 bajtow: przy wiekszym pliku ponizsze
+    # `read_table` wyda swoj wlasny blad 422 dokladnie jak dotad, ale
+    # pamiec nie urosnie do rozmiaru uploadu (patrz R-19 w rejestrze
+    # ryzyk: plik 290 MB dawal 1057 MB RSS, zanim zostal odrzucony).
+    raw = await storage.read_upload_capped(file, sheet_import.MAX_BYTES + 1)
     source_ref = (file.filename or "plik")[:200]
     try:
         rows, unknown, warnings = sheet_import.read_table(

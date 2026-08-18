@@ -45,6 +45,33 @@ from .models import StoredFile, new_id
 _READ_CHUNK = 1024 * 1024  # 1 MB
 
 
+async def read_upload_capped(upload: UploadFile, cap_bytes: int) -> bytes:
+    """Czyta upload w kawałkach i PRZESTAJE po `cap_bytes` — bez wyjątku.
+
+    Różni się od `_read_limited` celowo: tam przekroczenie limitu jest
+    błędem 413, tutaj po prostu przerywamy czytanie i oddajemy tyle, ile
+    wzięliśmy. Dzięki temu wywołujący (import arkusza) może zachować swój
+    własny komunikat i kod odpowiedzi, a mimo to nigdy nie wciągnie do
+    pamięci więcej niż `cap_bytes`.
+
+    DLACZEGO ISTNIEJE. Trzy endpointy importu czytały upload przez
+    `await file.read()` — bez ograniczenia. Zmierzone 18.08.2026: plik
+    290 MB dawał **1057 MB RSS**, po czym kontrola „większy niż 5 MB"
+    odrzucała go — czyli po zaalokowaniu ~935 MB. Limit działał, tylko
+    za późno. Wywołaj z `LIMIT + 1`: wywołujący zobaczy, że plik jest
+    za duży, i wyda swój własny błąd, a pamięć zostanie przy limicie.
+    """
+    chunks: list[bytes] = []
+    total = 0
+    while total <= cap_bytes:
+        chunk = await upload.read(min(_READ_CHUNK, cap_bytes - total + 1))
+        if not chunk:
+            break
+        chunks.append(chunk)
+        total += len(chunk)
+    return b"".join(chunks)
+
+
 async def _read_limited(upload: UploadFile, max_bytes: int) -> bytes:
     """Czyta upload w kawałkach i przerywa natychmiast po przekroczeniu
     limitu — klient nie może zapełnić RAM jednym żądaniem."""

@@ -1,5 +1,49 @@
 # Changelog — Dzik OS
 
+## 0.40.0 — 2026-08-18
+
+**Import arkusza przestaje zużywać pamięć proporcjonalną do pliku — R-19
+zamknięte.** Dwa znaleziska z przeglądu krzyżowego naprawione i zmierzone
+ponownie, plus sprostowanie jednej własnej liczby.
+
+* **Bomba dekompresyjna w `.xlsx`: 1164 MB → 53 MB, 129 s → 0,00 s.**
+  Plik 1,64 MB przechodzący limit 5 MB rozpakowywał się do 423 MB.
+  **Kluczowe okazało się co innego, niż zakładałem w raporcie:** przerwanie
+  iteracji na `MAX_ROWS` zbiło wynik tylko do 315 MB i 27,5 s, a rozbicie
+  czasu na składniki pokazało, że resztę bierze **sam `load_workbook`** —
+  24,5 s i 281 MB, zanim padnie pierwszy wiersz; iteracja kosztowała już
+  0,1 s. Żadne ograniczanie odczytu tego nie ruszy, więc rozmiar po
+  rozpakowaniu sprawdzamy z **centralnego katalogu zipu, przed** oddaniem
+  pliku parserowi. Nic nie jest rozpakowywane, więc kontrola jest tania
+  niezależnie od zawartości.
+* **Limit `MAX_ROZPAKOWANE = 100 MB` celowo hojny.** Prawdziwy arkusz
+  trenera (431 pozycji) ma **570 KB** po rozpakowaniu — 180× zapasu.
+  Chodzi o odcięcie absurdu, nie o ciasny limit, który odrzuci czyjąś dużą,
+  ale uczciwą bazę. Ostrzeżenie „plik ma więcej niż 2000 wierszy" działa
+  jak dotąd — przerwanie iteracji nie mogło zabrać trenerowi informacji,
+  że część bazy nie weszła.
+* **Upload czytany bez limitu: 419 MB → 139 MB RSS serwera.** Trzy
+  endpointy importu czytały całość przez `await file.read()`.
+  `storage.read_upload_capped` czyta najwyżej `LIMIT+1` bajtów — dzięki
+  temu `read_table` wydaje **dokładnie tę samą odpowiedź 422 i ten sam
+  komunikat**, co dotąd; zmienia się wyłącznie zużycie pamięci.
+* **`food_catalog` potraktowany inaczej, bo jest inny.** Nie przechodzi
+  przez `read_table`, dekoduje CSV sam i **nie miał żadnego limitu**.
+  Ciche ucięcie zepsułoby tam ostatni wiersz, więc dostał jawny limit
+  z własnym komunikatem — nowe zabezpieczenie tam, gdzie nie było żadnego.
+* **SPROSTOWANIE własnej liczby.** W raporcie z przeglądu podałem dla
+  drugiego znaleziska **1057 MB RSS**. Pomiar szedł przez `TestClient`
+  w **tym samym procesie**, więc obejmował bufor klienta trzymający 290 MB.
+  Serwer zmierzony osobno (uvicorn, `VmHWM` z `/proc`) brał **419 MB**.
+  Błąd był realny, skala mniejsza o ok. 2,5×. Pierwotny tekst raportu
+  zostaje bez zmian, sprostowanie dopisane na górze — poprawianie liczby
+  na miejscu zatarłoby fakt, że pomyłka w ogóle była (Karta §XII).
+* **7 testów** (`tests/test_import_pamiec.py`), w tym dwa pilnujące, że
+  uczciwy plik nadal przechodzi. Dwa z nich **oblały przy pierwszym
+  uruchomieniu z powodu błędu w samym teście** — helper budował arkusz
+  przez `wierszy // 1000`, więc dla 50 wierszy tworzył pusty plik.
+  Naprawione w teście, kod produkcyjny był w porządku.
+
 ## 0.39.0 — 2026-08-18
 
 **Przegląd krzyżowy: dwa potwierdzone znaleziska w cudzym obszarze, zero

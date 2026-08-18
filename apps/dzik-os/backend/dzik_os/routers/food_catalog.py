@@ -25,6 +25,7 @@ import unicodedata
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, UploadFile
 from sqlalchemy.orm import Session
 
+from .. import storage
 from ..authz import require_owned_resource
 from ..db import get_db
 from ..food_catalog_data import FOOD_DISCLAIMER
@@ -32,6 +33,10 @@ from ..hos_bridge import record_event
 from ..models import CoachClientRelationship, FoodProduct, User, new_id, now_iso
 from ..schemas import DietSuggestionIn, FoodProductIn, PortionCalcIn
 from ..security import current_user, require_role
+
+#: Limit rozmiaru importowanego katalogu produktow. Ten sam rzad
+#: wielkosci co sheet_import.MAX_BYTES — katalog to plaski CSV.
+MAX_KATALOG_BYTES = 5 * 1024 * 1024
 
 router = APIRouter(prefix="/api", tags=["food-catalog"])
 
@@ -393,7 +398,17 @@ async def import_food_products(
     """Import katalogu z CSV. Dopisuje lub aktualizuje produkty TEGO trenera
     (dopasowanie po znormalizowanej nazwie) — nigdy cudze. Błędny wiersz jest
     pomijany z opisem przyczyny, reszta pliku importuje się dalej."""
-    raw = await file.read()
+    # Ten endpoint NIE przechodzi przez sheet_import.read_table — dekoduje
+    # CSV sam i do 18.08.2026 nie mial ZADNEGO limitu rozmiaru. Czytamy
+    # najwyzej LIMIT+1 bajtow i sprawdzamy jawnie: ciche uciecie zepsuloby
+    # ostatni wiersz, a to gorsze niz odmowa. Patrz R-19 w rejestrze ryzyk.
+    raw = await storage.read_upload_capped(file, MAX_KATALOG_BYTES + 1)
+    if len(raw) > MAX_KATALOG_BYTES:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Plik jest większy niż {MAX_KATALOG_BYTES // (1024 * 1024)} MB. "
+                   "Podziel katalog na części.",
+        )
     try:
         text = raw.decode("utf-8-sig")
     except UnicodeDecodeError:

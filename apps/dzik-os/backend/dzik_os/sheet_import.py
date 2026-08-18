@@ -264,13 +264,61 @@ def _read_csv(raw: bytes) -> tuple[list[str], list[list[str]]]:
     if first_line.count(delimiter) == 0:
         delimiter = ","
     reader = csv.reader(io.StringIO(text), delimiter=delimiter)
-    rows = [[_cell(cell) for cell in row] for row in reader]
+    # Ten sam limit co w .xlsx. CSV jest juz ograniczony przez MAX_BYTES,
+    # wiec nie chodzi tu o bombe, tylko o to, zeby 5 MB tekstu nie robilo
+    # sie 50 MB obiektow Pythona, gdy i tak wezmiemy 2000 wierszy.
+    rows = []
+    for surowy in reader:
+        rows.append([_cell(cell) for cell in surowy])
+        if len(rows) > MAX_ROWS + 1:
+            break
     if not rows:
         raise SheetError("Plik jest pusty.")
     return rows[0], rows[1:]
 
 
+#: Ile arkusz moze wazyc PO ROZPAKOWANIU. `.xlsx` to archiwum zip, wiec
+#: limit MAX_BYTES mierzy plik sprzed rozpakowania i nie mowi nic o tym, co
+#: z niego wyjdzie. Prawdziwy arkusz trenera (2000 wierszy) miesci sie tu
+#: z ogromnym zapasem; bomba z pomiaru 18.08.2026 mial 423 MB przy 1,64 MB
+#: uploadu. Wartosc celowo hojna — chodzi o odciecie absurdu, nie o ciasny
+#: limit, ktory odrzuci czyjas duza, ale uczciwa baze.
+MAX_ROZPAKOWANE = 100 * 1024 * 1024
+
+
+def _sprawdz_rozmiar_po_rozpakowaniu(raw: bytes) -> None:
+    """Odrzuca bombe dekompresyjna ZANIM openpyxl dotknie pliku.
+
+    DLACZEGO TU, A NIE PRZY CZYTANIU WIERSZY. Przerwanie iteracji na
+    MAX_ROWS zbilo czas ze 129 s do 27,5 s i pamiec z 1164 MB do 315 MB,
+    ale zmierzenie skladnikow pokazalo, ze reszta idzie na SAM
+    `load_workbook`: 24,5 s i 281 MB, zanim odczytamy pierwszy wiersz.
+    Iteracja kosztowala juz tylko 0,1 s. Zadne ograniczanie odczytu tego
+    nie ruszy — trzeba nie otwierac takiego pliku w ogole.
+
+    Czytamy wylacznie centralny katalog archiwum (`infolist`), czyli
+    zadeklarowane rozmiary. Nic nie jest rozpakowywane, wiec sprawdzenie
+    jest tanie niezaleznie od tego, co siedzi w srodku.
+    """
+    import zipfile
+
+    try:
+        with zipfile.ZipFile(io.BytesIO(raw)) as archiwum:
+            po_rozpakowaniu = sum(wpis.file_size for wpis in archiwum.infolist())
+    except zipfile.BadZipFile:
+        return  # nie-zip zajmie sie openpyxl i wyda swoj komunikat
+
+    if po_rozpakowaniu > MAX_ROZPAKOWANE:
+        raise SheetError(
+            f"Arkusz po rozpakowaniu ma {po_rozpakowaniu // (1024 * 1024)} MB "
+            f"(limit {MAX_ROZPAKOWANE // (1024 * 1024)} MB) — plik jest za duzy,\n"
+            "nawet jesli sam w sobie wyglada na maly. Podziel baze na czesci "
+            "albo przeslij jako CSV."
+        )
+
+
 def _read_xlsx(raw: bytes) -> tuple[list[str], list[list[str]]]:
+    _sprawdz_rozmiar_po_rozpakowaniu(raw)
     try:
         import openpyxl
     except ImportError:  # pragma: no cover - openpyxl jest zależnością twardą
@@ -283,10 +331,27 @@ def _read_xlsx(raw: bytes) -> tuple[list[str], list[list[str]]]:
         raise SheetError(f"Nie udało się otworzyć arkusza: {exc}") from exc
     try:
         sheet = book.worksheets[0]
-        rows = [[_cell(cell) for cell in row] for row in sheet.iter_rows(values_only=True)]
+        # NIE materializujemy calego arkusza. `.xlsx` to archiwum zip:
+        # plik 1,64 MB przechodzacy limit 5 MB rozpakowuje sie do 423 MB
+        # (3 mln wierszy). MAX_ROWS przycinal WYNIK, gdy wszystko bylo juz
+        # w pamieci — zmierzone 18.08.2026: 1164 MB RSS i 129 s na jedno
+        # zadanie. Patrz R-19 w rejestrze ryzyk.
+        #
+        # Czytamy naglowek + MAX_ROWS niepustych wierszy + JEDEN nadmiarowy.
+        # Ten jeden jest potrzebny, zeby `read_table` nadal umialo powiedziec
+        # „plik ma wiecej niz N wierszy"; bez niego ostrzezenie zniknieloby.
+        # Puste wiersze odsiewamy W TRAKCIE, nie po — inaczej arkusz zlozony
+        # z miliona pustych wierszy nadal wciagalby cala pamiec.
+        rows = []
+        for surowy in sheet.iter_rows(values_only=True):
+            wiersz = [_cell(cell) for cell in surowy]
+            if not any(wiersz):
+                continue
+            rows.append(wiersz)
+            if len(rows) > MAX_ROWS + 1:  # naglowek + MAX_ROWS + nadmiarowy
+                break
     finally:
         book.close()
-    rows = [row for row in rows if any(cell for cell in row)]
     if not rows:
         raise SheetError("Arkusz jest pusty.")
     return rows[0], rows[1:]

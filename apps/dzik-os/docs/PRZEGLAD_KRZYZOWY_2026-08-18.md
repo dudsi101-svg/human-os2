@@ -6,6 +6,29 @@ import arkusza, szablony, izolacja trenerów w nowych ścieżkach.
 **Po co:** bloker nr 1 bramki GO/NO-GO brzmi *„bramkę wykonał ten sam agent,
 który pisał kod"*.
 
+## SPROSTOWANIE i stan napraw (dopisane 2026-08-18 wieczorem)
+
+**Oba znaleziska są naprawione i zmierzone ponownie** — szczegóły w R-19
+rejestru ryzyk i w `CHANGELOG.md`. Skrót: (1) 1164 MB → **53 MB**,
+129 s → **0,00 s**; (2) 419 MB → **139 MB** RSS serwera.
+
+**Jedna liczba w tym dokumencie była błędna.** Dla znaleziska 2 podano
+**1057 MB RSS**. Pomiar szedł przez `TestClient` w **tym samym procesie**,
+więc obejmował bufor klienta, który sam trzymał 290 MB. Serwer zmierzony
+osobno (uvicorn, `VmHWM` z `/proc`) brał **419 MB** — czyli +291 MB ponad
+stan spoczynkowy, dokładnie rozmiar pliku. **Błąd był realny, skala
+mniejsza niż podana o ok. 2,5×.**
+
+Zostawiam pierwotny tekst niżej bez zmian — poprawianie liczby na miejscu
+zatarłoby to, że pomyłka w ogóle była. Karta współpracy §XII: poprawka do
+własnego wcześniejszego twierdzenia jest obowiązkowa.
+
+**Metoda, która to spowodowała, i jak jej unikać:** mierząc zużycie
+zasobów serwera, uruchom serwer w **osobnym procesie** i czytaj jego
+`VmHWM`. Klient w tym samym procesie mierzy sumę obu stron.
+
+---
+
 ## Czym to NIE jest
 
 **To nie jest niezależny audyt bezpieczeństwa i nie zastępuje go.** Druga
