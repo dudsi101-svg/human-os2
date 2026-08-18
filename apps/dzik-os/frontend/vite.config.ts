@@ -14,5 +14,13 @@ export default defineConfig({
       },
     },
   },
-  build: { outDir: "dist", sourcemap: false },
+  build: {
+    outDir: "dist",
+    sourcemap: false,
+    // Zero inline'owania małych assetów jako data: URI — CSP jest celowo
+    // wąska (font-src 'self', bez data:), a Vite domyślnie inline'uje
+    // pliki <4KB (np. najmniejsze subsety fontów @fontsource), co łamało
+    // politykę. Wszystkie assety trafiają jako hashowane pliki do /assets.
+    assetsInlineLimit: 0,
+  },
 });

@@ -63,6 +63,11 @@ Funkcje AI są w tej wersji **wyłączone**.
   zgodą) — administrator techniczny systemu **nie ma** dostępu do danych
   zdrowotnych.
 - `[DO UZUPEŁNIENIA przy wdrożeniu płatności online: operator płatności]`
+- **Zasoby zewnętrzne (czcionki, CDN):** aplikacja nie ładuje żadnych
+  zasobów z serwerów podmiotów trzecich. Czcionki (Unbounded, Inter) są
+  hostowane razem z aplikacją (self-hosting od 2026-08-18) — Twój adres IP
+  **nie jest** przekazywany do Google (Google Fonts) ani do żadnej innej
+  sieci CDN podczas korzystania z aplikacji.
 
 ## 6. Przekazywanie poza EOG
 

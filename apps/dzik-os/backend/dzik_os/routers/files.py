@@ -111,15 +111,14 @@ def download_file(
     filename = file_safety.sanitize_filename(
         stored.filename, settings.ALLOWED_UPLOAD_TYPES.get(stored.content_type, "")
     )
+    # X-Content-Type-Options: nosniff oraz Cache-Control: no-store (dane
+    # prywatne — nigdy do cache) gwarantuje globalnie SecurityHeadersMiddleware
+    # (http_headers.py) — nie duplikujemy ich tutaj.
     return Response(
         content=data,
         media_type=stored.content_type,
         headers={
             "Content-Disposition": file_safety.content_disposition("inline", filename),
-            "X-Content-Type-Options": "nosniff",
-            # Dane prywatne (zdrowotne/wizerunkowe) — nigdy do cache'ów
-            # współdzielonych ani na dysk przeglądarki.
-            "Cache-Control": "no-store",
         },
     )
 
