@@ -19,7 +19,9 @@ import Profile from "./pages/client/Profile";
 import Documents from "./pages/client/Documents";
 import ClientKnowledge from "./pages/client/Knowledge";
 import ClientConsultations from "./pages/client/Consultations";
+import ClientChallenges from "./pages/client/Challenges";
 import CoachConsultations from "./pages/coach/Consultations";
+import CoachChallenges from "./pages/coach/Challenges";
 import More from "./pages/More";
 import Messages from "./pages/Messages";
 import Thread from "./pages/Thread";
@@ -93,6 +95,7 @@ export default function App() {
             <Route path="/dokumenty" element={<Documents />} />
             <Route path="/wiedza" element={<ClientKnowledge />} />
             <Route path="/konsultacje" element={<ClientConsultations />} />
+            <Route path="/wyzwania" element={<ClientChallenges />} />
           </>
         )}
         {roles.includes("COACH") && (
@@ -102,6 +105,7 @@ export default function App() {
             <Route path="/trener/szablony" element={<Templates />} />
             <Route path="/trener/wiedza" element={<CoachKnowledge />} />
             <Route path="/trener/konsultacje" element={<CoachConsultations />} />
+            <Route path="/trener/wyzwania" element={<CoachChallenges />} />
           </>
         )}
         {roles.includes("ADMIN") && <Route path="/admin" element={<Admin />} />}

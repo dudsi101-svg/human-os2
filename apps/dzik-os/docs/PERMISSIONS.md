@@ -450,3 +450,29 @@ treści renderowane jako tekst przez React).
 `tests/test_payments.py` — łącznie 40+ asercji między kontami
 (klient↔klient, obcy trener, admin, brak logowania, cofnięta zgoda,
 wygasła relacja, załączniki wiadomości/bazy wiedzy).
+
+## Wyzwania (od 0.18.0 — moduł prywatny)
+
+Pełny opis modelu i zasad: `docs/WYZWANIA.md`. Reguły dostępu w skrócie:
+
+* Wyzwania są WYŁĄCZNIE tylko-dla-zaproszonych; osoba spoza wyzwania
+  (w tym obcy trener) dostaje na każdej ścieżce 404 z logowaną odmową
+  `ACCESS_DENIED` (wzorzec IDOR jak w całej aplikacji).
+* Trener zaprasza wyłącznie AKTYWNIE prowadzonych klientów
+  (`active_relationship`) i moderuje wyłącznie wyzwania, które sam
+  prowadzi (`require_owned_resource(owner_attr="organizer_id")`).
+* Wyzwanie indywidualne klienta widzi tylko jego właściciel — także
+  trener prowadzący dostaje 404.
+* Wynik jednostkowy uczestnika widzą inni (łącznie z organizatorem)
+  wyłącznie przy `share_result=true` (domyślnie false); ranking wymaga
+  dodatkowo `ranking_opt_in=true` (domyślnie false). Ukrycie działa
+  natychmiast.
+* Zaproszony przed decyzją widzi wyłącznie zapowiedź wyzwania (bez listy
+  uczestników i wyników) + wyjaśnienie widoczności.
+* Dane zdrowotne nie wchodzą do modułu — jednostki wyniku to zamknięta
+  allowlista neutralnych liczników; moduł nie czyta pomiarów, zdjęć,
+  raportów ani żywienia (jedyny wyjątek: licznik ukończonych treningów
+  za świadomą zgodą uczestnika per wyzwanie).
+* Zdarzenia audytowe `CHALLENGE_*` niosą wyłącznie identyfikatory,
+  liczniki i flagi — nigdy pseudonimy, notatki ani treści zgłoszeń.
+* Testy: `tests/test_challenges.py` (20 testów, w tym macierz 404).

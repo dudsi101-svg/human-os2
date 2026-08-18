@@ -13,6 +13,11 @@ from ..authz import require_client_self
 from ..db import get_db
 from ..hos_bridge import ConsentService, record_event
 from ..models import (
+    Challenge,
+    ChallengeBlock,
+    ChallengeEntry,
+    ChallengeParticipant,
+    ChallengeReport,
     CheckinRevision,
     CoachClientRelationship,
     ConsentRecord,
@@ -296,8 +301,14 @@ def _collect_export(db: Session, user: User) -> dict:
         for p in db.query(PushSubscription).filter_by(user_id=client_id).all()
     ]
     receipts = _rows(db, Receipt, subject_id=client_id)
+    # Wyzwania: udziały użytkownika + jego własne wpisy wyników (cudze
+    # dane z wyzwań NIE wchodzą do eksportu — minimalizacja).
+    challenge_participations = _rows(db, ChallengeParticipant, user_id=client_id)
+    challenge_entries = []
+    for cp in challenge_participations:
+        challenge_entries.extend(_rows(db, ChallengeEntry, participant_id=cp["id"]))
     return {
-        "export_version": "1.2",
+        "export_version": "1.3",
         "user": {
             "id": user.id, "email": user.email, "display_name": user.display_name,
             "identity_id": user.identity_id, "created_at": user.created_at,
@@ -328,6 +339,8 @@ def _collect_export(db: Session, user: User) -> dict:
         "consult_slots": consult_slots,
         "push_subscriptions": push_subs,
         "audit_receipts": receipts,
+        "challenge_participations": challenge_participations,
+        "challenge_entries": challenge_entries,
     }
 
 
@@ -462,6 +475,37 @@ def request_deletion(
     for doc in db.query(Document).filter(Document.client_id == client_id).all():
         doc.title = "[usunięto]"
         doc.status = "ARCHIVED"
+    # Wyzwania: trwałe wycofanie wszystkich udziałów — wpisy wyników są
+    # usuwane, pseudonimy anonimizowane, agregaty grup oznaczone jako
+    # skorygowane; wyzwania indywidualne (organizowane przez klienta) są
+    # anulowane z anonimizacją treści. Zgłoszenia autorstwa użytkownika
+    # tracą treść (mogła zawierać dane osobowe).
+    for cp in db.query(ChallengeParticipant).filter_by(user_id=client_id).all():
+        deleted_entries = (
+            db.query(ChallengeEntry).filter_by(participant_id=cp.id).delete()
+        )
+        cp.status = "WITHDRAWN"
+        cp.withdrawn_at = now_iso()
+        cp.alias = None
+        cp.share_result = False
+        cp.ranking_opt_in = False
+        cp.auto_count_workouts = False
+        if deleted_entries:
+            ch = db.get(Challenge, cp.challenge_id)
+            if ch is not None:
+                ch.aggregates_adjusted = True
+    for ch in db.query(Challenge).filter_by(organizer_id=client_id).all():
+        ch.title = "[usunięto]"
+        ch.description = None
+        if ch.status in ("DRAFT", "ACTIVE"):
+            ch.status = "CANCELLED"
+            ch.cancelled_at = now_iso()
+    for rep in db.query(ChallengeReport).filter_by(reporter_id=client_id).all():
+        rep.reason = "[usunięto]"
+    db.query(ChallengeBlock).filter(
+        (ChallengeBlock.blocker_id == client_id)
+        | (ChallengeBlock.blocked_id == client_id)
+    ).delete()
     # Subskrypcje push znikają w całości (kanał doręczeń przestaje istnieć).
     db.query(PushSubscription).filter(PushSubscription.user_id == client_id).delete()
     # Klucze idempotencji (metadane operacyjne z identyfikatorami zapisów)

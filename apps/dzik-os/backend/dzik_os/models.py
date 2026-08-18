@@ -760,6 +760,155 @@ class ConsentRecord(Base):
     denied_at: Mapped[str | None] = mapped_column(String(40), nullable=True)
 
 
+class Challenge(Base):
+    """Wspólne wyzwanie (moduł PRYWATNY — wyłącznie zaproszeni; publicznych
+    wyzwań nie ma). Jednostka wyniku jest zawsze NEUTRALNA (liczba treningów,
+    minuty aktywności…) — nigdy masa ciała ani inne dane zdrowotne; dane
+    zdrowotne w ogóle nie wchodzą do modułu wyzwań (docs/WYZWANIA.md).
+
+    Zgodność z konstytucją Human OS: system nie rankinguje ludzi domyślnie —
+    ranking jest OPT-IN per uczestnik (ChallengeParticipant.ranking_opt_in,
+    domyślnie WYŁĄCZONY); domyślny widok to własny postęp względem celu +
+    zagregowany postęp grupy bez nazwisk."""
+
+    __tablename__ = "challenges"
+
+    id: Mapped[str] = mapped_column(String(40), primary_key=True)
+    kind: Mapped[str] = mapped_column(String(20), default="GROUP")  # INDIVIDUAL / GROUP
+    organizer_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
+    title: Mapped[str] = mapped_column(String(300))
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)  # zasady
+    unit: Mapped[str] = mapped_column(String(20))  # klucz z NEUTRAL_UNITS (challenges.py)
+    goal_value: Mapped[float | None] = mapped_column(Float, nullable=True)
+    starts_on: Mapped[str] = mapped_column(String(10))  # YYYY-MM-DD (strefa wyzwania)
+    ends_on: Mapped[str] = mapped_column(String(10))
+    # Dzień wpisu liczony ZAWSZE wg strefy wyzwania (uczciwe naliczanie
+    # niezależnie od strefy urządzenia uczestnika).
+    timezone: Mapped[str] = mapped_column(String(50))
+    visibility: Mapped[str] = mapped_column(String(20), default="INVITE_ONLY")
+    status: Mapped[str] = mapped_column(String(20), default="DRAFT")
+    # DRAFT / ACTIVE / FINISHED / CANCELLED
+    max_entries_per_day: Mapped[int] = mapped_column(Integer, default=5)
+    # Trwałe wycofanie udziału usuwa wyniki uczestnika — agregaty grupy są
+    # od tej pory jawnie oznaczone jako skorygowane (integralność historii
+    # zapewnia audyt, nie trzymanie danych osoby).
+    aggregates_adjusted: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[str] = mapped_column(String(40), default=now_iso)
+    updated_at: Mapped[str] = mapped_column(String(40), default=now_iso)
+    finished_at: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    cancelled_at: Mapped[str | None] = mapped_column(String(40), nullable=True)
+
+
+class ChallengeParticipant(Base):
+    """Udział w wyzwaniu — zawsze dobrowolny (zaproszenie → przyjęcie /
+    odrzucenie). Widoczność wyniku jednostkowego wyłącznie po świadomej
+    decyzji uczestnika (share_result), ranking opt-in i domyślnie wyłączony,
+    pseudonim per wyzwanie (alias)."""
+
+    __tablename__ = "challenge_participants"
+    __table_args__ = (UniqueConstraint("challenge_id", "user_id"),)
+
+    id: Mapped[str] = mapped_column(String(40), primary_key=True)
+    challenge_id: Mapped[str] = mapped_column(ForeignKey("challenges.id"), index=True)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
+    status: Mapped[str] = mapped_column(String(20), default="INVITED")
+    # INVITED / ACTIVE / DECLINED / LEFT / REMOVED / WITHDRAWN
+    alias: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    share_result: Mapped[bool] = mapped_column(Boolean, default=False)
+    ranking_opt_in: Mapped[bool] = mapped_column(Boolean, default=False)
+    # Świadoma decyzja przy dołączaniu: „zaliczaj moje odhaczone treningi"
+    # (jedyna kategoria źródłowa; nigdy dane zdrowotne). Gdy włączona,
+    # wpisy ręczne/wskazywanie treningów są zablokowane (brak podwójnego
+    # naliczania).
+    auto_count_workouts: Mapped[bool] = mapped_column(Boolean, default=False)
+    invited_by: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    invited_at: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    joined_at: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    declined_at: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    left_at: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    removed_at: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    withdrawn_at: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    created_at: Mapped[str] = mapped_column(String(40), default=now_iso)
+
+
+class ChallengeEntry(Base):
+    """Wpis wyniku do wyzwania — wyłącznie dane świadomie przeznaczone do
+    wyzwania (jawne zgłoszenie). Idempotencja: client_entry_id (ponowienia
+    z urządzenia) i workout_session_id (jeden trening zgłaszany raz).
+    Korekta = nowy wiersz (corrects_entry_id) — stary dostaje status
+    CORRECTED, historia nigdy nie jest nadpisywana."""
+
+    __tablename__ = "challenge_entries"
+    __table_args__ = (
+        Index("ix_challenge_entries_participant", "participant_id", "entry_date"),
+        Index(
+            "ux_challenge_entries_workout",
+            "challenge_id",
+            "workout_session_id",
+            unique=True,
+            sqlite_where=text("workout_session_id IS NOT NULL"),
+            postgresql_where=text("workout_session_id IS NOT NULL"),
+        ),
+        Index(
+            "ux_challenge_entries_client_id",
+            "participant_id",
+            "client_entry_id",
+            unique=True,
+            sqlite_where=text("client_entry_id IS NOT NULL"),
+            postgresql_where=text("client_entry_id IS NOT NULL"),
+        ),
+    )
+
+    id: Mapped[str] = mapped_column(String(40), primary_key=True)
+    challenge_id: Mapped[str] = mapped_column(ForeignKey("challenges.id"), index=True)
+    participant_id: Mapped[str] = mapped_column(
+        ForeignKey("challenge_participants.id"), index=True
+    )
+    entry_date: Mapped[str] = mapped_column(String(10))  # YYYY-MM-DD (strefa wyzwania)
+    value: Mapped[float] = mapped_column(Float)
+    note: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    source: Mapped[str] = mapped_column(String(20), default="MANUAL")  # MANUAL / WORKOUT
+    workout_session_id: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    status: Mapped[str] = mapped_column(String(20), default="ACTIVE")  # ACTIVE / CORRECTED
+    corrects_entry_id: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    client_entry_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    created_at: Mapped[str] = mapped_column(String(40), default=now_iso)
+
+
+class ChallengeBlock(Base):
+    """Blokada między uczestnikami wyzwania: strony przestają wzajemnie
+    widzieć swoje aliasy i wyniki (agregat grupy pozostaje bez zmian)."""
+
+    __tablename__ = "challenge_blocks"
+    __table_args__ = (UniqueConstraint("challenge_id", "blocker_id", "blocked_id"),)
+
+    id: Mapped[str] = mapped_column(String(40), primary_key=True)
+    challenge_id: Mapped[str] = mapped_column(ForeignKey("challenges.id"), index=True)
+    blocker_id: Mapped[str] = mapped_column(ForeignKey("users.id"))
+    blocked_id: Mapped[str] = mapped_column(ForeignKey("users.id"))
+    created_at: Mapped[str] = mapped_column(String(40), default=now_iso)
+
+
+class ChallengeReport(Base):
+    """Zgłoszenie uczestnika do organizatora wyzwania (moderacja organizatora
+    + audyt). Organizator moderuje wyłącznie wyzwania, które prowadzi."""
+
+    __tablename__ = "challenge_reports"
+
+    id: Mapped[str] = mapped_column(String(40), primary_key=True)
+    challenge_id: Mapped[str] = mapped_column(ForeignKey("challenges.id"), index=True)
+    reporter_id: Mapped[str] = mapped_column(ForeignKey("users.id"))
+    reported_user_id: Mapped[str] = mapped_column(ForeignKey("users.id"))
+    reason: Mapped[str] = mapped_column(Text)
+    status: Mapped[str] = mapped_column(String(20), default="OPEN")  # OPEN / RESOLVED
+    # REMOVED / ALIAS_RESET / DISMISSED
+    resolution: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    resolution_note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    resolved_by: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    resolved_at: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    created_at: Mapped[str] = mapped_column(String(40), default=now_iso)
+
+
 class Receipt(Base):
     """Pokwitowanie operacji o wysokim znaczeniu: wiąże odpowiedź API z
     niemutowalnym zdarzeniem w łańcuchu audytu Human OS (event_hash)."""

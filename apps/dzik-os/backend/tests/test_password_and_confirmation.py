@@ -195,3 +195,9 @@ def test_migrations_apply_to_existing_v1_database(tmp_path):
         }
     assert {"delivered_at", "client_msg_id"} <= set(cols_m)
     assert "ux_messages_thread_author_client_msg" in indexes
+    # Migracja 16: wspólne wyzwania (nowe tabele, zero ALTER-ów).
+    assert {
+        "challenges", "challenge_participants", "challenge_entries",
+        "challenge_blocks", "challenge_reports",
+    } <= tables
+    assert {"ux_challenge_entries_workout", "ux_challenge_entries_client_id"} <= indexes

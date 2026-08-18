@@ -311,6 +311,129 @@ MIGRATIONS: list[tuple[int, str, list[str]]] = [
             "WHERE client_msg_id IS NOT NULL"
         ),
     ]),
+    # UWAGA: numery 14 i 15 są ZAREZERWOWANE dla równoległych rund —
+    # nie zajmować. Migracje wykonują się w kolejności numerów, brakujące
+    # numery są po prostu pomijane do czasu scalenia.
+    (16, "challenges: wspólne wyzwania (prywatne, tylko-zaproszeni)", [
+        # Model i zasady prywatności: docs/WYZWANIA.md (w tym plan
+        # wycofania tej migracji). Wyłącznie NOWE tabele — zero ALTER-ów
+        # istniejących (czysto addytywna).
+        """
+        CREATE TABLE IF NOT EXISTS challenges (
+            id VARCHAR(40) PRIMARY KEY,
+            kind VARCHAR(20) NOT NULL DEFAULT 'GROUP',
+            organizer_id VARCHAR(40) NOT NULL REFERENCES users(id),
+            title VARCHAR(300) NOT NULL,
+            description TEXT,
+            unit VARCHAR(20) NOT NULL,
+            goal_value FLOAT,
+            starts_on VARCHAR(10) NOT NULL,
+            ends_on VARCHAR(10) NOT NULL,
+            timezone VARCHAR(50) NOT NULL,
+            visibility VARCHAR(20) NOT NULL DEFAULT 'INVITE_ONLY',
+            status VARCHAR(20) NOT NULL DEFAULT 'DRAFT',
+            max_entries_per_day INTEGER NOT NULL DEFAULT 5,
+            aggregates_adjusted BOOLEAN NOT NULL DEFAULT 0,
+            created_at VARCHAR(40) NOT NULL,
+            updated_at VARCHAR(40) NOT NULL,
+            finished_at VARCHAR(40),
+            cancelled_at VARCHAR(40)
+        )
+        """,
+        "CREATE INDEX IF NOT EXISTS ix_challenges_organizer ON challenges(organizer_id)",
+        """
+        CREATE TABLE IF NOT EXISTS challenge_participants (
+            id VARCHAR(40) PRIMARY KEY,
+            challenge_id VARCHAR(40) NOT NULL REFERENCES challenges(id),
+            user_id VARCHAR(40) NOT NULL REFERENCES users(id),
+            status VARCHAR(20) NOT NULL DEFAULT 'INVITED',
+            alias VARCHAR(80),
+            share_result BOOLEAN NOT NULL DEFAULT 0,
+            ranking_opt_in BOOLEAN NOT NULL DEFAULT 0,
+            auto_count_workouts BOOLEAN NOT NULL DEFAULT 0,
+            invited_by VARCHAR(40),
+            invited_at VARCHAR(40),
+            joined_at VARCHAR(40),
+            declined_at VARCHAR(40),
+            left_at VARCHAR(40),
+            removed_at VARCHAR(40),
+            withdrawn_at VARCHAR(40),
+            created_at VARCHAR(40) NOT NULL,
+            UNIQUE(challenge_id, user_id)
+        )
+        """,
+        (
+            "CREATE INDEX IF NOT EXISTS ix_challenge_participants_challenge "
+            "ON challenge_participants(challenge_id)"
+        ),
+        (
+            "CREATE INDEX IF NOT EXISTS ix_challenge_participants_user "
+            "ON challenge_participants(user_id)"
+        ),
+        """
+        CREATE TABLE IF NOT EXISTS challenge_entries (
+            id VARCHAR(40) PRIMARY KEY,
+            challenge_id VARCHAR(40) NOT NULL REFERENCES challenges(id),
+            participant_id VARCHAR(40) NOT NULL REFERENCES challenge_participants(id),
+            entry_date VARCHAR(10) NOT NULL,
+            value FLOAT NOT NULL,
+            note VARCHAR(200),
+            source VARCHAR(20) NOT NULL DEFAULT 'MANUAL',
+            workout_session_id VARCHAR(40),
+            status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
+            corrects_entry_id VARCHAR(40),
+            client_entry_id VARCHAR(64),
+            created_at VARCHAR(40) NOT NULL
+        )
+        """,
+        (
+            "CREATE INDEX IF NOT EXISTS ix_challenge_entries_participant "
+            "ON challenge_entries(participant_id, entry_date)"
+        ),
+        (
+            "CREATE UNIQUE INDEX IF NOT EXISTS ux_challenge_entries_workout "
+            "ON challenge_entries(challenge_id, workout_session_id) "
+            "WHERE workout_session_id IS NOT NULL"
+        ),
+        (
+            "CREATE UNIQUE INDEX IF NOT EXISTS ux_challenge_entries_client_id "
+            "ON challenge_entries(participant_id, client_entry_id) "
+            "WHERE client_entry_id IS NOT NULL"
+        ),
+        """
+        CREATE TABLE IF NOT EXISTS challenge_blocks (
+            id VARCHAR(40) PRIMARY KEY,
+            challenge_id VARCHAR(40) NOT NULL REFERENCES challenges(id),
+            blocker_id VARCHAR(40) NOT NULL REFERENCES users(id),
+            blocked_id VARCHAR(40) NOT NULL REFERENCES users(id),
+            created_at VARCHAR(40) NOT NULL,
+            UNIQUE(challenge_id, blocker_id, blocked_id)
+        )
+        """,
+        (
+            "CREATE INDEX IF NOT EXISTS ix_challenge_blocks_challenge "
+            "ON challenge_blocks(challenge_id)"
+        ),
+        """
+        CREATE TABLE IF NOT EXISTS challenge_reports (
+            id VARCHAR(40) PRIMARY KEY,
+            challenge_id VARCHAR(40) NOT NULL REFERENCES challenges(id),
+            reporter_id VARCHAR(40) NOT NULL REFERENCES users(id),
+            reported_user_id VARCHAR(40) NOT NULL REFERENCES users(id),
+            reason TEXT NOT NULL,
+            status VARCHAR(20) NOT NULL DEFAULT 'OPEN',
+            resolution VARCHAR(20),
+            resolution_note TEXT,
+            resolved_by VARCHAR(40),
+            resolved_at VARCHAR(40),
+            created_at VARCHAR(40) NOT NULL
+        )
+        """,
+        (
+            "CREATE INDEX IF NOT EXISTS ix_challenge_reports_challenge "
+            "ON challenge_reports(challenge_id)"
+        ),
+    ]),
 ]
 
 

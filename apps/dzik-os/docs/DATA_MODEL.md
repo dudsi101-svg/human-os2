@@ -119,6 +119,16 @@ zmienia diety autonomicznie.
 |---|---|
 | `consult_slots` | slot konsultacji trenera: starts_at (czas lokalny DZIK_TZ, „YYYY-MM-DDTHH:MM"), duration_min, status OPEN/BOOKED/CANCELLED, client_id + booked_at po rezerwacji. Klient rezerwuje wyłącznie sloty trenerów, którzy go aktywnie prowadzą; odwołanie klienta do 12 h przed terminem, trenera w każdej chwili (push do drugiej strony). Bez kar/metryk za odwołania. |
 
+## Wyzwania (moduł prywatny — pełny opis: WYZWANIA.md)
+
+| Tabela | Uwagi |
+|---|---|
+| `challenges` | wyzwanie tylko-dla-zaproszonych (visibility zawsze INVITE_ONLY): kind INDIVIDUAL/GROUP, organizer_id, NEUTRALNA jednostka (treningi/minuty/aktywnosci — nigdy masa ciała), goal_value, okno starts_on/ends_on, **strefa czasowa wyzwania**, status DRAFT/ACTIVE/FINISHED/CANCELLED, max_entries_per_day, aggregates_adjusted (po trwałym wycofaniu udziału). |
+| `challenge_participants` | udział dobrowolny: status INVITED/ACTIVE/DECLINED/LEFT/REMOVED/WITHDRAWN, alias (pseudonim per wyzwanie), share_result i ranking_opt_in **domyślnie false** (konstytucja: zakaz rankingu domyślnego), auto_count_workouts (świadoma decyzja przy dołączaniu). Unikalne (challenge, user). |
+| `challenge_entries` | wpis wyniku: entry_date wg strefy WYZWANIA, value, note (jedyny wolny tekst, moderowalny), source MANUAL/WORKOUT, workout_session_id (unikalny per wyzwanie — jeden trening raz), client_entry_id (idempotencja ponowień), status ACTIVE/CORRECTED + corrects_entry_id (korekty łańcuchem, historia nie jest nadpisywana). |
+| `challenge_blocks` | blokada między uczestnikami (obustronna niewidoczność wyników/aliasów; agregat grupy bez zmian). |
+| `challenge_reports` | zgłoszenie do organizatora: reason (widzi tylko organizator), status OPEN/RESOLVED, resolution REMOVED/ALIAS_RESET/NOTES_CLEARED/DISMISSED. |
+
 ## Powiadomienia push
 
 | Tabela | Uwagi |
