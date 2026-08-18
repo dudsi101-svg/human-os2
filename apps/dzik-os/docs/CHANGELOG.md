@@ -1,5 +1,25 @@
 # Changelog — Dzik OS
 
+## 0.29.0 — 2026-08-18
+
+**Maszyna produkcyjna: 512 MB → 1 GB RAM** (`fly.toml`, `[[vm]] memory`).
+
+Decyzja na podstawie pomiaru, nie przeczucia: aplikacja zajmuje 124 MB po
+starcie i 129 MB po typowym ruchu klienta, a obróbka jednego zdjęcia
+2560×1920 w Pillow kosztuje ~75 MB szczytowo (OCR na zmniejszonym obrazie
+tyle samo). Pojedyncza operacja mieściła się w 512 MB z zapasem — ryzykiem
+był zbieg zdarzeń: upload zdjęć raportu (każde przez Pillow) w tym samym
+momencie co rozpoznawanie tekstu, przy stale działającej pętli przypomnień
+i otwartych połączeniach wiadomości na żywo. Fly nie ma swapa, więc
+przekroczenie limitu to ubicie maszyny i przestój, a nie spowolnienie.
+Koszt zmiany: ok. 2-3 USD/mies.
+
+Limity OCR (kolejka jednoslotowa, zmniejszanie obrazu, timeout) zostają
+bez zmian — chronią czas odpowiedzi, nie tylko pamięć. Kolejność przy
+dalszym skalowaniu bez zmian: najpierw pamięć, potem więcej slotów.
+Zaktualizowane: `fly.toml`, `DEPLOYMENT.md` §4, `OCR.md` §2,
+`DEFERRED_FEATURES.md`.
+
 ## 0.28.0 — 2026-08-18
 
 **Auto-uzupełnianie tabeli parametrów ćwiczenia z wklejonego opisu.**

@@ -63,7 +63,7 @@ Zgodnie z zakresem MVP (sekcja 13 briefu). Architektura ich nie blokuje.
   usunięcia konta; TTL (np. 30 dni) to DECYZJA ADMINISTRATORA DANYCH,
   patrz `OCR.md` §6;
 * OCR plików PDF (dziś wyłącznie zdjęcia JPG/PNG/WEBP — renderowanie stron
-  PDF nie mieści się w 512 MB RAM maszyny produkcyjnej, `OCR.md` §7);
+  PDF nie mieści się w pamięci maszyny produkcyjnej, `OCR.md` §7);
 * paginacja długich list (limity 200 rekordów w API);
 * konto klienta u wielu trenerów naraz (model danych to dopuszcza,
   UI zakłada jednego trenera).

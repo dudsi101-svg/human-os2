@@ -32,7 +32,7 @@ primary_region = "fra"   # Frankfurt (najbliższy region Fly dla Polski)
   # 1 maszyna zawsze aktywna: pętla przypomnień push (reminder_loop.py)
   # musi działać także, gdy nikt nie ma otwartej aplikacji. Uwaga: to
   # wychodzi poza w pełni darmowy tryb Fly (maszyna nie usypia) — koszt
-  # rzędu kilku USD/mies. przy shared-cpu-1x/512MB.
+  # rzędu kilku USD/mies. przy shared-cpu-1x.
   min_machines_running = 1
 
 [[mounts]]
@@ -41,4 +41,11 @@ primary_region = "fra"   # Frankfurt (najbliższy region Fly dla Polski)
 
 [[vm]]
   size = "shared-cpu-1x"
-  memory = "512mb"
+  # 1 GB, nie 512 MB. Pomiar na tej wersji aplikacji: 124 MB po starcie,
+  # 129 MB po ruchu klienta, a obróbka jednego zdjęcia 2560x1920 w Pillow
+  # kosztuje ~75 MB szczytowo (OCR na zmniejszonym obrazie tyle samo).
+  # Pojedyncza operacja mieści się w 512 MB, ale nałożenie uploadu zdjęć
+  # raportu na rozpoznawanie tekstu i pętlę przypomnień już niekoniecznie —
+  # a Fly nie ma swapa, więc przekroczenie limitu to ubicie maszyny, nie
+  # spowolnienie. Różnica w koszcie to ok. 2-3 USD/mies.
+  memory = "1024mb"
