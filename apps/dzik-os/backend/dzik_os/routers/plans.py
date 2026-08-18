@@ -326,6 +326,10 @@ def log_workout(
         pain_note=body.pain_note,
     )
     db.add(session)
+    # Sesja przed swoimi pozycjami: SQLAlchemy grupuje wstawienia per tabela,
+    # więc bez tego pozycje trafiają do bazy przed sesją, na którą wskazują
+    # (klucz obcy session_id).
+    db.flush()
     for e in body.entries:
         if e.file_id is not None:
             # Załącznik wpisu treningowego musi być plikiem tego klienta.

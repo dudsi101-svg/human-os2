@@ -55,6 +55,7 @@ def unrelated_coach(seeded):
                 display_name="Obcy Trener", identity_id=new_id("ID"),
             )
             db.add(user)
+            db.flush()  # użytkownik przed nadaniem roli (klucz obcy user_id)
             db.add(RoleGrant(id=new_id("ROL"), user_id=user.id, role="COACH",
                              scope="*", issued_by="test"))
             db.commit()

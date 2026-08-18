@@ -71,6 +71,24 @@ Przejście na PostgreSQL (przy prawdziwych klientach):
 `flyctl secrets set DZIK_DATABASE_URL="postgresql+psycopg2://…"` i usuń
 wpis SQLite z `[env]` w fly.toml.
 
+**Stan wsparcia PostgreSQL (18.08.2026).** Do tego dnia PostgreSQL był
+zadeklarowany, ale nie wykonała się na nim ani jedna linia kodu. Pierwszy
+przebieg zestawu testów na PG ujawnił błędy, których SQLite nie mógł pokazać:
+SQLite domyślnie **nie egzekwuje kluczy obcych**, więc aplikacja zapisywała
+wiersze wskazujące na jeszcze nieistniejące rekordy (m.in. zakładanie konta
+klienta przez trenera). Zostały naprawione, a zestaw testów chodzi teraz na
+PostgreSQL w CI (job `backend-postgres`).
+
+Dwie rzeczy pozostają niesprawdzone na PG i trzeba je zweryfikować ręcznie
+przed pierwszym prawdziwym wdrożeniem:
+
+* **cykl kopia→odtworzenie** (`pg_dump`/`psql`) — kod istnieje, testy
+  pokrywają wyłącznie wariant SQLite;
+* **migracja przyrostowa na istniejącej bazie** — świeża baza dostaje schemat
+  z metadanych ORM i tylko stempluje wersje, więc surowy SQL migracji nie
+  wykonuje się w żadnym teście. Chroni go bramka statyczna
+  (`test_migracje_przenosnosc.py`), nie wykonanie.
+
 ## 4. Produkcja
 
 * `DZIK_ENV=production` (wyłącza `/api/docs`, wymusza cookie `secure`);

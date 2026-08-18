@@ -6,7 +6,13 @@ from pathlib import Path
 
 # Konfiguracja środowiska TESTOWEGO musi nastąpić przed importem dzik_os.
 _tmp = tempfile.mkdtemp(prefix="dzik-tests-")
-os.environ["DZIK_DATABASE_URL"] = f"sqlite:///{_tmp}/test.db"
+# Domyślnie SQLite, ale zestaw da się puścić na dowolnym silniku przez
+# DZIK_TEST_DATABASE_URL — CI używa tego do przebiegu na PostgreSQL.
+# Audyt 18.08.2026: PostgreSQL był zadeklarowany w pyproject/backup/modelach,
+# a nie wykonała się na nim ani jedna linia.
+os.environ["DZIK_DATABASE_URL"] = (
+    os.environ.get("DZIK_TEST_DATABASE_URL") or f"sqlite:///{_tmp}/test.db"
+)
 os.environ["DZIK_AUDIT_DB"] = f"{_tmp}/audit.db"
 os.environ["DZIK_UPLOAD_DIR"] = f"{_tmp}/uploads"
 os.environ["DZIK_VAPID_KEY"] = f"{_tmp}/vapid.pem"
@@ -94,6 +100,7 @@ def create_user_with_role(email: str, password: str, name: str, role: str) -> st
             display_name=name, identity_id=new_id("ID"),
         )
         db.add(user)
+        db.flush()  # użytkownik przed nadaniem roli (klucz obcy user_id)
         db.add(RoleGrant(id=new_id("ROL"), user_id=user.id, role=role,
                          scope="*", issued_by="test"))
         db.flush()

@@ -86,6 +86,7 @@ def test_unrelated_client_sees_empty_list(seeded):
                     password_hash=hash_password("Samotny#2026x"),
                     display_name="Samotny Klient", identity_id=new_id("ID"))
         db.add(lone)
+        db.flush()  # użytkownik przed nadaniem roli (klucz obcy user_id)
         db.add(RoleGrant(id=new_id("ROL"), user_id=lone.id, role="CLIENT",
                          scope="self", issued_by="test"))
 

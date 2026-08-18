@@ -1,5 +1,61 @@
 # Changelog — Dzik OS
 
+## 0.28.0 — 2026-08-18
+
+**Dowody tam, gdzie ich nie było.** Trzy bramki wynikające z audytu
+wykonawczego: testy E2E interfejsu, przebieg zestawu na PostgreSQL
+i ograniczenie precache'u PWA.
+
+* **Testy E2E (Playwright) w repozytorium i w CI.** Do tej pory ~15 700
+  linii interfejsu nie było chronione niczym, co uruchamia się w CI —
+  testy jednostkowe frontendu pokrywają wyłącznie funkcje pomocnicze,
+  a testy backendu wołają API z pominięciem przeglądarki. Siedem testów
+  (~20 s) przechodzi przez logowanie obu ról, pełną wysyłkę raportu
+  tygodniowego wraz z regułą „żadne pytanie nie ma wartości domyślnej"
+  oraz wiadomość, którą pisze klient, a **czyta trener** — dwie sesje,
+  dwa konta. Testy chodzą po zbudowanym `dist/` serwowanym przez backend,
+  czyli po ścieżce produkcyjnej. Szczegóły i świadome odstępstwa:
+  `docs/E2E.md`.
+
+* **PostgreSQL faktycznie uruchomiony — i naprawiony.** PostgreSQL był
+  zadeklarowany w `pyproject.toml`, w gałęzi kopii zapasowych i w indeksach
+  częściowych modeli, ale nie wykonała się na nim ani jedna linia. Pierwszy
+  przebieg ujawnił klasę błędów, której SQLite nie mógł pokazać: **SQLite
+  domyślnie nie egzekwuje kluczy obcych**, więc kod zapisywał wiersze
+  wskazujące na jeszcze nieistniejące rekordy — rola przed kontem, relacja
+  trener–klient przed klientem, rata przed harmonogramem, pozycja treningu
+  przed sesją. Na PostgreSQL każdy taki zapis kończy się błędem, w tym
+  **zakładanie konta klienta przez trenera** (`routers/clients.py`).
+  Naprawione; zestaw chodzi teraz na PostgreSQL w CI (job
+  `backend-postgres`) jako stała bramka. Rejestr ryzyk: R-17.
+
+* **Bramka przenośności migracji.** Surowy SQL migracji nie wykonuje się
+  w żadnym teście — świeża baza dostaje schemat z metadanych ORM i tylko
+  stempluje wersje, więc błąd dialektu ujawniłby się dopiero przy pierwszej
+  migracji nakładanej na działającą produkcję. Znalezione 16 instrukcji
+  `BOOLEAN … DEFAULT 0`, których PostgreSQL nie przyjmuje (wymaga `false`),
+  zostały poprawione, a `test_migracje_przenosnosc.py` pilnuje, żeby wzorzec
+  nie wrócił wraz z migracją 21.
+
+* **Łańcuch audytu: dowód, że wykrywa manipulację.** Testy sprawdzały dotąd
+  wyłącznie `verify_audit_chain() is True`, co dowodzi, że łańcuch nie psuje
+  się sam, ale nie że cokolwiek chroni. Dwa nowe testy modyfikują bazę
+  zdarzeń z pominięciem aplikacji — również z **przeliczonym `event_hash`**,
+  co łapie dopiero dowiązanie do przodu. Oba warianty wykrywane.
+
+* **Precache PWA: 2,46 MB → 1,28 MB.** Service worker instalował na
+  urządzenie 100 plików fontów (1,9 MB): 980 KB to format `.woff`, po który
+  żadna przeglądarka obsługująca service workery nie sięgnie, a ~271 KB to
+  subsety cyrylicy, greki i wietnamskiego w aplikacji polskojęzycznej.
+  Filtr działa wyłącznie na liście precache — w CSS zostają pełne pliki
+  `@fontsource` z `unicode-range`, dzięki czemu przeglądarka nadal pobiera
+  tylko potrzebny subset. Zweryfikowane renderowaniem: polskie znaki
+  diakrytyczne idą fontem Inter, nie zapasowym.
+
+* **Macierz uprawnień objęła router OCR** (182 operacje API). Bramka
+  pokrycia zadziałała zgodnie z projektem — nowe endpointy przerwały build,
+  dopóki nie dostały zadeklarowanej klasy dostępu.
+
 ## 0.27.0 — 2026-08-18
 
 **Przepisywanie tekstu ze zdjęcia (OCR) w dwóch trybach.** Pełna

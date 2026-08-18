@@ -183,6 +183,7 @@ def simulate(n_clients: int = 10, weeks: int = 12, reset: bool = False) -> dict:
                          password_hash=hash_password("DzikTrener#2026"),
                          display_name="Lubelski Dzik", identity_id=new_id("ID"))
             db.add(coach)
+            db.flush()  # konto przed rolą (klucz obcy user_id)
             db.add(RoleGrant(id=new_id("ROL"), user_id=coach.id, role="COACH",
                              scope="*", issued_by="simulate"))
             bump("uzytkownicy")
@@ -252,6 +253,7 @@ def simulate(n_clients: int = 10, weeks: int = 12, reset: bool = False) -> dict:
                           password_hash=hash_password(SIM_PASSWORD),
                           display_name=persona["name"], identity_id=new_id("ID"))
             db.add(client)
+            db.flush()  # konto przed rolą, relacją i wątkiem (klucze obce)
             db.add(RoleGrant(id=new_id("ROL"), user_id=client.id, role="CLIENT",
                              scope="self", issued_by="simulate"))
             db.add(CoachClientRelationship(id=new_id("REL"), coach_id=coach.id,

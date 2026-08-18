@@ -126,6 +126,11 @@ def seed() -> dict[str, str]:
             )
             db.add(user)
             users[key] = user
+        # Użytkownicy muszą trafić do bazy PRZED czymkolwiek, co się do nich
+        # odwołuje kluczem obcym (role, relacje, wątki). SQLite domyślnie nie
+        # egzekwuje kluczy obcych i wybaczał tu dowolną kolejność; PostgreSQL
+        # odrzuca wstawienie relacji do jeszcze niezapisanego użytkownika.
+        db.flush()
         coach, client_a, client_b, admin = (
             users["coach"], users["client_a"], users["client_b"], users["admin"],
         )
@@ -422,6 +427,11 @@ def seed() -> dict[str, str]:
                 status="DONE", created_at=(today - timedelta(days=offset)).isoformat(),
             )
             db.add(session)
+            # Sesja musi istnieć w bazie przed swoimi pozycjami: przy zapisie
+            # SQLAlchemy grupuje wstawienia per tabela, więc bez tego pozycje
+            # potrafią pójść przed sesją. SQLite to wybaczał (nie egzekwuje
+            # kluczy obcych), PostgreSQL odrzuca.
+            db.flush()
             db.add(WorkoutEntry(
                 id=new_id("WKE"), session_id=session.id, exercise_index=0,
                 exercise_name="Przysiad ze sztangą",
@@ -551,6 +561,7 @@ def seed() -> dict[str, str]:
             storage_path=rel_path, uploaded_by=coach.id,
         )
         db.add(stored)
+        db.flush()  # plik przed dokumentem, który się do niego odwołuje
         db.add(Document(id=new_id("DOC"), client_id=client_a.id, file_id=stored.id,
                         title="Zasady współpracy", category="INNE",
                         uploaded_by=coach.id))
@@ -571,6 +582,7 @@ def seed() -> dict[str, str]:
             )
             db.add(f)
             photo_ids.append((f.id, days_ago))
+        db.flush()  # pliki przed zdjęciami progresu (klucz obcy file_id)
         from .models import ProgressPhoto
 
         for file_id, days_ago in photo_ids:
@@ -587,6 +599,7 @@ def seed() -> dict[str, str]:
             period="MONTHLY", created_by=coach.id,
         )
         db.add(pay)
+        db.flush()  # harmonogram przed swoimi ratami (klucz obcy schedule_id)
         db.add(PaymentRecord(id=new_id("PAY"), schedule_id=pay.id,
                              due_date=(today - timedelta(days=30)).isoformat(),
                              amount_cents=45000, status="PAID",
@@ -601,6 +614,7 @@ def seed() -> dict[str, str]:
             period="MONTHLY", created_by=coach.id,
         )
         db.add(pay_b)
+        db.flush()  # harmonogram przed swoimi ratami (klucz obcy schedule_id)
         db.add(PaymentRecord(id=new_id("PAY"), schedule_id=pay_b.id,
                              due_date=(today - timedelta(days=5)).isoformat(),
                              amount_cents=30000, status="PENDING"))
@@ -651,6 +665,7 @@ def seed() -> dict[str, str]:
             period="MONTHLY", created_by=coach.id,
         )
         db.add(pay_c)
+        db.flush()  # harmonogram przed swoimi ratami (klucz obcy schedule_id)
         db.add(PaymentRecord(id=new_id("PAY"), schedule_id=pay_c.id,
                              due_date=(today + timedelta(days=12)).isoformat(),
                              amount_cents=45000, status="PENDING"))
@@ -688,6 +703,7 @@ def seed() -> dict[str, str]:
             period="MONTHLY", created_by=coach.id,
         )
         db.add(pay_d)
+        db.flush()  # harmonogram przed swoimi ratami (klucz obcy schedule_id)
         db.add(PaymentRecord(id=new_id("PAY"), schedule_id=pay_d.id,
                              due_date=(today - timedelta(days=14)).isoformat(),
                              amount_cents=30000, status="PAID",
@@ -705,6 +721,7 @@ def seed() -> dict[str, str]:
             period="MONTHLY", created_by=coach.id,
         )
         db.add(pay_e)
+        db.flush()  # harmonogram przed swoimi ratami (klucz obcy schedule_id)
         db.add(PaymentRecord(id=new_id("PAY"), schedule_id=pay_e.id,
                              due_date=(today - timedelta(days=10)).isoformat(),
                              amount_cents=30000, status="PENDING"))

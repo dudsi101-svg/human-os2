@@ -74,11 +74,52 @@ def _entry(client, h, ch_id, **body):
 
 def _add_workout(client_id: str, performed_on: str, status: str = "DONE") -> str:
     from dzik_os.db import db_session
-    from dzik_os.models import WorkoutSession, new_id
+    from dzik_os.models import (
+        CoachClientRelationship,
+        TrainingPlan,
+        TrainingPlanVersion,
+        WorkoutSession,
+        new_id,
+        now_iso,
+    )
 
     with db_session() as db:
+        # Wersja planu musi ISTNIEĆ — `plan_version_id` to klucz obcy.
+        # Wcześniej wpisywano tu wartość fikcyjną („TEST-PLV"), co przechodziło
+        # tylko dlatego, że SQLite nie egzekwował kluczy obcych. Test dotyczy
+        # wyzwań, nie planów, więc minimalny plan tworzymy tu na miejscu.
+        plan_version_id = (
+            db.query(TrainingPlanVersion.id)
+            .join(TrainingPlan, TrainingPlan.id == TrainingPlanVersion.plan_id)
+            .filter(TrainingPlan.client_id == client_id)
+            .limit(1)
+            .scalar()
+        )
+        if plan_version_id is None:
+            # Trener bierze się z relacji tego klienta — testy wyzwań
+            # zakładają własnych trenerów, nie tylko tego z seeda.
+            coach_id = (
+                db.query(CoachClientRelationship.coach_id)
+                .filter(CoachClientRelationship.client_id == client_id)
+                .limit(1)
+                .scalar()
+            )
+            plan = TrainingPlan(
+                id=new_id("PLN"), client_id=client_id, coach_id=coach_id,
+                title="Plan testowy",
+            )
+            db.add(plan)
+            db.flush()
+            version = TrainingPlanVersion(
+                id=new_id("PLV"), plan_id=plan.id, version_no=1,
+                reason="plan na potrzeby testu wyzwań", content_json='{"days": []}',
+                created_by=coach_id, created_at=now_iso(),
+            )
+            db.add(version)
+            db.flush()
+            plan_version_id = version.id
         s = WorkoutSession(
-            id=new_id("WKS"), client_id=client_id, plan_version_id="TEST-PLV",
+            id=new_id("WKS"), client_id=client_id, plan_version_id=plan_version_id,
             day_index=0, performed_on=performed_on, status=status,
         )
         db.add(s)
