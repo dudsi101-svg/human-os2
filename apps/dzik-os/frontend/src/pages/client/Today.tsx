@@ -100,7 +100,7 @@ export default function Today() {
       {nextConsult && (
         <Link to="/konsultacje" className="card" style={{ display: "block", marginBottom: 10 }}>
           <b style={{ color: "var(--text)", display: "flex", alignItems: "center", gap: 8 }}>
-            <Icon name="calendar" size={18} /> Najbliższa konsultacja
+            <Icon name="calendar" /> Najbliższa konsultacja
           </b>
           <p className="dim" style={{ margin: "4px 0 0", fontSize: "0.85rem" }}>
             {new Date(nextConsult.starts_at).toLocaleString("pl-PL", {

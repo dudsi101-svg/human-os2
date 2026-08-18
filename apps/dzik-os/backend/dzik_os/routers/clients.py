@@ -6,19 +6,15 @@ from datetime import UTC, datetime, timedelta
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 
+from .. import aggregates
 from ..authz import (
     DOMAIN_COLLABORATION,
-    DOMAIN_HEALTH,
-    DOMAIN_NUTRITION,
-    DOMAIN_PHOTOS,
-    DOMAIN_TRAINING,
     active_relationship,
-    coach_can_access_client,
     resolve_client_access,
 )
 from ..config import settings
 from ..consent_catalog import ONBOARDING_CATEGORIES
-from ..dates import local_now_minute, local_today, parse_iso_date
+from ..dates import local_now_minute, local_today
 from ..db import get_db
 from ..hos_bridge import ConsentService, record_event
 from ..links import activation_link
@@ -29,20 +25,13 @@ from ..models import (
     Exercise,
     FoodProduct,
     KnowledgeItem,
-    Message,
     MessageThread,
-    Observation,
-    PaymentRecord,
-    PaymentSchedule,
     RoleGrant,
     User,
-    WeeklyCheckin,
-    WorkoutSession,
     new_id,
     now_iso,
 )
 from ..notifications_provider import provider as notifications
-from ..payment_state import DUE_STATUSES
 from ..schemas import RelationshipIn
 from ..security import _token_hash, active_roles, require_role
 
@@ -318,78 +307,10 @@ def cancel_invitation(
 
 
 def _client_flags(db: Session, coach: User, client: User, today) -> dict:
-    """Obiektywne flagi operacyjne dla jednego klienta — współdzielone
-    przez listę klientów i dashboard trenera, by uniknąć rozjazdu logiki."""
-    last_checkin = (
-        db.query(WeeklyCheckin)
-        .filter(WeeklyCheckin.client_id == client.id)
-        .order_by(WeeklyCheckin.week_start.desc())
-        .first()
-    )
-    checkin_overdue = (
-        last_checkin is None
-        or (today - parse_iso_date(last_checkin.week_start)).days > 13
-    )
-    awaiting_review = (
-        db.query(WeeklyCheckin)
-        .filter(WeeklyCheckin.client_id == client.id, WeeklyCheckin.status == "SUBMITTED")
-        .count()
-        > 0
-    )
-    overdue_payment = (
-        db.query(PaymentRecord)
-        .join(PaymentSchedule, PaymentRecord.schedule_id == PaymentSchedule.id)
-        .filter(
-            PaymentSchedule.client_id == client.id,
-            PaymentSchedule.coach_id == coach.id,
-            # Wymagalne wg maszyny stanów płatności (runda 15) — FAILED
-            # (nieudana próba) to nadal należność do zapłaty.
-            PaymentRecord.status.in_(list(DUE_STATUSES)),
-            PaymentRecord.due_date < today.isoformat(),
-        )
-        .count()
-    )
-    thread = (
-        db.query(MessageThread).filter_by(coach_id=coach.id, client_id=client.id).one_or_none()
-    )
-    unread = 0
-    if thread:
-        unread = (
-            db.query(Message)
-            .filter(
-                Message.thread_id == thread.id,
-                Message.author_id == client.id,
-                Message.read_at.is_(None),
-            )
-            .count()
-        )
-    recent_pain = (
-        db.query(WorkoutSession)
-        .filter(
-            WorkoutSession.client_id == client.id,
-            WorkoutSession.pain_flag.is_(True),
-            WorkoutSession.performed_on >= (today - timedelta(days=14)).isoformat(),
-        )
-        .count()
-    )
-    flagged_observations = (
-        db.query(Observation)
-        .filter(
-            Observation.client_id == client.id,
-            Observation.severity == "NIEPOKOJACE",
-            Observation.occurred_on >= (today - timedelta(days=14)).isoformat(),
-        )
-        .count()
-    )
-    return {
-        "checkin_overdue": checkin_overdue,
-        "awaiting_review": awaiting_review,
-        "payment_overdue": overdue_payment > 0,
-        "unread_messages": unread,
-        "recent_pain_reports": recent_pain,
-        "flagged_observations": flagged_observations,
-        "last_checkin_week": last_checkin.week_start if last_checkin else None,
-    }
+    """Flagi operacyjne JEDNEGO klienta — cienka nakładka na warstwę
+    agregacji (aggregates.client_flags_bulk), żeby widok pojedynczego
+    klienta i widoki zbiorcze liczyły dokładnie to samo."""
+    return aggregates.client_flags_bulk(db, coach.id, [client.id], today)[client.id]
 
 
 @router.get("/clients")
@@ -397,7 +318,13 @@ def list_clients(
     coach: User = Depends(require_role("COACH")),
     db: Session = Depends(get_db),
 ):
-    """Lista klientów z obiektywnymi flagami operacyjnymi (bez oceniania)."""
+    """Lista klientów z obiektywnymi flagami operacyjnymi (bez oceniania).
+
+    Dane pobierane zbiorczo (warstwa aggregates): stała liczba zapytań
+    niezależnie od liczby podopiecznych — wcześniej każdy klient kosztował
+    kilkanaście zapytań, więc panel degradował się wraz z rozwojem
+    współpracy (patrz docs/SYMULACJA.md).
+    """
     rels = (
         db.query(CoachClientRelationship)
         .filter(CoachClientRelationship.coach_id == coach.id)
@@ -407,47 +334,28 @@ def list_clients(
     # flagi checkin_overdue/payment_overdue myliłyby się między 00:00 a
     # 01:00/02:00 czasu polskiego.
     today = local_today()
+    client_ids = [rel.client_id for rel in rels]
+    clients = aggregates.users_by_id(db, client_ids)
+    scopes_by_client = aggregates.consent_scopes_bulk(
+        db, coach.id, client_ids, domains=aggregates.CONSENT_SCOPE_DOMAINS
+    )
+    flags_by_client = aggregates.client_flags_bulk(db, coach.id, client_ids, today)
+    invitations = aggregates.pending_invitation_expiry(
+        db, [cid for cid in client_ids
+             if (c := clients.get(cid)) is not None and c.status == "PENDING"]
+    )
+
     out = []
     for rel in rels:
-        client = db.get(User, rel.client_id)
+        client = clients.get(rel.client_id)
         if client is None:
             continue
         # Zgody per kategoria danych: consent_active = podstawowa zgoda
         # współpracy (bez niej trener nie widzi danych klienta w ogóle);
         # consent_scopes pokazuje zakres zgód wrażliwych.
-        has_consent = coach_can_access_client(
-            db, coach.id, client.id, domain=DOMAIN_COLLABORATION
-        )
-        consent_scopes = {
-            "collaboration": has_consent,
-            "training": coach_can_access_client(
-                db, coach.id, client.id, domain=DOMAIN_TRAINING
-            ),
-            "health": coach_can_access_client(
-                db, coach.id, client.id, domain=DOMAIN_HEALTH
-            ),
-            "nutrition": coach_can_access_client(
-                db, coach.id, client.id, domain=DOMAIN_NUTRITION
-            ),
-            "photos": coach_can_access_client(
-                db, coach.id, client.id, domain=DOMAIN_PHOTOS
-            ),
-        }
-        flags = _client_flags(db, coach, client, today)
-        invitation_expires_at = None
-        if client.status == "PENDING":
-            active_inv = (
-                db.query(ClientInvitation)
-                .filter(
-                    ClientInvitation.client_id == client.id,
-                    ClientInvitation.used_at.is_(None),
-                    ClientInvitation.cancelled_at.is_(None),
-                )
-                .order_by(ClientInvitation.created_at.desc())
-                .first()
-            )
-            if active_inv is not None:
-                invitation_expires_at = active_inv.expires_at
+        consent_scopes = scopes_by_client[client.id]
+        has_consent = consent_scopes["collaboration"]
+        flags = flags_by_client[client.id]
         out.append(
             {
                 "client_id": client.id,
@@ -459,7 +367,7 @@ def list_clients(
                 # (klient nie ustawił hasła); expires_at aktywnego
                 # zaproszenia — bez tokenu (serwer zna tylko hash).
                 "account_pending": client.status == "PENDING",
-                "invitation_expires_at": invitation_expires_at,
+                "invitation_expires_at": invitations.get(client.id),
                 "consent_scopes": consent_scopes,
                 "flags": {
                     "checkin_overdue": flags["checkin_overdue"],
@@ -496,11 +404,10 @@ def coach_dashboard(
     unread_messages_total = 0
     flagged_observations_14d = 0
     recent_pain_reports_14d = 0
-    for rel in rels:
-        client = db.get(User, rel.client_id)
-        if client is None:
-            continue
-        flags = _client_flags(db, coach, client, today)
+    flags_by_client = aggregates.client_flags_bulk(
+        db, coach.id, [rel.client_id for rel in rels], today
+    )
+    for flags in flags_by_client.values():
         if flags["awaiting_review"]:
             awaiting_review += 1
         if flags["checkin_overdue"]:

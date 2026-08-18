@@ -21,7 +21,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
-from .. import notifications
+from .. import aggregates, notifications
 from ..authz import (
     DOMAIN_MESSAGES,
     coach_can_access_client,
@@ -114,39 +114,40 @@ def _publish_read_receipts(thread: MessageThread, reader_id: str, rows: list[Mes
 
 @router.get("/threads")
 def my_threads(user: User = Depends(current_user), db: Session = Depends(get_db)):
+    """Lista wątków ze wskaźnikiem nieprzeczytanych.
+
+    Dane pobierane zbiorczo (aggregates): stała liczba zapytań niezależnie
+    od liczby wątków — wcześniej każdy wątek kosztował osobne zapytania
+    o zgodę, ostatnią wiadomość, licznik nieprzeczytanych i rozmówcę.
+    """
     roles = active_roles(db, user.id)
-    q = db.query(MessageThread)
     if "COACH" in roles:
+        all_threads = db.query(MessageThread).filter(MessageThread.coach_id == user.id).all()
         # Lista wątków trenera podlega TEJ SAMEJ bramce co otwarcie wątku
         # (require_thread_party): wyłącznie aktywna relacja i nieocofnięta
         # zgoda — inaczej podgląd ostatniej wiadomości wyciekałby po
-        # zakończeniu współpracy.
-        threads = [
-            t
-            for t in q.filter(MessageThread.coach_id == user.id).all()
-            if coach_can_access_client(db, user.id, t.client_id, domain=DOMAIN_MESSAGES)
-        ]
+        # zakończeniu współpracy. Decyzja nadal zapada w Core, tyle że
+        # rejestr zgód hydratowany jest raz dla wszystkich rozmówców.
+        scopes = aggregates.consent_scopes_bulk(
+            db, user.id, [t.client_id for t in all_threads],
+            domains={"messages": DOMAIN_MESSAGES},
+        )
+        threads = [t for t in all_threads if scopes[t.client_id]["messages"]]
     else:
-        threads = q.filter(MessageThread.client_id == user.id).all()
+        threads = db.query(MessageThread).filter(MessageThread.client_id == user.id).all()
+
+    thread_ids = [t.id for t in threads]
+    last_by_thread = aggregates.last_message_by_thread(db, thread_ids)
+    unread_by_thread = aggregates.unread_by_thread(db, thread_ids, user.id)
+    others = aggregates.users_by_id(
+        db, [t.client_id if user.id == t.coach_id else t.coach_id for t in threads]
+    )
+
     out = []
     for t in threads:
-        last = (
-            db.query(Message)
-            .filter(Message.thread_id == t.id)
-            .order_by(Message.created_at.desc(), Message.id.desc())
-            .first()
-        )
-        unread = (
-            db.query(Message)
-            .filter(
-                Message.thread_id == t.id,
-                Message.author_id != user.id,
-                Message.read_at.is_(None),
-            )
-            .count()
-        )
+        last = last_by_thread.get(t.id)
         other_id = t.client_id if user.id == t.coach_id else t.coach_id
-        other = db.get(User, other_id)
+        other = others.get(other_id)
         out.append(
             {
                 "id": t.id,
@@ -156,7 +157,7 @@ def my_threads(user: User = Depends(current_user), db: Session = Depends(get_db)
                     "body": last.body[:200], "author_id": last.author_id,
                     "created_at": last.created_at,
                 } if last else None,
-                "unread": unread,
+                "unread": unread_by_thread.get(t.id, 0),
             }
         )
     return {"threads": out}

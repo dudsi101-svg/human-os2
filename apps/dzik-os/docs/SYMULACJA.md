@@ -42,23 +42,35 @@ Do tego zasoby trenera (baza wiedzy, ćwiczenia, produkty) i wspólne wyzwanie.
 | Najwolniejszy ekran | dashboard trenera — 76 ms |
 | Eksport danych klienta | 102 ms (JSON) / 110 ms (XLSX, 65 KB) |
 
-### Znaleziony problem: N+1 w widokach zbiorczych trenera
+### Znaleziony problem: N+1 w widokach zbiorczych — NAPRAWIONY
 
-Pomiar liczby zapytań SQL przy rosnącej liczbie podopiecznych:
+Pierwszy przebieg pokazał, że koszt zapytań rósł liniowo z liczbą
+podopiecznych (a przy treningach — z długością historii). Naprawą jest
+warstwa agregacji `dzik_os/aggregates.py`: każda metryka liczona jest
+jednym zapytaniem grupującym zamiast pętli po rekordach.
 
-| Aktywni klienci | `/api/coach/dashboard` | `/api/coach/clients` |
+| Ekran | Zapytania SQL przed | po | Zmiana |
+|---|---|---|---|
+| Lista klientów (10 podopiecznych) | 184 | **13** | −93% |
+| Dashboard trenera (10 podopiecznych) | 88 | **15** | −83% |
+| Lista treningów (12 tyg. historii) | 40 | **7** | −82% |
+| Lista wątków wiadomości | 54 | **9** | −83% |
+
+Kluczowe: liczba zapytań jest teraz **stała** — nie rośnie z liczbą
+podopiecznych ani z historią. Pomiar skalowania po naprawie:
+
+| Aktywni klienci | dashboard | lista klientów |
 |---|---|---|
-| 2 | 24 zapytania | 145 zapytań |
-| 6 | 56 zapytań | 164 zapytania |
-| 10 | 88 zapytań | 184 zapytania |
+| 2 | 14 zapytań | 14 zapytań |
+| 6 | 14 zapytań | 13 zapytań |
+| 10 | 14 zapytań | 13 zapytań |
 
-Dashboard rośnie liniowo (**+8 zapytań na każdego podopiecznego**), lista
-klientów ma wysoką stałą bazę (~135) plus ~5 na podopiecznego. Na SQLite
-lokalnie to nadal dziesiątki milisekund, ale na PostgreSQL — gdzie każde
-zapytanie kosztuje round-trip — przy 50 podopiecznych dashboard oznaczałby
-ponad 400 zapytań na jedno wejście do panelu. Do naprawy agregacją
-(jedno zapytanie zbiorcze zamiast pętli po klientach) zanim trener urośnie
-ponad kilkunastu podopiecznych.
+Reguły zgód pozostały w Core: rejestr `hos_engine.ConsentRegistry` jest
+hydratowany raz dla wszystkich podopiecznych (`ConsentService.hydrate_many`)
+i to on nadal odpowiada „czy wolno" — warstwa aplikacji nie reimplementuje
+reguł. Testy `test_aggregates.py` pilnują jednego i drugiego: zgodności
+wyników z wyliczeniem pojedynczym (w tym natychmiastowego skutku cofnięcia
+zgody) oraz stałego budżetu zapytań, żeby N+1 nie wróciło niezauważone.
 
 ### Zachowania potwierdzone jako poprawne
 

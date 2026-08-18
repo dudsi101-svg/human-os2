@@ -128,38 +128,66 @@ class ConsentService:
             .all()
         )
         for row in rows:
-            if (
-                row.category is None
-                and row.purpose == "coaching"
-                and row.domain == "health_data"
-                and row.allow_sensitive
-            ):
-                # Historyczna zgoda parasolowa (sprzed migracji nr 10):
-                # jej pierwotny sens obejmował PEŁNY dostęp trenerski, więc
-                # hydratujemy ją na wszystkie domeny trenerskie — nie
-                # zawężamy po cichu zakresu, na który podmiot faktycznie
-                # wyraził zgodę. Nowe wiersze (category != NULL) są zawsze
-                # granularne.
-                registry.grant(
-                    subject_id=row.subject_id,
-                    grantee_id=row.grantee_id,
-                    purposes=set(consent_catalog.LEGACY_UMBRELLA_PURPOSES),
-                    domains=set(consent_catalog.LEGACY_UMBRELLA_DOMAINS),
-                    actions=set(row.actions.split(",")),
-                    expires_at=row.expires_at,
-                    allow_sensitive=row.allow_sensitive,
-                )
-                continue
+            ConsentService._grant_row(registry, row)
+        return registry
+
+    @staticmethod
+    def hydrate_many(db: Session, subject_ids: list[str]) -> ConsentRegistry:
+        """Jeden rejestr Core zhydratowany dla WIELU podmiotów naraz.
+
+        Widoki zbiorcze trenera (lista klientów, dashboard) pytały o zgody
+        osobno dla każdego klienta i każdej domeny — to samo zapytanie
+        wykonywało się kilkanaście razy na jedno wejście do panelu.
+        Tutaj wiersze zgód pobieramy JEDNYM zapytaniem, a decyzja „czy
+        wolno" nadal zapada w hos_engine.ConsentRegistry (rejestr odpowiada
+        w pamięci) — warstwa aplikacji nie reimplementuje reguł zgód.
+        """
+        registry = ConsentRegistry()
+        if not subject_ids:
+            return registry
+        rows = (
+            db.query(ConsentRecord)
+            .filter(
+                ConsentRecord.subject_id.in_(subject_ids),
+                ConsentRecord.revoked_at.is_(None),
+                ConsentRecord.denied_at.is_(None),
+            )
+            .all()
+        )
+        for row in rows:
+            ConsentService._grant_row(registry, row)
+        return registry
+
+    @staticmethod
+    def _grant_row(registry: ConsentRegistry, row: ConsentRecord) -> None:
+        """Przeniesienie JEDNEGO wiersza zgody do rejestru Core — wspólne
+        dla hydratacji pojedynczej i zbiorczej, żeby interpretacja zgód
+        historycznych (parasolowych) nie rozjechała się między ścieżkami."""
+        if (
+            row.category is None
+            and row.purpose == "coaching"
+            and row.domain == "health_data"
+            and row.allow_sensitive
+        ):
             registry.grant(
                 subject_id=row.subject_id,
                 grantee_id=row.grantee_id,
-                purposes={row.purpose},
-                domains={row.domain},
+                purposes=set(consent_catalog.LEGACY_UMBRELLA_PURPOSES),
+                domains=set(consent_catalog.LEGACY_UMBRELLA_DOMAINS),
                 actions=set(row.actions.split(",")),
                 expires_at=row.expires_at,
                 allow_sensitive=row.allow_sensitive,
             )
-        return registry
+            return
+        registry.grant(
+            subject_id=row.subject_id,
+            grantee_id=row.grantee_id,
+            purposes={row.purpose},
+            domains={row.domain},
+            actions=set(row.actions.split(",")),
+            expires_at=row.expires_at,
+            allow_sensitive=row.allow_sensitive,
+        )
 
     @staticmethod
     def grant_category(
