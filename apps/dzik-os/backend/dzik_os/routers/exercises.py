@@ -8,6 +8,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
+from ..authz import require_owned_resource
 from ..db import get_db
 from ..hos_bridge import record_event
 from ..models import CoachClientRelationship, Exercise, User, new_id, now_iso
@@ -68,9 +69,9 @@ def update_exercise(
     coach: User = Depends(require_role("COACH")),
     db: Session = Depends(get_db),
 ):
-    item = db.get(Exercise, item_id)
-    if item is None or item.coach_id != coach.id:
-        raise HTTPException(status_code=404, detail="Nie znaleziono")
+    item = require_owned_resource(
+        db.get(Exercise, item_id), actor=coach, resource=f"exercise:{item_id}"
+    )
     item.name, item.muscle_group, item.how_to = body.name, body.muscle_group, body.how_to
     item.benefit, item.equipment, item.video_url = body.benefit, body.equipment, body.video_url
     item.updated_at = now_iso()
@@ -92,9 +93,9 @@ def set_exercise_status(
 ):
     if status not in {"ACTIVE", "ARCHIVED"}:
         raise HTTPException(status_code=422, detail="Nieprawidłowy status")
-    item = db.get(Exercise, item_id)
-    if item is None or item.coach_id != coach.id:
-        raise HTTPException(status_code=404, detail="Nie znaleziono")
+    item = require_owned_resource(
+        db.get(Exercise, item_id), actor=coach, resource=f"exercise:{item_id}"
+    )
     item.status = status
     item.updated_at = now_iso()
     db.commit()

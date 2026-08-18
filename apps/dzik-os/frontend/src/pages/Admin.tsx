@@ -73,7 +73,7 @@ export default function Admin() {
         {receipts.map((r) => (
           <div className="exercise" key={r.id}>
             <div>
-              <b>{r.summary}</b>
+              <b>{r.summary || r.action}</b>
               <div className="meta">{r.action} · {plDateTime(r.created_at)} · {r.event_hash.slice(0, 12)}…</div>
             </div>
           </div>

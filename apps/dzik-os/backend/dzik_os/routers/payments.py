@@ -3,7 +3,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from ..authz import resolve_client_access
+from ..authz import deny, require_owned_resource, resolve_client_access
 from ..db import get_db
 from ..hos_bridge import record_event
 from ..models import PaymentRecord, PaymentSchedule, User, new_id, now_iso
@@ -112,8 +112,11 @@ def set_payment_status(
     if record is None:
         raise HTTPException(status_code=404, detail="Nie znaleziono")
     schedule = db.get(PaymentSchedule, record.schedule_id)
-    if schedule is None or schedule.coach_id != coach.id:
+    if schedule is None:
         raise HTTPException(status_code=404, detail="Nie znaleziono")
+    if schedule.coach_id != coach.id:
+        # Rekord płatności innego trenera — logowana odmowa zasobowa.
+        deny(coach.id, f"payment_record:{record_id}")
     previous = record.status
     record.status = body.status
     record.note = body.note
@@ -139,9 +142,10 @@ def add_payment_record(
     coach: User = Depends(require_role("COACH")),
     db: Session = Depends(get_db),
 ):
-    schedule = db.get(PaymentSchedule, schedule_id)
-    if schedule is None or schedule.coach_id != coach.id:
-        raise HTTPException(status_code=404, detail="Nie znaleziono")
+    schedule = require_owned_resource(
+        db.get(PaymentSchedule, schedule_id), actor=coach,
+        resource=f"payment_schedule:{schedule_id}",
+    )
     record = PaymentRecord(
         id=new_id("PAY"),
         schedule_id=schedule.id,

@@ -5,13 +5,15 @@ import os
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
+from .authz import ResourceAccessDenied
 from .config import settings
-from .db import run_migrations
+from .db import db_session, run_migrations
+from .hos_bridge import record_event
 from .routers import (
     admin,
     auth,
@@ -88,6 +90,33 @@ def create_app() -> FastAPI:
         records.router, push.router, consultations.router,
     ):
         app.include_router(router)
+
+    @app.exception_handler(ResourceAccessDenied)
+    def access_denied_handler(request: Request, exc: ResourceAccessDenied):
+        """Centralne logowanie odmów ZASOBOWYCH (404 po autoryzacji roli —
+        próba IDOR / dostęp poza zakresem relacji lub zgód). Payload zawiera
+        wyłącznie endpoint, metodę i identyfikatory — nigdy dane zdrowotne
+        ani sekrety. Zwykłe 401/403 oraz 404 dla nieistniejących zasobów
+        nie przechodzą tą ścieżką."""
+        try:
+            with db_session() as db:
+                record_event(
+                    db,
+                    action="ACCESS_DENIED",
+                    actor_id=exc.actor_id,
+                    subject_ids=[exc.actor_id],
+                    payload={
+                        "endpoint": request.url.path,
+                        "method": request.method,
+                        "resource": exc.resource,
+                    },
+                    summary=f"Odmowa dostępu do zasobu: {request.method} {request.url.path}",
+                )
+        # Logowanie odmowy nie może zmienić odpowiedzi dla klienta —
+        # awaria audytu jest diagnozowana osobno (verify_chain).
+        except Exception as log_exc:  # noqa: BLE001  # pragma: no cover - diagnostyka
+            print(f"[dzik-os] nie zapisano ACCESS_DENIED: {log_exc}")
+        return JSONResponse(status_code=404, content={"detail": "Nie znaleziono"})
 
     @app.get("/api/health")
     def health() -> dict:

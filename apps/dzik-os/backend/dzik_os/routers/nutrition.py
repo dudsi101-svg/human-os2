@@ -5,7 +5,7 @@ import json
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from ..authz import resolve_client_access
+from ..authz import require_owned_resource, resolve_client_access
 from ..db import get_db
 from ..hos_bridge import record_event
 from ..models import Document, NutritionPlan, NutritionPlanVersion, User, new_id, now_iso
@@ -101,9 +101,9 @@ def create_nutrition_version(
     coach: User = Depends(require_role("COACH")),
     db: Session = Depends(get_db),
 ):
-    plan = db.get(NutritionPlan, plan_id)
-    if plan is None or plan.coach_id != coach.id:
-        raise HTTPException(status_code=404, detail="Nie znaleziono")
+    plan = require_owned_resource(
+        db.get(NutritionPlan, plan_id), actor=coach, resource=f"nutrition_plan:{plan_id}"
+    )
     resolve_client_access(db, coach, plan.client_id, action="write")
     _check_document(db, body.document_id, plan.client_id)
     next_no = plan.current_version_no + 1

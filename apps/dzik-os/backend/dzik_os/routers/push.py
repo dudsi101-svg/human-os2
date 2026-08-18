@@ -47,6 +47,19 @@ def subscribe(
     if existing is not None:
         # Endpoint jest unikalny per przeglądarka — przejmuje go aktualnie
         # zalogowany użytkownik (np. zmiana konta na tym samym telefonie).
+        # Endpoint push to niezgadywalny URL-capability wygenerowany przez
+        # przeglądarkę, a treści szyfrowane są kluczami subskrybenta —
+        # przejęcie wymaga fizycznego dostępu do tej przeglądarki. Zmiana
+        # właściciela jest mimo to audytowana (wykrywalność nadużycia).
+        if existing.user_id != user.id:
+            record_event(
+                db, action="PUSH_ENDPOINT_REBOUND", actor_id=user.id,
+                subject_ids=[user.id, existing.user_id],
+                payload={"endpoint_prefix": body.endpoint[:60],
+                         "previous_user_id": existing.user_id},
+                summary="Endpoint push przypisany do innego konta (zmiana "
+                "użytkownika w tej samej przeglądarce)",
+            )
         existing.user_id = user.id
         existing.p256dh = body.keys.p256dh
         existing.auth = body.keys.auth

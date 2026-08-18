@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from .. import push_service
-from ..authz import require_attachable_file, resolve_client_access
+from ..authz import coach_can_access_client, require_attachable_file, require_thread_party
 from ..db import get_db
 from ..models import Message, MessageThread, User, new_id, now_iso
 from ..schemas import MessageIn
@@ -13,26 +13,20 @@ from ..security import active_roles, current_user
 router = APIRouter(prefix="/api", tags=["messages"])
 
 
-def _accessible_thread(db: Session, user: User, thread_id: str) -> MessageThread:
-    thread = db.get(MessageThread, thread_id)
-    if thread is None:
-        raise HTTPException(status_code=404, detail="Nie znaleziono")
-    if user.id == thread.client_id:
-        return thread
-    if user.id == thread.coach_id:
-        # Wątek wiadomości pozostaje dostępny dla trenera w ramach aktywnej
-        # relacji; treść wiadomości nie jest objęta zgodą health_data.
-        resolve_client_access(db, user, thread.client_id, sensitive=False)
-        return thread
-    raise HTTPException(status_code=404, detail="Nie znaleziono")
-
-
 @router.get("/threads")
 def my_threads(user: User = Depends(current_user), db: Session = Depends(get_db)):
     roles = active_roles(db, user.id)
     q = db.query(MessageThread)
     if "COACH" in roles:
-        threads = q.filter(MessageThread.coach_id == user.id).all()
+        # Lista wątków trenera podlega TEJ SAMEJ bramce co otwarcie wątku
+        # (require_thread_party): wyłącznie aktywna relacja i nieocofnięta
+        # zgoda — inaczej podgląd ostatniej wiadomości wyciekałby po
+        # zakończeniu współpracy.
+        threads = [
+            t
+            for t in q.filter(MessageThread.coach_id == user.id).all()
+            if coach_can_access_client(db, user.id, t.client_id, sensitive=False)
+        ]
     else:
         threads = q.filter(MessageThread.client_id == user.id).all()
     out = []
@@ -75,7 +69,7 @@ def thread_messages(
     user: User = Depends(current_user),
     db: Session = Depends(get_db),
 ):
-    thread = _accessible_thread(db, user, thread_id)
+    thread = require_thread_party(db, user, thread_id)
     rows = (
         db.query(Message)
         .filter(Message.thread_id == thread.id)
@@ -105,7 +99,7 @@ def send_message(
     user: User = Depends(current_user),
     db: Session = Depends(get_db),
 ):
-    thread = _accessible_thread(db, user, thread_id)
+    thread = require_thread_party(db, user, thread_id)
     if body.file_id is not None:
         # Załączyć można wyłącznie plik własny lub samodzielnie wgrany —
         # podpięcie cudzego file_id dawałoby drugiej stronie wątku dostęp

@@ -28,7 +28,7 @@ from ..models import (
     now_iso,
 )
 from ..schemas import RelationshipIn
-from ..security import hash_password, require_role
+from ..security import active_roles, hash_password, require_role
 
 router = APIRouter(prefix="/api/coach", tags=["coach"])
 
@@ -45,9 +45,16 @@ def create_client(
     w każdej chwili cofnąć."""
     email = body.client_email.lower()
     existing = db.query(User).filter(User.email == email).one_or_none()
+    new_account = existing is None
     if existing is not None:
         client = existing
         if active_relationship(db, coach.id, client.id):
+            raise HTTPException(status_code=409, detail="Współpraca już istnieje")
+        # Istniejące konto można podpiąć wyłącznie, gdy jest aktywnym
+        # kontem KLIENTA — nie wolno tą ścieżką tworzyć „relacji" z kontem
+        # trenera/admina ani z kontem usuniętym (jedna odpowiedź 409, żeby
+        # nie ujawniać roli/statusu cudzego konta).
+        if client.status != "ACTIVE" or "CLIENT" not in active_roles(db, client.id):
             raise HTTPException(status_code=409, detail="Współpraca już istnieje")
     else:
         client = User(
@@ -77,27 +84,54 @@ def create_client(
                      "display_name": client.display_name},
             summary=f"Rejestracja tożsamości klienta {client.display_name}",
         )
-    rel = CoachClientRelationship(
-        id=new_id("REL"), coach_id=coach.id, client_id=client.id, created_by=coach.id
+    # Relacja i wątek są unikalne per para trener–klient: wznowienie po
+    # PAUSED/ENDED reaktywuje istniejący wiersz (bez duplikatów).
+    rel = (
+        db.query(CoachClientRelationship)
+        .filter_by(coach_id=coach.id, client_id=client.id)
+        .one_or_none()
     )
-    db.add(rel)
-    db.add(MessageThread(id=new_id("THR"), coach_id=coach.id, client_id=client.id))
-    ConsentService.grant(
-        db,
-        subject_id=client.id,
-        grantee_id=coach.id,
-        purpose=CONSENT_PURPOSE,
-        domain=CONSENT_DOMAIN,
-        actions="read,write",
-        allow_sensitive=True,
+    if rel is None:
+        rel = CoachClientRelationship(
+            id=new_id("REL"), coach_id=coach.id, client_id=client.id, created_by=coach.id
+        )
+        db.add(rel)
+    else:
+        rel.status = "ACTIVE"
+        rel.ended_at = None
+    thread = (
+        db.query(MessageThread)
+        .filter_by(coach_id=coach.id, client_id=client.id)
+        .one_or_none()
     )
+    if thread is None:
+        db.add(MessageThread(id=new_id("THR"), coach_id=coach.id, client_id=client.id))
+    if new_account:
+        # Deklarację zgody z onboardingu wolno zarejestrować wyłącznie dla
+        # konta zakładanego właśnie przez trenera. Dla ISTNIEJĄCEGO konta
+        # zgody nie nadaje nikt poza podmiotem danych — klient nadaje ją
+        # sam w aplikacji (POST /api/me/consents); do tego czasu trener
+        # widzi relację z consent_active=false i nie ma dostępu do danych.
+        ConsentService.grant(
+            db,
+            subject_id=client.id,
+            grantee_id=coach.id,
+            purpose=CONSENT_PURPOSE,
+            domain=CONSENT_DOMAIN,
+            actions="read,write",
+            allow_sensitive=True,
+        )
     record_event(
         db,
         action="RELATIONSHIP_STARTED",
         actor_id=coach.id,
         subject_ids=[client.id],
-        payload={"relationship_id": rel.id, "coach_id": coach.id,
-                 "consent_collected_via": "onboarding_declaration"},
+        payload={
+            "relationship_id": rel.id, "coach_id": coach.id,
+            "consent_collected_via": (
+                "onboarding_declaration" if new_account else "pending_subject_grant"
+            ),
+        },
         summary=f"Start współpracy: {coach.display_name} ↔ {client.display_name}",
     )
     db.commit()
