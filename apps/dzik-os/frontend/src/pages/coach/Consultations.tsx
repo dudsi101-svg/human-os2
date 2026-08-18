@@ -42,11 +42,15 @@ export default function Consultations() {
   }
 
   async function cancel(id: string) {
-    await api.post(`/api/coach/consult-slots/${id}/cancel`);
-    load();
+    try {
+      await api.post(`/api/coach/consult-slots/${id}/cancel`);
+      load();
+    } catch (err) {
+      setError((err as Error).message);
+    }
   }
 
-  if (error && !slots) return <div className="page"><ErrorBox error={error} /></div>;
+  if (error && !slots) return <div className="page"><ErrorBox error={error} onRetry={load} /></div>;
   if (!slots) return <div className="page"><Spinner /></div>;
 
   // starts_at to naiwny czas LOKALNY — porównanie z czasem UTC

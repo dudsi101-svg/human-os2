@@ -1,10 +1,11 @@
-import { ReactNode, useEffect, useState } from "react";
+import { Component, ErrorInfo, ReactNode, useEffect, useState } from "react";
 import { NavLink } from "react-router-dom";
 import {
   api, ApiError, AuthSessionRow, fetchFile, fetchFileBlob, fetchFileUrl,
-  getMfaStatus, getToken, getUser, listSecurityEvents, listSessions, logout, MfaStatus,
-  mfaDisable, mfaEnable, mfaRegenerateRecoveryCodes, mfaSetup, openBlobInNewTab,
-  revokeOtherSessions, revokeSession, saveBlobAs, SecurityEventRow, setSession,
+  getMfaStatus, getToken, getUser, isCancel, listSecurityEvents, listSessions,
+  logout, MfaStatus, mfaDisable, mfaEnable, mfaRegenerateRecoveryCodes, mfaSetup,
+  openBlobInNewTab, reportFrontendError, revokeOtherSessions, revokeSession,
+  saveBlobAs, SecurityEventRow, setSession,
 } from "./api";
 import { plDate, plDateTime } from "./dates";
 import { applyUpdate, onUpdateAvailable } from "./pwa";
@@ -163,13 +164,78 @@ export function TopBar({ title, right }: { title: string; right?: ReactNode }) {
   );
 }
 
-export function ErrorBox({ error }: { error: string | null }) {
+export function ErrorBox({ error, onRetry }: {
+  error: string | null;
+  /** Podane = błąd odwracalny: pokazujemy przycisk „Spróbuj ponownie". */
+  onRetry?: () => void;
+}) {
   if (!error) return null;
-  return <div className="alert alert--error">{error}</div>;
+  return (
+    <div className="alert alert--error" role="alert">
+      {error}
+      {onRetry && (
+        <div style={{ marginTop: 8 }}>
+          <button type="button" className="btn btn--ghost btn--small" onClick={onRetry}>
+            Spróbuj ponownie
+          </button>
+        </div>
+      )}
+    </div>
+  );
 }
 
 export function Spinner() {
   return <p className="dim">Wczytywanie…</p>;
+}
+
+/** Granica błędów React: awaria renderowania nie wygasza całej aplikacji
+ * na biało. Błąd jest raportowany do backendu w formie zredagowanej
+ * (typ + komponent + pliki własne — nigdy treść danych, patrz
+ * reportFrontendError), a użytkownik dostaje czytelny ekran z możliwością
+ * ponowienia. Montowana globalnie (main.tsx) i per trasa (App.tsx —
+ * key=pathname resetuje granicę przy nawigacji). */
+export class ErrorBoundary extends Component<
+  { children: ReactNode; scope: string },
+  { failed: boolean }
+> {
+  state = { failed: false };
+
+  static getDerivedStateFromError(): { failed: boolean } {
+    return { failed: true };
+  }
+
+  componentDidCatch(error: Error, info: ErrorInfo) {
+    // componentStack zawiera tylko nazwy komponentów (bez danych) — bierzemy
+    // pierwszy wpis jako wskazówkę miejsca awarii.
+    const top = (info.componentStack ?? "")
+      .split("\n")
+      .map((l) => l.trim())
+      .find((l) => l.startsWith("at "));
+    reportFrontendError(error, `${this.props.scope}:${top ?? "?"}`);
+  }
+
+  render() {
+    if (!this.state.failed) return this.props.children;
+    return (
+      <div className="page">
+        <div className="card">
+          <h3>Coś poszło nie tak</h3>
+          <p className="dim">
+            Ten widok napotkał nieoczekiwany błąd. Twoje dane są bezpieczne —
+            spróbuj ponownie albo wróć do ekranu głównego.
+          </p>
+          <div className="row" style={{ gap: 8 }}>
+            <button className="btn btn--small" onClick={() => this.setState({ failed: false })}>
+              Spróbuj ponownie
+            </button>
+            <a className="btn btn--ghost btn--small" href="/">
+              Ekran główny
+            </a>
+          </div>
+        </div>
+      </div>
+    );
+  }
 }
 
 /** Numerowany nagłówek sekcji formularza/przeglądu — dzieli treść na
@@ -221,6 +287,7 @@ export function SessionsCard() {
   const [busy, setBusy] = useState(false);
 
   const load = () => {
+    setError(null);
     listSessions().then((d) => setSessions(d.sessions)).catch((e) => setError(e.message));
   };
   useEffect(() => { load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -260,8 +327,8 @@ export function SessionsCard() {
         Urządzenia zalogowane na Twoje konto. Jeśli widzisz sesję, której nie
         rozpoznajesz — zakończ ją i zmień hasło.
       </p>
-      <ErrorBox error={error} />
-      {!sessions && <Spinner />}
+      <ErrorBox error={error} onRetry={load} />
+      {!sessions && !error && <Spinner />}
       {sessions?.map((s) => (
         <div className="exercise" key={s.id}>
           <div>
@@ -582,19 +649,35 @@ export function FileDownloadButton({ fileId, filename, label = "Pobierz", openIn
   );
 }
 
-/** Miniaturka zdjęcia pobieranego przez uwierzytelnione API. */
+/** Miniaturka zdjęcia pobieranego przez uwierzytelnione API. Zmiana fileId
+ * anuluje poprzednie pobranie (spóźniona odpowiedź nie nadpisze nowego
+ * zdjęcia), a błąd jest widoczny zamiast pustego kwadratu bez wyjaśnienia. */
 export function AuthImage({ fileId, alt }: { fileId: string; alt: string }) {
   const [url, setUrl] = useState<string | null>(null);
+  const [failed, setFailed] = useState(false);
   useEffect(() => {
+    const ac = new AbortController();
     let revoke: string | null = null;
-    fetchFileUrl(fileId).then((u) => {
+    setUrl(null);
+    setFailed(false);
+    fetchFileUrl(fileId, { signal: ac.signal }).then((u) => {
       revoke = u;
       setUrl(u);
-    }).catch(() => setUrl(null));
+    }).catch((e) => {
+      if (!isCancel(e)) setFailed(true);
+    });
     return () => {
+      ac.abort();
       if (revoke) URL.revokeObjectURL(revoke);
     };
   }, [fileId]);
+  if (failed) {
+    return (
+      <div className="stat" style={{ aspectRatio: "3/4", display: "grid", placeItems: "center" }}>
+        <small role="alert" className="dim">Nie udało się wczytać zdjęcia</small>
+      </div>
+    );
+  }
   if (!url) return <div className="stat" style={{ aspectRatio: "3/4" }} />;
   return <img src={url} alt={alt} />;
 }
@@ -609,7 +692,12 @@ export function PushNotificationsCard() {
       if (!push.pushSupported()) return setState("unsupported");
       const sub = await push.currentSubscription();
       setState(sub ? "on" : "off");
-    }).catch(() => setState("unsupported"));
+    }).catch(() =>
+      // Świadome zignorowanie szczegółów: brak modułu push / brak service
+      // workera / stara przeglądarka — z punktu widzenia użytkownika to
+      // dokładnie stan „nieobsługiwane" i taki komunikat widzi na karcie.
+      setState("unsupported")
+    );
   }, []);
 
   async function toggle() {
@@ -722,19 +810,22 @@ export function AuthAttachment({ fileId, filename }: { fileId: string; filename?
   const [state, setState] = useState<{ url: string; type: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
   useEffect(() => {
+    const ac = new AbortController();
     let revoke: string | null = null;
     setError(null);
-    fetchFileBlob(fileId)
+    fetchFileBlob(fileId, { signal: ac.signal })
       .then((blob) => {
         const url = URL.createObjectURL(blob);
         revoke = url;
         setState({ url, type: blob.type });
       })
       .catch((e) => {
+        if (isCancel(e)) return; // zmiana załącznika — nie pokazuj błędu
         setState(null);
         setError(downloadErrorMessage(e));
       });
     return () => {
+      ac.abort();
       if (revoke) URL.revokeObjectURL(revoke);
     };
   }, [fileId]);
@@ -814,14 +905,31 @@ export function Sparkline({ points, unit }: { points: { x: string; y: number }[]
 export function StrengthChartsCard({ clientId }: { clientId: string }) {
   const [series, setSeries] = useState<StrengthSeriesRow[] | null>(null);
   const [exercise, setExercise] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [attempt, setAttempt] = useState(0);
   useEffect(() => {
-    api.get<{ series: StrengthSeriesRow[] }>(`/api/clients/${clientId}/strength-series`)
+    const ac = new AbortController();
+    setError(null);
+    api.get<{ series: StrengthSeriesRow[] }>(
+      `/api/clients/${clientId}/strength-series`, { signal: ac.signal }
+    )
       .then((d) => {
         setSeries(d.series);
         if (d.series.length > 0) setExercise(d.series[0].exercise_name);
       })
-      .catch(() => setSeries([]));
-  }, [clientId]);
+      .catch((e) => {
+        if (!isCancel(e)) setError(e.message);
+      });
+    return () => ac.abort();
+  }, [clientId, attempt]);
+  if (error) {
+    return (
+      <div className="card">
+        <h3>Siła w czasie</h3>
+        <ErrorBox error={error} onRetry={() => setAttempt((a) => a + 1)} />
+      </div>
+    );
+  }
   if (!series || series.length === 0) return null;
   const row = series.find((s) => s.exercise_name === exercise) ?? series[0];
   const enough = row.points.length >= 2;
@@ -868,12 +976,29 @@ export function StrengthChartsCard({ clientId }: { clientId: string }) {
 
 export function PersonalRecordsCard({ clientId }: { clientId: string }) {
   const [data, setData] = useState<PersonalRecordsData | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [attempt, setAttempt] = useState(0);
   useEffect(() => {
-    api.get<PersonalRecordsData>(`/api/clients/${clientId}/personal-records`)
+    const ac = new AbortController();
+    setError(null);
+    api.get<PersonalRecordsData>(
+      `/api/clients/${clientId}/personal-records`, { signal: ac.signal }
+    )
       .then(setData)
-      .catch(() => undefined);
-  }, [clientId]);
+      .catch((e) => {
+        if (!isCancel(e)) setError(e.message);
+      });
+    return () => ac.abort();
+  }, [clientId, attempt]);
 
+  if (error) {
+    return (
+      <div className="card">
+        <h3>🏆 Rekordy osobiste</h3>
+        <ErrorBox error={error} onRetry={() => setAttempt((a) => a + 1)} />
+      </div>
+    );
+  }
   if (!data || (data.records.length === 0 && data.since_start.length === 0)) return null;
 
   return (

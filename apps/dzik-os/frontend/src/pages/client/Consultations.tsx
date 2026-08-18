@@ -17,6 +17,7 @@ export default function Consultations() {
   const [busy, setBusy] = useState<string | null>(null);
 
   const load = useCallback(() => {
+    setError(null);
     api.get<{ open: ConsultSlotRow[]; booked: ConsultSlotRow[] }>("/api/me/consult-slots")
       .then(setData)
       .catch((e) => setError(e.message));
@@ -49,7 +50,7 @@ export default function Consultations() {
     }
   }
 
-  if (error && !data) return <div className="page"><ErrorBox error={error} /></div>;
+  if (error && !data) return <div className="page"><ErrorBox error={error} onRetry={load} /></div>;
   if (!data) return <div className="page"><Spinner /></div>;
 
   return (

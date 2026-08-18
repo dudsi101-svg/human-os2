@@ -54,9 +54,15 @@ def _rows(db: Session, model, **filters) -> list[dict]:
         for key in ("payload_json", "content_json"):
             if key in d and isinstance(d[key], str):
                 try:
-                    d[key.removesuffix("_json")] = json.loads(d.pop(key))
+                    parsed = json.loads(d[key])
                 except (ValueError, TypeError):
-                    pass
+                    # Świadome zignorowanie: eksport danych (prawo do
+                    # przenoszenia) musi się udać nawet przy uszkodzonym
+                    # JSON-ie w pojedynczym rekordzie — pole zostaje w
+                    # eksporcie w surowej postaci *_json zamiast znikać.
+                    continue
+                d[key.removesuffix("_json")] = parsed
+                d.pop(key)
         out.append(d)
     return out
 

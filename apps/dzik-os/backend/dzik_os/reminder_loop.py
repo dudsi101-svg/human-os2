@@ -18,6 +18,7 @@ from . import push_service
 from .dates import local_now
 from .db import db_session
 from .models import Reminder, ScheduleItem
+from .observability import exception_fields, log_json, metrics
 
 REMINDER_HOUR = "08:00"  # jednorazowe przypomnienia trenera — rano
 
@@ -96,6 +97,12 @@ async def run_reminder_loop() -> None:
             now = local_now()
             _tick(now)
             _maybe_cleanup(now)
+        # Świadome złapanie wszystkiego: pętla nie może umrzeć (przypomnienia
+        # przestałyby wychodzić po jednym błędzie przejściowym). Każdy błąd
+        # jest jednak policzony (metryka reminder_loop_errors w /api/metrics —
+        # próg alertowy w docs/OBSERVABILITY.md) i zalogowany strukturalnie
+        # (typ + ramki stosu, bez treści przypomnień ani danych klientów).
         except Exception as exc:  # noqa: BLE001 - pętla nie może umrzeć
-            print(f"[dzik-os] pętla przypomnień: {exc}")
+            metrics.inc("reminder_loop_errors")
+            log_json("reminder_loop_error", level="error", **exception_fields(exc))
         await asyncio.sleep(60)

@@ -18,7 +18,11 @@ def test_login_wrong_password_is_401_without_account_disclosure(seeded):
     r2 = seeded.post("/api/auth/login",
                      json={"email": "nie.istnieje@example.com", "password": "cokolwiek1"})
     assert r1.status_code == r2.status_code == 401
-    assert r1.json() == r2.json()
+    # request_id jest z definicji unikatowe per żądanie — poza nim odpowiedź
+    # musi być identyczna (brak ujawnienia istnienia konta).
+    b1, b2 = r1.json(), r2.json()
+    b1.pop("request_id"), b2.pop("request_id")
+    assert b1 == b2
 
 
 def test_login_rate_limit(seeded):

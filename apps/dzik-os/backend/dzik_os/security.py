@@ -176,6 +176,9 @@ def current_user(request: Request, db: Session = Depends(get_db)) -> User:
     user = db.get(User, row.user_id)
     if user is None or user.status != "ACTIVE":
         raise HTTPException(status_code=401, detail="Konto nieaktywne")
+    # Bezpieczny identyfikator do logu strukturalnego żądania (id, nigdy
+    # e-mail) — czytany przez RequestObservabilityMiddleware.
+    request.state.user_id = user.id
     # Znacznik ostatniego użycia sesji (ekran aktywnych sesji). Rozdzielczość
     # ~5 min: zapis nie przy każdym żądaniu, tylko gdy poprzedni znacznik jest
     # starszy — commit tutaj jest bezpieczny (pierwsza operacja żądania,

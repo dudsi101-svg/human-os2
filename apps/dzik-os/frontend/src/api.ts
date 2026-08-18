@@ -2,6 +2,13 @@
 // bezpieczeństwa — każde żądanie jest autoryzowane po stronie Core/backendu
 // (kontrakt ADR-ARCH-003: UI -> Request -> Core -> Receipt -> UI).
 
+import {
+  classifyFetchFailure,
+  errorTypeName,
+  filenameFromDisposition,
+  redactStack,
+} from "./errorUtils";
+
 export interface SessionUser {
   id: string;
   email: string;
@@ -38,62 +45,153 @@ export function clearSession() {
 
 export class ApiError extends Error {
   status: number;
-  constructor(status: number, detail: string) {
+  /** Stabilny kod błędu z backendu (np. "NOT_FOUND", "VALIDATION_ERROR")
+   * lub lokalny: "OFFLINE" / "TIMEOUT" / "CANCELLED". */
+  code?: string;
+  /** Identyfikator żądania (X-Request-Id) — do zgłoszenia problemu. */
+  requestId?: string;
+  constructor(status: number, detail: string, code?: string, requestId?: string) {
     super(detail);
+    this.name = "ApiError";
     this.status = status;
+    this.code = code;
+    this.requestId = requestId;
   }
+}
+
+/** Anulowanie nieaktualnego żądania (zmiana widoku/parametru) — widoki mają
+ * je IGNOROWAĆ, a nie pokazywać jako błąd. */
+export function isCancel(error: unknown): boolean {
+  return error instanceof ApiError && error.code === "CANCELLED";
 }
 
 export const OFFLINE_MESSAGE =
   "Brak połączenia z internetem. Dane wczytają się po odzyskaniu sieci.";
+export const TIMEOUT_MESSAGE =
+  "Serwer zbyt długo nie odpowiada. Sprawdź połączenie i spróbuj ponownie.";
+export const SESSION_EXPIRED_MESSAGE =
+  "Twoja sesja wygasła lub została zakończona. Zaloguj się ponownie — wrócisz do aplikacji.";
 
-/** fetch() odrzucony bez odpowiedzi HTTP = brak sieci. Zamiast surowego
- * "Failed to fetch" widoki dostają po polsku status offline (status 0) —
- * istniejące stany błędów pokazują go zamiast wiecznego spinnera. */
-async function fetchOrOffline(input: string, init: RequestInit): Promise<Response> {
+/** Limit czasu żądania: po tym czasie żądanie jest przerywane i widok
+ * dostaje czytelny błąd z możliwością ponowienia (zamiast wiecznego spinnera). */
+const REQUEST_TIMEOUT_MS = 20_000;
+
+export interface RequestOpts {
+  /** Sygnał anulowania z widoku — przerwane żądanie rzuca ApiError
+   * z code="CANCELLED" (patrz isCancel). */
+  signal?: AbortSignal;
+}
+
+/** fetch() z limitem czasu i klasyfikacją niepowodzeń bez odpowiedzi HTTP:
+ * anulowanie przez widok (CANCELLED, status 0), timeout (TIMEOUT, status 0),
+ * brak sieci (OFFLINE, status 0) — widoki pokazują polski komunikat
+ * zamiast surowego "Failed to fetch" i wiecznego spinnera. */
+async function fetchOrOffline(
+  input: string,
+  init: RequestInit,
+  signal?: AbortSignal
+): Promise<Response> {
+  const timeout = new AbortController();
+  const timer = setTimeout(() => timeout.abort(), REQUEST_TIMEOUT_MS);
+  const onCallerAbort = () => timeout.abort();
+  signal?.addEventListener("abort", onCallerAbort);
   try {
-    return await fetch(input, init);
+    return await fetch(input, { ...init, signal: timeout.signal });
   } catch {
-    throw new ApiError(0, OFFLINE_MESSAGE);
+    const kind = classifyFetchFailure(
+      signal?.aborted === true,
+      timeout.signal.aborted
+    );
+    const message =
+      kind === "CANCELLED"
+        ? "Żądanie anulowane"
+        : kind === "TIMEOUT"
+          ? TIMEOUT_MESSAGE
+          : OFFLINE_MESSAGE;
+    throw new ApiError(0, message, kind);
+  } finally {
+    clearTimeout(timer);
+    signal?.removeEventListener("abort", onCallerAbort);
   }
+}
+
+// --- Powrót do logowania po wygaśnięciu sesji -------------------------------
+// Komunikat jest zapisywany PRZED przekierowaniem i pokazywany na ekranie
+// logowania (consumeLoginNotice w Login.tsx) — użytkownik wie, co się stało.
+
+const LOGIN_NOTICE_KEY = "dzik_login_notice";
+
+function redirectToLogin(message: string) {
+  clearSession();
+  try {
+    sessionStorage.setItem(LOGIN_NOTICE_KEY, message);
+  } catch {
+    /* Świadomie: pełny/zablokowany sessionStorage nie może zablokować
+     * samego powrotu do logowania. */
+  }
+  if (!location.pathname.startsWith("/login")) location.assign("/login");
+}
+
+/** Jednorazowy komunikat dla ekranu logowania (np. „sesja wygasła"). */
+export function consumeLoginNotice(): string | null {
+  const value = sessionStorage.getItem(LOGIN_NOTICE_KEY);
+  if (value) sessionStorage.removeItem(LOGIN_NOTICE_KEY);
+  return value;
+}
+
+/** Wspólne odczytanie modelu błędu {detail, code, request_id} z odpowiedzi.
+ * Frontend NIE pokazuje szczegółów technicznych — tylko detail (bezpieczny
+ * polski komunikat z backendu) i ewentualnie request_id do zgłoszenia. */
+async function errorFromResponse(resp: Response): Promise<ApiError> {
+  let detail = `Błąd ${resp.status}`;
+  let code: string | undefined;
+  let requestId: string | undefined = resp.headers.get("X-Request-Id") ?? undefined;
+  try {
+    const data = await resp.json();
+    if (typeof data.detail === "string") detail = data.detail;
+    if (typeof data.code === "string") code = data.code;
+    if (typeof data.request_id === "string") requestId = data.request_id;
+  } catch {
+    /* Świadomie: odpowiedź bez poprawnego JSON-a (np. proxy, HTML 502) —
+     * zostaje bezpieczny fallback „Błąd <status>". */
+  }
+  return new ApiError(resp.status, detail, code, requestId);
 }
 
 async function request<T>(
   method: string,
   path: string,
   body?: unknown,
-  form?: FormData
+  form?: FormData,
+  opts?: RequestOpts
 ): Promise<T> {
   const headers: Record<string, string> = {};
   const token = getToken();
   if (token) headers["Authorization"] = `Bearer ${token}`;
   if (body !== undefined) headers["Content-Type"] = "application/json";
-  const resp = await fetchOrOffline(path, {
-    method,
-    headers,
-    body: form ?? (body !== undefined ? JSON.stringify(body) : undefined),
-    credentials: "same-origin",
-  });
+  const resp = await fetchOrOffline(
+    path,
+    {
+      method,
+      headers,
+      body: form ?? (body !== undefined ? JSON.stringify(body) : undefined),
+      credentials: "same-origin",
+    },
+    opts?.signal
+  );
   // 401 przy logowaniu to błędne dane (komunikat z serwera, bez przekierowania);
   // każde inne 401 = sesja wygasła/unieważniona — czyścimy stan i wracamy do
-  // logowania (obsługuje też wygaśnięcie sesji w innej karcie).
+  // logowania z czytelnym komunikatem (obsługuje też wygaśnięcie w innej karcie).
   if (resp.status === 401 && path !== "/api/auth/login") {
-    clearSession();
-    if (!location.pathname.startsWith("/login")) location.assign("/login");
-    throw new ApiError(401, "Sesja wygasła");
+    redirectToLogin(SESSION_EXPIRED_MESSAGE);
+    throw new ApiError(401, SESSION_EXPIRED_MESSAGE, "UNAUTHORIZED");
   }
   if (!resp.ok) {
-    let detail = `Błąd ${resp.status}`;
-    try {
-      const data = await resp.json();
-      if (typeof data.detail === "string") detail = data.detail;
-    } catch {
-      /* ignore */
-    }
-    if (detail === "PASSWORD_CHANGE_REQUIRED" && location.pathname !== "/haslo") {
+    const error = await errorFromResponse(resp);
+    if (error.message === "PASSWORD_CHANGE_REQUIRED" && location.pathname !== "/haslo") {
       location.assign("/haslo");
     }
-    throw new ApiError(resp.status, detail);
+    throw error;
   }
   const ct = resp.headers.get("content-type") || "";
   if (ct.includes("application/json")) return (await resp.json()) as T;
@@ -101,13 +199,16 @@ async function request<T>(
 }
 
 export const api = {
-  get: <T>(path: string) => request<T>("GET", path),
-  post: <T>(path: string, body?: unknown) => request<T>("POST", path, body),
-  put: <T>(path: string, body?: unknown) => request<T>("PUT", path, body),
-  upload: <T>(path: string, file: File) => {
+  get: <T>(path: string, opts?: RequestOpts) =>
+    request<T>("GET", path, undefined, undefined, opts),
+  post: <T>(path: string, body?: unknown, opts?: RequestOpts) =>
+    request<T>("POST", path, body, undefined, opts),
+  put: <T>(path: string, body?: unknown, opts?: RequestOpts) =>
+    request<T>("PUT", path, body, undefined, opts),
+  upload: <T>(path: string, file: File, opts?: RequestOpts) => {
     const form = new FormData();
     form.append("file", file);
-    return request<T>("POST", path, undefined, form);
+    return request<T>("POST", path, undefined, form, opts);
   },
 };
 
@@ -258,42 +359,24 @@ export interface FetchedFile {
   filename: string | null;
 }
 
-function filenameFromDisposition(header: string | null): string | null {
-  if (!header) return null;
-  const star = /filename\*=UTF-8''([^;]+)/i.exec(header);
-  if (star) {
-    try {
-      return decodeURIComponent(star[1].trim());
-    } catch {
-      /* uszkodzone kodowanie — spróbuj zwykłego filename */
-    }
-  }
-  const plain = /filename="?([^";]+)"?/i.exec(header);
-  return plain ? plain[1].trim() : null;
-}
-
-export async function fetchFile(fileId: string): Promise<FetchedFile> {
+export async function fetchFile(
+  fileId: string,
+  opts?: RequestOpts
+): Promise<FetchedFile> {
   const headers: Record<string, string> = {};
   const token = getToken();
   if (token) headers["Authorization"] = `Bearer ${token}`;
-  const resp = await fetchOrOffline(`/api/files/${encodeURIComponent(fileId)}`, {
-    headers,
-    credentials: "same-origin",
-  });
+  const resp = await fetchOrOffline(
+    `/api/files/${encodeURIComponent(fileId)}`,
+    { headers, credentials: "same-origin" },
+    opts?.signal
+  );
   if (resp.status === 401) {
-    clearSession();
-    if (!location.pathname.startsWith("/login")) location.assign("/login");
-    throw new ApiError(401, "Sesja wygasła");
+    redirectToLogin(SESSION_EXPIRED_MESSAGE);
+    throw new ApiError(401, SESSION_EXPIRED_MESSAGE, "UNAUTHORIZED");
   }
   if (!resp.ok) {
-    let detail = `Błąd ${resp.status}`;
-    try {
-      const data = await resp.json();
-      if (typeof data.detail === "string") detail = data.detail;
-    } catch {
-      /* ignore */
-    }
-    throw new ApiError(resp.status, detail);
+    throw await errorFromResponse(resp);
   }
   return {
     blob: await resp.blob(),
@@ -301,13 +384,49 @@ export async function fetchFile(fileId: string): Promise<FetchedFile> {
   };
 }
 
-export async function fetchFileBlob(fileId: string): Promise<Blob> {
-  return (await fetchFile(fileId)).blob;
+export async function fetchFileBlob(fileId: string, opts?: RequestOpts): Promise<Blob> {
+  return (await fetchFile(fileId, opts)).blob;
 }
 
-export async function fetchFileUrl(fileId: string): Promise<string> {
-  const blob = await fetchFileBlob(fileId);
+export async function fetchFileUrl(fileId: string, opts?: RequestOpts): Promise<string> {
+  const blob = await fetchFileBlob(fileId, opts);
   return URL.createObjectURL(blob);
+}
+
+// --- Raportowanie błędów JS do backendu -------------------------------------
+// Wysyłamy WYŁĄCZNIE: typ błędu, etykietę komponentu/miejsca i stos
+// zredagowany do nazw własnych plików (patrz errorUtils.redactStack) —
+// nigdy komunikatów, URL-i, treści formularzy ani danych. Backend redaguje
+// to samo drugi raz i tylko zlicza + loguje (bez trwałej treści).
+
+let reportTimestamps: number[] = [];
+
+export function reportFrontendError(error: unknown, component: string): void {
+  try {
+    const now = Date.now();
+    reportTimestamps = reportTimestamps.filter((t) => now - t < 60_000);
+    if (reportTimestamps.length >= 5) return; // limit kliencki 5/min
+    reportTimestamps.push(now);
+    const payload = {
+      type: errorTypeName(error),
+      component: component.slice(0, 160),
+      stack: redactStack(error instanceof Error ? error.stack : null).join("\n") || null,
+    };
+    // Celowo surowy fetch (nie request()): raportowanie nie może wpaść w
+    // pętlę własnej obsługi błędów ani przekierowań 401.
+    void fetch("/api/telemetry/frontend-errors", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+      credentials: "same-origin",
+      keepalive: true,
+    }).catch(() => {
+      /* Świadomie zignorowane: raportowanie błędów jest best-effort —
+       * jego awaria (offline, 429) nie może generować kolejnych błędów. */
+    });
+  } catch {
+    /* Świadomie zignorowane: jak wyżej — telemetrii nie wolno wywrócić UI. */
+  }
 }
 
 function clickBlobAnchor(blob: Blob, configure: (a: HTMLAnchorElement) => void) {

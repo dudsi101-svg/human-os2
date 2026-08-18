@@ -14,12 +14,17 @@ export default function Today() {
   const [nextConsult, setNextConsult] = useState<ConsultSlotRow | null>(null);
   const user = getUser();
 
-  const load = () =>
+  const load = () => {
+    setError(null);
     api.get<TodayData>("/api/me/today").then(setData).catch((e) => setError(e.message));
+  };
   useEffect(() => {
     load();
     if (user) {
       // Pusty profil = świeże konto — zaproś do wywiadu startowego.
+      // Świadome zignorowanie błędu (obie karty poniżej): to opcjonalne
+      // PODPOWIEDZI nad właściwym widokiem — przy awarii znikają, a błąd
+      // głównych danych i tak pokaże ekran błędu z /api/me/today.
       api.get<{ fields: unknown[] }>(`/api/clients/${user.id}/profile`)
         .then((d) => setNeedsIntake(d.fields.length === 0))
         .catch(() => undefined);
@@ -63,7 +68,7 @@ export default function Today() {
     }
   }
 
-  if (error) return <div className="page"><ErrorBox error={error} /></div>;
+  if (error) return <div className="page"><ErrorBox error={error} onRetry={load} /></div>;
   if (!data) return <div className="page"><Spinner /></div>;
 
   return (

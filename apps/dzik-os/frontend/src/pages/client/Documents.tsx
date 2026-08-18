@@ -11,14 +11,19 @@ export default function Documents() {
   const [schedule, setSchedule] = useState<ScheduleItem[]>([]);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const load = () => {
+    setError(null);
     api.get<{ documents: DocumentRow[] }>(`/api/clients/${user.id}/documents`)
       .then((d) => setDocs(d.documents)).catch((e) => setError(e.message));
+    // Harmonogram to druga sekcja tej strony — jego błąd też jest widoczny
+    // (wcześniej znikał bez śladu).
     api.get<{ items: ScheduleItem[] }>(`/api/clients/${user.id}/schedule`)
-      .then((d) => setSchedule(d.items)).catch(() => undefined);
-  }, [user.id]);
+      .then((d) => setSchedule(d.items))
+      .catch((e) => setError(`Nie udało się wczytać harmonogramu. ${e.message}`));
+  };
+  useEffect(() => { load(); }, [user.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (error) return <div className="page"><ErrorBox error={error} /></div>;
+  if (error) return <div className="page"><ErrorBox error={error} onRetry={load} /></div>;
   if (!docs) return <div className="page"><Spinner /></div>;
 
   return (

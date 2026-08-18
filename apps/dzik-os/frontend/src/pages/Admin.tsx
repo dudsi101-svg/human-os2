@@ -20,19 +20,27 @@ export default function Admin() {
   const [chain, setChain] = useState<boolean | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const load = () => {
+    setError(null);
     api.get<{ users: UserRow[] }>("/api/admin/users")
       .then((d) => setUsers(d.users)).catch((e) => setError(e.message));
+    // Pokwitowania audytu to osobna sekcja — błąd jest widoczny, nie cichy.
     api.get<{ receipts: ReceiptRow[] }>("/api/admin/receipts?limit=50")
-      .then((d) => setReceipts(d.receipts)).catch(() => undefined);
-  }, []);
+      .then((d) => setReceipts(d.receipts))
+      .catch((e) => setError(`Nie udało się wczytać pokwitowań audytu. ${e.message}`));
+  };
+  useEffect(() => { load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function verify() {
-    const r = await api.get<{ chain_valid: boolean }>("/api/admin/audit/verify");
-    setChain(r.chain_valid);
+    try {
+      const r = await api.get<{ chain_valid: boolean }>("/api/admin/audit/verify");
+      setChain(r.chain_valid);
+    } catch (e) {
+      setError(`Weryfikacja łańcucha nie powiodła się. ${(e as Error).message}`);
+    }
   }
 
-  if (error) return <div className="page"><ErrorBox error={error} /></div>;
+  if (error) return <div className="page"><ErrorBox error={error} onRetry={load} /></div>;
   if (!users) return <div className="page"><Spinner /></div>;
 
   return (

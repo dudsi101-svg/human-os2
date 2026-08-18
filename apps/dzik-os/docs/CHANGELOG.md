@@ -1,5 +1,73 @@
 # Changelog — Dzik OS
 
+## 0.13.0 — 2026-08-18
+
+Obsługa błędów i obserwowalność: **koniec cichych awarii** (bez zmian
+schematu bazy — zarezerwowana migracja nr 12 nie była potrzebna).
+Szczegóły i progi alertowe: `docs/OBSERVABILITY.md`.
+
+* Wspólny model błędów API: `{detail, code, request_id[, errors]}` —
+  `detail` pozostaje bezpiecznym polskim komunikatem (kompatybilność
+  z frontendem i testami), `code` to stabilny kod (`NOT_FOUND`,
+  `VALIDATION_ERROR`, `RATE_LIMITED`…), `request_id` wraca też w nagłówku
+  `X-Request-Id` każdej odpowiedzi. Globalne handlery FastAPI:
+  `HTTPException`, `RequestValidationError` (422 z listą pól, celowo BEZ
+  pydanticowego `input` — wartość mogłaby być daną zdrowotną) oraz
+  `ErrorEnvelopeMiddleware` dla nieobsłużonych wyjątków (500 bez stack
+  trace/SQL/komunikatów wewnętrznych; nagłówki bezpieczeństwa i no-store
+  obejmują też 500). Handler `ResourceAccessDenied` z P3 bez zmian
+  (nadal 404 + audyt ACCESS_DENIED, teraz też licznik w metrykach).
+* Strukturalne logi backendu (stdout, JSON): request id, metoda + SZABLON
+  ścieżki (`/api/clients/{client_id}/...` — nigdy surowe id), status, czas
+  odpowiedzi, bezpieczny identyfikator użytkownika (id, nie e-mail).
+  Redakcja obowiązkowa: zero danych zdrowotnych, treści wiadomości,
+  e-maili, tokenów, endpointów push; wyjątki logowane jako typ + ramki
+  stosu `plik:linia:funkcja` BEZ komunikatu (komunikaty ORM potrafią nieść
+  parametry SQL). `print()` w push/pętli/seed/audycie zastąpione logiem
+  strukturalnym; log e-maili nie zawiera już tematu wiadomości.
+* Monitoring: `GET /api/metrics` (tylko ADMIN) — liczniki 2xx/4xx/5xx,
+  percentyle czasu odpowiedzi p50/p95/p99 (okno 1000 żądań), błędy pętli
+  przypomnień, nieudane pushe, nieobsłużone wyjątki, odmowy dostępu,
+  awarie zapisu audytu. `GET /api/ready` (readiness: baza + zapisywalność
+  katalogu uploadów, 503 gdy nie; bez sekretów) obok istniejącego
+  `/api/health`. Progi alertowe opisane w `docs/OBSERVABILITY.md`
+  (dokument + metryki, bez zewnętrznych integracji).
+* Błędy JS frontendu: `POST /api/telemetry/frontend-errors` (dostępny bez
+  logowania, rate limit 10/min/IP + 120/min globalnie + 5/min klientowo) —
+  przyjmuje wyłącznie typ błędu, etykietę komponentu/trasy (id maskowane
+  do `{id}`) i stos zredagowany do `plik.js:linia:kolumna`; serwer redaguje
+  ponownie (defense in depth) i przechowuje tylko licznik + linię logu.
+  Podpięte: globalny i per-trasa `ErrorBoundary` (koniec białego ekranu
+  po awarii renderowania — czytelny ekran z „Spróbuj ponownie"),
+  `window.onerror`, `unhandledrejection`.
+* Frontend — koniec ukrytych `.catch(() => undefined)` (ok. 20 miejsc):
+  sekcje pomocnicze (historia treningów, cele, zgody, zdjęcia, monitoring,
+  statystyki trenera, pokwitowania, harmonogram, wersje planów, rekordy,
+  wykresy siły) pokazują błąd z przyciskiem „Spróbuj ponownie" zamiast
+  cicho znikać; nieobsłużone `await` w akcjach (cele, płatności, statusy,
+  ocena raportu, weryfikacja audytu, eksporty) dostały obsługę błędów.
+  Świadome wyjątki pozostały wyłącznie z komentarzem uzasadniającym
+  (karty-podpowiedzi na „Dzisiaj", fail-open bramy zgód — egzekwowanie
+  zgód i tak w backendzie, best-effort telemetrii/push/service workera).
+* Klient API: timeout żądań 20 s (AbortController) z komunikatem po polsku,
+  klasyfikacja offline/timeout/anulowanie (`ApiError.code`), anulowanie
+  nieaktualnych żądań przy zmianie widoku/parametru (wątek wiadomości,
+  karta klienta, miniatury i załączniki plików, wykresy — spóźniona
+  odpowiedź nie nadpisze cudzych danych), 401 → powrót do logowania
+  z jednorazowym komunikatem „sesja wygasła" na ekranie logowania.
+  Błąd zapisu NIE czyści formularza (trening, cel, ocena raportu —
+  komunikat przy formularzu, dane zostają).
+* Backend — każdy `except: pass` przejrzany: świadome zignorowania mają
+  komentarz uzasadniający (daty historyczne w monitoringu, uszkodzony JSON
+  w eksporcie — pole zostaje w surowej postaci zamiast znikać, uszkodzone
+  serie w rekordach); pętla przypomnień i push liczą błędy w metrykach.
+* Testy: backend 232 → 250 (kształt modelu błędu dla 401/403/404/409/422/
+  429/500, request id, redakcja logów i raportów JS, maskowanie ścieżek,
+  metryki, readiness, rate limit telemetrii, IDOR w nowym kształcie);
+  frontend: `npm run test:helpers` (Node, bez nowych zależności) — logika
+  timeout/anulowanie/offline, redakcja stosu, maskowanie id w trasach,
+  nazwy plików z Content-Disposition.
+
 ## 0.12.0 — 2026-08-18
 
 Runda tożsamości: **zaproszenia z aktywacją konta, bezpieczny reset hasła

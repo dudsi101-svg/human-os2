@@ -37,10 +37,11 @@ class NullNotificationProvider:
     name = "null"
 
     def send_email(self, *, to: str, subject: str, body: str) -> bool:
-        print(
-            f"[dzik-os] Powiadomienie e-mail pominięte (brak skonfigurowanego "
-            f"dostawcy): temat='{subject[:60]}'"
-        )
+        # Log strukturalny BEZ adresu, tematu i treści (temat potrafi
+        # zdradzać kontekst zdrowotny) — wyłącznie fakt pominięcia.
+        from .observability import log_json
+
+        log_json("email_skipped_no_provider", level="info")
         return False
 
 

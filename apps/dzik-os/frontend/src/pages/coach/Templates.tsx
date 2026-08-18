@@ -18,7 +18,7 @@ export default function Templates() {
   };
   useEffect(load, []);
 
-  if (error) return <div className="page"><ErrorBox error={error} /></div>;
+  if (error) return <div className="page"><ErrorBox error={error} onRetry={load} /></div>;
   if (!templates) return <div className="page"><Spinner /></div>;
 
   return (

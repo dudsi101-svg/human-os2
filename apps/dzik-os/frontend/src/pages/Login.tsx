@@ -1,5 +1,5 @@
 import { FormEvent, useState } from "react";
-import { ApiError, login, SessionUser, verifyMfa } from "../api";
+import { ApiError, consumeLoginNotice, login, SessionUser, verifyMfa } from "../api";
 import { ErrorBox } from "../components";
 
 export default function Login() {
@@ -9,6 +9,9 @@ export default function Login() {
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  // Powód powrotu do logowania (np. wygaśnięcie sesji) — jednorazowy
+  // komunikat zapisany przed przekierowaniem w api.ts.
+  const [notice] = useState(consumeLoginNotice);
 
   function goHome(user: SessionUser) {
     if (user.must_change_password) {
@@ -87,6 +90,7 @@ export default function Login() {
             </>
           )}
         </div>
+        {notice && <div className="alert alert--info" role="status">{notice}</div>}
         {!mfaToken && (
           <form onSubmit={submit} className="card">
             <label htmlFor="email">E-mail</label>

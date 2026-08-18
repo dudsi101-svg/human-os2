@@ -1,6 +1,6 @@
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
-import { api, getUser } from "../api";
+import { api, getUser, isCancel } from "../api";
 import { plDateTime } from "../dates";
 import { AuthAttachment, ErrorBox, Spinner, TopBar } from "../components";
 import { MessageRow } from "../types";
@@ -27,15 +27,27 @@ export default function Thread() {
     if (filePreviewUrl) URL.revokeObjectURL(filePreviewUrl);
   }, [filePreviewUrl]);
 
-  const load = () =>
-    api.get<{ messages: MessageRow[] }>(`/api/threads/${threadId}/messages`)
+  const load = (signal?: AbortSignal) => {
+    setError(null);
+    return api.get<{ messages: MessageRow[] }>(
+      `/api/threads/${threadId}/messages`, { signal }
+    )
       .then((d) => {
         setMessages(d.messages);
         setTimeout(() => bottom.current?.scrollIntoView(), 50);
       })
-      .catch((e) => setError(e.message));
+      .catch((e) => {
+        // Zmiana wątku anuluje poprzednie pobranie — spóźniona odpowiedź
+        // nie może nadpisać nowego wątku ani pokazać mylącego błędu.
+        if (!isCancel(e)) setError(e.message);
+      });
+  };
 
-  useEffect(() => { load(); }, [threadId]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    const ac = new AbortController();
+    load(ac.signal);
+    return () => ac.abort();
+  }, [threadId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function startRecording() {
     setError(null);
@@ -88,7 +100,9 @@ export default function Thread() {
     }
   }
 
-  if (error && !messages) return <div className="page"><ErrorBox error={error} /></div>;
+  if (error && !messages) {
+    return <div className="page"><ErrorBox error={error} onRetry={() => load()} /></div>;
+  }
   if (!messages) return <div className="page"><Spinner /></div>;
 
   return (

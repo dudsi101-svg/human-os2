@@ -74,14 +74,17 @@ export default function Clients() {
   const [invitation, setInvitation] = useState<InvitationInfo | null>(null);
 
   const load = () => {
+    setError(null);
     api.get<{ clients: CoachClientRow[] }>("/api/coach/clients")
       .then((d) => setClients(d.clients))
       .catch((e) => setError(e.message));
+    // Panel statystyk to sekcja pomocnicza — błąd jest widoczny w ErrorBoxie
+    // strony (z ponowieniem), zamiast cicho chować statystyki.
     api.get<CoachDashboardData>("/api/coach/dashboard")
       .then(setDashboard)
-      .catch(() => undefined);
+      .catch((e) => setError(`Nie udało się wczytać statystyk. ${e.message}`));
   };
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function createClient(e: FormEvent) {
     e.preventDefault();
@@ -121,7 +124,7 @@ export default function Clients() {
     }
   }
 
-  if (error && !clients) return <div className="page"><ErrorBox error={error} /></div>;
+  if (error && !clients) return <div className="page"><ErrorBox error={error} onRetry={load} /></div>;
   if (!clients) return <div className="page"><Spinner /></div>;
 
   const filtered = clients.filter((c) => {
@@ -141,7 +144,7 @@ export default function Clients() {
   return (
     <div className="page page--wide">
       <TopBar title="Klienci" right={<LogoutButton />} />
-      <ErrorBox error={error} />
+      <ErrorBox error={error} onRetry={load} />
       {dashboard && (
         <div className="card" style={{ marginBottom: 10 }}>
           <h3 style={{ marginTop: 0 }}>Dashboard</h3>

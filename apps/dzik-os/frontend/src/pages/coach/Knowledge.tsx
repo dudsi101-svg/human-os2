@@ -101,11 +101,15 @@ function ArticlesTab() {
   }
 
   async function setStatus(id: string, status: string) {
-    await api.post(`/api/coach/knowledge/${id}/status?status=${status}`);
-    load();
+    try {
+      await api.post(`/api/coach/knowledge/${id}/status?status=${status}`);
+      load();
+    } catch (err) {
+      setError((err as Error).message);
+    }
   }
 
-  if (error && !items) return <ErrorBox error={error} />;
+  if (error && !items) return <ErrorBox error={error} onRetry={load} />;
   if (!items) return <Spinner />;
 
   const visible = items.filter((i) => (showArchived ? i.status === "ARCHIVED" : i.status === "ACTIVE"));
@@ -254,11 +258,15 @@ function ExercisesTab() {
   }
 
   async function setStatus(id: string, status: string) {
-    await api.post(`/api/coach/exercises/${id}/status?status=${status}`);
-    load();
+    try {
+      await api.post(`/api/coach/exercises/${id}/status?status=${status}`);
+      load();
+    } catch (err) {
+      setError((err as Error).message);
+    }
   }
 
-  if (error && !items) return <ErrorBox error={error} />;
+  if (error && !items) return <ErrorBox error={error} onRetry={load} />;
   if (!items) return <Spinner />;
 
   const visible = items.filter((i) => (showArchived ? i.status === "ARCHIVED" : i.status === "ACTIVE"));
@@ -419,11 +427,15 @@ function ProductsTab() {
   }
 
   async function setStatus(id: string, status: string) {
-    await api.post(`/api/coach/food-products/${id}/status?status=${status}`);
-    load();
+    try {
+      await api.post(`/api/coach/food-products/${id}/status?status=${status}`);
+      load();
+    } catch (err) {
+      setError((err as Error).message);
+    }
   }
 
-  if (error && !items) return <ErrorBox error={error} />;
+  if (error && !items) return <ErrorBox error={error} onRetry={load} />;
   if (!items) return <Spinner />;
 
   const visible = items.filter((i) => i.status === "ACTIVE" &&
