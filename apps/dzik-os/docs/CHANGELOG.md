@@ -1,5 +1,39 @@
 # Changelog — Dzik OS
 
+## 0.11.0 — 2026-08-18
+
+Zamknięcie dwóch ryzyk z rejestru: R-12 (kopie zapasowe) i R-02 w części
+plikowej (szyfrowanie at-rest uploadów).
+
+* **Kopie zapasowe (R-12 — zamknięte)**: nowe narzędzie
+  `python -m dzik_os.backup` tworzy jedno spójne, znakowane czasem
+  archiwum `dzik-backup-<timestamp>.tar.gz`: główna baza przez sqlite3
+  backup API (PostgreSQL: `pg_dump`, wykrywane z `DZIK_DATABASE_URL`),
+  baza audytu Human OS (`audit.db`, też backup API) i katalog uploadów
+  w postaci, w jakiej leży na dysku (czyli zaszyfrowanej). Retencja
+  `DZIK_BACKUP_KEEP` (domyślnie 14), katalog `DZIK_BACKUP_DIR`
+  (domyślnie `data/backups`). Odtwarzanie `--restore <archiwum>`
+  z odmową nadpisania istniejących danych bez `--force`; po odtworzeniu
+  łańcuch audytu jest weryfikowany (`verify_chain()`) i wynik jawnie
+  raportowany. Pełny cykl backup → utrata danych → restore → weryfikacja
+  łańcucha pokryty testem; harmonogram i snapshoty wolumenów Fly opisane
+  w DEPLOYMENT §4a.
+* **Szyfrowanie plików at-rest (R-02 — część plikowa zamknięta)**:
+  uploady szyfrowane AES-256-GCM przy zapisie i deszyfrowane przy
+  odczycie (`storage.py`), klucz z env `DZIK_FILE_KEY` (base64,
+  32 bajty). Zaszyfrowane pliki mają nagłówek magiczny `DZIKENC1`;
+  pliki wgrane przed włączeniem klucza czytane są wprost (kompatybilność
+  wsteczna). Brak klucza = zachowanie dotychczasowe plus jedno
+  ostrzeżenie w logu poza dev/test; zaszyfrowany plik bez klucza lub
+  z błędnym kluczem to jawny błąd 500, błędny format klucza zatrzymuje
+  start — tryby nigdy nie mieszają się po cichu. Klucz przechowywać
+  OSOBNO od backupów (DEPLOYMENT §4b). Nowa zadeklarowana zależność
+  backendu: `cryptography>=42,<47`. Otwarta pozostaje część bazodanowa
+  R-02 (dysk szyfrowany / pgcrypto; wolumeny Fly szyfrowane blokowo).
+* Testy: 97 → 115 (backup/restore/retencja, szyfrowanie — roundtrip,
+  plik legacy, praca bez klucza; testy uploadów przechodzą w obu
+  trybach przez sparametryzowaną fixture).
+
 ## 0.10.1 — 2026-08-18
 
 Audyt i utwardzenie **całego systemu plików** (bez zmian schematu bazy).

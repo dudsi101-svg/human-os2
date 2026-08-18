@@ -1,12 +1,12 @@
 # Rejestr ryzyk — Dzik OS MVP
 
-Status: aktualny na 2026-08-17. Ryzyka zaakceptowane świadomie dla MVP;
+Status: aktualny na 2026-08-18. Ryzyka zaakceptowane świadomie dla MVP;
 każde ma wskazany warunek ponownej oceny.
 
 | ID | Ryzyko | Waga | Mitygacja w MVP | Do zrobienia przed produkcją |
 |---|---|---|---|---|
 | R-01 | Dane zdrowotne bez formalnej oceny prawnej (RODO art. 9) | WYSOKA | mapa przetwarzania, zgody wersjonowane, eksport/usunięcie wbudowane | przegląd prawny, umowa powierzenia, polityka prywatności |
-| R-02 | Brak szyfrowania at-rest bazy i plików | WYSOKA | dostęp wyłącznie przez API z autoryzacją; losowe nazwy plików | dysk szyfrowany / pgcrypto / szyfrowanie plików |
+| R-02 | Brak szyfrowania at-rest bazy i plików | ŚREDNIA (**pliki ZAMKNIĘTE 2026-08-18**) | **Pliki uploadów: szyfrowanie AES-256-GCM przy zapisie/odczycie** (`storage.py`, klucz `DZIK_FILE_KEY` — DEPLOYMENT §4b; pliki sprzed włączenia klucza czytane wprost, brak cichego mieszania trybów; klucz przechowywany osobno od backupów). Otwarte: szyfrowanie samej bazy | baza: dysk szyfrowany / pgcrypto; na Fly wolumeny są szyfrowane at-rest na poziomie bloków |
 | R-03 | Rate limiter logowania w pamięci procesu (reset przy restarcie, nie działa między replikami) | ŚREDNIA | pojedynczy proces w MVP | licznik w DB/Redis |
 | R-04 | Łańcuch audytu w osobnym pliku SQLite — zdarzenie może zostać zapisane mimo rollbacku transakcji głównej DB (nadmiarowy wpis, nigdy brak wpisu) | ŚREDNIA | akceptowalne: fałszywie dodatnie wpisy audytu nie ukrywają operacji | outbox pattern lub StateCheckpoint z hos_engine |
 | R-05 | ~~Zgoda onboardingowa bez potwierdzenia podmiotu~~ **ZAMKNIĘTE 2026-08-17**: klient przy pierwszym logowaniu jawnie potwierdza zgodę (CONSENT_CONFIRMED w audycie) albo ją cofa | — | brama zgód w aplikacji + endpoint confirm | — |
@@ -16,7 +16,7 @@ każde ma wskazany warunek ponownej oceny.
 | R-09 | SQLite jako domyślna baza (pojedynczy proces) | NISKA | Compose z PostgreSQL gotowy | produkcja wyłącznie na PostgreSQL |
 | R-10 | Napięcie normatywne: INTENDED_PURPOSE.md Human OS (aplikacja osobista bez suplementów) vs. harmonogram suplementów w Dzik OS | ŚREDNIA | Dzik OS wyłącznie **przechowuje i przypomina** plan wpisany przez człowieka z zapisanym autorem; zero rekomendacji i dawkowania przez system — patrz ADR-DZIK-003 §4 | opinia prawna dot. granicy wyrobu medycznego przy rozwoju funkcji |
 | R-11 | E-maile klientów widoczne dla admina (dane kontaktowe, nie zdrowotne) | NISKA | audyt każdego wejścia admina | rozważyć maskowanie |
-| R-12 | Brak kopii zapasowych w MVP | WYSOKA | wolumeny Dockera | harmonogram backupów DB + plików + audit.db, test odtwarzania |
+| R-12 | ~~Brak kopii zapasowych w MVP~~ **ZAMKNIĘTE 2026-08-18**: `python -m dzik_os.backup` — spójne archiwum (baza przez sqlite3 backup API / `pg_dump`, audit.db, uploady w postaci zaszyfrowanej), retencja `DZIK_BACKUP_KEEP`, restore z weryfikacją łańcucha audytu i odmową nadpisania bez `--force`; pełny cykl backup→utrata→restore pokryty testem (`test_backup.py`) | — | narzędzie + test odtwarzania w repo; snapshoty wolumenów Fly jako druga warstwa | pozostaje operacyjne: włączenie harmonogramu (cron/GitHub Actions — DEPLOYMENT §4a) i kopia archiwów poza maszynę |
 | R-13 | Dziennik obserwacji mógłby zostać odczytany jako narzędzie diagnostyczne | ŚREDNIA | system zapisuje tekst dosłownie, bez interpretacji; NIEPOKOJACE to wyłącznie flaga do przeglądu przez trenera (nigdy autouzupełniana diagnoza/sugestia); komunikat w UI wprost mówi „to nie jest diagnoza" | jeśli funkcja urośnie: przegląd prawny granicy wyrobu medycznego (jak R-10) |
 | R-14 | Powiadomienia e-mail o niepokojącej obserwacji są domyślnie wyłączone (`NullNotificationProvider` nic nie wysyła) — trener może nie zauważyć na czas, jeśli poleganie wyłącznie na e-mailu | NISKA | główny kanał to badge/filtr w panelu trenera (zawsze aktywny, niezależny od e-maila); e-mail to tylko dodatkowe wzmocnienie | podłączenie realnego dostawcy e-mail (decyzja operatora, klucze poza repo) |
 | R-15 | Treść bazy wiedzy pisze i publikuje trener bez recenzji/moderacji systemowej | NISKA | jawna informacja w UI trenera („treść i jej poprawność są po Twojej stronie"); broadcast tylko do własnych klientów, nie publiczne | jeśli funkcja urośnie do wielu trenerów: rozważyć politykę treści |

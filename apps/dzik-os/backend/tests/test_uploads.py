@@ -1,10 +1,23 @@
-"""Walidacja uploadów i kontrola dostępu do plików."""
+"""Walidacja uploadów i kontrola dostępu do plików.
+
+Każdy test przechodzi w obu trybach przechowywania: jawnym (bez
+DZIK_FILE_KEY) i z szyfrowaniem at-rest AES-256-GCM (R-02)."""
 
 import io
+import os
 
+import pytest
 from conftest import CLIENT_A, CLIENT_B, COACH, login, make_png
 
+from dzik_os import storage as storage_module
+
 PNG = make_png()
+
+
+@pytest.fixture(params=["plaintext", "encrypted"], autouse=True)
+def _both_storage_modes(request, monkeypatch):
+    if request.param == "encrypted":
+        monkeypatch.setattr(storage_module.storage, "_key", os.urandom(32))
 
 
 def _upload(client, headers, *, content=None, content_type="image/png",
