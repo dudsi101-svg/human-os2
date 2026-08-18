@@ -494,3 +494,55 @@ Pełny opis modelu i zasad: `docs/WYZWANIA.md`. Reguły dostępu w skrócie:
 * Zdarzenia audytowe `CHALLENGE_*` niosą wyłącznie identyfikatory,
   liczniki i flagi — nigdy pseudonimy, notatki ani treści zgłoszeń.
 * Testy: `tests/test_challenges.py` (20 testów, w tym macierz 404).
+
+## Macierz uprawnień — dowód wykonawczy (od 2026-08-18)
+
+Zewnętrzny audyt wskazał, że publiczne `401` nie dowodzi izolacji **między
+prawidłowo zalogowanymi kontami**. Odpowiedzią jest macierz w
+`backend/tests/access_matrix.py` + `backend/tests/test_access_matrix.py`.
+
+**Nie jest to ręczna lista przypadków**, która zardzewiałaby przy pierwszym
+nowym endpoincie. Macierz jest porównywana ze schematem OpenAPI aplikacji:
+
+* każda z **177 operacji API** ma zadeklarowaną klasę dostępu;
+* operacja bez deklaracji **przerywa build** — „kto ma tu dostęp" musi być
+  świadomą decyzją, a nie przeoczeniem;
+* wpis po usuniętej trasie też przerywa build (macierz nie gnije).
+
+### Klasy dostępu
+
+| Klasa | Znaczenie | Operacji |
+|---|---|---|
+| `PUBLIC` | bez logowania (logowanie, aktywacja, reset hasła, health) | 13 |
+| `AUTHENTICATED` | zalogowany, wyłącznie własne dane (id z sesji) | 27 |
+| `CLIENT_SCOPED` | `{client_id}` — sam klient albo jego trener za zgodą | 43 |
+| `COACH_ONLY` | wymaga roli COACH | 25 |
+| `ADMIN_ONLY` | wymaga roli ADMIN | 4 |
+| `RESOURCE_SCOPED` | id zasobu — autoryzacja przez właściciela | 65 |
+
+### Co jest weryfikowane wykonaniem
+
+Testy wysyłają **prawdziwe żądania prawdziwymi kontami** — deklaracja może
+kłamać (przy budowie macierzy heurystyka uznała `/api/metrics` za publiczne,
+a endpoint ma `require_role("ADMIN")`). Aktorzy: klient A, klient B, trener
+z relacją, **trener bez relacji**, administrator, niezalogowany.
+
+| Test | Co dowodzi |
+|---|---|
+| `test_protected_operations_reject_anonymous` | żadna operacja poza `PUBLIC` nie działa bez tokenu |
+| `test_client_scoped_denied_to_foreign_client` | klient B nie dotknie **żadnych** danych klienta A |
+| `test_client_scoped_denied_to_unrelated_coach` | sama rola COACH nie wystarcza — bez relacji dostęp zamknięty |
+| `test_coach_scoped_denied_to_unrelated_coach` | to samo dla tras trenerskich z `{client_id}` |
+| `test_coach_only_denied_to_client` | klient nie użyje operacji trenerskich |
+| `test_admin_only_denied_to_client_and_coach` | operacje administracyjne zamknięte dla pozostałych ról |
+| `test_admin_cannot_reach_client_health_data` | administrator nie sięgnie po dane zdrowotne mimo najwyższych uprawnień technicznych |
+
+**Siła dowodu:** wszystkie 43 operacje `CLIENT_SCOPED` kończą się twardą
+odmową (403/404), a nie zatrzymaniem na walidacji ładunku. Wymagało to
+generowania minimalnych poprawnych ciał żądań i parametrów query ze schematu
+OpenAPI — bez tego FastAPI odrzucałby żądania kodem 422 *przed* sprawdzeniem
+uprawnień, co niczego by nie dowodziło. Test pilnuje tego progu (100%), więc
+regresja w generatorze też przerwie build.
+
+**Testowane są wyłącznie ścieżki odmowy**, więc przebieg niczego nie zmienia
+w danych; gdyby jakakolwiek operacja przeszła, to właśnie jest szukana luka.
