@@ -3,7 +3,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from ..authz import deny, require_owned_resource, resolve_client_access
+from ..authz import DOMAIN_COLLABORATION, deny, require_owned_resource, resolve_client_access
 from ..db import get_db
 from ..hos_bridge import record_event
 from ..models import PaymentRecord, PaymentSchedule, User, new_id, now_iso
@@ -21,7 +21,7 @@ def create_schedule(
     db: Session = Depends(get_db),
 ):
     # Płatności nie są danymi zdrowotnymi — wystarczy aktywna relacja.
-    resolve_client_access(db, coach, body.client_id, action="write", sensitive=False)
+    resolve_client_access(db, coach, body.client_id, action="write", domain=DOMAIN_COLLABORATION)
     schedule = PaymentSchedule(
         id=new_id("PSC"),
         client_id=body.client_id,
@@ -63,7 +63,7 @@ def client_payments(
     user: User = Depends(current_user),
     db: Session = Depends(get_db),
 ):
-    resolve_client_access(db, user, client_id, sensitive=False)
+    resolve_client_access(db, user, client_id, domain=DOMAIN_COLLABORATION)
     schedules = (
         db.query(PaymentSchedule).filter(PaymentSchedule.client_id == client_id).all()
     )

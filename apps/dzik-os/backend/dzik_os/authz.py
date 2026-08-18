@@ -3,9 +3,11 @@
 Zasady (docs/PERMISSIONS.md):
 * Klient widzi wyłącznie własne dane (ochrona przed IDOR — każda ścieżka
   z client_id przechodzi przez resolve_client_access).
-* Trener widzi dane tylko AKTYWNIE przypisanych klientów i tylko dopóki
-  klient nie cofnął zgody coaching/health_data (decyzję podejmuje
-  hos_engine.ConsentRegistry przez ConsentService.authorize).
+* Trener widzi dane tylko AKTYWNIE przypisanych klientów i tylko w
+  zakresie AKTYWNYCH zgód danej KATEGORII danych (consent_catalog;
+  decyzję podejmuje hos_engine.ConsentRegistry przez
+  ConsentService.authorize). Cofnięcie zgody jednej kategorii odbiera
+  dostęp do tej kategorii, nie ruszając pozostałych.
 * ADMIN nie ma automatycznego dostępu do danych zdrowotnych — rola
   techniczna. Dostęp administracyjny jest ograniczony i audytowany.
 """
@@ -15,12 +17,18 @@ from __future__ import annotations
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
+from .consent_catalog import category_for_domain
 from .hos_bridge import ConsentService
 from .models import CoachClientRelationship, MessageThread, StoredFile, User
 from .security import active_roles
 
-CONSENT_PURPOSE = "coaching"
-CONSENT_DOMAIN = "health_data"
+# Domeny danych (jedna domena = jedna kategoria zgody z consent_catalog).
+DOMAIN_COLLABORATION = "collaboration"    # profil współpracy, dokumenty, płatności
+DOMAIN_TRAINING = "training_data"         # plany, wyniki, harmonogram, cele
+DOMAIN_HEALTH = "health_data"             # pomiary, raporty, obserwacje, urazy
+DOMAIN_NUTRITION = "nutrition_data"       # dieta, dziennik kaloryczny, alergie
+DOMAIN_PHOTOS = "progress_photos"         # zdjęcia sylwetki
+DOMAIN_MESSAGES = "messages"              # wiadomości i konsultacje
 
 
 class ResourceAccessDenied(HTTPException):
@@ -57,31 +65,48 @@ def active_relationship(db: Session, coach_id: str, client_id: str) -> CoachClie
 
 
 def coach_can_access_client(
-    db: Session, coach_id: str, client_id: str, *, action: str = "read", sensitive: bool = True
+    db: Session,
+    coach_id: str,
+    client_id: str,
+    *,
+    action: str = "read",
+    domain: str = DOMAIN_HEALTH,
 ) -> bool:
+    """Dostęp trenera do danych klienta w JEDNEJ domenie danych.
+    Cel (purpose) i wrażliwość wynikają z katalogu kategorii — wywołujący
+    wskazuje tylko domenę, o którą pyta."""
     if active_relationship(db, coach_id, client_id) is None:
         return False
+    cat = category_for_domain(domain)
+    purpose = cat.purpose if cat else "coaching"
+    sensitive = cat.sensitive if cat else True
     return ConsentService.authorize(
         db,
         subject_id=client_id,
         grantee_id=coach_id,
-        purpose=CONSENT_PURPOSE,
-        domain=CONSENT_DOMAIN,
+        purpose=purpose,
+        domain=domain,
         action=action,
         sensitive=sensitive,
     )
 
 
 def resolve_client_access(
-    db: Session, actor: User, client_id: str, *, action: str = "read", sensitive: bool = True
+    db: Session,
+    actor: User,
+    client_id: str,
+    *,
+    action: str = "read",
+    domain: str = DOMAIN_HEALTH,
 ) -> str:
-    """Zwraca client_id, jeśli aktor ma prawo do danych tego klienta;
-    w przeciwnym razie 404 (nie 403 — nie ujawniamy istnienia zasobu)."""
+    """Zwraca client_id, jeśli aktor ma prawo do danych tego klienta w
+    danej domenie; w przeciwnym razie 404 (nie 403 — nie ujawniamy
+    istnienia zasobu)."""
     roles = active_roles(db, actor.id)
     if "CLIENT" in roles and actor.id == client_id:
         return client_id
     if "COACH" in roles and coach_can_access_client(
-        db, actor.id, client_id, action=action, sensitive=sensitive
+        db, actor.id, client_id, action=action, domain=domain
     ):
         return client_id
     raise ResourceAccessDenied(actor.id, f"client:{client_id}")
@@ -104,15 +129,15 @@ def require_owned_resource(entity, *, actor: User, resource: str, owner_attr: st
 
 def require_thread_party(db: Session, actor: User, thread_id: str) -> MessageThread:
     """Dostęp do wątku wiadomości: wyłącznie strona wątku. Klient zawsze;
-    trener w ramach aktywnej relacji (treść wiadomości nie jest objęta
-    zgodą health_data → sensitive=False). Obcy → logowana odmowa 404."""
+    trener w ramach aktywnej relacji i zgody kategorii „komunikacja"
+    (domena messages). Obcy → logowana odmowa 404."""
     thread = db.get(MessageThread, thread_id)
     if thread is None:
         raise HTTPException(status_code=404, detail="Nie znaleziono")
     if actor.id == thread.client_id:
         return thread
     if actor.id == thread.coach_id:
-        resolve_client_access(db, actor, thread.client_id, sensitive=False)
+        resolve_client_access(db, actor, thread.client_id, domain=DOMAIN_MESSAGES)
         return thread
     raise ResourceAccessDenied(actor.id, f"thread:{thread_id}")
 

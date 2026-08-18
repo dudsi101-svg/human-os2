@@ -172,7 +172,8 @@ def test_revoked_consent_hides_thread_from_coach_list(seeded):
     before = {t["with_user"]["id"] for t in seeded.get("/api/threads", headers=hc).json()["threads"]}
     assert id_a in before
     consents = seeded.get("/api/me/consents", headers=ha).json()["consents"]
-    active = next(c for c in consents if c["revoked_at"] is None)
+    active = next(c for c in consents
+                  if c["revoked_at"] is None and c["category"] == "komunikacja")
     seeded.post(f"/api/me/consents/{active['id']}/revoke", headers=ha)
     after = {t["with_user"]["id"] for t in seeded.get("/api/threads", headers=hc).json()["threads"]}
     assert id_a not in after
@@ -215,8 +216,7 @@ def test_relinking_existing_account_needs_subject_consent(seeded):
     # Klient nadaje zgodę osobiście → dostęp działa.
     foreign_id = get_user_id(seeded, hf)
     r = seeded.post("/api/me/consents", headers=ha, json={
-        "grantee_id": foreign_id, "purpose": "coaching", "domain": "health_data",
-        "actions": "read,write", "allow_sensitive": True,
+        "category": "udostepnianie_trenerowi", "grantee_id": foreign_id,
     })
     assert r.status_code == 201
     assert seeded.get(f"/api/clients/{id_a}/profile", headers=hf).status_code == 200

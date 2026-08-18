@@ -596,7 +596,13 @@ class PushSubscription(Base):
 class ConsentRecord(Base):
     """Rejestr zgód — trwała warstwa dla kontraktu
     hos_engine.consent.ConsentRegistry (patrz hos_bridge.ConsentService).
-    Cofnięcie nie usuwa wiersza; ustawia revoked_at (pełna historia wersji)."""
+    Cofnięcie nie usuwa wiersza; ustawia revoked_at (pełna historia wersji).
+
+    Od migracji nr 10 każda zgoda należy do jednej kategorii z
+    consent_catalog.CONSENT_CATEGORIES (odrębne, jednoznaczne cele —
+    RODO). Wiersze z category=NULL to historyczne zgody parasolowe
+    coaching/health_data sprzed podziału — interpretowane zgodnie z ich
+    pierwotnym, szerokim zakresem (patrz ConsentService._hydrate)."""
 
     __tablename__ = "consents"
 
@@ -615,6 +621,18 @@ class ConsentRecord(Base):
     # potwierdzenie podmiotu w aplikacji (confirmed_at); zgody nadawane
     # samodzielnie przez podmiot są potwierdzone od razu.
     confirmed_at: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    # Klucz kategorii z consent_catalog (NULL = historyczna zgoda parasolowa).
+    category: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    # Podstawa prawna zapisana w chwili udzielenia (historia — treść
+    # katalogu może się zmieniać, wiersz pamięta swoją).
+    legal_basis: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    # Źródło wpisu: SUBJECT (podmiot danych osobiście) /
+    # ONBOARDING_DECLARATION (deklaracja z onboardingu, czeka na
+    # potwierdzenie podmiotu) / SEED (dane demo).
+    source: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    # Jawna ODMOWA zgody opcjonalnej (historia decyzji negatywnej) —
+    # wiersz z denied_at nigdy nie autoryzuje dostępu.
+    denied_at: Mapped[str | None] = mapped_column(String(40), nullable=True)
 
 
 class Receipt(Base):

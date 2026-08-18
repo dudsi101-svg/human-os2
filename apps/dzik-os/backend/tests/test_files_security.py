@@ -264,8 +264,12 @@ def test_revoked_consent_blocks_existing_files(seeded):
                   content_type="image/png").json()["id"]
     assert seeded.get(f"/api/files/{fid}", headers=hc).status_code == 200
 
+    # Plik bez referencji podlega domenie współpracy — cofnięcie zgody
+    # „udostępnianie danych trenerowi" odbiera dostęp także do
+    # ISTNIEJĄCYCH plików.
     consents = seeded.get("/api/me/consents", headers=ha).json()["consents"]
-    active = next(c for c in consents if c["revoked_at"] is None)
+    active = next(c for c in consents if c["revoked_at"] is None
+                  and c["category"] == "udostepnianie_trenerowi")
     assert seeded.post(f"/api/me/consents/{active['id']}/revoke",
                        headers=ha).status_code == 200
 

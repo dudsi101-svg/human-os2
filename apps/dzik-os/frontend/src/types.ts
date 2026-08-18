@@ -133,13 +133,44 @@ export interface ConsentRow {
   id: string;
   grantee_id: string;
   grantee_name: string | null;
+  category: string | null;
+  legal_basis: string | null;
+  source: string | null;
   purpose: string;
   domain: string;
   actions: string;
   allow_sensitive: boolean;
+  consent_text_version: string;
+  document_version_current: boolean;
   granted_at: string;
   revoked_at: string | null;
   confirmed_at: string | null;
+  denied_at: string | null;
+}
+
+/** Kategoria zgody z katalogu backendu (pełny opis RODO). */
+export interface ConsentCategoryInfo {
+  key: string;
+  label: string;
+  purpose: string;
+  domain: string;
+  grantee_kind: "COACH" | "SYSTEM";
+  required: boolean;
+  sensitive: boolean;
+  legal_basis: string;
+  cel: string;
+  zakres: string;
+  odbiorcy: string;
+  okres: string;
+  dobrowolnosc: string;
+  wycofanie: string;
+  document_version: string;
+}
+
+export interface ConsentsResponse {
+  document_version: string;
+  catalog: ConsentCategoryInfo[];
+  consents: ConsentRow[];
 }
 
 export interface ThreadRow {
@@ -184,6 +215,13 @@ export interface CoachClientRow {
   email: string;
   relationship_status: string;
   consent_active: boolean;
+  consent_scopes: {
+    collaboration: boolean;
+    training: boolean;
+    health: boolean;
+    nutrition: boolean;
+    photos: boolean;
+  };
   flags: {
     checkin_overdue: boolean;
     awaiting_review: boolean;

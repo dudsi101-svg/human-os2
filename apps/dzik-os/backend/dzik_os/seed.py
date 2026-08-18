@@ -20,8 +20,8 @@ from __future__ import annotations
 import json
 from datetime import UTC, datetime, timedelta
 
-from .authz import CONSENT_DOMAIN, CONSENT_PURPOSE
 from .config import settings
+from .consent_catalog import ONBOARDING_CATEGORIES
 from .dates import local_today
 from .db import db_session, run_migrations
 from .hos_bridge import ConsentService, record_event
@@ -162,12 +162,20 @@ def seed() -> dict[str, str]:
             db.add(rel)
             db.add(MessageThread(id=new_id("THR"), coach_id=coach.id,
                                  client_id=client.id))
-            ConsentService.grant(
-                db, subject_id=client.id, grantee_id=coach.id,
-                purpose=CONSENT_PURPOSE, domain=CONSENT_DOMAIN,
-                actions="read,write", allow_sensitive=True,
-                confirmed=True,  # konta demo mają zgody już potwierdzone
-            )
+            # Konta demo: komplet zgód per kategoria, już potwierdzonych
+            # (odrębne wiersze — RODO: jedna kategoria = jedna zgoda).
+            for category_key in ONBOARDING_CATEGORIES:
+                ConsentService.grant_category(
+                    db, subject_id=client.id, category_key=category_key,
+                    grantee_id=coach.id, actions="read,write",
+                    source="SEED", confirmed=True,
+                )
+        # Klient A ma też opcjonalną zgodę na funkcje AI (demo ścieżki
+        # podsumowań raportu w panelu trenera).
+        ConsentService.grant_category(
+            db, subject_id=client_a.id, category_key="funkcje_ai",
+            source="SEED", confirmed=True,
+        )
 
         # --- Profil i cele klienta A ---
         profile_a = {

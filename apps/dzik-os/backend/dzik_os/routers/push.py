@@ -8,9 +8,10 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from .. import push_service
+from ..consent_catalog import SYSTEM_GRANTEE
 from ..db import get_db
-from ..hos_bridge import record_event
-from ..models import PushSubscription, User, new_id
+from ..hos_bridge import ConsentService, record_event
+from ..models import ConsentRecord, PushSubscription, User, new_id
 from ..security import current_user
 
 router = APIRouter(prefix="/api/push", tags=["push"])
@@ -68,6 +69,28 @@ def subscribe(
             id=new_id("PSH"), user_id=user.id, endpoint=body.endpoint,
             p256dh=body.keys.p256dh, auth=body.keys.auth,
         ))
+    # Włączenie powiadomień to jawna, osobista zgoda kategorii
+    # „przypomnienia" — rejestrowana w rejestrze zgód (jeśli jeszcze nie
+    # ma aktywnej), żeby historia zgód i subskrypcje były spójne.
+    has_consent = (
+        db.query(ConsentRecord)
+        .filter(
+            ConsentRecord.subject_id == user.id,
+            ConsentRecord.category == "przypomnienia",
+            ConsentRecord.revoked_at.is_(None),
+            ConsentRecord.denied_at.is_(None),
+        )
+        .first()
+    )
+    if has_consent is None:
+        ConsentService.grant_category(
+            db,
+            subject_id=user.id,
+            category_key="przypomnienia",
+            grantee_id=SYSTEM_GRANTEE,
+            source="SUBJECT",
+            confirmed=True,
+        )
     record_event(
         db, action="PUSH_SUBSCRIBED", actor_id=user.id, subject_ids=[user.id],
         payload={"endpoint_prefix": body.endpoint[:60]},

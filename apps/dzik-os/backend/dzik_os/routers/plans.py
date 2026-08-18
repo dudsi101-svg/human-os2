@@ -6,7 +6,13 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from .. import push_service
-from ..authz import deny, require_attachable_file, require_owned_resource, resolve_client_access
+from ..authz import (
+    DOMAIN_TRAINING,
+    deny,
+    require_attachable_file,
+    require_owned_resource,
+    resolve_client_access,
+)
 from ..db import get_db
 from ..hos_bridge import record_event
 from ..models import (
@@ -65,7 +71,7 @@ def create_plan(
     db: Session = Depends(get_db),
 ):
     if body.client_id is not None:
-        resolve_client_access(db, coach, body.client_id, action="write")
+        resolve_client_access(db, coach, body.client_id, action="write", domain=DOMAIN_TRAINING)
     plan = TrainingPlan(
         id=new_id("PLN"),
         client_id=body.client_id,
@@ -112,7 +118,7 @@ def create_plan_version(
         db.get(TrainingPlan, plan_id), actor=coach, resource=f"plan:{plan_id}"
     )
     if plan.client_id is not None:
-        resolve_client_access(db, coach, plan.client_id, action="write")
+        resolve_client_access(db, coach, plan.client_id, action="write", domain=DOMAIN_TRAINING)
     next_no = plan.current_version_no + 1
     version = TrainingPlanVersion(
         id=new_id("PLV"),
@@ -160,7 +166,7 @@ def copy_template_to_client(
     if template.coach_id != coach.id:
         # Szablon innego trenera — logowana odmowa zasobowa.
         deny(coach.id, f"plan_template:{template_id}")
-    resolve_client_access(db, coach, client_id, action="write")
+    resolve_client_access(db, coach, client_id, action="write", domain=DOMAIN_TRAINING)
     source_version = (
         db.query(TrainingPlanVersion)
         .filter_by(plan_id=template.id, version_no=template.current_version_no)
@@ -217,7 +223,7 @@ def client_plans(
     user: User = Depends(current_user),
     db: Session = Depends(get_db),
 ):
-    resolve_client_access(db, user, client_id)
+    resolve_client_access(db, user, client_id, domain=DOMAIN_TRAINING)
     rows = (
         db.query(TrainingPlan)
         .filter(TrainingPlan.client_id == client_id)
@@ -237,7 +243,7 @@ def plan_versions(
     if plan is None:
         raise HTTPException(status_code=404, detail="Nie znaleziono")
     if plan.client_id is not None:
-        resolve_client_access(db, user, plan.client_id)
+        resolve_client_access(db, user, plan.client_id, domain=DOMAIN_TRAINING)
     elif plan.coach_id != user.id:
         # Szablon (bez klienta) widzi wyłącznie jego autor.
         deny(user.id, f"plan:{plan_id}")
@@ -258,7 +264,7 @@ def log_workout(
     user: User = Depends(current_user),
     db: Session = Depends(get_db),
 ):
-    resolve_client_access(db, user, client_id, action="write")
+    resolve_client_access(db, user, client_id, action="write", domain=DOMAIN_TRAINING)
     version = db.get(TrainingPlanVersion, body.plan_version_id)
     if version is None:
         raise HTTPException(status_code=404, detail="Nie znaleziono wersji planu")
@@ -318,7 +324,7 @@ def list_workouts(
     user: User = Depends(current_user),
     db: Session = Depends(get_db),
 ):
-    resolve_client_access(db, user, client_id)
+    resolve_client_access(db, user, client_id, domain=DOMAIN_TRAINING)
     sessions = (
         db.query(WorkoutSession)
         .filter(WorkoutSession.client_id == client_id)

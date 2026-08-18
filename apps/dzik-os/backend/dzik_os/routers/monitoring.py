@@ -17,7 +17,7 @@ from datetime import timedelta
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from ..authz import deny, resolve_client_access
+from ..authz import DOMAIN_NUTRITION, DOMAIN_TRAINING, deny, resolve_client_access
 from ..dates import local_today, parse_iso_date
 from ..db import get_db
 from ..hos_bridge import record_event
@@ -55,7 +55,7 @@ def complete_schedule_item(
     """Odhaczenie elementu harmonogramu (trening, posiłek, suplement,
     nawodnienie, regeneracja...) na dany dzień. Ponowne wywołanie na ten
     sam dzień nadpisuje wpis (idempotentne — nie mnoży rekordów)."""
-    resolve_client_access(db, user, client_id, action="write")
+    resolve_client_access(db, user, client_id, action="write", domain=DOMAIN_TRAINING)
     item = db.get(ScheduleItem, item_id)
     if item is None:
         raise HTTPException(status_code=404, detail="Nie znaleziono")
@@ -190,7 +190,7 @@ def log_nutrition(
     """Dzienny log realizacji diety — deklaracja klienta, osobna od
     statycznego celu w planie żywieniowym; jeden wpis na dzień (poprawka
     nadpisuje)."""
-    resolve_client_access(db, user, client_id, action="write")
+    resolve_client_access(db, user, client_id, action="write", domain=DOMAIN_NUTRITION)
     existing = (
         db.query(DailyNutritionLog)
         .filter_by(client_id=client_id, logged_on=body.logged_on)
@@ -219,7 +219,7 @@ def list_nutrition_log(
     user: User = Depends(current_user),
     db: Session = Depends(get_db),
 ):
-    resolve_client_access(db, user, client_id)
+    resolve_client_access(db, user, client_id, domain=DOMAIN_NUTRITION)
     since = (local_today() - timedelta(days=days)).isoformat()
     rows = (
         db.query(DailyNutritionLog)
@@ -249,8 +249,22 @@ def monitoring(
     """Agregat monitoringu: cel i czas do jego realizacji, trendy pomiarów
     i samopoczucia z raportów, dziennik kaloryczny na tle celu, adherencja
     harmonogramu per kategoria oraz najnowsze obserwacje (niepokojące
-    pierwsze) — jeden przegląd zamiast przeklikiwania kilku ekranów."""
+    pierwsze) — jeden przegląd zamiast przeklikiwania kilku ekranów.
+
+    Zgody per kategoria danych: agregat wymaga zgody „dane zdrowotne"
+    (trendy pomiarów/samopoczucia/obserwacje); sekcje żywieniowa i
+    adherencji są wycinane, jeśli trener nie ma zgody odpowiednio
+    „żywienie i alergie" / „dane treningowe"."""
     resolve_client_access(db, user, client_id)
+    from ..authz import coach_can_access_client
+
+    is_self = user.id == client_id
+    can_nutrition = is_self or coach_can_access_client(
+        db, user.id, client_id, domain=DOMAIN_NUTRITION
+    )
+    can_training = is_self or coach_can_access_client(
+        db, user.id, client_id, domain=DOMAIN_TRAINING
+    )
     # Dzień kalendarzowy w strefie lokalnej użytkownika — dane dzienne
     # (logged_on/occurred_on/completed_on) są datami lokalnymi.
     today = local_today()
@@ -385,8 +399,12 @@ def monitoring(
         "goal": goal_out,
         "measurement_series": measurement_series,
         "wellbeing_series": wellbeing_series,
-        "nutrition": {"target_kcal": nutrition_target, "log_series": kcal_log},
-        "adherence": adherence,
+        "nutrition": (
+            {"target_kcal": nutrition_target, "log_series": kcal_log}
+            if can_nutrition
+            else {"target_kcal": None, "log_series": []}
+        ),
+        "adherence": adherence if can_training else {},
         "observations": [
             {
                 "id": o.id, "occurred_on": o.occurred_on, "category": o.category,

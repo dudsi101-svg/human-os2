@@ -1,5 +1,80 @@
 # Changelog — Dzik OS
 
+## 0.11.0 — 2026-08-18
+
+Przebudowa zgód i zgodności z RODO: **zgody granularne per kategoria
+danych**, pełna informacja przy każdej zgodzie, kompletniejszy eksport
+i usuwanie danych, pakiet dokumentacji RODO.
+
+* **Katalog kategorii zgód** (`consent_catalog.py`, wersja dokumentu
+  2.0): 10 odrębnych kategorii — prowadzenie konta, udostępnianie danych
+  trenerowi, dane treningowe, komunikacja (wymagane, podstawa umowna)
+  oraz dane zdrowotne, żywienie i alergie, zdjęcia progresu,
+  przypomnienia/push, funkcje AI, marketing (opcjonalne zgody, art. 9
+  dla wrażliwych). Każda kategoria niesie cel, zakres danych, odbiorców,
+  okres przechowywania, informację o dobrowolności, sposób wycofania,
+  podstawę prawną i wersję dokumentu. Zgody wymagane i opcjonalne nie
+  są nigdy łączone; nie istnieje „zaakceptuj wszystko" dla niezależnych
+  celów (jedyna decyzja grupowa: warunki jednej umowy o współpracę).
+* **Autoryzacja per domena danych**: `resolve_client_access(domain=...)`
+  — cofnięcie zgody jednej kategorii odbiera trenerowi dostęp tylko do
+  niej (np. cofnięcie „żywienie i alergie" chowa dietę, dziennik
+  kaloryczny i pola `alergie`/`preferencje_zywieniowe` profilu, nie
+  ruszając planu treningowego). Pliki bramkowane wg kategorii zasobu
+  (zdjęcie/dokument-DIETA/załącznik treningu/pozostałe). Agregat
+  monitoringu wycina sekcje żywieniową i adherencji bez właściwych zgód.
+  Historyczne zgody parasolowe (sprzed migracji) są honorowane w
+  pierwotnym, pełnym zakresie — migracja niczego po cichu nie zawęża
+  ani nie unieważnia (test).
+* **Migracja nr 10**: `consents.category`, `legal_basis`, `source`,
+  `denied_at` (czysto addytywna; plan wycofania w `ZGODY_MODEL.md` §7).
+* **API zgód**: `GET /api/me/consents` zwraca katalog + historię z
+  flagą aktualności wersji dokumentu; `POST /api/me/consents`
+  {category, grantee_id}; nowy `POST /api/me/consents/decline` — jawna
+  odmowa zgody opcjonalnej z historią (`denied_at`, zdarzenie
+  CONSENT_DECLINED); cofnięcie `przypomnienia` usuwa wszystkie
+  subskrypcje push; subskrypcja push rejestruje zgodę `przypomnienia`.
+* **Zgoda klienta bramkuje funkcje AI**: `POST /api/checkins/{id}/
+  ai-summary` wymaga aktywnej zgody `funkcje_ai` PODMIOTU danych —
+  decyzja trenera nie zastępuje zgody klienta (dalej propose-only,
+  domyślnie NullAIProvider).
+* **Onboarding**: trener rejestruje ODRĘBNE deklaracje per kategoria
+  (bez przypomnień/AI/marketingu — te tylko od klienta); klient przy
+  pierwszym logowaniu potwierdza warunki wymagane i decyduje o każdej
+  zgodzie wrażliwej osobno (Wyrażam zgodę / Odmawiam). Zachowane po P3:
+  podpięcie istniejącego konta nie nadaje żadnej zgody.
+* **Eksport** (JSON + Excel, export_version 1.2): dodane consult_slots,
+  push_subscriptions (bez kluczy kryptograficznych subskrypcji),
+  audit_receipts, schedule_completions; zgody z pełnym kontekstem
+  kategorii/podstawy/wersji.
+* **Usunięcie konta** — domknięte luki: usuwane subskrypcje push,
+  odpinane sloty konsultacji (przyszłe wracają do puli), anonimizowane
+  wolne teksty (cele, przypomnienia, harmonogram, komentarze i notatki
+  bólu treningów, tytuły dokumentów, notatki płatności); ewidencja
+  rozliczeń (kwoty/terminy/statusy) pozostaje — obowiązek podatkowy.
+* **UI klienta**: nowy ekran zgód (onboarding) i karta „Prywatność
+  i zgody" w Profilu — stan per kategoria, pełny opis (cel/zakres/
+  odbiorcy/okres/wycofanie/wersja), historia decyzji, udzielanie i
+  cofanie per kategoria; usunięte nieprawdziwe zdanie „dane nie są
+  nikomu dalej przekazywane". Panel trenera: badge „ograniczone zgody"
+  z listą brakujących kategorii.
+* **Dokumentacja RODO** (docs/): `ZGODY_MODEL.md` (model + migracja +
+  plan wycofania + decyzje administratora), `RODO_REJESTR_CZYNNOSCI.md`
+  (rejestr czynności, administrator, procesorzy, retencja),
+  `RODO_INCYDENTY.md` (proces obsługi incydentów), `RODO_DPIA.md`
+  (wskazanie ws. DPIA), polityka prywatności v0.2 (prawdziwy opis
+  hostingu Fly.io, adapterów Null poczty/AI, braku płatności online,
+  self-hostowanych fontów, push, backupów i retencji; realizacja praw:
+  eksport/poprawianie/usunięcie/anonimizacja/rozliczenia). Miejsca
+  wymagające decyzji oznaczone „DECYZJA ADMINISTRATORA DANYCH" — to
+  nie jest gwarancja prawna.
+* Testy: 232 → 244 (nowe: `test_consent_categories.py` — odmowa,
+  wersje dokumentu, bramka AI, push↔zgoda, onboarding per kategoria,
+  zgoda parasolowa; przebudowane `test_consents.py` — utrata dostępu
+  per kategoria; rozszerzone `test_privacy.py` — eksport, usunięcie z
+  zachowaniem rozliczeń; migracja v1→v10). Świadomie zaktualizowane
+  istniejące testy zbiorczego modelu zgód (szczegóły w ZGODY_MODEL.md).
+
 ## 0.10.1 — 2026-08-18
 
 Audyt i utwardzenie **całego systemu plików** (bez zmian schematu bazy).

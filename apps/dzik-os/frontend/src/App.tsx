@@ -31,7 +31,7 @@ export default function App() {
   const roles = user?.roles ?? [];
   const isClient = roles.includes("CLIENT");
   const needsPassword = user?.must_change_password === true;
-  const { pending, reload } = usePendingConsents(
+  const { pending, catalog, reload } = usePendingConsents(
     !!user && isClient && !needsPassword
   );
   if (!user && location.pathname !== "/login") {
@@ -43,7 +43,7 @@ export default function App() {
   if (user && isClient && !needsPassword && location.pathname !== "/haslo") {
     if (pending === null) return <ConsentSpinner />;
     if (pending.length > 0) {
-      return <ConsentGate pending={pending} onResolved={reload} />;
+      return <ConsentGate pending={pending} catalog={catalog} onResolved={reload} />;
     }
   }
   const home = roles.includes("COACH") ? "/trener" : roles.includes("ADMIN") ? "/admin" : "/";
