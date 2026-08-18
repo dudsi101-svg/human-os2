@@ -12,6 +12,7 @@ from fastapi.staticfiles import StaticFiles
 
 from .config import settings
 from .db import run_migrations
+from .http_headers import SecurityHeadersMiddleware
 from .routers import (
     admin,
     auth,
@@ -71,6 +72,14 @@ def create_app() -> FastAPI:
         docs_url="/api/docs" if settings.env != "production" else None,
         redoc_url=None,
     )
+    # Nagłówki bezpieczeństwa (CSP, HSTS, nosniff, ...) i Cache-Control —
+    # jedno źródło prawdy dla wszystkich odpowiedzi, patrz http_headers.py.
+    app.add_middleware(SecurityHeadersMiddleware)
+    # CORS: domyślnie DZIK_CORS_ORIGINS jest puste i middleware CORS w ogóle
+    # nie jest dodawany — produkcja jest SAME-ORIGIN (backend serwuje
+    # zbudowany frontend spod tej samej domeny). Zmienna istnieje wyłącznie
+    # na wypadek świadomego wdrożenia frontendu pod innym originem; nigdy
+    # nie ustawiać otwartych/wildcard originów przy allow_credentials.
     if settings.cors_origins:
         app.add_middleware(
             CORSMiddleware,
