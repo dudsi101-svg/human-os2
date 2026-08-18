@@ -240,7 +240,7 @@ h3.section-label:first-of-type, .card h3.section-label:first-of-type {
   transition: color 140ms var(--ease-out);
 }
 .nav a.active { color: var(--accent); }
-.nav svg { width: 22px; height: 22px; transition: transform 200ms var(--ease-out); }
+.nav svg { width: 26px; height: 26px; transition: transform 200ms var(--ease-out); }
 .nav a.active svg { transform: translateY(-1px); }
 
 /* Wiersze łamią się zamiast wypychać stronę w bok na wąskich ekranach;
