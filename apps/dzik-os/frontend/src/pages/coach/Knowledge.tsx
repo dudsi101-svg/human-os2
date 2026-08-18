@@ -1,7 +1,5 @@
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import { api, saveBlobAs } from "../../api";
-import { ErrorBox, LogoutButton, Spinner, TabPanel, Tabs, TopBar } from "../../components";
-import { api } from "../../api";
 import {
   ErrorBox, ExerciseDetail, ExerciseFilterBar, LogoutButton, Spinner, TabPanel,
   Tabs, TopBar,

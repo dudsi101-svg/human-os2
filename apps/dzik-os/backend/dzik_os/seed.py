@@ -24,8 +24,8 @@ from .config import settings
 from .consent_catalog import ONBOARDING_CATEGORIES
 from .dates import local_today
 from .db import db_session, run_migrations
-from .food_catalog_data import FOOD_ROWS, FOOD_SOURCE
 from .exercise_catalog import CATALOG as EXERCISE_CATALOG
+from .food_catalog_data import FOOD_ROWS, FOOD_SOURCE
 from .hos_bridge import ConsentService, record_event
 from .models import (
     CoachClientRelationship,

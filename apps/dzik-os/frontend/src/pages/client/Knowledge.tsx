@@ -15,7 +15,6 @@ import {
 import {
   ExerciseLibraryItem,
   ExerciseListResponse,
-  FoodProductRow,
   KnowledgeItemRow,
   MUSCLE_GROUP_LABELS,
   muscleLabels,
