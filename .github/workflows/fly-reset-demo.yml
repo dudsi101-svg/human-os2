@@ -1,0 +1,61 @@
+# RESET danych demo Dzik OS na Fly.io (staging).
+#
+# DESTRUKCYJNE i wyłącznie ręczne: kasuje bazę SQLite, łańcuch audytu
+# i uploady na wolumenie /data, po czym restartuje aplikację — świeży
+# start zasiewa dane demo od nowa (DZIK_SEED_DEMO=true w fly.toml).
+# Zabezpieczenie: wymaga wpisania RESET w polu potwierdzenia.
+# NIGDY nie używać po przejściu na produkcję z prawdziwymi klientami.
+
+name: Reset danych demo (Fly.io)
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: "Wpisz RESET aby potwierdzić skasowanie danych demo"
+        required: true
+
+concurrency:
+  group: fly-deploy
+  cancel-in-progress: false
+
+jobs:
+  reset:
+    runs-on: ubuntu-latest
+    env:
+      FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+      APP_NAME: dzik-os-panel
+    steps:
+      - name: Weryfikacja potwierdzenia
+        run: |
+          if [ "${{ github.event.inputs.confirm }}" != "RESET" ]; then
+            echo "Brak potwierdzenia RESET — przerywam."; exit 1
+          fi
+
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Obudź maszynę (auto-start)
+        run: curl -sfS "https://$APP_NAME.fly.dev/api/health"
+
+      - name: Skasuj dane demo na wolumenie
+        run: |
+          flyctl ssh console --app "$APP_NAME" \
+            -C "rm -rf /data/dzik.db /data/audit.db /data/uploads"
+
+      - name: Restart aplikacji (świeży seed przy starcie)
+        run: flyctl apps restart "$APP_NAME"
+
+      - name: Weryfikacja — świeży seed z symulowanymi klientami
+        run: |
+          sleep 15
+          curl -sfS "https://$APP_NAME.fly.dev/api/health"
+          # Konto z nowego seeda (dane demo są jawne w README) — logowanie
+          # musi przejść, co dowodzi, że baza zasiała się od nowa.
+          code=$(curl -s -o /dev/null -w "%{http_code}" \
+            -X POST "https://$APP_NAME.fly.dev/api/auth/login" \
+            -H "Content-Type: application/json" \
+            -d '{"email":"marek.dziczek@example.com","password":"KlientC#2026!x"}')
+          if [ "$code" != "200" ]; then
+            echo "Świeży seed NIE zawiera klienta C (kod $code)"; exit 1
+          fi
+          echo "OK: baza demo zresetowana, symulowani klienci obecni"
