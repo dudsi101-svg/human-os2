@@ -88,6 +88,17 @@ na cichą utratę pracy.
   w dokumencie. Podręcznikowy przypadek nr 1 z §3 „Czego bramka NIE
   złapie": maszyna nie zobaczy sprzeczności ZNACZENIA, trzeba przeczytać
   obie zmiany.
+* **Izolacja E2E była nieszczelna — mój błąd w `e2e/serve.sh`.** Skrypt
+  ustawiał `DZIK_EVENT_STORE` i `DZIK_FILES_DIR`, a kod czyta
+  `DZIK_AUDIT_DB` i `DZIK_UPLOAD_DIR`. Nazwy nie istniały, więc każdy
+  przebieg E2E pisał łańcuch audytu i uploady do `data/` **w katalogu
+  repozytorium**, zamiast do `/tmp/dzik-e2e`, który skrypt starannie
+  czyścił. Baza była izolowana (ta jedna nazwa była dobra), audyt i pliki
+  nie. Niewidoczne z dwóch powodów naraz: w CI checkout jest świeży, a
+  `data/*.db` jest w `.gitignore`. Znalezione przypadkiem — próba backupu
+  odmówiła nadpisania, wskazując `data/audit.db`, którego tam być nie
+  powinno. Poprawione i sprawdzone uruchomieniem: `data/` zostaje puste,
+  `audit.db` ląduje w `/tmp/dzik-e2e`, 9 testów zielonych.
 * **Znaleziony test-widmo: zestaw dostępności nie chodził w CI.**
   `e2e/test_a11y.mjs` (własny runner, starszy od `playwright.config.ts`)
   jest opisany w `DOSTEPNOSC.md`, ale żaden przebieg CI go nie uruchamiał —
