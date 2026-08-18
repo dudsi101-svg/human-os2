@@ -330,41 +330,49 @@ def test_client_cannot_use_coach_payment_endpoints(seeded):
 # ---------------------------------------------------------------- przypomnienia
 
 def test_payment_reminder_follows_real_status(seeded, monkeypatch):
-    """Przypomnienie idzie wyłącznie dla realnie wymagalnej należności;
-    po opłaceniu — zero przypomnień; treść bez kwot (ekran blokady)."""
+    """Przypomnienie idzie wyłącznie dla realnie wymagalnej należności
+    (payment_state.DUE_STATUSES), po opłaceniu — zero przypomnień, treść bez
+    kwot i nazw pakietów (może trafić na ekran blokady). Ścieżka wysyłki to
+    wspólny system powiadomień (notifications.plan_day + dispatch_due)."""
+    from datetime import UTC, datetime
+
     from dzik_os import push_service, reminder_loop
-    from dzik_os.dates import local_today
-    from dzik_os.db import db_session
+    from dzik_os.dates import local_today, tz_for_user
 
     hc = login(seeded, COACH)
-    id_a = get_user_id(seeded, login(seeded, CLIENT_A))
-    today = local_today().isoformat()
-    rec = _new_record(seeded, hc, id_a, due=today, package="Pakiet PREMIUM 450 zł")
+    ha = login(seeded, CLIENT_A)
+    id_a = get_user_id(seeded, ha)
+    seeded.post("/api/push/subscribe", headers=ha, json={
+        "endpoint": "https://push.example/platnosci",
+        "keys": {"p256dh": "k" * 20, "auth": "a" * 10},
+    })
+    today = local_today()
+    rec = _new_record(seeded, hc, id_a, due=today.isoformat(),
+                      package="Pakiet PREMIUM 450 zł")
 
-    sent: list[tuple[str, str, str]] = []
+    sent: list[tuple[str, str]] = []
     monkeypatch.setattr(
-        push_service, "send_to_user",
-        lambda db, user_id, title, body, url="/": sent.append((user_id, title, body)) or 1,
+        push_service, "_send_one",
+        lambda sub, payload: sent.append((sub.user_id, payload)) or True,
     )
-    reminder_loop._sent.clear()
-    reminder_loop._sent_date = None
-    with db_session() as db:
-        reminder_loop._payment_reminders(db, today)
-    ours = [s for s in sent if s[0] == id_a]
-    assert len(ours) >= 1
-    for _, title, body in sent:
-        text = f"{title} {body}"
+    # Wystąpienia planowane są na 08:00 czasu ODBIORCY — moment pętli musi
+    # być tą samą chwilą wyrażoną w UTC (latem w Warszawie to 06:00 UTC).
+    moment = datetime(
+        today.year, today.month, today.day, 8, 0, tzinfo=tz_for_user(None)
+    ).astimezone(UTC)
+    reminder_loop._tick(moment)
+    assert any(u == id_a for u, _ in sent)
+    for _, payload in sent:
+        text = str(payload)
         assert "450" not in text and "zł" not in text and "PLN" not in text
         assert "PREMIUM" not in text  # neutralna treść, bez nazw pakietów
 
-    # Po opłaceniu — zero przypomnień dla tego rekordu.
+    # Po opłaceniu: nawet zaplanowane wystąpienie jest wyciszone przy
+    # wysyłce (bramka statusu), a nowe nie powstaje.
     seeded.post(f"/api/payments/records/{rec}/mark-paid", headers=hc, json={})
     sent.clear()
-    reminder_loop._sent.clear()
-    reminder_loop._sent_date = None
-    with db_session() as db:
-        reminder_loop._payment_reminders(db, today)
-    assert all(u != id_a for (u, _, _) in sent)
+    reminder_loop._tick(moment)
+    assert all(u != id_a for u, _ in sent)
 
 
 # ---------------------------------------------------------------- migracja v1→v15

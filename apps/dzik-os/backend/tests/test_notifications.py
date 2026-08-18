@@ -254,8 +254,10 @@ def test_paid_payment_suppresses_due_reminder(seeded, monkeypatch):
     })
     record_id = r.json()["record_id"]
     # Opłacona przed 08:00 → przypomnienie o terminie nie wychodzi.
-    r = seeded.post(f"/api/payments/records/{record_id}/status", headers=hc,
-                    json={"status": "PAID"})
+    # Status PAID nadaje wyłącznie mark-paid (maszyna stanów płatności —
+    # frontend nie ustawia „opłacona" zwykłym /status).
+    r = seeded.post(f"/api/payments/records/{record_id}/mark-paid", headers=hc,
+                    json={})
     assert r.status_code == 200
     _tick(datetime(2026, 9, 16, 6, 0, tzinfo=UTC))
     inbox = _inbox(seeded, ha)
