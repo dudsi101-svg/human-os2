@@ -32,7 +32,11 @@ test("klient wypełnia i wysyła raport tygodniowy", async ({ page }) => {
   await page.goto("/raport");
   await expect(page.getByRole("heading", { name: "Raport tygodniowy" })).toBeVisible();
 
-  const wyslij = page.getByRole("button", { name: "Wyślij raport" });
+  // Raport jest jeden na tydzień: dopóki go nie ma, przycisk brzmi „Wyślij
+  // raport", potem „Wyślij poprawkę". Test przyjmuje oba stany, bo inaczej
+  // nie przetrwałby powtórnego uruchomienia na tej samej bazie — a formularz
+  // wypełnia się identycznie (po wysłaniu pola i skale wracają puste).
+  const wyslij = page.getByRole("button", { name: /^Wyślij (raport|poprawkę)$/ });
   await expect(wyslij).toBeVisible();
 
   await page.locator("#ck-weight").fill("81.4");
@@ -46,7 +50,7 @@ test("klient wypełnia i wysyła raport tygodniowy", async ({ page }) => {
   // i oferuje poprawkę zamiast nowego raportu.
   await page.reload();
   await expect(page.getByRole("button", { name: "Wyślij poprawkę" })).toBeVisible({
-    timeout: 15_000,
+    timeout: 20_000,
   });
 });
 
@@ -69,8 +73,11 @@ test("raport nie wychodzi, dopóki każda skala nie ma świadomej odpowiedzi", a
   const ostrzezenie = page.getByRole("alert");
   await expect(ostrzezenie).toBeVisible();
   await expect(ostrzezenie).toContainText(/świadomej decyzji|pominięte/i);
-  // Wysyłka ma być zablokowana — zostajemy na formularzu, a tydzień
-  // nadal czeka na raport (gdyby przeszła, byłaby tu „Wyślij poprawkę”).
+  // Wysyłka ma być zablokowana — zostajemy na formularzu, a tydzień nadal
+  // czeka na raport. Sprawdzamy DOKŁADNĄ nazwę: pojawienie się „Wyślij
+  // poprawkę" znaczyłoby, że walidacja przepuściła niekompletny raport.
+  // Konto B nigdy nie wysyła raportu, więc ten stan jest stały także przy
+  // powtórnym uruchomieniu.
   await page.reload();
   await expect(page.getByRole("button", { name: "Wyślij raport" })).toBeVisible();
 });

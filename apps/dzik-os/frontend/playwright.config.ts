@@ -27,7 +27,12 @@ export default defineConfig({
   workers: 1,
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 1 : 0,
+  // ZERO powtórzeń — świadomie. Testy zapisują dane do jednej bazy, a przy
+  // powtórce baza NIE jest resetowana (serwer chodzi dalej), więc druga próba
+  // zaczyna od stanu zostawionego przez pierwszą. Powtórzenie nie naprawiało
+  // tu niestabilności, tylko utrwalało porażkę i zaciemniało przyczynę.
+  // Test ma być odporny sam z siebie; jeśli nie jest, ma to być widać.
+  retries: 0,
   reporter: process.env.CI ? [["list"], ["html", { open: "never" }]] : "list",
   timeout: 30_000,
   expect: { timeout: 10_000 },
