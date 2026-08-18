@@ -181,10 +181,15 @@ zamknięty — pragma jest włączana na każdym połączeniu SQLite.
 
 ---
 
-## Prośba o rewanż
+## Czego brakuje, żeby to miało sens do końca
 
-To zbija bloker nr 1 **tylko w jedną stronę**. Proszę o przegląd mojego
-obszaru — `tools/spojnosc.py`, `tests/access_matrix.py`, workflow CI.
-Szczególnie o jedno pytanie: **„czy ta kontrola w ogóle coś widzi?"**
-Kontrola tras raz już przechodziła zawsze, widząc 35 z około 200 tras,
-i wyszło to dopiero przy celowo wstrzykniętym błędzie.
+Ten dokument zbija bloker nr 1 **tylko w połowie**. Obszar bramek —
+`tools/spojnosc.py`, `tests/access_matrix.py`, workflow CI — nie przeszedł
+przez niczyje inne oczy i ma dokładnie ten sam problem, co przeglądany tu
+kod: pisała go ta sama głowa, która go sprawdzała.
+
+Pytanie, które taki przegląd powinien zadać w pierwszej kolejności:
+**„czy ta kontrola w ogóle coś widzi?"** Kontrola tras raz już przechodziła
+zawsze, widząc 35 z około 200 tras, i wyszło to dopiero przy celowo
+wstrzykniętym błędzie. Kto go wykona, rozstrzyga właściciel produktu —
+tu jest tylko odnotowane, że bez niego połowa blokera stoi nietknięta.
