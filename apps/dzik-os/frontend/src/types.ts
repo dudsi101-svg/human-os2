@@ -206,6 +206,11 @@ export interface CoachDashboardData {
   knowledge_items_count: number;
 }
 
+export interface WorkoutSet {
+  weight_kg: number;
+  reps: number;
+}
+
 export interface WorkoutRow {
   id: string;
   plan_version_id: string;
@@ -215,7 +220,13 @@ export interface WorkoutRow {
   comment: string | null;
   pain_flag: boolean;
   pain_note: string | null;
-  entries: { exercise_index: number; exercise_name: string; result: string | null; comment: string | null; file_id: string | null }[];
+  entries: { exercise_index: number; exercise_name: string; result: string | null;
+    sets: WorkoutSet[]; comment: string | null; file_id: string | null }[];
+}
+
+export interface StrengthSeriesRow {
+  exercise_name: string;
+  points: { date: string; volume_kg: number; e1rm_kg: number }[];
 }
 
 export interface DocumentRow {

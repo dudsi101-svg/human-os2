@@ -55,10 +55,17 @@ class PlanCreateIn(BaseModel):
     version: PlanVersionIn
 
 
+class WorkoutSetIn(BaseModel):
+    weight_kg: float = Field(ge=0, le=1000)
+    reps: int = Field(ge=0, le=200)
+
+
 class WorkoutEntryIn(BaseModel):
     exercise_index: int = Field(ge=0)
     exercise_name: str = Field(max_length=300)
     result: str | None = Field(default=None, max_length=1000)
+    # Strukturalne serie (opcjonalne, obok/zamiast tekstowego wyniku).
+    sets: list[WorkoutSetIn] = Field(default=[], max_length=30)
     comment: str | None = Field(default=None, max_length=1000)
     file_id: str | None = None
 

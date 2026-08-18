@@ -281,6 +281,9 @@ def log_workout(
                 exercise_index=e.exercise_index,
                 exercise_name=e.exercise_name,
                 result=e.result,
+                sets_json=(
+                    json.dumps([s.model_dump() for s in e.sets]) if e.sets else None
+                ),
                 comment=e.comment,
                 file_id=e.file_id,
             )
@@ -337,6 +340,7 @@ def list_workouts(
                         "exercise_index": e.exercise_index,
                         "exercise_name": e.exercise_name,
                         "result": e.result,
+                        "sets": json.loads(e.sets_json) if e.sets_json else [],
                         "comment": e.comment,
                         "file_id": e.file_id,
                     }

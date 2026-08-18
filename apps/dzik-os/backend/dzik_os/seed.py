@@ -346,12 +346,9 @@ def seed() -> dict[str, str]:
             WorkoutSession,
         )
 
-        # --- Wykonane treningi klienta A (progresja przysiadu → rekord) ---
-        for offset, squat_result, bench_result in [
-            (16, "4x6 @ 95 kg", "4x8 @ 65 kg"),
-            (9, "4x6 @ 100 kg", "4x8 @ 67,5 kg"),
-            (2, "4x6 @ 105 kg", "4x8 @ 70 kg"),
-        ]:
+        # --- Wykonane treningi klienta A (progresja przysiadu → rekord;
+        # serie strukturalnie: ciężar × powtórzenia → wykresy siły) ---
+        for offset, squat_kg, bench_kg in [(16, 95, 65), (9, 100, 67.5), (2, 105, 70)]:
             session = WorkoutSession(
                 id=new_id("WKS"), client_id=client_a.id,
                 plan_version_id=plan_a_v2.id, day_index=1,
@@ -361,11 +358,15 @@ def seed() -> dict[str, str]:
             db.add(session)
             db.add(WorkoutEntry(
                 id=new_id("WKE"), session_id=session.id, exercise_index=0,
-                exercise_name="Przysiad ze sztangą", result=squat_result,
+                exercise_name="Przysiad ze sztangą",
+                result=f"4x6 @ {squat_kg} kg",
+                sets_json=json.dumps([{"weight_kg": squat_kg, "reps": 6}] * 4),
             ))
             db.add(WorkoutEntry(
                 id=new_id("WKE"), session_id=session.id, exercise_index=1,
-                exercise_name="Wyciskanie sztangi leżąc", result=bench_result,
+                exercise_name="Wyciskanie sztangi leżąc",
+                result=f"4x8 @ {bench_kg} kg",
+                sets_json=json.dumps([{"weight_kg": bench_kg, "reps": 8}] * 4),
             ))
 
         kreatyna = schedule_by_name["Kreatyna 5 g"]

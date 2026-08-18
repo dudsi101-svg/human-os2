@@ -134,6 +134,7 @@ def test_migrations_apply_to_existing_v1_database(tmp_path):
         conn.execute(text("CREATE TABLE consents (id VARCHAR(40) PRIMARY KEY)"))
         conn.execute(text("CREATE TABLE schedule_items (id VARCHAR(40) PRIMARY KEY)"))
         conn.execute(text("CREATE TABLE weekly_checkins (id VARCHAR(40) PRIMARY KEY)"))
+        conn.execute(text("CREATE TABLE workout_entries (id VARCHAR(40) PRIMARY KEY)"))
     applied = run_migrations(eng)
     assert applied == [v for v, _, _ in MIGRATIONS if v != 1]
     with eng.connect() as conn:

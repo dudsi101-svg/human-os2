@@ -1,5 +1,25 @@
 # Changelog — Dzik OS
 
+## 0.8.0 — 2026-08-18
+
+Runda 6b.6 specyfikacji: **strukturalny dziennik serii + wykresy siły**.
+
+* `workout_entries.sets_json` (migracja nr 7): serie jako ciężar ×
+  powtórzenia obok dotychczasowego tekstowego wyniku (kompatybilność
+  wstecz — stare zapisy działają dalej).
+* Logowanie treningu u klienta: szybkie wiersze serii (kg × powt.,
+  „+ seria" kopiuje poprzednie wartości) + opcjonalna notatka tekstowa.
+* Nowy endpoint `GET /clients/{id}/strength-series`: per ćwiczenie
+  objętość dnia (suma kg×powt.) i najlepszy szacowany 1RM dnia (wzór
+  Epleya — opisany w UI jako szacunek do obserwacji trendu, nie
+  zalecenie obciążenia).
+* Karta „Siła w czasie" (wybór ćwiczenia + dwa wykresy) na Postępach
+  klienta i w Monitoringu trenera; rekordy osobiste liczą się teraz
+  najpierw ze strukturalnych serii, potem z tekstu.
+* Seed: treningi klienta A zapisane strukturalnie (progresja przysiadu
+  95→105 kg widoczna na wykresie od pierwszego uruchomienia).
+* Testy: 105 → 108.
+
 ## 0.7.0 — 2026-08-18
 
 Runda 6b.5 specyfikacji: **powiadomienia push (PWA)**.

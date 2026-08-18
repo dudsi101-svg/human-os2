@@ -10,6 +10,7 @@ import {
   SectionLabel,
   Sparkline,
   Spinner,
+  StrengthChartsCard,
   TopBar,
 } from "../../components";
 import {
@@ -291,8 +292,13 @@ function PlanTab({ clientId }: { clientId: string }) {
                 <b>{plDate(w.performed_on)}</b>
                 {w.pain_flag && <span className="badge badge--danger" style={{ marginLeft: 6 }}>ból: {w.pain_note}</span>}
                 {w.comment && <div className="meta">{w.comment}</div>}
-                {w.entries.filter((e) => e.result).map((e, i) => (
-                  <div className="meta" key={i}>{e.exercise_name}: {e.result}</div>
+                {w.entries.filter((e) => e.result || e.sets.length > 0).map((e, i) => (
+                  <div className="meta" key={i}>
+                    {e.exercise_name}:{" "}
+                    {e.sets.length > 0
+                      ? e.sets.map((s) => `${s.weight_kg} kg×${s.reps}`).join(", ")
+                      : e.result}
+                  </div>
                 ))}
               </div>
               <div className="meta">{w.status}</div>
@@ -871,6 +877,7 @@ function MonitoringTab({ clientId }: { clientId: string }) {
       )}
 
       <PersonalRecordsCard clientId={clientId} />
+      <StrengthChartsCard clientId={clientId} />
 
       {photos.length >= 2 && <PhotoCompare photos={photos} formatDate={plDate} />}
 

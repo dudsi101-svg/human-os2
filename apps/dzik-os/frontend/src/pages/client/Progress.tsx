@@ -7,6 +7,7 @@ import {
   PhotoCompare,
   Sparkline,
   Spinner,
+  StrengthChartsCard,
   TopBar,
 } from "../../components";
 import {
@@ -71,6 +72,7 @@ export default function Progress() {
       {monitoring?.goal && <GoalCard goal={monitoring.goal} />}
 
       <PersonalRecordsCard clientId={user.id} />
+      <StrengthChartsCard clientId={user.id} />
 
       <form className="card" onSubmit={addMeasurement}>
         <h3>Dodaj pomiar</h3>

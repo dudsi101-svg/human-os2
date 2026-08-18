@@ -188,6 +188,10 @@ class WorkoutEntry(Base):
     exercise_index: Mapped[int] = mapped_column(Integer)
     exercise_name: Mapped[str] = mapped_column(String(300))
     result: Mapped[str | None] = mapped_column(Text, nullable=True)  # np. "3x8 @ 80kg"
+    # Strukturalny zapis serii: [{"weight_kg": 80, "reps": 8}, ...] —
+    # obok tekstowego `result` (kompatybilność wstecz); umożliwia wykresy
+    # objętości i szacowanego 1RM bez parsowania tekstu.
+    sets_json: Mapped[str | None] = mapped_column(Text, nullable=True)
     comment: Mapped[str | None] = mapped_column(Text, nullable=True)
     file_id: Mapped[str | None] = mapped_column(ForeignKey("files.id"), nullable=True)
 

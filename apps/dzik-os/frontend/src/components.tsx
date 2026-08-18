@@ -2,7 +2,7 @@ import { ReactNode, useEffect, useState } from "react";
 import { NavLink } from "react-router-dom";
 import { api, clearSession, fetchFileBlob, fetchFileUrl, getUser, plDate } from "./api";
 import { applyUpdate, onUpdateAvailable } from "./pwa";
-import { KIND_LABELS, PersonalRecordsData } from "./types";
+import { KIND_LABELS, PersonalRecordsData, StrengthSeriesRow } from "./types";
 
 /** Głowa dzika — marka Dzik OS. */
 export function Logo({ size = 26 }: { size?: number }) {
@@ -357,6 +357,65 @@ export function Sparkline({ points, unit }: { points: { x: string; y: number }[]
 /** Rekordy osobiste i postęp od startu — rywalizacja wyłącznie z własną
  * historią (zasada Human OS: żadnych porównań między ludźmi ani
  * rankingów; punktem odniesienia jest wcześniejsze „ja"). */
+/** Wykresy siły per ćwiczenie (szacowany 1RM + objętość dnia) — dane
+ * wyłącznie ze strukturalnych zapisów serii; porównanie tylko z własną
+ * historią. e1RM (Epley) to szacunek do obserwacji trendu, nie zalecenie
+ * obciążenia. */
+export function StrengthChartsCard({ clientId }: { clientId: string }) {
+  const [series, setSeries] = useState<StrengthSeriesRow[] | null>(null);
+  const [exercise, setExercise] = useState("");
+  useEffect(() => {
+    api.get<{ series: StrengthSeriesRow[] }>(`/api/clients/${clientId}/strength-series`)
+      .then((d) => {
+        setSeries(d.series);
+        if (d.series.length > 0) setExercise(d.series[0].exercise_name);
+      })
+      .catch(() => setSeries([]));
+  }, [clientId]);
+  if (!series || series.length === 0) return null;
+  const row = series.find((s) => s.exercise_name === exercise) ?? series[0];
+  const enough = row.points.length >= 2;
+  return (
+    <div className="card">
+      <div className="row row--between">
+        <h3>Siła w czasie</h3>
+        <select value={row.exercise_name} style={{ width: "auto" }}
+          onChange={(e) => setExercise(e.target.value)}>
+          {series.map((s) => (
+            <option key={s.exercise_name} value={s.exercise_name}>{s.exercise_name}</option>
+          ))}
+        </select>
+      </div>
+      {!enough && (
+        <p className="dim" style={{ fontSize: "0.85rem" }}>
+          Zapisz serie (ciężar × powtórzenia) z co najmniej dwóch treningów,
+          żeby zobaczyć trend.
+        </p>
+      )}
+      {enough && (
+        <>
+          <div className="row row--between" style={{ marginTop: 6 }}>
+            <b style={{ fontSize: "0.9rem" }}>Szacowany 1RM</b>
+            <span className="badge">{row.points[row.points.length - 1].e1rm_kg} kg</span>
+          </div>
+          <Sparkline unit="kg"
+            points={row.points.map((p) => ({ x: plDate(p.date), y: p.e1rm_kg }))} />
+          <div className="row row--between" style={{ marginTop: 10 }}>
+            <b style={{ fontSize: "0.9rem" }}>Objętość treningu</b>
+            <span className="badge">{row.points[row.points.length - 1].volume_kg} kg</span>
+          </div>
+          <Sparkline unit="kg"
+            points={row.points.map((p) => ({ x: plDate(p.date), y: p.volume_kg }))} />
+          <small className="dim">
+            1RM to szacunek (wzór Epleya) do obserwacji trendu — nie jest
+            zaleceniem obciążenia.
+          </small>
+        </>
+      )}
+    </div>
+  );
+}
+
 export function PersonalRecordsCard({ clientId }: { clientId: string }) {
   const [data, setData] = useState<PersonalRecordsData | null>(null);
   useEffect(() => {

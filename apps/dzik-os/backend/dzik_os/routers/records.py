@@ -10,6 +10,7 @@ AI — prosty, jawny regex; wynik bez rozpoznawalnego ciężaru jest pomijany.
 
 from __future__ import annotations
 
+import json
 import re
 from datetime import UTC, datetime, timedelta
 
@@ -30,6 +31,34 @@ NEW_RECORD_WINDOW_DAYS = 14
 def _max_weight_kg(result_text: str) -> float | None:
     values = [float(m.replace(",", ".")) for m in WEIGHT_RE.findall(result_text)]
     return max(values) if values else None
+
+
+def _entry_sets(entry: WorkoutEntry) -> list[dict]:
+    if not entry.sets_json:
+        return []
+    try:
+        sets = json.loads(entry.sets_json)
+        return sets if isinstance(sets, list) else []
+    except ValueError:
+        return []
+
+
+def _entry_max_weight(entry: WorkoutEntry) -> float | None:
+    """Najcięższa seria — najpierw dane strukturalne, potem tekst wyniku."""
+    sets = [s for s in _entry_sets(entry) if s.get("weight_kg")]
+    if sets:
+        return max(float(s["weight_kg"]) for s in sets)
+    if entry.result:
+        return _max_weight_kg(entry.result)
+    return None
+
+
+def _epley_e1rm(weight_kg: float, reps: int) -> float:
+    """Szacowany 1RM (Epley) — SZACUNEK do obserwacji trendu, nie
+    zalecenie obciążenia treningowego."""
+    if reps <= 1:
+        return weight_kg
+    return weight_kg * (1 + reps / 30)
 
 
 @router.get("/clients/{client_id}/personal-records")
@@ -55,9 +84,7 @@ def personal_records(
     )
     by_exercise: dict[str, list[tuple[str, float]]] = {}
     for entry, performed_on in rows:
-        if not entry.result:
-            continue
-        weight = _max_weight_kg(entry.result)
+        weight = _entry_max_weight(entry)
         if weight is None:
             continue
         by_exercise.setdefault(entry.exercise_name, []).append((performed_on, weight))
@@ -110,3 +137,48 @@ def personal_records(
         )
 
     return {"records": records, "since_start": since_start}
+
+
+@router.get("/clients/{client_id}/strength-series")
+def strength_series(
+    client_id: str,
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    """Serie siłowe per ćwiczenie — wyłącznie ze strukturalnych zapisów
+    serii (ciężar × powtórzenia): objętość dnia (suma kg×powt.) i
+    najlepszy szacowany 1RM dnia (Epley — szacunek do obserwacji trendu,
+    nie zalecenie). Porównania tylko z własną historią."""
+    resolve_client_access(db, user, client_id)
+    rows = (
+        db.query(WorkoutEntry, WorkoutSession.performed_on)
+        .join(WorkoutSession, WorkoutEntry.session_id == WorkoutSession.id)
+        .filter(WorkoutSession.client_id == client_id)
+        .order_by(WorkoutSession.performed_on)
+        .all()
+    )
+    # exercise -> date -> {"volume": x, "e1rm": y}
+    agg: dict[str, dict[str, dict[str, float]]] = {}
+    for entry, performed_on in rows:
+        sets = [
+            s for s in _entry_sets(entry)
+            if s.get("weight_kg") and s.get("reps")
+        ]
+        if not sets:
+            continue
+        day = agg.setdefault(entry.exercise_name, {}).setdefault(
+            performed_on, {"volume": 0.0, "e1rm": 0.0}
+        )
+        for s in sets:
+            weight, reps = float(s["weight_kg"]), int(s["reps"])
+            day["volume"] += weight * reps
+            day["e1rm"] = max(day["e1rm"], _epley_e1rm(weight, reps))
+    out = []
+    for exercise, days in agg.items():
+        points = [
+            {"date": d, "volume_kg": round(v["volume"], 1), "e1rm_kg": round(v["e1rm"], 1)}
+            for d, v in sorted(days.items())
+        ]
+        out.append({"exercise_name": exercise, "points": points})
+    out.sort(key=lambda e: e["exercise_name"])
+    return {"series": out}

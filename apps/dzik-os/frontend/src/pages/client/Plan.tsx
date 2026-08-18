@@ -3,6 +3,19 @@ import { api, getUser, plDate, WEEKDAYS } from "../../api";
 import { ErrorBox, Spinner, TopBar } from "../../components";
 import { PlanVersion, TrainingPlan, WorkoutRow } from "../../types";
 
+/** Wiersze serii (ciężar × powtórzenia) wpisywane jako tekst — puste są
+ * pomijane przy zapisie. */
+interface SetRow { weight: string; reps: string }
+
+function toApiSets(rows: SetRow[]): { weight_kg: number; reps: number }[] {
+  return rows
+    .map((r) => ({
+      weight_kg: Number(r.weight.replace(",", ".")),
+      reps: Number(r.reps),
+    }))
+    .filter((s) => isFinite(s.weight_kg) && s.weight_kg > 0 && s.reps > 0);
+}
+
 /** "120 s" / "2 min" / "90" → sekundy (null, gdy nie da się odczytać). */
 function parseRestSeconds(rest: string | null | undefined): number | null {
   if (!rest) return null;
@@ -72,6 +85,7 @@ export default function Plan() {
   const [error, setError] = useState<string | null>(null);
   const [logDay, setLogDay] = useState<number | null>(null);
   const [results, setResults] = useState<Record<number, string>>({});
+  const [sets, setSets] = useState<Record<number, SetRow[]>>({});
   const [comment, setComment] = useState("");
   const [pain, setPain] = useState(false);
   const [painNote, setPainNote] = useState("");
@@ -111,10 +125,12 @@ export default function Plan() {
           exercise_index: i,
           exercise_name: ex.name,
           result: results[i] || null,
+          sets: toApiSets(sets[i] ?? []),
         })),
       });
       setLogDay(null);
       setResults({});
+      setSets({});
       setComment("");
       setPain(false);
       setPainNote("");
@@ -194,14 +210,40 @@ export default function Plan() {
               })}
               {logDay === di ? (
                 <div style={{ marginTop: 10 }}>
-                  {day.exercises.map((ex, i) => (
-                    <div key={i}>
-                      <label>{ex.name} — wynik</label>
-                      <input placeholder="np. 4×8 @ 72,5 kg"
-                        value={results[i] ?? ""}
-                        onChange={(e) => setResults({ ...results, [i]: e.target.value })} />
-                    </div>
-                  ))}
+                  {day.exercises.map((ex, i) => {
+                    const rows = sets[i] ?? [{ weight: "", reps: "" }];
+                    const setRows = (next: SetRow[]) => setSets({ ...sets, [i]: next });
+                    return (
+                      <div key={i} style={{ marginBottom: 12 }}>
+                        <label style={{ marginBottom: 2 }}>{ex.name}</label>
+                        {rows.map((row, si) => (
+                          <div className="row" key={si} style={{ marginBottom: 4 }}>
+                            <span className="badge">{si + 1}</span>
+                            <input type="text" inputMode="decimal" placeholder="kg"
+                              style={{ width: 90 }} value={row.weight}
+                              onChange={(e) => setRows(rows.map((r, j) =>
+                                j === si ? { ...r, weight: e.target.value } : r))} />
+                            <span className="dim">×</span>
+                            <input type="number" inputMode="numeric" placeholder="powt."
+                              style={{ width: 90 }} value={row.reps}
+                              onChange={(e) => setRows(rows.map((r, j) =>
+                                j === si ? { ...r, reps: e.target.value } : r))} />
+                            {si === rows.length - 1 && (
+                              <button type="button" className="btn btn--ghost btn--small"
+                                onClick={() => setRows([...rows, {
+                                  weight: row.weight, reps: row.reps,
+                                }])}>
+                                + seria
+                              </button>
+                            )}
+                          </div>
+                        ))}
+                        <input placeholder="notatka / wynik tekstowy (opcjonalnie)"
+                          value={results[i] ?? ""}
+                          onChange={(e) => setResults({ ...results, [i]: e.target.value })} />
+                      </div>
+                    );
+                  })}
                   <label>Komentarz do treningu</label>
                   <textarea value={comment} onChange={(e) => setComment(e.target.value)} />
                   <label className="row" style={{ alignItems: "center" }}>
@@ -238,8 +280,13 @@ export default function Plan() {
               <div>
                 <b>{plDate(w.performed_on)}</b>
                 {w.pain_flag && <span className="badge badge--danger" style={{ marginLeft: 8 }}>ból</span>}
-                {w.entries.filter((e) => e.result).map((e, i) => (
-                  <div className="meta" key={i}>{e.exercise_name}: {e.result}</div>
+                {w.entries.filter((e) => e.result || e.sets.length > 0).map((e, i) => (
+                  <div className="meta" key={i}>
+                    {e.exercise_name}:{" "}
+                    {e.sets.length > 0
+                      ? e.sets.map((s) => `${s.weight_kg} kg×${s.reps}`).join(", ")
+                      : e.result}
+                  </div>
                 ))}
               </div>
               <div className="meta">{w.status === "DONE" ? "✅" : w.status}</div>

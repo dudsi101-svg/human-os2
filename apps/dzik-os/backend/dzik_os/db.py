@@ -162,6 +162,9 @@ MIGRATIONS: list[tuple[int, str, list[str]]] = [
             "ON push_subscriptions(user_id)"
         ),
     ]),
+    (7, "structured workout sets", [
+        "ALTER TABLE workout_entries ADD COLUMN sets_json TEXT",
+    ]),
 ]
 
 
