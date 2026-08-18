@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api, getUser, money, plDate } from "../../api";
 import { ErrorBox, Spinner, TopBar } from "../../components";
-import { CATEGORY_LABELS, TodayData } from "../../types";
+import { CATEGORY_LABELS, ConsultSlotRow, TodayData } from "../../types";
 
 export default function Today() {
   const [data, setData] = useState<TodayData | null>(null);
@@ -10,6 +10,7 @@ export default function Today() {
   const [marking, setMarking] = useState(false);
   const [markingSchedule, setMarkingSchedule] = useState<string | null>(null);
   const [needsIntake, setNeedsIntake] = useState(false);
+  const [nextConsult, setNextConsult] = useState<ConsultSlotRow | null>(null);
   const user = getUser();
 
   const load = () =>
@@ -20,6 +21,9 @@ export default function Today() {
       // Pusty profil = świeże konto — zaproś do wywiadu startowego.
       api.get<{ fields: unknown[] }>(`/api/clients/${user.id}/profile`)
         .then((d) => setNeedsIntake(d.fields.length === 0))
+        .catch(() => undefined);
+      api.get<{ booked: ConsultSlotRow[] }>("/api/me/consult-slots")
+        .then((d) => setNextConsult(d.booked[0] ?? null))
         .catch(() => undefined);
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -70,6 +74,17 @@ export default function Today() {
           <p className="dim" style={{ margin: "4px 0 0", fontSize: "0.85rem" }}>
             Kilka pytań o cel, doświadczenie i zdrowie — trener od razu
             dopasuje plan do Ciebie. Zajmie 2 minuty.
+          </p>
+        </Link>
+      )}
+      {nextConsult && (
+        <Link to="/konsultacje" className="card" style={{ display: "block", marginBottom: 10 }}>
+          <b style={{ color: "var(--text)" }}>📅 Najbliższa konsultacja</b>
+          <p className="dim" style={{ margin: "4px 0 0", fontSize: "0.85rem" }}>
+            {new Date(nextConsult.starts_at).toLocaleString("pl-PL", {
+              weekday: "long", day: "numeric", month: "long",
+              hour: "2-digit", minute: "2-digit",
+            })} · {nextConsult.duration_min} min
           </p>
         </Link>
       )}

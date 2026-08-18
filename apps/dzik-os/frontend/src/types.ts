@@ -193,7 +193,19 @@ export interface CoachClientRow {
   last_checkin_week: string | null;
 }
 
+export interface ConsultSlotRow {
+  id: string;
+  coach_id: string;
+  starts_at: string; // YYYY-MM-DDTHH:MM (czas lokalny)
+  duration_min: number;
+  status: string;
+  client_id: string | null;
+  client_name: string | null;
+  booked_at: string | null;
+}
+
 export interface CoachDashboardData {
+  upcoming_consultations: number;
   active_clients: number;
   awaiting_review: number;
   checkin_overdue_clients: number;

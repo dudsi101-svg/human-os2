@@ -165,6 +165,21 @@ MIGRATIONS: list[tuple[int, str, list[str]]] = [
     (7, "structured workout sets", [
         "ALTER TABLE workout_entries ADD COLUMN sets_json TEXT",
     ]),
+    (8, "consultation slots", [
+        """
+        CREATE TABLE IF NOT EXISTS consult_slots (
+            id VARCHAR(40) PRIMARY KEY,
+            coach_id VARCHAR(40) NOT NULL REFERENCES users(id),
+            starts_at VARCHAR(20) NOT NULL,
+            duration_min INTEGER NOT NULL DEFAULT 30,
+            status VARCHAR(20) NOT NULL DEFAULT 'OPEN',
+            client_id VARCHAR(40) REFERENCES users(id),
+            booked_at VARCHAR(40),
+            created_at VARCHAR(40) NOT NULL
+        )
+        """,
+        "CREATE INDEX IF NOT EXISTS ix_consult_slots_coach ON consult_slots(coach_id)",
+    ]),
 ]
 
 

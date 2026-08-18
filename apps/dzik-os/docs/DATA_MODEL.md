@@ -87,6 +87,12 @@ produkt jako **sugestię do ręcznego wpisania** w `nutrition_plan_versions`
 — zgodnie z zasadą Human OS, że AI/algorytm nigdy nie generuje ani nie
 zmienia diety autonomicznie.
 
+## Konsultacje
+
+| Tabela | Uwagi |
+|---|---|
+| `consult_slots` | slot konsultacji trenera: starts_at (czas lokalny DZIK_TZ, „YYYY-MM-DDTHH:MM"), duration_min, status OPEN/BOOKED/CANCELLED, client_id + booked_at po rezerwacji. Klient rezerwuje wyłącznie sloty trenerów, którzy go aktywnie prowadzą; odwołanie klienta do 12 h przed terminem, trenera w każdej chwili (push do drugiej strony). Bez kar/metryk za odwołania. |
+
 ## Powiadomienia push
 
 | Tabela | Uwagi |

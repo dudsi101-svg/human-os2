@@ -1,5 +1,23 @@
 # Changelog — Dzik OS
 
+## 0.9.0 — 2026-08-18
+
+Runda 6b.7 specyfikacji: **terminarz konsultacji**.
+
+* Tabela `consult_slots` (migracja nr 8): trener wystawia terminy
+  (data+godzina, czas trwania), klient rezerwuje i odwołuje (do 12 h
+  przed terminem; trener może odwołać w każdej chwili). Rezerwacje
+  zawsze odwoływalne — bez kar i metryk za odwołania.
+* Push przy rezerwacji/odwołaniu (obie strony), zdarzenia audytowe
+  CONSULT_SLOT_CREATED/BOOKED/UNBOOKED/CANCELLED.
+* UI: `/trener/konsultacje` (formularz + lista z odwołaniem, link w
+  Więcej), `/konsultacje` u klienta (rezerwacje + wolne terminy, link w
+  Więcej), karta „Najbliższa konsultacja" na Dzisiaj, licznik
+  nadchodzących konsultacji na dashboardzie trenera.
+* Izolacja: klient widzi wyłącznie terminy trenerów, którzy go aktywnie
+  prowadzą; rezerwacja cudzego slotu = 404.
+* Testy: 108 → 113.
+
 ## 0.8.0 — 2026-08-18
 
 Runda 6b.6 specyfikacji: **strukturalny dziennik serii + wykresy siły**.

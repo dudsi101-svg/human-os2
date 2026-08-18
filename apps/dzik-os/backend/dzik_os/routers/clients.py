@@ -10,6 +10,7 @@ from ..db import get_db
 from ..hos_bridge import ConsentService, record_event
 from ..models import (
     CoachClientRelationship,
+    ConsultSlot,
     Exercise,
     FoodProduct,
     KnowledgeItem,
@@ -266,7 +267,17 @@ def coach_dashboard(
         .filter(KnowledgeItem.coach_id == coach.id, KnowledgeItem.status == "ACTIVE")
         .count()
     )
+    upcoming_consultations = (
+        db.query(ConsultSlot)
+        .filter(
+            ConsultSlot.coach_id == coach.id,
+            ConsultSlot.status == "BOOKED",
+            ConsultSlot.starts_at > datetime.now(UTC).strftime("%Y-%m-%dT%H:%M"),
+        )
+        .count()
+    )
     return {
+        "upcoming_consultations": upcoming_consultations,
         "active_clients": active_clients,
         "awaiting_review": awaiting_review,
         "checkin_overdue_clients": checkin_overdue_clients,

@@ -547,6 +547,25 @@ class FoodProduct(Base):
     updated_at: Mapped[str] = mapped_column(String(40), default=now_iso)
 
 
+class ConsultSlot(Base):
+    """Slot konsultacji trenera. Czas lokalny (DZIK_TZ) jako ISO
+    "YYYY-MM-DDTHH:MM" — porównania leksykograficzne działają.
+    Rezerwacja jest zawsze odwoływalna (klient do 12 h przed terminem,
+    trener w każdej chwili z powiadomieniem) — żadnych kar ani metryk
+    za odwołania (zasada Human OS)."""
+
+    __tablename__ = "consult_slots"
+
+    id: Mapped[str] = mapped_column(String(40), primary_key=True)
+    coach_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
+    starts_at: Mapped[str] = mapped_column(String(20))  # YYYY-MM-DDTHH:MM
+    duration_min: Mapped[int] = mapped_column(Integer, default=30)
+    status: Mapped[str] = mapped_column(String(20), default="OPEN")  # OPEN/BOOKED/CANCELLED
+    client_id: Mapped[str | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+    booked_at: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    created_at: Mapped[str] = mapped_column(String(40), default=now_iso)
+
+
 class PushSubscription(Base):
     """Subskrypcja Web Push (opt-in użytkownika). Treść powiadomień nigdy
     nie zawiera danych zdrowotnych — tylko neutralne wezwanie do wejścia

@@ -14,11 +14,17 @@ export default function More() {
         <div><small>Rola: {user.roles.join(", ")}</small></div>
       </div>
       {!isClient && <PushNotificationsCard />}
+      {user.roles.includes("COACH") && (
+        <div className="list" style={{ marginBottom: 10 }}>
+          <Link className="card" to="/trener/konsultacje">📅 Terminarz konsultacji</Link>
+        </div>
+      )}
       <div className="list">
         {isClient && (
           <>
             <Link className="card" to="/postepy">📈 Monitoring i postępy</Link>
             <Link className="card" to="/wiedza">📚 Baza wiedzy</Link>
+            <Link className="card" to="/konsultacje">📅 Konsultacje z trenerem</Link>
             <Link className="card" to="/dokumenty">📄 Dokumenty i harmonogram</Link>
             <Link className="card" to="/platnosci">💳 Płatności</Link>
             <Link className="card" to="/wiadomosci">💬 Wiadomości</Link>

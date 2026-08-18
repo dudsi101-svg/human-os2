@@ -67,6 +67,7 @@ export default function Clients() {
           <div className="stat-grid">
             <div className="stat"><b>{dashboard.active_clients}</b><span>aktywni klienci</span></div>
             <div className="stat"><b>{dashboard.awaiting_review}</b><span>raporty do oceny</span></div>
+            <div className="stat"><b>{dashboard.upcoming_consultations}</b><span>konsultacje</span></div>
             <div className="stat"><b>{dashboard.checkin_overdue_clients}</b><span>zaległe raporty</span></div>
             <div className="stat"><b>{dashboard.payment_overdue_clients}</b><span>zaległe płatności</span></div>
             <div className="stat"><b>{dashboard.unread_messages_total}</b><span>nieprzeczytane wiadomości</span></div>
