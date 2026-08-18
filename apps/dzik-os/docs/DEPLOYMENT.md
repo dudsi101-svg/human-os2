@@ -109,18 +109,20 @@ python -m dzik_os.backup --backup-dir /backups --keep 30
 python -m dzik_os.backup --restore data/backups/dzik-backup-20260818T020000Z.tar.gz --force
 ```
 
-Harmonogram na Fly.io (brak wbudowanego crona w maszynie aplikacji) —
-dwie sprawdzone opcje:
+Harmonogram na Fly.io (brak wbudowanego crona w maszynie aplikacji):
 
-1. **GitHub Actions na harmonogramie** (zalecane): workflow z
-   `on: schedule` (np. codziennie 02:00 UTC) wykonujący
-   `flyctl ssh console --app dzik-os-panel -C "python -m dzik_os.backup"`
-   (sekret `FLY_API_TOKEN` w repo). Archiwa lądują na wolumenie `/data`;
-   ustaw `DZIK_BACKUP_DIR=/data/backups`. Dla kopii poza maszyną dodaj
-   krok `flyctl ssh sftp get` pobierający najnowsze archiwum do
-   artefaktu/zewnętrznego storage.
-2. **Fly Machines z cronem**: osobna maszyna z supercronic/crontab
-   wywołująca to samo polecenie.
+1. **GitHub Actions — WDROŻONE**: workflow
+   `.github/workflows/fly-backup.yml` wykonuje backup codziennie
+   o 02:30 UTC oraz na żądanie (Actions → „Kopia zapasowa (Fly.io)" →
+   Run workflow). Uruchamia `python -m dzik_os.backup` na maszynie
+   z `DZIK_BACKUP_DIR=/data/backups` i wypisuje listę archiwów
+   (sekret `FLY_API_TOKEN` w repo — ten sam co deploy). Workflow celowo
+   **nie pobiera archiwów z maszyny** — dane zdrowotne nie mają trafiać
+   do artefaktów GitHub Actions; dla kopii poza maszyną skonfiguruj
+   `flyctl ssh sftp get` do własnego, zaufanego storage (decyzja
+   operatora).
+2. Alternatywa: **Fly Machines z cronem** — osobna maszyna
+   z supercronic/crontab wywołująca to samo polecenie.
 
 Dodatkowa warstwa: **snapshoty wolumenów Fly** — Fly.io wykonuje
 automatyczne codzienne snapshoty wolumenu (`flyctl volumes snapshots
