@@ -25,7 +25,27 @@ const dist = resolve(dirname(fileURLToPath(import.meta.url)), "..", "dist");
 // sw.js (rejestrowany osobno, nie może cache'ować samego siebie) i mapy
 // źródeł (niepotrzebne offline).
 const EXCLUDE = new Set(["sw.js"]);
-const EXCLUDE_EXT = new Set([".map"]);
+// `.woff` (bez dwójki) to format zapasowy dla przeglądarek bez woff2 — a taka
+// przeglądarka nie obsługuje też service workerów, więc nigdy nie sięgnie po
+// ten precache. @fontsource wystawia oba formaty w jednym `src:`, przez co
+// pliki .woff trafiały do dist i były instalowane na urządzenie, mimo że żadna
+// przeglądarka ich stamtąd nie użyje (audyt 18.08.2026: 980 KB).
+const EXCLUDE_EXT = new Set([".map", ".woff"]);
+
+// Subsety znaków, których polskojęzyczna aplikacja nie wyświetli. W CSS
+// zostają (mają `unicode-range`, więc przeglądarka i tak ich nie pobierze),
+// ale precache nie zna zasięgu znaków i instalował je wszystkie — 1,9 MB
+// fontów na urządzeniu, z czego większość bezużyteczna.
+//
+// `latin` i `latin-ext` MUSZĄ zostać: razem pokrywają ą ć ę ł ń ó ś ź ż.
+// Pliki nadal leżą w dist — jeśli kiedyś pojawi się tekst w cyrylicy,
+// przeglądarka pobierze subset zwykłym żądaniem. Zmienia się tylko to,
+// co instalujemy do pracy offline.
+const EXCLUDE_FONT_SUBSETS = ["-cyrillic-", "-cyrillic-ext-", "-greek-", "-greek-ext-", "-vietnamese-"];
+
+function isNieuzywanySubsetFontu(name) {
+  return /\.woff2?$/.test(name) && EXCLUDE_FONT_SUBSETS.some((s) => name.includes(s));
+}
 
 function walk(dir) {
   const out = [];
@@ -54,6 +74,7 @@ for (const full of files.sort()) {
   const rel = relative(dist, full).split("\\").join("/");
   if (EXCLUDE.has(rel)) continue;
   if (EXCLUDE_EXT.has(rel.slice(rel.lastIndexOf(".")))) continue;
+  if (isNieuzywanySubsetFontu(rel)) continue;
   urls.push(`/${rel}`);
   hash.update(rel);
   hash.update(readFileSync(full));
