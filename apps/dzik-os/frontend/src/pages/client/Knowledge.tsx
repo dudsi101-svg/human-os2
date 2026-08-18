@@ -36,13 +36,15 @@ function ArticlesTab() {
   const [items, setItems] = useState<KnowledgeItemRow[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const load = () => {
+    setError(null);
     api.get<{ items: KnowledgeItemRow[] }>("/api/me/knowledge")
       .then((d) => setItems(d.items))
       .catch((e) => setError(e.message));
-  }, []);
+  };
+  useEffect(() => { load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (error) return <ErrorBox error={error} />;
+  if (error) return <ErrorBox error={error} onRetry={load} />;
   if (!items) return <Spinner />;
 
   const pinned = items.filter((i) => i.pinned);
@@ -113,13 +115,15 @@ function ExercisesTab() {
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
 
-  useEffect(() => {
+  const load = () => {
+    setError(null);
     api.get<{ items: ExerciseLibraryItem[] }>("/api/me/exercises")
       .then((d) => setItems(d.items))
       .catch((e) => setError(e.message));
-  }, []);
+  };
+  useEffect(() => { load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (error) return <ErrorBox error={error} />;
+  if (error) return <ErrorBox error={error} onRetry={load} />;
   if (!items) return <Spinner />;
   if (items.length === 0) return <p className="dim">Trener nie dodał jeszcze bazy ćwiczeń.</p>;
 
@@ -174,13 +178,15 @@ function ProductsTab() {
   const [query, setQuery] = useState("");
   const [portionByProduct, setPortionByProduct] = useState<Record<string, string>>({});
 
-  useEffect(() => {
+  const load = () => {
+    setError(null);
     api.get<{ items: FoodProductRow[] }>("/api/me/food-products")
       .then((d) => setItems(d.items))
       .catch((e) => setError(e.message));
-  }, []);
+  };
+  useEffect(() => { load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (error) return <ErrorBox error={error} />;
+  if (error) return <ErrorBox error={error} onRetry={load} />;
   if (!items) return <Spinner />;
   if (items.length === 0) return <p className="dim">Trener nie dodał jeszcze bazy produktów.</p>;
 

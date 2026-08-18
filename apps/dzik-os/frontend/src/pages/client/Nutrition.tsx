@@ -22,11 +22,13 @@ export default function Nutrition() {
   const plan = plans?.[0] ?? null;
   const v = plan?.current_version ?? null;
 
-  useEffect(() => {
+  const load = () => {
+    setError(null);
     api.get<{ plans: NutritionPlanRow[] }>(`/api/clients/${user.id}/nutrition`)
       .then((d) => setPlans(d.plans))
       .catch((e) => setError(e.message));
-  }, [user.id]);
+  };
+  useEffect(() => { load(); }, [user.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (plan && showHistory && !versions) {
@@ -36,7 +38,7 @@ export default function Nutrition() {
     }
   }, [plan, showHistory, versions]);
 
-  if (error) return <div className="page"><ErrorBox error={error} /></div>;
+  if (error) return <div className="page"><ErrorBox error={error} onRetry={load} /></div>;
   if (!plans) return <div className="page"><Spinner /></div>;
 
   return (

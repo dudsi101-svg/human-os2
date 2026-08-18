@@ -1,6 +1,6 @@
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { api, money } from "../../api";
+import { api, isCancel, money } from "../../api";
 import { WEEKDAYS, plDate, plDateTime } from "../../dates";
 import {
   AuthImage,
@@ -58,15 +58,25 @@ export default function ClientDetail() {
   const [name, setName] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [noAccess, setNoAccess] = useState(false);
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
-    api.get<{ display_name: string }>(`/api/coach/clients/${clientId}/overview`)
+    // Zmiana klienta anuluje poprzednie pobranie — spóźniona odpowiedź nie
+    // nadpisze nagłówka danymi innej osoby.
+    const ac = new AbortController();
+    setError(null);
+    setNoAccess(false);
+    api.get<{ display_name: string }>(
+      `/api/coach/clients/${clientId}/overview`, { signal: ac.signal }
+    )
       .then((d) => setName(d.display_name))
       .catch((e) => {
+        if (isCancel(e)) return;
         if (e.status === 404) setNoAccess(true);
         else setError(e.message);
       });
-  }, [clientId]);
+    return () => ac.abort();
+  }, [clientId, attempt]);
 
   if (noAccess) {
     return (
@@ -85,7 +95,7 @@ export default function ClientDetail() {
     <div className="page page--wide">
       <TopBar title={name || "Klient"}
         right={<Link className="btn btn--ghost btn--small" to="/trener">← Lista</Link>} />
-      <ErrorBox error={error} />
+      <ErrorBox error={error} onRetry={() => setAttempt((a) => a + 1)} />
       <div className="tabs">
         {TABS.map(([key, label]) => (
           <button key={key} className={tab === key ? "active" : ""} onClick={() => setTab(key)}>
@@ -113,21 +123,32 @@ function ProfileTab({ clientId }: { clientId: string }) {
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(() => {
+    setError(null);
     api.get<{ fields: ProfileFieldRow[] }>(`/api/clients/${clientId}/profile`)
       .then((d) => setFields(d.fields)).catch((e) => setError(e.message));
     api.get<{ goals: GoalRow[] }>(`/api/clients/${clientId}/goals`)
-      .then((d) => setGoals(d.goals)).catch(() => undefined);
+      .then((d) => setGoals(d.goals))
+      .catch((e) => setError(`Nie udało się wczytać celów. ${e.message}`));
   }, [clientId]);
   useEffect(load, [load]);
 
+  const [goalError, setGoalError] = useState<string | null>(null);
+
   async function addGoal(e: FormEvent) {
     e.preventDefault();
-    await api.post(`/api/clients/${clientId}/goals`, { title: goalTitle, kind: "SECONDARY" });
-    setGoalTitle("");
-    load();
+    setGoalError(null);
+    try {
+      await api.post(`/api/clients/${clientId}/goals`, { title: goalTitle, kind: "SECONDARY" });
+      setGoalTitle("");
+      load();
+    } catch (err) {
+      // Błąd zapisu celu pokazujemy PRZY formularzu (nie zamiast zakładki) —
+      // wpisany tytuł zostaje nietknięty do ponowienia.
+      setGoalError((err as Error).message);
+    }
   }
 
-  if (error) return <ErrorBox error={error} />;
+  if (error) return <ErrorBox error={error} onRetry={load} />;
   if (!fields) return <Spinner />;
   return (
     <>
@@ -155,6 +176,7 @@ function ProfileTab({ clientId }: { clientId: string }) {
             <span className="badge">{g.kind === "MAIN" ? "główny" : "dodatkowy"} · {g.status}</span>
           </div>
         ))}
+        <ErrorBox error={goalError} />
         <form className="row" style={{ marginTop: 8 }} onSubmit={addGoal}>
           <input className="grow" placeholder="Nowy cel…" required value={goalTitle}
             onChange={(e) => setGoalTitle(e.target.value)} />
@@ -183,9 +205,11 @@ function PlanTab({ clientId }: { clientId: string }) {
     api.get<{ plans: TrainingPlan[] }>(`/api/clients/${clientId}/plans`)
       .then((d) => setPlans(d.plans)).catch((e) => setError(e.message));
     api.get<{ workouts: WorkoutRow[] }>(`/api/clients/${clientId}/workouts`)
-      .then((d) => setWorkouts(d.workouts)).catch(() => undefined);
+      .then((d) => setWorkouts(d.workouts))
+      .catch((e) => setError(`Nie udało się wczytać treningów. ${e.message}`));
     api.get<{ templates: TrainingPlan[] }>("/api/plans/templates")
-      .then((d) => setTemplates(d.templates)).catch(() => undefined);
+      .then((d) => setTemplates(d.templates))
+      .catch((e) => setError(`Nie udało się wczytać szablonów. ${e.message}`));
   }, [clientId]);
   useEffect(load, [load]);
 
@@ -207,11 +231,12 @@ function PlanTab({ clientId }: { clientId: string }) {
   useEffect(() => {
     if (plan && !versions) {
       api.get<{ versions: PlanVersion[] }>(`/api/plans/${plan.id}/versions`)
-        .then((d) => setVersions(d.versions)).catch(() => undefined);
+        .then((d) => setVersions(d.versions))
+        .catch((e) => setError(`Nie udało się wczytać historii wersji. ${e.message}`));
     }
   }, [plan, versions]);
 
-  if (error) return <ErrorBox error={error} />;
+  if (error) return <ErrorBox error={error} onRetry={load} />;
   if (!plans) return <Spinner />;
 
   return (
@@ -353,7 +378,7 @@ function NutritionTab({ clientId }: { clientId: string }) {
     }
   }
 
-  if (error) return <ErrorBox error={error} />;
+  if (error) return <ErrorBox error={error} onRetry={load} />;
   if (!plans) return <Spinner />;
   const v = plan?.current_version;
 
@@ -455,11 +480,15 @@ function ScheduleTab({ clientId }: { clientId: string }) {
   }
 
   async function setStatus(id: string, status: string) {
-    await api.post(`/api/schedule/${id}/status?status=${status}`);
-    load();
+    try {
+      await api.post(`/api/schedule/${id}/status?status=${status}`);
+      load();
+    } catch (err) {
+      setError((err as Error).message);
+    }
   }
 
-  if (error) return <ErrorBox error={error} />;
+  if (error) return <ErrorBox error={error} onRetry={load} />;
   if (!items) return <Spinner />;
   return (
     <>
@@ -567,10 +596,16 @@ function CheckinsTab({ clientId }: { clientId: string }) {
   useEffect(load, [load]);
 
   async function review(id: string) {
-    await api.post(`/api/checkins/${id}/review`, {
-      coach_response: responses[id], rating: ratings[id] || null,
-    });
-    load();
+    try {
+      await api.post(`/api/checkins/${id}/review`, {
+        coach_response: responses[id], rating: ratings[id] || null,
+      });
+      load();
+    } catch (err) {
+      // Błąd zapisu oceny — komunikat w zakładce; wpisana odpowiedź trenera
+      // zostaje w polu (responses/ratings nie są czyszczone).
+      setError((err as Error).message);
+    }
   }
 
   async function requestAiSummary(id: string) {
@@ -589,7 +624,7 @@ function CheckinsTab({ clientId }: { clientId: string }) {
     }
   }
 
-  if (error) return <ErrorBox error={error} />;
+  if (error) return <ErrorBox error={error} onRetry={load} />;
   if (!checkins) return <Spinner />;
   return (
     <>
@@ -714,11 +749,13 @@ function CheckinsTab({ clientId }: { clientId: string }) {
 function MeasurementsTab({ clientId }: { clientId: string }) {
   const [rows, setRows] = useState<MeasurementRow[] | null>(null);
   const [error, setError] = useState<string | null>(null);
-  useEffect(() => {
+  const load = useCallback(() => {
+    setError(null);
     api.get<{ measurements: MeasurementRow[] }>(`/api/clients/${clientId}/measurements`)
       .then((d) => setRows(d.measurements)).catch((e) => setError(e.message));
   }, [clientId]);
-  if (error) return <ErrorBox error={error} />;
+  useEffect(load, [load]);
+  if (error) return <ErrorBox error={error} onRetry={load} />;
   if (!rows) return <Spinner />;
   const kinds = Array.from(new Set(rows.map((r) => r.kind)));
   return (
@@ -768,18 +805,26 @@ function PaymentsTab({ clientId }: { clientId: string }) {
   }
 
   async function setStatus(recordId: string, status: string) {
-    await api.post(`/api/payments/records/${recordId}/status`, { status });
-    load();
+    try {
+      await api.post(`/api/payments/records/${recordId}/status`, { status });
+      load();
+    } catch (err) {
+      setError((err as Error).message);
+    }
   }
 
   async function addRecord(scheduleId: string) {
     const due = prompt("Termin kolejnej płatności (RRRR-MM-DD):");
     if (!due) return;
-    await api.post(`/api/payments/schedules/${scheduleId}/records?due_date=${due}`);
-    load();
+    try {
+      await api.post(`/api/payments/schedules/${scheduleId}/records?due_date=${due}`);
+      load();
+    } catch (err) {
+      setError((err as Error).message);
+    }
   }
 
-  if (error) return <ErrorBox error={error} />;
+  if (error) return <ErrorBox error={error} onRetry={load} />;
   if (!schedules) return <Spinner />;
   return (
     <>
@@ -849,14 +894,17 @@ function MonitoringTab({ clientId }: { clientId: string }) {
   const [data, setData] = useState<MonitoringData | null>(null);
   const [photos, setPhotos] = useState<ProgressPhotoRow[]>([]);
   const [error, setError] = useState<string | null>(null);
-  useEffect(() => {
+  const load = useCallback(() => {
+    setError(null);
     api.get<MonitoringData>(`/api/clients/${clientId}/monitoring`)
       .then(setData).catch((e) => setError(e.message));
     api.get<{ photos: ProgressPhotoRow[] }>(`/api/clients/${clientId}/photos`)
-      .then((d) => setPhotos(d.photos)).catch(() => undefined);
+      .then((d) => setPhotos(d.photos))
+      .catch((e) => setError(`Nie udało się wczytać zdjęć postępów. ${e.message}`));
   }, [clientId]);
+  useEffect(load, [load]);
 
-  if (error) return <ErrorBox error={error} />;
+  if (error) return <ErrorBox error={error} onRetry={load} />;
   if (!data) return <Spinner />;
 
   return (
@@ -956,11 +1004,13 @@ function MonitoringTab({ clientId }: { clientId: string }) {
 function HistoryTab({ clientId }: { clientId: string }) {
   const [receipts, setReceipts] = useState<ReceiptRow[] | null>(null);
   const [error, setError] = useState<string | null>(null);
-  useEffect(() => {
+  const load = useCallback(() => {
+    setError(null);
     api.get<{ receipts: ReceiptRow[] }>(`/api/coach/clients/${clientId}/history`)
       .then((d) => setReceipts(d.receipts)).catch((e) => setError(e.message));
   }, [clientId]);
-  if (error) return <ErrorBox error={error} />;
+  useEffect(load, [load]);
+  if (error) return <ErrorBox error={error} onRetry={load} />;
   if (!receipts) return <Spinner />;
   return (
     <div className="card">

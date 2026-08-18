@@ -30,12 +30,17 @@ export default function Profile() {
   const [showDelete, setShowDelete] = useState(false);
 
   const load = () => {
+    setError(null);
     api.get<{ fields: ProfileFieldRow[] }>(`/api/clients/${user.id}/profile`)
       .then((d) => setFields(d.fields)).catch((e) => setError(e.message));
+    // Cele i zgody to osobne sekcje tej strony — ich błąd jest widoczny
+    // w tym samym ErrorBoxie (z ponowieniem), zamiast cicho znikać.
     api.get<{ goals: GoalRow[] }>(`/api/clients/${user.id}/goals`)
-      .then((d) => setGoals(d.goals)).catch(() => undefined);
+      .then((d) => setGoals(d.goals))
+      .catch((e) => setError(`Nie udało się wczytać celów. ${e.message}`));
     api.get<{ consents: ConsentRow[] }>(`/api/me/consents`)
-      .then((d) => setConsents(d.consents)).catch(() => undefined);
+      .then((d) => setConsents(d.consents))
+      .catch((e) => setError(`Nie udało się wczytać zgód. ${e.message}`));
   };
   useEffect(() => { load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -58,39 +63,55 @@ export default function Profile() {
 
   async function revoke(consentId: string) {
     if (!confirm("Cofnąć zgodę? Trener straci dostęp do Twoich danych do czasu ponownego jej udzielenia.")) return;
-    await api.post(`/api/me/consents/${consentId}/revoke`);
-    load();
+    try {
+      await api.post(`/api/me/consents/${consentId}/revoke`);
+      load();
+    } catch (err) {
+      setError((err as Error).message);
+    }
   }
 
   async function regrant(c: ConsentRow) {
-    await api.post(`/api/me/consents`, {
-      grantee_id: c.grantee_id, purpose: c.purpose, domain: c.domain,
-      actions: c.actions, allow_sensitive: c.allow_sensitive,
-    });
-    load();
+    try {
+      await api.post(`/api/me/consents`, {
+        grantee_id: c.grantee_id, purpose: c.purpose, domain: c.domain,
+        actions: c.actions, allow_sensitive: c.allow_sensitive,
+      });
+      load();
+    } catch (err) {
+      setError((err as Error).message);
+    }
   }
 
   async function exportData() {
-    const data = await api.get<unknown>("/api/me/export");
-    const blob = new Blob([JSON.stringify(data, null, 2)], {
-      type: "application/json",
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "dzik-os-export.json";
-    a.click();
-    URL.revokeObjectURL(url);
+    try {
+      const data = await api.get<unknown>("/api/me/export");
+      const blob = new Blob([JSON.stringify(data, null, 2)], {
+        type: "application/json",
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "dzik-os-export.json";
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setError(`Eksport nie powiódł się. ${(err as Error).message}`);
+    }
   }
 
   async function exportDataExcel() {
-    const blob = await api.get<Blob>("/api/me/export.xlsx");
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "dzik-os-export.xlsx";
-    a.click();
-    URL.revokeObjectURL(url);
+    try {
+      const blob = await api.get<Blob>("/api/me/export.xlsx");
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "dzik-os-export.xlsx";
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setError(`Eksport nie powiódł się. ${(err as Error).message}`);
+    }
   }
 
   async function requestDeletion(e: FormEvent) {
@@ -107,7 +128,13 @@ export default function Profile() {
     }
   }
 
-  if (!fields) return <div className="page"><Spinner /></div>;
+  if (!fields) {
+    return (
+      <div className="page">
+        {error ? <ErrorBox error={error} onRetry={load} /> : <Spinner />}
+      </div>
+    );
+  }
   const byKey = Object.fromEntries(fields.map((f) => [f.field_key, f]));
   const allKeys = Array.from(new Set([...Object.keys(FIELD_LABELS), ...Object.keys(byKey)]));
 
@@ -115,7 +142,7 @@ export default function Profile() {
     <div className="page">
       <TopBar title="Profil" />
       <PushNotificationsCard />
-      <ErrorBox error={error} />
+      <ErrorBox error={error} onRetry={load} />
       {ok && <div className="alert alert--info">{ok}</div>}
 
       <form className="card" onSubmit={saveProfile}>

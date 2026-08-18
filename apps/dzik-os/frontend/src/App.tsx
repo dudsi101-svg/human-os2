@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { getUser } from "./api";
-import { Nav } from "./components";
+import { ErrorBoundary, Nav } from "./components";
+import { maskPathIds } from "./errorUtils";
 import Login from "./pages/Login";
 import ChangePassword from "./pages/ChangePassword";
 import ConsentGate, { ConsentSpinner, usePendingConsents } from "./pages/ConsentGate";
@@ -50,6 +51,9 @@ export default function App() {
   return (
     <>
       {user && !needsPassword && <Nav />}
+      {/* Granica błędów per trasa: key=pathname resetuje ją przy nawigacji,
+          więc awaria jednego widoku nie „przykleja się" do kolejnych. */}
+      <ErrorBoundary scope={`route:${maskPathIds(location.pathname)}`} key={location.pathname}>
       <Routes>
         <Route path="/login" element={user ? <Navigate to={home} replace /> : <Login />} />
         {user && <Route path="/haslo" element={<ChangePassword />} />}
@@ -87,6 +91,7 @@ export default function App() {
         )}
         <Route path="*" element={<Navigate to={user ? home : "/login"} replace />} />
       </Routes>
+      </ErrorBoundary>
     </>
   );
 }

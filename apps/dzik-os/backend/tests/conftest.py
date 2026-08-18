@@ -41,6 +41,12 @@ def _reset_state() -> None:
         audit.unlink()
     login_rate_limiter._attempts.clear()
     password_change_rate_limiter._attempts.clear()
+    from dzik_os.observability import metrics
+    from dzik_os.routers.telemetry import report_rate_limiter
+
+    metrics.reset()
+    report_rate_limiter._by_ip.clear()
+    report_rate_limiter._all.clear()
     run_migrations()
 
 

@@ -1,5 +1,5 @@
 import { FormEvent, useState } from "react";
-import { ApiError, login } from "../api";
+import { ApiError, consumeLoginNotice, login } from "../api";
 import { ErrorBox } from "../components";
 
 export default function Login() {
@@ -7,6 +7,9 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  // Powód powrotu do logowania (np. wygaśnięcie sesji) — jednorazowy
+  // komunikat zapisany przed przekierowaniem w api.ts.
+  const [notice] = useState(consumeLoginNotice);
 
   async function submit(e: FormEvent) {
     e.preventDefault();
@@ -47,6 +50,7 @@ export default function Login() {
             czekają w jednym miejscu.
           </p>
         </div>
+        {notice && <div className="alert alert--info" role="status">{notice}</div>}
         <form onSubmit={submit} className="card">
           <label htmlFor="email">E-mail</label>
           <input id="email" type="email" autoComplete="username" required

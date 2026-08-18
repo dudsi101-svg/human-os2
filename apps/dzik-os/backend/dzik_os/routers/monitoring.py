@@ -270,6 +270,9 @@ def monitoring(
             try:
                 days_remaining = (parse_iso_date(goal.target_date) - today).days
             except ValueError:
+                # Świadome zignorowanie: uszkodzona data celu (dane historyczne)
+                # nie może wywrócić całego monitoringu — cel jest pokazywany
+                # bez licznika dni.
                 days_remaining = None
         goal_out = {
             "id": goal.id, "title": goal.title, "target_date": goal.target_date,
@@ -350,12 +353,17 @@ def monitoring(
             try:
                 start = max(start, parse_iso_date(item.start_date))
             except ValueError:
+                # Świadome zignorowanie: niepoprawna data startu elementu
+                # harmonogramu — liczymy adherencję od początku okna zamiast
+                # wywracać cały raport (dane wejściowe są walidowane przy
+                # zapisie; to zabezpieczenie przed rekordami historycznymi).
                 pass
         end = today
         if item.end_date:
             try:
                 end = min(end, parse_iso_date(item.end_date))
             except ValueError:
+                # Świadome zignorowanie: jak wyżej — liczymy do końca okna.
                 pass
         total = 0
         cur = start

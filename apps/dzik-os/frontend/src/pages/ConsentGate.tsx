@@ -105,6 +105,11 @@ export function usePendingConsents(enabled: boolean) {
       .then((d) =>
         setPending(d.consents.filter((c) => !c.revoked_at && !c.confirmed_at))
       )
+      // Świadomy fail-open: gdy listy zgód nie da się pobrać, brama się nie
+      // pokazuje — brama jest wyłącznie UX-em potwierdzenia; EGZEKWOWANIE
+      // zgód następuje zawsze w backendzie (ConsentService/hos_engine),
+      // więc awaria tutaj niczego nie otwiera. Alternatywa (fail-closed)
+      // blokowałaby całą aplikację przy chwilowym błędzie sieci.
       .catch(() => setPending([]));
   };
   useEffect(() => {

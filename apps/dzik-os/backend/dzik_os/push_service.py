@@ -25,6 +25,7 @@ from sqlalchemy.orm import Session
 
 from .config import settings
 from .models import PushSubscription
+from .observability import exception_fields, log_json, metrics
 
 _vapid_lock = threading.Lock()
 _vapid: Vapid | None = None
@@ -72,10 +73,18 @@ def _send_one(sub: PushSubscription, payload: str) -> bool:
         status = getattr(exc.response, "status_code", None)
         if status in (404, 410):
             return False
-        print(f"[dzik-os] push nieudany ({status}): {exc}")
+        # Świadomy best-effort: push jest kanałem pomocniczym — błąd wysyłki
+        # nie może wywrócić żądania ani pętli. Zliczany (push_send_failures)
+        # i logowany BEZ endpointu subskrypcji (URL endpointu działa jak
+        # token — nigdy do logów) i bez treści powiadomienia.
+        metrics.inc("push_send_failures")
+        log_json("push_send_failed", level="warning", push_status=status,
+                 error_type=type(exc).__name__)
         return True
     except Exception as exc:  # noqa: BLE001 - push nie może wywracać żądań
-        print(f"[dzik-os] push nieudany: {exc}")
+        # Jak wyżej: świadomy best-effort, policzony i zalogowany bez danych.
+        metrics.inc("push_send_failures")
+        log_json("push_send_failed", level="warning", **exception_fields(exc))
         return True
 
 

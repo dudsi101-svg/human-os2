@@ -1,0 +1,12 @@
+{
+  "compilerOptions": {
+    "module": "es2020",
+    "target": "es2020",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "types": [],
+    "skipLibCheck": true,
+    "outDir": "../node_modules/.cache/error-utils-test"
+  },
+  "files": ["../src/errorUtils.ts"]
+}

@@ -36,15 +36,18 @@ export default function Progress() {
   const [unit, setUnit] = useState("kg");
 
   const load = () => {
+    setError(null);
     api.get<{ measurements: MeasurementRow[] }>(`/api/clients/${user.id}/measurements`)
       .then((d) => setRows(d.measurements))
       .catch((e) => setError(e.message));
+    // Zdjęcia i monitoring to osobne sekcje — ich błąd jest widoczny
+    // w ErrorBoxie strony (z ponowieniem), zamiast cicho chować sekcję.
     api.get<{ photos: Photo[] }>(`/api/clients/${user.id}/photos`)
       .then((d) => setPhotos(d.photos))
-      .catch(() => undefined);
+      .catch((e) => setError(`Nie udało się wczytać zdjęć postępów. ${e.message}`));
     api.get<MonitoringData>(`/api/clients/${user.id}/monitoring`)
       .then(setMonitoring)
-      .catch(() => undefined);
+      .catch((e) => setError(`Nie udało się wczytać monitoringu. ${e.message}`));
   };
   useEffect(() => { load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -62,13 +65,19 @@ export default function Progress() {
     }
   }
 
-  if (!rows) return <div className="page"><Spinner /></div>;
+  if (!rows) {
+    return (
+      <div className="page">
+        {error ? <ErrorBox error={error} onRetry={load} /> : <Spinner />}
+      </div>
+    );
+  }
   const kinds = Array.from(new Set(rows.map((r) => r.kind)));
 
   return (
     <div className="page">
       <TopBar title="Monitoring i postępy" />
-      <ErrorBox error={error} />
+      <ErrorBox error={error} onRetry={load} />
 
       {monitoring?.goal && <GoalCard goal={monitoring.goal} />}
 
@@ -276,13 +285,15 @@ function ObservationsCard({ userId, onSaved }: {
   const loadFull = () => {
     api.get<{ observations: ObservationRow[] }>(`/api/clients/${userId}/observations`)
       .then((d) => setObservations(d.observations))
-      .catch(() => undefined);
+      .catch((e) => setError(`Nie udało się wczytać obserwacji. ${e.message}`));
   };
   useEffect(() => {
     loadFull();
+    // Lista elementów harmonogramu służy tylko do OPCJONALNEGO powiązania
+    // wpisu — bez niej formularz dalej działa; błąd pokazujemy w karcie.
     api.get<{ items: ScheduleItem[] }>(`/api/clients/${userId}/schedule`)
       .then((d) => setItems(d.items))
-      .catch(() => undefined);
+      .catch((e) => setError(`Nie udało się wczytać harmonogramu. ${e.message}`));
   }, [userId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function submit(e: FormEvent) {

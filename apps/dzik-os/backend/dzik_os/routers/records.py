@@ -41,6 +41,10 @@ def _entry_sets(entry: WorkoutEntry) -> list[dict]:
         sets = json.loads(entry.sets_json)
         return sets if isinstance(sets, list) else []
     except ValueError:
+        # Świadome zignorowanie: uszkodzony JSON serii w jednym wpisie
+        # treningowym nie może wywrócić rekordów/wykresów — wpis jest
+        # traktowany jak zapis bez danych strukturalnych (fallback: tekst
+        # wyniku, patrz _entry_max_weight).
         return []
 
 

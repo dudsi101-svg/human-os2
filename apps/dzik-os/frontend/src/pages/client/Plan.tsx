@@ -93,14 +93,25 @@ export default function Plan() {
 
   const plan = plans?.find((p) => p.status === "ACTIVE") ?? plans?.[0] ?? null;
 
-  useEffect(() => {
+  const [historyError, setHistoryError] = useState<string | null>(null);
+  const loadWorkouts = () => {
+    setHistoryError(null);
+    api.get<{ workouts: WorkoutRow[] }>(`/api/clients/${user.id}/workouts`)
+      .then((d) => setWorkouts(d.workouts))
+      // Historia to sekcja pomocnicza — błąd jest widoczny przy niej
+      // (z ponowieniem), nie wygasza całego planu.
+      .catch((e) => setHistoryError(`Nie udało się wczytać historii treningów. ${e.message}`));
+  };
+  const loadPlans = () => {
+    setError(null);
     api.get<{ plans: TrainingPlan[] }>(`/api/clients/${user.id}/plans`)
       .then((d) => setPlans(d.plans))
       .catch((e) => setError(e.message));
-    api.get<{ workouts: WorkoutRow[] }>(`/api/clients/${user.id}/workouts`)
-      .then((d) => setWorkouts(d.workouts))
-      .catch(() => undefined);
-  }, [user.id]);
+  };
+  useEffect(() => {
+    loadPlans();
+    loadWorkouts();
+  }, [user.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (plan && showHistory && !versions) {
@@ -110,9 +121,12 @@ export default function Plan() {
     }
   }, [plan, showHistory, versions]);
 
+  const [saveError, setSaveError] = useState<string | null>(null);
+
   async function saveWorkout(dayIndex: number) {
     if (!plan?.current_version) return;
     const day = plan.current_version.content.days[dayIndex];
+    setSaveError(null);
     try {
       await api.post(`/api/clients/${user.id}/workouts`, {
         plan_version_id: plan.current_version.id,
@@ -138,11 +152,13 @@ export default function Plan() {
       const d = await api.get<{ workouts: WorkoutRow[] }>(`/api/clients/${user.id}/workouts`);
       setWorkouts(d.workouts);
     } catch (e) {
-      setError((e as Error).message);
+      // Błąd ZAPISU pokazujemy przy formularzu (nie pełnoekranowo) —
+      // wpisane serie/komentarz zostają nietknięte do ponowienia.
+      setSaveError((e as Error).message);
     }
   }
 
-  if (error) return <div className="page"><ErrorBox error={error} /></div>;
+  if (error) return <div className="page"><ErrorBox error={error} onRetry={loadPlans} /></div>;
   if (!plans) return <div className="page"><Spinner /></div>;
 
   return (
@@ -256,6 +272,7 @@ export default function Plan() {
                     <textarea placeholder="Opisz co i kiedy bolało"
                       value={painNote} onChange={(e) => setPainNote(e.target.value)} />
                   )}
+                  <ErrorBox error={saveError} onRetry={() => saveWorkout(di)} />
                   <div className="row" style={{ marginTop: 10 }}>
                     <button className="btn" onClick={() => saveWorkout(di)}>Zapisz trening</button>
                     <button className="btn btn--ghost" onClick={() => setLogDay(null)}>Anuluj</button>
@@ -273,6 +290,7 @@ export default function Plan() {
         </>
       )}
 
+      <ErrorBox error={historyError} onRetry={loadWorkouts} />
       {workouts.length > 0 && (
         <div className="card">
           <h3>Ostatnie treningi</h3>

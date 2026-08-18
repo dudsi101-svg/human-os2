@@ -9,13 +9,15 @@ export default function Messages() {
   const [threads, setThreads] = useState<ThreadRow[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const load = () => {
+    setError(null);
     api.get<{ threads: ThreadRow[] }>("/api/threads")
       .then((d) => setThreads(d.threads))
       .catch((e) => setError(e.message));
-  }, []);
+  };
+  useEffect(() => { load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (error) return <div className="page"><ErrorBox error={error} /></div>;
+  if (error) return <div className="page"><ErrorBox error={error} onRetry={load} /></div>;
   if (!threads) return <div className="page"><Spinner /></div>;
 
   return (

@@ -14,18 +14,33 @@ import "@fontsource/inter/800.css";
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
+import { reportFrontendError } from "./api";
 import App from "./App";
-import { OfflineScreen, UpdateBanner } from "./components";
+import { ErrorBoundary, OfflineScreen, UpdateBanner } from "./components";
 import { registerServiceWorker } from "./pwa";
 import "./styles.css";
+
+// Nieprzechwycone błędy JS i odrzucone Promise — raportowane do backendu
+// w formie zredagowanej (typ + pliki własne, bez treści danych; limit
+// kliencki i serwerowy, patrz api.reportFrontendError).
+window.addEventListener("error", (e) => {
+  reportFrontendError(e.error ?? e.message, "window:onerror");
+});
+window.addEventListener("unhandledrejection", (e) => {
+  reportFrontendError(e.reason, "window:unhandledrejection");
+});
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <UpdateBanner />
     <OfflineScreen />
-    <BrowserRouter>
-      <App />
-    </BrowserRouter>
+    {/* Globalna granica błędów — awaria renderowania nie zostawia białego
+        ekranu; granica per trasa jest w App.tsx. */}
+    <ErrorBoundary scope="app">
+      <BrowserRouter>
+        <App />
+      </BrowserRouter>
+    </ErrorBoundary>
   </React.StrictMode>
 );
 
