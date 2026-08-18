@@ -1,5 +1,39 @@
 # Changelog — Dzik OS
 
+## 0.34.0 — 2026-08-18
+
+**Jedno „Dodaj do bazy" zamiast czterech paneli + zasada uruchomienia.**
+
+* **Zakładka Ćwiczenia przestała witać gąszczem.** Były tam cztery
+  niezależne drogi dodania pozycji: dwie rozwijane karty importu na samej
+  górze (gotowa biblioteka, plik) plus formularz i odczyt z opisu/zdjęcia
+  schowane gdzie indziej. Każda z osobna sensowna, razem — ściana.
+  Teraz jest jedna karta z jednym pytaniem, które trener naprawdę ma w
+  głowie: **„skąd bierzesz to ćwiczenie?"** — *Wpiszę sam · Mam opis lub
+  zdjęcie · Mam plik z bazą · Weź gotową bibliotekę*. Widoczna jest
+  wyłącznie wybrana droga.
+* **Nic nie zostało usunięte ani zmienione funkcjonalnie.** Wszystkie
+  cztery drogi działają jak dotąd, łącznie z podglądem przed zapisem,
+  cofaniem importu i wzorem pliku. Zmieniło się tylko to, że nie widać ich
+  naraz. `SheetImportPanel` i `LibraryImport` dostały tryb `embedded`
+  (bez własnej ramki i „Rozwiń"), a `DescriptionAssist` — `defaultOpen`,
+  żeby wybór „mam opis lub zdjęcie" nie kazał klikać drugi raz w to samo.
+* **Zasada uruchomienia** (`docs/ZASADA_URUCHOMIENIA.md`, ustalona przez
+  właściciela produktu): zupełnie nowa funkcja nie jest gotowa, dopóki nie
+  została **uruchomiona w działającej aplikacji** i obejrzana. Przechodzące
+  testy są warunkiem wstępnym, nie dowodem. Dokument podaje, co konkretnie
+  jest dowodem dla każdego rodzaju zmiany (ekran, endpoint, komenda,
+  ścieżka nieodwracalna, integracja) i wymaga wpisania do raportu **co
+  zostało kliknięte i co widać** — a gdy czegoś sprawdzić się nie da,
+  powiedzenia tego wprost. Odnośnik z `README.md`.
+* **Przeklik tej rundy** (zgodnie z powyższą zasadą): jedna karta „Dodaj do
+  bazy" na ekranie, zero starych kart importu; wybór „mam plik" pokazuje
+  pole pliku i wzór, a podgląd zwraca raport; przełączenie na „gotową
+  bibliotekę" chowa panel plikowy; „wpiszę sam" otwiera pusty formularz ze
+  zwiniętym odczytem; „mam opis lub zdjęcie" otwiera formularz z odczytem
+  już rozwiniętym i dostępnym zdjęciem; zapis obiema drogami kończy się
+  201 i pozycja jest odnajdywalna na liście. Bez błędów JS.
+
 ## 0.33.0 — 2026-08-18
 
 **Nic nie ginie bezpowrotnie: punkt przywracania dla importu + sprawdzona

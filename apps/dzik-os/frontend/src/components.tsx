@@ -1535,7 +1535,7 @@ export function PersonalRecordsCard({ clientId }: { clientId: string }) {
  */
 export function SheetImportPanel({
   kind, title, description, schemaUrl, importUrl, exampleUrl, exportUrl,
-  exampleFileName, exportFileName, onImported,
+  exampleFileName, exportFileName, onImported, embedded = false,
 }: {
   kind: "EXERCISES" | "TEMPLATES";
   title: string;
@@ -1547,8 +1547,11 @@ export function SheetImportPanel({
   exampleFileName: string;
   exportFileName: string;
   onImported: () => void;
+  /** Panel osadzony w innej karcie (np. w „Dodaj do bazy"): bez własnej
+   * ramki i bez przycisku „Rozwiń" — nagłówek zapewnia rodzic. */
+  embedded?: boolean;
 }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(embedded);
   const [schema, setSchema] = useState<SheetSchema | null>(null);
   const [showColumns, setShowColumns] = useState(false);
   const [file, setFile] = useState<File | null>(null);
@@ -1633,15 +1636,8 @@ export function SheetImportPanel({
 
   const saved = report !== null && !report.dry_run;
 
-  return (
-    <div className="card" style={{ marginBottom: 12 }}>
-      <div className="row row--between">
-        <b>{title}</b>
-        <button type="button" className="btn btn--ghost btn--small" aria-expanded={open}
-          onClick={() => setOpen(!open)}>
-          {open ? "Zwiń" : "Rozwiń"}
-        </button>
-      </div>
+  const body = (
+    <>
       {open && (
         <>
           <p className="dim" style={{ marginTop: 4 }}>{description}</p>
@@ -1823,6 +1819,20 @@ export function SheetImportPanel({
           )}
         </>
       )}
+    </>
+  );
+
+  if (embedded) return body;
+  return (
+    <div className="card" style={{ marginBottom: 12 }}>
+      <div className="row row--between">
+        <b>{title}</b>
+        <button type="button" className="btn btn--ghost btn--small" aria-expanded={open}
+          onClick={() => setOpen(!open)}>
+          {open ? "Zwiń" : "Rozwiń"}
+        </button>
+      </div>
+      {body}
     </div>
   );
 }

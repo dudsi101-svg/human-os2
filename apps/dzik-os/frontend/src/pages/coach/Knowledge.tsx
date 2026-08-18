@@ -348,6 +348,9 @@ function ExercisesTab() {
     { source_kind: string; source_engine: string | null } | null
   >(null);
   const [extra, setExtra] = useState<ExerciseExtra>(EMPTY_EXTRA);
+  // Trener wszedł do formularza drogą „mam opis lub zdjęcie" — panel
+  // odczytu ma być otwarty od razu, a nie chowany za kolejnym kliknięciem.
+  const [assistOpen, setAssistOpen] = useState(false);
 
   const load = useCallback((offset = 0) => {
     if (offset > 0) setLoadingMore(true);
@@ -373,10 +376,14 @@ function ExercisesTab() {
     setForm(EMPTY_EXERCISE_FORM);
     setProvenance(null);
     setExtra(EMPTY_EXTRA);
+    setAssistOpen(false);
     setEditing("new");
   }
 
   function startEdit(item: ExerciseLibraryItem) {
+    // Edycja istniejącej pozycji nigdy nie otwiera odczytu z opisu —
+    // to droga dodawania, nie poprawiania tego, co już jest opisane.
+    setAssistOpen(false);
     // Zwykła edycja nie ma prawa skasować proweniencji zapisanej wcześniej.
     setProvenance(
       item.source_kind
@@ -487,6 +494,8 @@ function ExercisesTab() {
           <h2>{editing === "new" ? "Nowe ćwiczenie" : "Edytuj ćwiczenie"}</h2>
           <DescriptionAssist
             form={form}
+            defaultOpen={assistOpen}
+            key={assistOpen ? "assist-open" : "assist-closed"}
             onInsert={(next, engine) => {
               setForm(next);
               setProvenance(provenanceFor(engine));
@@ -626,30 +635,12 @@ function ExercisesTab() {
 
       {!editing && (
         <>
-          <LibraryImport onImported={() => load(0)} />
-          <SheetImportPanel
-            kind="EXERCISES"
-            title="Importuj bazę ćwiczeń z pliku"
-            description={
-              <>
-                Masz swoją bazę w arkuszu? Wgraj ją jako <b>CSV lub XLSX</b> —
-                zamiast przepisywać pozycje ręcznie. Najpierw zobaczysz raport:
-                co powstanie, co się zmieni i które wiersze odpadły oraz
-                dlaczego. Zapis jest osobnym kliknięciem. Wartości spoza
-                słownika (partie mięśniowe, poziom, wzorzec ruchu) nie są
-                zgadywane — pole zostaje puste, a informacja trafia do raportu.
-              </>
-            }
-            schemaUrl="/api/coach/exercises/import-schema"
-            importUrl="/api/coach/exercises/import-file"
-            exampleUrl="/api/coach/exercises/import-example"
-            exportUrl="/api/coach/exercises/export-file"
-            exampleFileName="dzik-os-cwiczenia-wzor.csv"
-            exportFileName="dzik-os-cwiczenia.csv"
+          <AddToBase
+            onManual={startNew}
+            onFromText={() => { startNew(); setAssistOpen(true); }}
             onImported={() => load(0)}
           />
           <div className="row" style={{ marginBottom: 10 }}>
-            <button className="btn btn--small" onClick={startNew}>+ Nowe ćwiczenie</button>
             <button className="btn btn--ghost btn--small" aria-pressed={showArchived}
               onClick={() => setShowArchived(!showArchived)}>
               {showArchived ? "Pokaż aktywne" : "Pokaż zarchiwizowane"}
@@ -683,6 +674,116 @@ function ExercisesTab() {
   );
 }
 
+/** Jedno miejsce „Dodaj do bazy" zamiast czterech osobnych paneli.
+ *
+ * Wcześniej zakładka Ćwiczenia otwierała się dwiema rozwijanymi kartami
+ * importu, a trzecia i czwarta droga (formularz, odczyt z opisu/zdjęcia)
+ * były gdzie indziej. Każda z osobna sensowna, razem — gąszcz.
+ *
+ * Tutaj pytanie jest jedno i takie, jakie trener naprawdę ma w głowie:
+ * **skąd biorę to ćwiczenie?** Widoczna jest wyłącznie wybrana droga,
+ * więc ekran nie zaczyna się od dwóch zwiniętych kart, których nikt nie
+ * czyta. Żadna z dróg nie została usunięta ani zmieniona — zmieniło się
+ * tylko to, że nie widać ich naraz.
+ */
+const ADD_WAYS = [
+  {
+    key: "MANUAL",
+    label: "Wpiszę sam",
+    hint: "Pusty formularz — pełna kontrola nad każdym polem.",
+  },
+  {
+    key: "TEXT",
+    label: "Mam opis lub zdjęcie",
+    hint: "Wklej opis albo zrób zdjęcie kartki: pola wypełnią się propozycją, "
+      + "którą zatwierdzasz. Nic nie trafia do bazy bez Twojego zapisu.",
+  },
+  {
+    key: "FILE",
+    label: "Mam plik z bazą",
+    hint: "Arkusz CSV lub XLSX z wieloma ćwiczeniami naraz. Najpierw podgląd, "
+      + "potem zapis — i zawsze można cofnąć.",
+  },
+  {
+    key: "LIBRARY",
+    label: "Weź gotową bibliotekę",
+    hint: "Dokłada pozycje z biblioteki dołączonej do aplikacji. Twoich "
+      + "opisów nie nadpisuje.",
+  },
+] as const;
+
+type AddWay = (typeof ADD_WAYS)[number]["key"];
+
+function AddToBase({ onManual, onFromText, onImported }: {
+  onManual: () => void;
+  onFromText: () => void;
+  onImported: () => void;
+}) {
+  const [way, setWay] = useState<AddWay | null>(null);
+
+  function choose(next: AddWay) {
+    // Dwie drogi prowadzą do formularza — wybór od razu go otwiera,
+    // zamiast pokazywać kolejny przycisk „no to teraz kliknij tutaj".
+    if (next === "MANUAL") { setWay(null); onManual(); return; }
+    if (next === "TEXT") { setWay(null); onFromText(); return; }
+    setWay(way === next ? null : next);
+  }
+
+  const chosen = ADD_WAYS.find((w) => w.key === way);
+
+  return (
+    <div className="card" style={{ marginBottom: 12 }}>
+      <b>Dodaj do bazy</b>
+      <p className="dim" style={{ margin: "4px 0 8px" }}>
+        Skąd bierzesz to ćwiczenie?
+      </p>
+      <div className="row" role="group" aria-label="Sposób dodania do bazy"
+        style={{ flexWrap: "wrap", gap: 6 }}>
+        {ADD_WAYS.map((w) => (
+          <button key={w.key} type="button" aria-pressed={way === w.key}
+            className={`btn btn--small ${way === w.key ? "" : "btn--ghost"}`}
+            onClick={() => choose(w.key)}>
+            {w.label}
+          </button>
+        ))}
+      </div>
+      {chosen && (
+        <>
+          <p className="dim" style={{ margin: "8px 0 0" }} aria-live="polite">
+            {chosen.hint}
+          </p>
+          {way === "FILE" && (
+            <SheetImportPanel
+              kind="EXERCISES"
+              embedded
+              title="Importuj bazę ćwiczeń z pliku"
+              description={
+                <>
+                  Wgraj bazę jako <b>CSV lub XLSX</b> — zamiast przepisywać
+                  pozycje ręcznie. Najpierw zobaczysz raport: co powstanie, co
+                  się zmieni i które wiersze odpadły oraz dlaczego. Zapis jest
+                  osobnym kliknięciem, a każdy import da się cofnąć. Wartości
+                  spoza słownika (partie mięśniowe, poziom, wzorzec ruchu) nie
+                  są zgadywane — pole zostaje puste, a informacja trafia do
+                  raportu.
+                </>
+              }
+              schemaUrl="/api/coach/exercises/import-schema"
+              importUrl="/api/coach/exercises/import-file"
+              exampleUrl="/api/coach/exercises/import-example"
+              exportUrl="/api/coach/exercises/export-file"
+              exampleFileName="dzik-os-cwiczenia-wzor.csv"
+              exportFileName="dzik-os-cwiczenia.csv"
+              onImported={onImported}
+            />
+          )}
+          {way === "LIBRARY" && <LibraryImport embedded onImported={onImported} />}
+        </>
+      )}
+    </div>
+  );
+}
+
 /** Panel „Importuj bibliotekę ćwiczeń”.
  *
  * Te same reguły interfejsu co przy czytaniu opisu i przy OCR:
@@ -693,8 +794,12 @@ function ExercisesTab() {
  * * import nigdy nie nadpisuje opisów pisanych pod konkretne ćwiczenie —
  *   piszemy to w interfejsie, a nie tylko w dokumentacji.
  */
-function LibraryImport({ onImported }: { onImported: () => void }) {
-  const [open, setOpen] = useState(false);
+function LibraryImport({ onImported, embedded = false }: {
+  onImported: () => void;
+  /** Osadzony w karcie „Dodaj do bazy": bez własnej ramki i „Rozwiń". */
+  embedded?: boolean;
+}) {
+  const [open, setOpen] = useState(embedded);
   const [report, setReport] = useState<ExerciseImportReport | null>(null);
   const [busy, setBusy] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -717,15 +822,8 @@ function LibraryImport({ onImported }: { onImported: () => void }) {
     }
   }
 
-  return (
-    <div className="card" style={{ marginBottom: 12 }}>
-      <div className="row row--between">
-        <b>Importuj bibliotekę ćwiczeń</b>
-        <button type="button" className="btn btn--ghost btn--small" aria-expanded={open}
-          onClick={() => setOpen(!open)}>
-          {open ? "Zwiń" : "Rozwiń"}
-        </button>
-      </div>
+  const body = (
+    <>
       {open && (
         <>
           <p className="dim" style={{ marginTop: 4 }}>
@@ -796,6 +894,20 @@ function LibraryImport({ onImported }: { onImported: () => void }) {
           )}
         </>
       )}
+    </>
+  );
+
+  if (embedded) return body;
+  return (
+    <div className="card" style={{ marginBottom: 12 }}>
+      <div className="row row--between">
+        <b>Importuj bibliotekę ćwiczeń</b>
+        <button type="button" className="btn btn--ghost btn--small" aria-expanded={open}
+          onClick={() => setOpen(!open)}>
+          {open ? "Zwiń" : "Rozwiń"}
+        </button>
+      </div>
+      {body}
     </div>
   );
 }
@@ -810,11 +922,14 @@ function LibraryImport({ onImported }: { onImported: () => void }) {
  *   co warto potwierdzić — brak nigdy nie udaje wartości;
  * * pojawienie się propozycji ogłasza `aria-live`, a każde pole ma
  *   etykietę powiązaną `for`/`id` (runda P10). */
-function DescriptionAssist({ form, onInsert }: {
+function DescriptionAssist({ form, onInsert, defaultOpen = false }: {
   form: ExerciseFormValues;
   onInsert: (next: ExerciseFormValues, engine: "LOCAL" | "EXTENDED") => void;
+  /** Trener wybrał w „Dodaj do bazy" ścieżkę „mam opis lub zdjęcie" —
+   * panel otwiera się od razu, żeby nie kazać klikać drugi raz w to samo. */
+  defaultOpen?: boolean;
 }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(defaultOpen);
   const [text, setText] = useState("");
   const [result, setResult] = useState<ParseDescriptionResponse | null>(null);
   const [overwrite, setOverwrite] = useState(false);

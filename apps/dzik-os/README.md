@@ -11,6 +11,13 @@ głosowe), dokumenty, płatności i dashboard trenera.
 
 Status: **MVP + monitoring + baza wiedzy + know-how + dashboard (0.4.0)** · Język: polski · Licencja kodu: Apache-2.0
 
+## Zasada uruchomienia
+
+Nowa funkcja nie jest gotowa, dopóki nie została **uruchomiona w działającej
+aplikacji** i obejrzana — przechodzące testy są warunkiem wstępnym, nie
+dowodem. Pełna zasada wraz z uzasadnieniem i listą wymaganych dowodów:
+`docs/ZASADA_URUCHOMIENIA.md`.
+
 ## Zasady (fundamenty Human OS)
 
 * dane klienta są jego własnością — eksport i usunięcie wbudowane;
