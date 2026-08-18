@@ -1,5 +1,6 @@
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import { api } from "../../api";
+import { localNowMinute } from "../../dates";
 import { ErrorBox, LogoutButton, Spinner, TopBar } from "../../components";
 import { ConsultSlotRow } from "../../types";
 
@@ -48,7 +49,9 @@ export default function Consultations() {
   if (error && !slots) return <div className="page"><ErrorBox error={error} /></div>;
   if (!slots) return <div className="page"><Spinner /></div>;
 
-  const upcoming = slots.filter((s) => s.starts_at > new Date().toISOString().slice(0, 16));
+  // starts_at to naiwny czas LOKALNY — porównanie z czasem UTC
+  // (toISOString) pokazywałoby jako "nadchodzące" sloty sprzed 1-2 godzin.
+  const upcoming = slots.filter((s) => s.starts_at > localNowMinute());
 
   return (
     <div className="page">

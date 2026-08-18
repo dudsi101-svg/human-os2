@@ -1,6 +1,7 @@
 import { ReactNode, useEffect, useState } from "react";
 import { NavLink } from "react-router-dom";
-import { api, clearSession, fetchFileBlob, fetchFileUrl, getUser, plDate } from "./api";
+import { api, clearSession, fetchFileBlob, fetchFileUrl, getUser } from "./api";
+import { plDate } from "./dates";
 import { applyUpdate, onUpdateAvailable } from "./pwa";
 import { KIND_LABELS, PersonalRecordsData, StrengthSeriesRow } from "./types";
 

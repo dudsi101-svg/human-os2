@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { api, getUser, plDate, WEEKDAYS } from "../../api";
+import { api, getUser } from "../../api";
+import { WEEKDAYS, localToday, plDate } from "../../dates";
 import { ErrorBox, Spinner, TopBar } from "../../components";
 import { PlanVersion, TrainingPlan, WorkoutRow } from "../../types";
 
@@ -116,7 +117,7 @@ export default function Plan() {
       await api.post(`/api/clients/${user.id}/workouts`, {
         plan_version_id: plan.current_version.id,
         day_index: dayIndex,
-        performed_on: new Date().toISOString().slice(0, 10),
+        performed_on: localToday(),
         status: "DONE",
         comment: comment || null,
         pain_flag: pain,

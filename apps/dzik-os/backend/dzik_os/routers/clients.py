@@ -1,11 +1,12 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime, timedelta
+from datetime import timedelta
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from ..authz import CONSENT_DOMAIN, CONSENT_PURPOSE, active_relationship, resolve_client_access
+from ..dates import local_now_minute, local_today, parse_iso_date
 from ..db import get_db
 from ..hos_bridge import ConsentService, record_event
 from ..models import (
@@ -114,7 +115,7 @@ def _client_flags(db: Session, coach: User, client: User, today) -> dict:
     )
     checkin_overdue = (
         last_checkin is None
-        or (today - datetime.fromisoformat(last_checkin.week_start).date()).days > 13
+        or (today - parse_iso_date(last_checkin.week_start)).days > 13
     )
     awaiting_review = (
         db.query(WeeklyCheckin)
@@ -187,7 +188,10 @@ def list_clients(
         .filter(CoachClientRelationship.coach_id == coach.id)
         .all()
     )
-    today = datetime.now(UTC).date()
+    # Data kalendarzowa "dziś" w strefie lokalnej (nie UTC!) — inaczej
+    # flagi checkin_overdue/payment_overdue myliłyby się między 00:00 a
+    # 01:00/02:00 czasu polskiego.
+    today = local_today()
     out = []
     for rel in rels:
         client = db.get(User, rel.client_id)
@@ -232,7 +236,7 @@ def coach_dashboard(
         .filter(CoachClientRelationship.coach_id == coach.id, CoachClientRelationship.status == "ACTIVE")
         .all()
     )
-    today = datetime.now(UTC).date()
+    today = local_today()
     active_clients = len(rels)
     awaiting_review = 0
     checkin_overdue_clients = 0
@@ -272,7 +276,9 @@ def coach_dashboard(
         .filter(
             ConsultSlot.coach_id == coach.id,
             ConsultSlot.status == "BOOKED",
-            ConsultSlot.starts_at > datetime.now(UTC).strftime("%Y-%m-%dT%H:%M"),
+            # starts_at to naiwny czas LOKALNY (DZIK_TZ) — porównujemy
+            # wyłącznie z lokalnym "teraz", nigdy z czasem UTC.
+            ConsultSlot.starts_at > local_now_minute(),
         )
         .count()
     )

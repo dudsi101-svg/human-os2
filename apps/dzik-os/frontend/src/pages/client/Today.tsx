@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { api, getUser, money, plDate } from "../../api";
+import { api, getUser, money } from "../../api";
+import { plDate } from "../../dates";
 import { ErrorBox, Spinner, TopBar } from "../../components";
 import { CATEGORY_LABELS, ConsultSlotRow, TodayData } from "../../types";
 

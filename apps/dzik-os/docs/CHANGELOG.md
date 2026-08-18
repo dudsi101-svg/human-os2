@@ -1,5 +1,50 @@
 # Changelog — Dzik OS
 
+## 0.9.1 — 2026-08-18
+
+Naprawa obsługi dat i stref czasowych w całej aplikacji.
+
+* Błąd: daty kalendarzowe (`performed_on`, `logged_on`, `occurred_on`,
+  `week_start`, `measured_at`...) liczone przez
+  `new Date().toISOString().slice(0, 10)` (frontend) lub
+  `datetime.now(UTC).date()` (backend) — rekord utworzony 18 sierpnia
+  o 01:00 czasu polskiego trafiał do bazy z datą 17 sierpnia.
+* Jeden wspólny moduł dat po obu stronach: `frontend/src/dates.ts`
+  (`localToday()`, `mondayOfWeek()`, `localNowMinute()`, `parseApiDate()`,
+  `plDate`/`plDateTime`/`WEEKDAYS` przeniesione z `api.ts`) i
+  `backend/dzik_os/dates.py` (`local_today()`, `local_now()`,
+  `local_now_minute()`, `tz_for_user()`); rozproszona logika usunięta
+  (`todayIso`, `mondayOfCurrentWeek`, `_now_local` w konsultacjach).
+* Przyjęty model dat: data kalendarzowa użytkownika = `YYYY-MM-DD`
+  w strefie LOKALNEJ (frontend: strefa przeglądarki, backend: `DZIK_TZ`,
+  domyślnie Europe/Warsaw); dokładny moment zdarzenia (`created_at`,
+  `paid_at`, audyt) = pełny timestamp UTC (`now_iso()`), przeliczany do
+  strefy dopiero przy prezentacji; termin konsultacji = naiwny lokalny
+  `YYYY-MM-DDTHH:MM` porównywany wyłącznie z lokalnym „teraz".
+  Szczegóły: docstring `dzik_os/dates.py` i sekcja „Konwencje dat"
+  w `DATA_MODEL.md`.
+* Naprawione porównania: flagi `checkin_overdue`/`payment_overdue`
+  (lista klientów + dashboard trenera), status OVERDUE u klienta i na
+  Dzisiaj, okno „nowego rekordu" (14 dni), zakresy monitoringu/adherencji/
+  dziennika żywieniowego, `days_remaining` celu, ekran Dzisiaj
+  (dzień tygodnia, harmonogram, przypomnienia), licznik nadchodzących
+  konsultacji na dashboardzie (porównywał lokalny `starts_at` z czasem
+  UTC) i filtr „nadchodzące" w konsultacjach trenera; `parseApiDate`
+  parsuje `YYYY-MM-DD` jako lokalną północ (bez ryzyka przesunięcia dnia
+  przy prezentacji).
+* Architektura gotowa na strefę per użytkownik: `tz_for_user(user)`
+  honoruje przyszłe pole `User.timezone` (dziś zawsze `DZIK_TZ`); bez UI
+  i bez migracji schematu.
+* Migracji danych historycznych NIE wykonano świadomie: po fakcie nie da
+  się bezpiecznie odróżnić daty zapisanej błędnie (wpis z 00:00–02:00
+  czasu polskiego) od poprawnej — przesuwanie rekordów hurtem
+  uszkodziłoby dane wpisane w ciągu dnia (>95% przypadków).
+* Testy: 113 → 128 (`tests/test_dates.py`: granica północy 00:30/01:00,
+  czas letni/zimowy, obie zmiany DST, koniec miesiąca i roku, strefa
+  z konfiguracji i per użytkownik, parsowanie dat z API). Logika
+  `dates.ts` zweryfikowana skryptem Node z `TZ=Europe/Warsaw` (frontend
+  nie ma infrastruktury testowej JS — ograniczenie opisane w raporcie).
+
 ## 0.9.0 — 2026-08-18
 
 Runda 6b.7 specyfikacji: **terminarz konsultacji**.

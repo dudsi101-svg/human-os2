@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { api, getUser, plDate } from "../../api";
+import { api, getUser } from "../../api";
+import { plDate } from "../../dates";
 import { ErrorBox, Spinner, TopBar } from "../../components";
 import { NutritionVersion } from "../../types";
 

@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 import json
-from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from ..authz import require_client_self
+from ..dates import local_today, parse_iso_date
 from ..db import get_db
 from ..models import (
     Message,
@@ -34,8 +34,9 @@ def today_view(user: User = Depends(current_user), db: Session = Depends(get_db)
     """Ekran „Dzisiaj" klienta: dzisiejszy trening, zalecenia, harmonogram,
     raport, płatność i ostatnia wiadomość trenera — jeden prosty agregat."""
     client_id = require_client_self(db, user)
-    now = datetime.now(UTC)
-    today = now.date()
+    # "Dzisiaj" to dzień kalendarzowy w strefie lokalnej użytkownika —
+    # o 01:00 czasu polskiego ekran musi pokazywać już nowy dzień.
+    today = local_today(user)
     weekday = today.isoweekday()  # 1=pon ... 7=niedz
 
     # Dzisiejszy trening: dzień aktualnej wersji aktywnego planu przypisany
@@ -158,9 +159,7 @@ def today_view(user: User = Depends(current_user), db: Session = Depends(get_db)
     if last_checkin is not None:
         from datetime import timedelta
 
-        checkin_due = (
-            datetime.fromisoformat(last_checkin.week_start).date() + timedelta(days=7)
-        ).isoformat()
+        checkin_due = (parse_iso_date(last_checkin.week_start) + timedelta(days=7)).isoformat()
 
     # Płatność: najbliższy nieopłacony rekord.
     next_payment = None

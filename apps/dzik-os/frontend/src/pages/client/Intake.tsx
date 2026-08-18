@@ -1,6 +1,7 @@
 import { FormEvent, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { api, getUser, WEEKDAYS } from "../../api";
+import { api, getUser } from "../../api";
+import { WEEKDAYS } from "../../dates";
 import { ErrorBox, SectionLabel, TopBar } from "../../components";
 
 /** Ankieta startowa (wywiad) — klient sam wypełnia strukturalny wywiad,

@@ -1,6 +1,7 @@
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
-import { api, getUser, plDateTime } from "../api";
+import { api, getUser } from "../api";
+import { plDateTime } from "../dates";
 import { AuthAttachment, ErrorBox, Spinner, TopBar } from "../components";
 import { MessageRow } from "../types";
 

@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
-import { api, getUser, plDate } from "../../api";
+import { api, getUser } from "../../api";
+import { plDate } from "../../dates";
 import { ErrorBox, Spinner, TopBar } from "../../components";
 import { DocumentRow, ScheduleItem, CATEGORY_LABELS } from "../../types";
-import { WEEKDAYS } from "../../api";
+import { WEEKDAYS } from "../../dates";
 
 export default function Documents() {
   const user = getUser()!;

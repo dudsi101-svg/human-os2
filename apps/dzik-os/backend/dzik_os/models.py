@@ -25,6 +25,10 @@ def new_id(prefix: str) -> str:
 
 
 def now_iso() -> str:
+    """Dokładny MOMENT zdarzenia (created_at/updated_at/paid_at/read_at,
+    audyt): zawsze pełny timestamp UTC; do strefy lokalnej przeliczany
+    dopiero przy prezentacji. Dat kalendarzowych (YYYY-MM-DD) nigdy nie
+    wyliczać z UTC — patrz dzik_os/dates.py (local_today)."""
     return datetime.now(UTC).isoformat()
 
 

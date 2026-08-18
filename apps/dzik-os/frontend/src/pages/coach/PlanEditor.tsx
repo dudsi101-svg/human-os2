@@ -1,5 +1,6 @@
 import { FormEvent, useState } from "react";
-import { api, WEEKDAYS } from "../../api";
+import { api } from "../../api";
+import { WEEKDAYS } from "../../dates";
 import { ErrorBox } from "../../components";
 import { Exercise, PlanDay, TrainingPlan } from "../../types";
 

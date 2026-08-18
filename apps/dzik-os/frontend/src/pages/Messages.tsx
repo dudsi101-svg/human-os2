@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { api, plDateTime } from "../api";
+import { api } from "../api";
+import { plDateTime } from "../dates";
 import { ErrorBox, Spinner, TopBar } from "../components";
 import { ThreadRow } from "../types";
 
