@@ -752,12 +752,33 @@ class Exercise(Base):
     id: Mapped[str] = mapped_column(String(40), primary_key=True)
     coach_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
     name: Mapped[str] = mapped_column(String(300))
-    # NOGI/PLECY/KLATKA/BARKI/RECE/BRZUCH/CALE_CIALO/MOBILNOSC/INNE
+    # NOGI/PLECY/KLATKA/BARKI/RECE/BRZUCH/CALE_CIALO/MOBILNOSC/CARDIO/INNE
     muscle_group: Mapped[str] = mapped_column(String(30))
     how_to: Mapped[str] = mapped_column(Text)
     benefit: Mapped[str | None] = mapped_column(Text, nullable=True)
     equipment: Mapped[str | None] = mapped_column(String(200), nullable=True)
     video_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    # --- Rozszerzony opis (migracja nr 19; wszystkie pola opcjonalne, więc
+    # ćwiczenia sprzed rozbudowy działają bez zmian: `how_to`/`benefit`
+    # zostają polami zgodności wstecznej). ---
+    # CSV kluczy ze słownika `muscles.MUSCLE_LABELS` (kontrakt wspólny
+    # z rysunkiem sylwetki).
+    muscles_primary: Mapped[str | None] = mapped_column(Text, nullable=True)
+    muscles_secondary: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # POCZATKUJACY/SREDNIOZAAWANSOWANY/ZAAWANSOWANY
+    level: Mapped[str | None] = mapped_column(String(30), nullable=True)
+    # Wzorzec ruchu, patrz `muscles.MOVEMENT_PATTERNS`.
+    pattern: Mapped[str | None] = mapped_column(String(30), nullable=True)
+    # Listy przechowywane jako JSON w kolumnach tekstowych (SQLite/PG bez
+    # osobnych tabel — to treść opisowa, nie encje do zapytań).
+    steps_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    mistakes_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    cues_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    safety: Mapped[str | None] = mapped_column(Text, nullable=True)
+    easier: Mapped[str | None] = mapped_column(Text, nullable=True)
+    harder: Mapped[str | None] = mapped_column(Text, nullable=True)
+    tempo_hint: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    breathing: Mapped[str | None] = mapped_column(String(400), nullable=True)
     status: Mapped[str] = mapped_column(String(20), default="ACTIVE")  # ACTIVE/ARCHIVED
     created_by: Mapped[str] = mapped_column(String(40))
     created_at: Mapped[str] = mapped_column(String(40), default=now_iso)

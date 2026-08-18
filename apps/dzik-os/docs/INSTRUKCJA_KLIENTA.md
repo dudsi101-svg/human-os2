@@ -64,6 +64,10 @@ bez tej propozycji. Model nigdy nie układa planu ani diety.
 
 * aktualny plan z rozpiską dni i ćwiczeń (serie × powtórzenia, ciężar,
   tempo, przerwy, filmy z techniką);
+* przy ćwiczeniach dodanych przez trenera z bazy — przycisk „Technika z
+  bazy": kroki wykonania, najczęstsze błędy, wskazówki, uwagi
+  bezpieczeństwa i pracujące mięśnie (to samo widać na ekranie
+  „Dzisiaj");
 * „Zapisz wykonanie z wynikami" — wpisz osiągnięte wyniki, komentarz,
   a jeśli coś bolało — zaznacz „Zgłaszam ból" i opisz; trener to zobaczy
   od razu na swojej liście;
@@ -88,6 +92,11 @@ to ocena kompletności raportu, nie Ciebie.
   produkt po nazwie i wpisz gramaturę albo liczbę sztuk („2 jajka”),
   żeby zobaczyć przeliczenie. Wartości są przybliżone i uśrednione
   (zależą od marki, partii i obróbki) — to oszacowanie, nie pomiar;
+* **Baza wiedzy** — artykuły trenera, baza ćwiczeń (wyszukiwanie po
+  nazwie, filtry partii mięśniowej, sprzętu, poziomu i wzorca ruchu;
+  karta ćwiczenia z krokami techniki, błędami, wskazówkami, uwagami
+  bezpieczeństwa i wariantami) oraz baza produktów z makro — wpisz gramaturę porcji, żeby
+  zobaczyć automatyczne przeliczenie kalorii;
 * **Dokumenty i harmonogram** — pliki od trenera i pełny harmonogram
   (każdy element ma zapisanego autora);
 * **Płatności** — terminy i statusy; aplikacja nie przechowuje danych kart;

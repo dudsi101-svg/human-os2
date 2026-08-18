@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from pydantic import BaseModel, EmailStr, Field, model_validator
 
+from .muscles import EXERCISE_LEVELS, MOVEMENT_PATTERNS, validate_muscle_keys
+
 
 class LoginRequest(BaseModel):
     email: EmailStr
@@ -61,7 +63,14 @@ class GoalIn(BaseModel):
 
 
 class ExerciseIn(BaseModel):
+    """Pozycja ćwiczenia w wersji planu (treść JSON, bez migracji).
+
+    `exercise_id` to MIĘKKIE odniesienie do bazy ćwiczeń trenera: nazwa
+    jest zawsze zapisana w planie, więc zarchiwizowanie ćwiczenia w bazie
+    nie psuje istniejących planów — znika tylko link do karty."""
+
     name: str = Field(min_length=1, max_length=300)
+    exercise_id: str | None = Field(default=None, max_length=40)
     sets: str | None = Field(default=None, max_length=40)
     reps: str | None = Field(default=None, max_length=40)
     weight: str | None = Field(default=None, max_length=40)
@@ -476,14 +485,55 @@ class DocumentIn(BaseModel):
 
 
 class ExerciseLibraryItemIn(BaseModel):
+    """Wejście edytora bazy ćwiczeń. Pola rozszerzonego opisu są
+    opcjonalne — stare ćwiczenia (tylko `how_to`/`benefit`) nadal
+    zapisują się i wyświetlają bez zmian."""
+
     name: str = Field(min_length=1, max_length=300)
     muscle_group: str = Field(
-        pattern="^(NOGI|PLECY|KLATKA|BARKI|RECE|BRZUCH|CALE_CIALO|MOBILNOSC|INNE)$"
+        pattern="^(NOGI|PLECY|KLATKA|BARKI|RECE|BRZUCH|CALE_CIALO|MOBILNOSC|CARDIO|INNE)$"
     )
     how_to: str = Field(min_length=1, max_length=5000)
     benefit: str | None = Field(default=None, max_length=2000)
     equipment: str | None = Field(default=None, max_length=200)
     video_url: str | None = Field(default=None, max_length=500)
+    muscles_primary: list[str] = Field(default_factory=list, max_length=12)
+    muscles_secondary: list[str] = Field(default_factory=list, max_length=12)
+    level: str | None = None
+    pattern: str | None = None
+    steps: list[str] = Field(default_factory=list, max_length=12)
+    mistakes: list[str] = Field(default_factory=list, max_length=12)
+    cues: list[str] = Field(default_factory=list, max_length=8)
+    safety: str | None = Field(default=None, max_length=2000)
+    easier: str | None = Field(default=None, max_length=1000)
+    harder: str | None = Field(default=None, max_length=1000)
+    tempo_hint: str | None = Field(default=None, max_length=200)
+    breathing: str | None = Field(default=None, max_length=400)
+
+    @model_validator(mode="after")
+    def _check_dictionaries(self):
+        unknown = validate_muscle_keys(
+            [*self.muscles_primary, *self.muscles_secondary]
+        )
+        if unknown:
+            raise ValueError(
+                "Nieznane partie mięśniowe: " + ", ".join(sorted(set(unknown)))
+            )
+        if self.level is not None and self.level not in EXERCISE_LEVELS:
+            raise ValueError(f"Nieznany poziom: {self.level}")
+        if self.pattern is not None and self.pattern not in MOVEMENT_PATTERNS:
+            raise ValueError(f"Nieznany wzorzec ruchu: {self.pattern}")
+        for label, values, limit in (
+            ("kroków techniki", self.steps, 600),
+            ("błędów", self.mistakes, 400),
+            ("wskazówek", self.cues, 300),
+        ):
+            for value in values:
+                if not value.strip():
+                    raise ValueError(f"Pusta pozycja na liście {label}")
+                if len(value) > limit:
+                    raise ValueError(f"Za długa pozycja na liście {label}")
+        return self
 
 
 class FoodProductIn(BaseModel):

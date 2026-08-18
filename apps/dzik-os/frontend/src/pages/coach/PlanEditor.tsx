@@ -1,11 +1,106 @@
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { api } from "../../api";
 import { WEEKDAYS } from "../../dates";
-import { ErrorBox } from "../../components";
-import { Exercise, PlanDay, TrainingPlan } from "../../types";
+import { ErrorBox, ExerciseFilterBar, Spinner } from "../../components";
+import { EMPTY_FILTERS, ExerciseFilters, exerciseQuery } from "../../exerciseFilters";
+import {
+  EXERCISE_LEVEL_LABELS,
+  Exercise,
+  ExerciseLibraryItem,
+  ExerciseListResponse,
+  PlanDay,
+  TrainingPlan,
+  muscleLabels,
+} from "../../types";
 
 const emptyExercise = (): Exercise => ({ name: "", sets: "", reps: "", weight: "", rest: "" });
 const emptyDay = (): PlanDay => ({ name: "", weekday: null, exercises: [emptyExercise()] });
+
+const PICKER_PAGE = 20;
+
+/** Wyszukiwarka bazy ćwiczeń wbudowana w edytor planu. Jedno kliknięcie
+ * dodaje pozycję do bieżącego dnia; wyszukiwarka zostaje otwarta, żeby
+ * dało się dodać kilka ćwiczeń pod rząd. Nie zastępuje ręcznego wpisania
+ * nazwy — trener zawsze może wpisać coś spoza bazy. */
+function ExercisePicker({ onPick, onClose }: {
+  onPick: (item: ExerciseLibraryItem) => void;
+  onClose: () => void;
+}) {
+  const [filters, setFilters] = useState<ExerciseFilters>(EMPTY_FILTERS);
+  const [items, setItems] = useState<ExerciseLibraryItem[] | null>(null);
+  const [total, setTotal] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [added, setAdded] = useState<string | null>(null);
+
+  const load = (offset = 0) => {
+    setError(null);
+    const query = exerciseQuery(filters, offset, PICKER_PAGE, { status: "ACTIVE" });
+    api.get<ExerciseListResponse>(`/api/coach/exercises?${query}`)
+      .then((d) => {
+        setItems((prev) => (offset > 0 && prev ? [...prev, ...d.items] : d.items));
+        setTotal(d.total);
+        setHasMore(d.has_more);
+      })
+      .catch((e) => setError(e.message));
+  };
+  // Krótkie opóźnienie: przy pisaniu nie wysyłamy zapytania z każdą literą.
+  useEffect(() => {
+    const timer = setTimeout(() => load(0), 200);
+    return () => clearTimeout(timer);
+  }, [ // eslint-disable-line react-hooks/exhaustive-deps
+    filters.q, filters.muscle, filters.equipment, filters.level, filters.pattern,
+  ]);
+
+  return (
+    <div className="card exercise-picker" style={{ marginTop: 8 }}>
+      <div className="row row--between">
+        <b>Dodaj z bazy ćwiczeń</b>
+        <button type="button" className="btn btn--ghost btn--small" onClick={onClose}>
+          Zamknij wyszukiwarkę
+        </button>
+      </div>
+      <ExerciseFilterBar idPrefix="pe" value={filters} onChange={setFilters} />
+      <p className="dim" aria-live="polite" style={{ marginTop: 4 }}>
+        {error
+          ? ""
+          : items === null
+            ? "Wyszukiwanie…"
+            : total === 0
+              ? "Brak ćwiczeń pasujących do wyszukiwania."
+              : `Znaleziono ${total} ćwiczeń — pokazano ${items.length}.`}
+        {added && ` Dodano „${added}” do dnia.`}
+      </p>
+      <ErrorBox error={error} onRetry={() => load(0)} />
+      {items === null && !error && <Spinner />}
+      {items && items.length > 0 && (
+        <ul className="exercise-picker__results">
+          {items.map((item) => (
+            <li key={item.id}>
+              <button type="button" className="exercise-picker__hit"
+                onClick={() => { onPick(item); setAdded(item.name); }}>
+                <b>{item.name}</b>
+                <span className="meta">
+                  {[
+                    item.muscles_primary.length ? muscleLabels(item.muscles_primary) : null,
+                    item.equipment,
+                    item.level ? EXERCISE_LEVEL_LABELS[item.level] ?? item.level : null,
+                  ].filter(Boolean).join(" · ")}
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      {hasMore && items && (
+        <button type="button" className="btn btn--ghost btn--small"
+          onClick={() => load(items.length)}>
+          Pokaż więcej
+        </button>
+      )}
+    </div>
+  );
+}
 
 export default function PlanEditor({
   clientId,
@@ -27,9 +122,43 @@ export default function PlanEditor({
   );
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [pickerDay, setPickerDay] = useState<number | null>(null);
 
   const setDay = (i: number, day: PlanDay) =>
     setDays(days.map((d, j) => (i === j ? day : d)));
+
+  /** Dodanie ćwiczenia z bazy: uzupełnia wyłącznie PUSTE pola pomocnicze —
+   * nigdy nie nadpisuje tego, co trener już wpisał. */
+  function addFromLibrary(dayIndex: number, item: ExerciseLibraryItem) {
+    const day = days[dayIndex];
+    const filled: Exercise = {
+      name: item.name,
+      exercise_id: item.id,
+      sets: "",
+      reps: "",
+      weight: "",
+      tempo: item.tempo_hint ?? "",
+      rest: "",
+      comment: item.cues[0] ?? "",
+      video_url: item.video_url ?? "",
+    };
+    const last = day.exercises[day.exercises.length - 1];
+    const isEmptyRow = last && !last.name?.trim() && !last.sets && !last.reps && !last.weight;
+    const exercises = isEmptyRow
+      ? day.exercises.map((ex, i) =>
+        i === day.exercises.length - 1
+          ? {
+            ...filled,
+            // Wartości już wpisane przez trenera zostają nietknięte.
+            tempo: ex.tempo || filled.tempo,
+            comment: ex.comment || filled.comment,
+            video_url: ex.video_url || filled.video_url,
+            rest: ex.rest || "",
+          }
+          : ex)
+      : [...day.exercises, filled];
+    setDay(dayIndex, { ...day, exercises });
+  }
 
   async function save(e: FormEvent) {
     e.preventDefault();
@@ -87,11 +216,20 @@ export default function PlanEditor({
           </div>
           {day.exercises.map((ex, ei) => (
             <div key={ei} style={{ borderTop: "1px solid var(--border)", paddingTop: 8, marginTop: 8 }}>
-              <label htmlFor={`pe-ex-${di}-${ei}`}>Ćwiczenie {ei + 1}</label>
+              <label htmlFor={`pe-ex-${di}-${ei}`}>
+                Ćwiczenie {ei + 1}
+                {ex.exercise_id && <span className="badge" style={{ marginLeft: 8 }}>z bazy</span>}
+              </label>
               <input id={`pe-ex-${di}-${ei}`} value={ex.name} placeholder="nazwa ćwiczenia"
                 onChange={(e) => {
                   const exs = [...day.exercises];
-                  exs[ei] = { ...ex, name: e.target.value };
+                  // Ręczna zmiana nazwy = własny wpis trenera: odpinamy
+                  // link do karty z bazy, żeby nie wskazywał czegoś innego.
+                  exs[ei] = {
+                    ...ex,
+                    name: e.target.value,
+                    exercise_id: e.target.value === ex.name ? ex.exercise_id : null,
+                  };
                   setDay(di, { ...day, exercises: exs });
                 }} />
               <div className="field-row-3" style={{ marginTop: 6 }}>
@@ -139,16 +277,25 @@ export default function PlanEditor({
                 }} />
             </div>
           ))}
-          <div className="row" style={{ marginTop: 8 }}>
+          <div className="row" style={{ marginTop: 8, flexWrap: "wrap" }}>
+            <button type="button" className="btn btn--small"
+              aria-expanded={pickerDay === di}
+              onClick={() => setPickerDay(pickerDay === di ? null : di)}>
+              {pickerDay === di ? "Zamknij bazę ćwiczeń" : "Wybierz z bazy ćwiczeń"}
+            </button>
             <button type="button" className="btn btn--ghost btn--small"
               onClick={() => setDay(di, { ...day, exercises: [...day.exercises, emptyExercise()] })}>
-              + ćwiczenie
+              + ćwiczenie (wpisz ręcznie)
             </button>
             <button type="button" className="btn btn--danger btn--small"
               onClick={() => setDays(days.filter((_, j) => j !== di))}>
               usuń dzień
             </button>
           </div>
+          {pickerDay === di && (
+            <ExercisePicker onPick={(item) => addFromLibrary(di, item)}
+              onClose={() => setPickerDay(null)} />
+          )}
         </div>
       ))}
       <div className="row" style={{ marginTop: 10 }}>

@@ -1,21 +1,57 @@
-"""Baza ćwiczeń (know-how trenera) — technika wykonania i efekt, z
-podziałem na partie mięśniowe. Broadcast do wszystkich aktywnie
-prowadzonych klientów; treść i odpowiedzialność merytoryczna należą do
-trenera (system tylko przechowuje i pokazuje)."""
+"""Baza ćwiczeń (know-how trenera) — technika wykonania, najczęstsze
+błędy, wskazówki, warianty i mapa pracujących mięśni. Broadcast do
+wszystkich aktywnie prowadzonych klientów; treść i odpowiedzialność
+merytoryczna należą do trenera (system tylko przechowuje i pokazuje).
+
+Granica roli: to know-how treningowe, nie porada medyczna. Uwagi
+bezpieczeństwa kierują do konsultacji przy bólu lub urazie — aplikacja
+nie ocenia stanu zdrowia i NIE dobiera ćwiczeń automatycznie: wybór
+zawsze należy do trenera."""
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException
+import json
+
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from ..authz import require_owned_resource
 from ..db import get_db
 from ..hos_bridge import record_event
 from ..models import CoachClientRelationship, Exercise, User, new_id, now_iso
+from ..muscles import (
+    EXERCISE_LEVELS,
+    LEVEL_LABELS,
+    MOVEMENT_PATTERNS,
+    MUSCLE_GROUPS,
+    MUSCLE_LABELS,
+    PATTERN_LABELS,
+    fold,
+    join_muscles,
+    split_muscles,
+)
 from ..schemas import ExerciseLibraryItemIn
 from ..security import current_user, require_role
 
 router = APIRouter(prefix="/api", tags=["exercises"])
+
+DEFAULT_LIMIT = 60
+MAX_LIMIT = 200
+
+
+def _load_list(value: str | None) -> list[str]:
+    if not value:
+        return []
+    try:
+        parsed = json.loads(value)
+    except json.JSONDecodeError:
+        return []
+    return [str(x) for x in parsed] if isinstance(parsed, list) else []
+
+
+def _dump_list(values: list[str]) -> str | None:
+    cleaned = [v.strip() for v in values if v and v.strip()]
+    return json.dumps(cleaned, ensure_ascii=False) if cleaned else None
 
 
 def _out(item: Exercise) -> dict:
@@ -24,7 +60,96 @@ def _out(item: Exercise) -> dict:
         "muscle_group": item.muscle_group, "how_to": item.how_to,
         "benefit": item.benefit, "equipment": item.equipment,
         "video_url": item.video_url, "status": item.status,
+        "muscles_primary": split_muscles(item.muscles_primary),
+        "muscles_secondary": split_muscles(item.muscles_secondary),
+        "level": item.level, "pattern": item.pattern,
+        "steps": _load_list(item.steps_json),
+        "mistakes": _load_list(item.mistakes_json),
+        "cues": _load_list(item.cues_json),
+        "safety": item.safety, "easier": item.easier, "harder": item.harder,
+        "tempo_hint": item.tempo_hint, "breathing": item.breathing,
         "created_at": item.created_at, "updated_at": item.updated_at,
+    }
+
+
+def _apply_fields(item: Exercise, body: ExerciseLibraryItemIn) -> None:
+    item.name, item.muscle_group, item.how_to = body.name, body.muscle_group, body.how_to
+    item.benefit, item.equipment, item.video_url = body.benefit, body.equipment, body.video_url
+    item.muscles_primary = join_muscles(body.muscles_primary)
+    item.muscles_secondary = join_muscles(body.muscles_secondary)
+    item.level, item.pattern = body.level, body.pattern
+    item.steps_json = _dump_list(body.steps)
+    item.mistakes_json = _dump_list(body.mistakes)
+    item.cues_json = _dump_list(body.cues)
+    item.safety, item.easier, item.harder = body.safety, body.easier, body.harder
+    item.tempo_hint, item.breathing = body.tempo_hint, body.breathing
+
+
+def _matches(
+    item: Exercise, *, q: str | None, muscle: str | None, muscle_group: str | None,
+    equipment: str | None, level: str | None, pattern: str | None,
+) -> bool:
+    """Filtrowanie po stronie aplikacji: baza to katalog rzędu setek
+    pozycji, a wyszukiwanie musi być odporne na polskie znaki (czego
+    SQLite LIKE nie zapewnia)."""
+    if q:
+        needle = fold(q)
+        haystack = fold(" ".join(filter(None, [item.name, item.equipment or ""])))
+        if needle not in haystack:
+            return False
+    if muscle and muscle not in (
+        split_muscles(item.muscles_primary) + split_muscles(item.muscles_secondary)
+    ):
+        return False
+    if muscle_group and item.muscle_group != muscle_group:
+        return False
+    if equipment and fold(equipment) not in fold(item.equipment or ""):
+        return False
+    if level and item.level != level:
+        return False
+    return not (pattern and item.pattern != pattern)
+
+
+def _page(
+    rows: list[Exercise], *, limit: int, offset: int, filters: dict
+) -> dict:
+    matched = [r for r in rows if _matches(r, **filters)]
+    window = matched[offset:offset + limit]
+    return {
+        "items": [_out(i) for i in window],
+        "total": len(matched),
+        "limit": limit,
+        "offset": offset,
+        "has_more": offset + len(window) < len(matched),
+    }
+
+
+def _filters(
+    q: str | None, muscle: str | None, muscle_group: str | None,
+    equipment: str | None, level: str | None, pattern: str | None,
+) -> dict:
+    if muscle and muscle not in MUSCLE_LABELS:
+        raise HTTPException(status_code=422, detail="Nieznana partia mięśniowa")
+    if level and level not in EXERCISE_LEVELS:
+        raise HTTPException(status_code=422, detail="Nieznany poziom")
+    if pattern and pattern not in MOVEMENT_PATTERNS:
+        raise HTTPException(status_code=422, detail="Nieznany wzorzec ruchu")
+    if muscle_group and muscle_group not in MUSCLE_GROUPS:
+        raise HTTPException(status_code=422, detail="Nieznana grupa mięśniowa")
+    return {
+        "q": q, "muscle": muscle, "muscle_group": muscle_group,
+        "equipment": equipment, "level": level, "pattern": pattern,
+    }
+
+
+@router.get("/exercise-dictionaries")
+def exercise_dictionaries(_: User = Depends(current_user)):
+    """Kontrakt słowników (te same klucze co rysunek sylwetki)."""
+    return {
+        "muscles": MUSCLE_LABELS,
+        "levels": LEVEL_LABELS,
+        "patterns": PATTERN_LABELS,
+        "muscle_groups": list(MUSCLE_GROUPS),
     }
 
 
@@ -34,11 +159,8 @@ def create_exercise(
     coach: User = Depends(require_role("COACH")),
     db: Session = Depends(get_db),
 ):
-    item = Exercise(
-        id=new_id("EXC"), coach_id=coach.id, name=body.name,
-        muscle_group=body.muscle_group, how_to=body.how_to, benefit=body.benefit,
-        equipment=body.equipment, video_url=body.video_url, created_by=coach.id,
-    )
+    item = Exercise(id=new_id("EXC"), coach_id=coach.id, created_by=coach.id)
+    _apply_fields(item, body)
     db.add(item)
     record_event(
         db, action="EXERCISE_CREATED", actor_id=coach.id, subject_ids=[coach.id],
@@ -51,15 +173,40 @@ def create_exercise(
 
 @router.get("/coach/exercises")
 def list_own_exercises(
-    coach: User = Depends(require_role("COACH")), db: Session = Depends(get_db)
+    coach: User = Depends(require_role("COACH")),
+    db: Session = Depends(get_db),
+    q: str | None = None,
+    muscle: str | None = None,
+    muscle_group: str | None = None,
+    equipment: str | None = None,
+    level: str | None = None,
+    pattern: str | None = None,
+    status: str | None = None,
+    limit: int = Query(DEFAULT_LIMIT, ge=1, le=MAX_LIMIT),
+    offset: int = Query(0, ge=0),
 ):
-    rows = (
-        db.query(Exercise)
-        .filter(Exercise.coach_id == coach.id)
-        .order_by(Exercise.muscle_group, Exercise.name)
-        .all()
+    query = db.query(Exercise).filter(Exercise.coach_id == coach.id)
+    if status:
+        if status not in {"ACTIVE", "ARCHIVED"}:
+            raise HTTPException(status_code=422, detail="Nieprawidłowy status")
+        query = query.filter(Exercise.status == status)
+    rows = query.order_by(Exercise.muscle_group, Exercise.name).all()
+    return _page(
+        rows, limit=limit, offset=offset,
+        filters=_filters(q, muscle, muscle_group, equipment, level, pattern),
     )
-    return {"items": [_out(i) for i in rows]}
+
+
+@router.get("/coach/exercises/{item_id}")
+def get_own_exercise(
+    item_id: str,
+    coach: User = Depends(require_role("COACH")),
+    db: Session = Depends(get_db),
+):
+    item = require_owned_resource(
+        db.get(Exercise, item_id), actor=coach, resource=f"exercise:{item_id}"
+    )
+    return _out(item)
 
 
 @router.put("/coach/exercises/{item_id}")
@@ -72,8 +219,7 @@ def update_exercise(
     item = require_owned_resource(
         db.get(Exercise, item_id), actor=coach, resource=f"exercise:{item_id}"
     )
-    item.name, item.muscle_group, item.how_to = body.name, body.muscle_group, body.how_to
-    item.benefit, item.equipment, item.video_url = body.benefit, body.equipment, body.video_url
+    _apply_fields(item, body)
     item.updated_at = now_iso()
     record_event(
         db, action="EXERCISE_UPDATED", actor_id=coach.id, subject_ids=[coach.id],
@@ -102,22 +248,56 @@ def set_exercise_status(
     return {"ok": True, "status": status}
 
 
-@router.get("/me/exercises")
-def list_exercises_for_client(
-    user: User = Depends(current_user), db: Session = Depends(get_db)
-):
-    coach_ids = [
+def _client_coach_ids(db: Session, user: User) -> list[str]:
+    return [
         r.coach_id
         for r in db.query(CoachClientRelationship)
         .filter_by(client_id=user.id, status="ACTIVE")
         .all()
     ]
+
+
+@router.get("/me/exercises")
+def list_exercises_for_client(
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+    q: str | None = None,
+    muscle: str | None = None,
+    muscle_group: str | None = None,
+    equipment: str | None = None,
+    level: str | None = None,
+    pattern: str | None = None,
+    limit: int = Query(DEFAULT_LIMIT, ge=1, le=MAX_LIMIT),
+    offset: int = Query(0, ge=0),
+):
+    filters = _filters(q, muscle, muscle_group, equipment, level, pattern)
+    coach_ids = _client_coach_ids(db, user)
     if not coach_ids:
-        return {"items": []}
+        return {"items": [], "total": 0, "limit": limit, "offset": offset,
+                "has_more": False}
     rows = (
         db.query(Exercise)
         .filter(Exercise.coach_id.in_(coach_ids), Exercise.status == "ACTIVE")
         .order_by(Exercise.muscle_group, Exercise.name)
         .all()
     )
-    return {"items": [_out(i) for i in rows]}
+    return _page(rows, limit=limit, offset=offset, filters=filters)
+
+
+@router.get("/me/exercises/{item_id}")
+def get_exercise_for_client(
+    item_id: str,
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    """Karta ćwiczenia dla klienta — wyłącznie z bazy trenera, który
+    aktywnie go prowadzi (ta sama zasada broadcastu co lista)."""
+    coach_ids = _client_coach_ids(db, user)
+    item = db.get(Exercise, item_id)
+    if (
+        item is None
+        or item.coach_id not in coach_ids
+        or item.status != "ACTIVE"
+    ):
+        raise HTTPException(status_code=404, detail="Nie znaleziono ćwiczenia")
+    return _out(item)

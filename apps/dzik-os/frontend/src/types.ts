@@ -1,5 +1,9 @@
 export interface Exercise {
   name: string;
+  /** Miękkie odniesienie do bazy ćwiczeń trenera. Nazwa jest już zapisana
+   * w planie, więc archiwizacja ćwiczenia nie psuje planu — znika tylko
+   * link do karty z techniką. */
+  exercise_id?: string | null;
   sets?: string | null;
   reps?: string | null;
   weight?: string | null;
@@ -588,13 +592,36 @@ export interface ExerciseLibraryItem {
   coach_id: string;
   name: string;
   muscle_group: string;
+  /** Pola zgodności wstecznej — ćwiczenia sprzed rozbudowy bazy mają
+   * tylko how_to/benefit i nadal wyświetlają się poprawnie. */
   how_to: string;
   benefit: string | null;
   equipment: string | null;
   video_url: string | null;
   status: string;
+  muscles_primary: string[];
+  muscles_secondary: string[];
+  level: string | null;
+  pattern: string | null;
+  steps: string[];
+  mistakes: string[];
+  cues: string[];
+  safety: string | null;
+  easier: string | null;
+  harder: string | null;
+  tempo_hint: string | null;
+  breathing: string | null;
   created_at: string;
   updated_at: string;
+}
+
+/** Odpowiedź list ćwiczeń: filtry i paginacja są po stronie API. */
+export interface ExerciseListResponse {
+  items: ExerciseLibraryItem[];
+  total: number;
+  limit: number;
+  offset: number;
+  has_more: boolean;
 }
 
 export const MUSCLE_GROUP_LABELS: Record<string, string> = {
@@ -606,8 +633,64 @@ export const MUSCLE_GROUP_LABELS: Record<string, string> = {
   BRZUCH: "Brzuch",
   CALE_CIALO: "Całe ciało",
   MOBILNOSC: "Mobilność",
+  CARDIO: "Cardio",
   INNE: "Inne",
 };
+
+/** KONTRAKT słownika partii mięśniowych — te same klucze co backend
+ * (`dzik_os/muscles.py::MUSCLE_LABELS`) i przyszły rysunek sylwetki.
+ * Klucze nie mogą być zmieniane bez migracji danych. */
+export const MUSCLE_LABELS: Record<string, string> = {
+  KLATKA_PIERSIOWA: "klatka piersiowa",
+  NAJSZERSZY_GRZBIETU: "najszerszy grzbietu",
+  CZWOROBOCZNY: "czworoboczny",
+  ROMBOIDALNE: "romboidalne",
+  PROSTOWNIKI_GRZBIETU: "prostowniki grzbietu",
+  BARK_PRZEDNI: "bark przedni",
+  BARK_BOCZNY: "bark boczny",
+  BARK_TYLNY: "bark tylny",
+  BICEPS: "biceps",
+  TRICEPS: "triceps",
+  PRZEDRAMIE: "przedramię",
+  BRZUCH_PROSTY: "brzuch prosty",
+  BRZUCH_SKOSNY: "brzuch skośny",
+  MIESNIE_GLEBOKIE: "mięśnie głębokie",
+  POSLADKI: "pośladki",
+  CZWOROGLOWY_UDA: "czworogłowy uda",
+  DWUGLOWY_UDA: "dwugłowy uda",
+  PRZYWODZICIELE: "przywodziciele",
+  ODWODZICIELE: "odwodziciele",
+  LYDKA: "łydka",
+  ZGINACZE_BIODRA: "zginacze biodra",
+};
+
+export const EXERCISE_LEVEL_LABELS: Record<string, string> = {
+  POCZATKUJACY: "początkujący",
+  SREDNIOZAAWANSOWANY: "średniozaawansowany",
+  ZAAWANSOWANY: "zaawansowany",
+};
+
+export const MOVEMENT_PATTERN_LABELS: Record<string, string> = {
+  PRZYSIAD: "przysiad",
+  ZAWIAS_BIODROWY: "zawias biodrowy",
+  WYPYCHANIE_POZIOME: "wypychanie poziome",
+  WYPYCHANIE_PIONOWE: "wypychanie pionowe",
+  PRZYCIAGANIE_POZIOME: "przyciąganie poziome",
+  PRZYCIAGANIE_PIONOWE: "przyciąganie pionowe",
+  WYKROK: "wykrok",
+  NOSZENIE: "noszenie",
+  ROTACJA: "rotacja",
+  ANTYROTACJA: "antyrotacja",
+  IZOLACJA: "izolacja",
+  CARDIO: "cardio",
+  MOBILNOSC: "mobilność",
+};
+
+/** Etykiety partii mięśniowych do wyświetlenia (nieznany klucz zostaje
+ * pokazany dosłownie — dane trenera nigdy nie znikają po cichu). */
+export function muscleLabels(keys: string[]): string {
+  return keys.map((k) => MUSCLE_LABELS[k] ?? k).join(", ");
+}
 
 export interface FoodProductRow {
   id: string;

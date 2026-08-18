@@ -1,6 +1,10 @@
 import { useEffect, useState } from "react";
 import { api } from "../../api";
-import { AuthAttachment, ErrorBox, Icon, Spinner, TabPanel, Tabs, TopBar } from "../../components";
+import {
+  AuthAttachment, ErrorBox, ExerciseDetail, ExerciseFilterBar, Icon, Spinner,
+  TabPanel, Tabs, TopBar,
+} from "../../components";
+import { EMPTY_FILTERS, ExerciseFilters, exerciseQuery } from "../../exerciseFilters";
 import {
   FoodDisclaimer,
   FoodFilters,
@@ -10,8 +14,11 @@ import {
 } from "../../FoodCatalog";
 import {
   ExerciseLibraryItem,
+  ExerciseListResponse,
+  FoodProductRow,
   KnowledgeItemRow,
   MUSCLE_GROUP_LABELS,
+  muscleLabels,
 } from "../../types";
 
 type Tab = "artykuly" | "cwiczenia" | "produkty";
@@ -114,40 +121,70 @@ function KnowledgeCard({ item }: { item: KnowledgeItemRow }) {
   );
 }
 
+const PAGE_SIZE = 30;
+
 function ExercisesTab() {
   const [items, setItems] = useState<ExerciseLibraryItem[] | null>(null);
+  const [total, setTotal] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [query, setQuery] = useState("");
+  const [filters, setFilters] = useState<ExerciseFilters>(EMPTY_FILTERS);
+  const [loadingMore, setLoadingMore] = useState(false);
 
-  const load = () => {
+  // Wyszukiwanie i filtry liczy API (baza ma >150 pozycji, a szukanie ma
+  // być odporne na polskie znaki — tego przeglądarka sama nie zrobi
+  // spójnie z serwerem).
+  const load = (offset = 0) => {
     setError(null);
-    api.get<{ items: ExerciseLibraryItem[] }>("/api/me/exercises")
-      .then((d) => setItems(d.items))
-      .catch((e) => setError(e.message));
+    if (offset > 0) setLoadingMore(true);
+    api.get<ExerciseListResponse>(
+      `/api/me/exercises?${exerciseQuery(filters, offset, PAGE_SIZE)}`,
+    )
+      .then((d) => {
+        setItems((prev) => (offset > 0 && prev ? [...prev, ...d.items] : d.items));
+        setTotal(d.total);
+        setHasMore(d.has_more);
+      })
+      .catch((e) => setError(e.message))
+      .finally(() => setLoadingMore(false));
   };
-  useEffect(() => { load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  // Krótkie opóźnienie: przy pisaniu nie wysyłamy zapytania z każdą literą.
+  useEffect(() => {
+    const timer = setTimeout(() => load(0), 200);
+    return () => clearTimeout(timer);
+  }, [ // eslint-disable-line react-hooks/exhaustive-deps
+    filters.q, filters.muscle, filters.equipment, filters.level, filters.pattern,
+  ]);
 
-  if (error) return <ErrorBox error={error} onRetry={load} />;
+  if (error) return <ErrorBox error={error} onRetry={() => load(0)} />;
   if (!items) return <Spinner />;
-  if (items.length === 0) return <p className="dim">Trener nie dodał jeszcze bazy ćwiczeń.</p>;
 
-  const visible = items.filter((i) => !query || i.name.toLowerCase().includes(query.toLowerCase()));
   const byGroup = new Map<string, ExerciseLibraryItem[]>();
-  for (const i of visible) {
+  for (const i of items) {
     if (!byGroup.has(i.muscle_group)) byGroup.set(i.muscle_group, []);
     byGroup.get(i.muscle_group)!.push(i);
   }
 
   return (
     <>
-      <input placeholder="Szukaj ćwiczenia…" aria-label="Szukaj ćwiczenia" value={query}
-        onChange={(e) => setQuery(e.target.value)} style={{ marginBottom: 10 }} />
+      <ExerciseFilterBar idPrefix="cl" value={filters} onChange={setFilters} />
+      <p className="dim" aria-live="polite" style={{ marginTop: 4 }}>
+        {total === 0
+          ? "Brak ćwiczeń pasujących do wyszukiwania."
+          : `Znaleziono ${total} ćwiczeń — pokazano ${items.length}.`}
+      </p>
       {Array.from(byGroup.entries()).map(([group, list]) => (
         <div className="list" key={group} style={{ marginBottom: 18 }}>
           <h2 style={{ margin: "0 0 4px" }}>{MUSCLE_GROUP_LABELS[group] ?? group}</h2>
           {list.map((i) => <ExerciseCard key={i.id} item={i} />)}
         </div>
       ))}
+      {hasMore && (
+        <button className="btn btn--ghost" disabled={loadingMore}
+          onClick={() => load(items.length)}>
+          {loadingMore ? "Wczytywanie…" : "Pokaż więcej"}
+        </button>
+      )}
     </>
   );
 }
@@ -158,22 +195,19 @@ function ExerciseCard({ item }: { item: ExerciseLibraryItem }) {
     <div className="card">
       <button type="button" className="knowledge-card__toggle" aria-expanded={open}
         onClick={() => setOpen(!open)}>
-        <b>{item.name}</b>
+        <span>
+          <b>{item.name}</b>
+          {item.muscles_primary.length > 0 && (
+            <span className="meta" style={{ display: "block" }}>
+              {muscleLabels(item.muscles_primary)}
+            </span>
+          )}
+        </span>
         <span className="dim"><Icon name={open ? "chevron-up" : "chevron-down"} size={18} /></span>
       </button>
       {open && (
         <div style={{ marginTop: 10 }}>
-          <p><b>Jak wykonać:</b> {item.how_to}</p>
-          {item.benefit && <p><b>Co to daje:</b> {item.benefit}</p>}
-          {item.equipment && <span className="badge">{item.equipment}</span>}
-          {item.video_url && (
-            <p>
-              <a href={item.video_url} target="_blank" rel="noreferrer"
-              style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-              <Icon name="film" size={16} /> Wideo z techniką
-            </a>
-            </p>
-          )}
+          <ExerciseDetail item={item} />
         </div>
       )}
     </div>

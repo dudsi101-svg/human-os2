@@ -16,6 +16,7 @@ from ..authz import (
 from ..db import get_db
 from ..hos_bridge import record_event
 from ..models import (
+    Exercise,
     TrainingPlan,
     TrainingPlanVersion,
     User,
@@ -24,10 +25,41 @@ from ..models import (
     new_id,
     now_iso,
 )
-from ..schemas import PlanCreateIn, PlanVersionIn, WorkoutSessionIn
+from ..schemas import PlanCreateIn, PlanDayIn, PlanVersionIn, WorkoutSessionIn
 from ..security import current_user, require_role
 
 router = APIRouter(prefix="/api", tags=["plans"])
+
+
+def _validate_exercise_refs(db: Session, coach: User, days: list[PlanDayIn]) -> None:
+    """`exercise_id` w pozycji planu musi wskazywać AKTYWNE ćwiczenie z
+    bazy TEGO trenera — cudzy ani nieistniejący identyfikator nie da się
+    wstawić (422). Odniesienie pozostaje miękkie: nazwa jest zapisana w
+    planie, więc późniejsza archiwizacja ćwiczenia niczego nie psuje."""
+    wanted = {
+        ex.exercise_id
+        for day in days
+        for ex in day.exercises
+        if ex.exercise_id
+    }
+    if not wanted:
+        return
+    known = {
+        row.id
+        for row in db.query(Exercise)
+        .filter(
+            Exercise.id.in_(wanted),
+            Exercise.coach_id == coach.id,
+            Exercise.status == "ACTIVE",
+        )
+        .all()
+    }
+    missing = sorted(wanted - known)
+    if missing:
+        raise HTTPException(
+            status_code=422,
+            detail="Ćwiczenie spoza Twojej aktywnej bazy: " + ", ".join(missing),
+        )
 
 
 def _version_out(v: TrainingPlanVersion) -> dict:
@@ -72,6 +104,7 @@ def create_plan(
 ):
     if body.client_id is not None:
         resolve_client_access(db, coach, body.client_id, action="write", domain=DOMAIN_TRAINING)
+    _validate_exercise_refs(db, coach, body.version.days)
     plan = TrainingPlan(
         id=new_id("PLN"),
         client_id=body.client_id,
@@ -119,6 +152,7 @@ def create_plan_version(
     )
     if plan.client_id is not None:
         resolve_client_access(db, coach, plan.client_id, action="write", domain=DOMAIN_TRAINING)
+    _validate_exercise_refs(db, coach, body.days)
     next_no = plan.current_version_no + 1
     version = TrainingPlanVersion(
         id=new_id("PLV"),

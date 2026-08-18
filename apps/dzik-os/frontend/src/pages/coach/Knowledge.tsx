@@ -1,6 +1,12 @@
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import { api, saveBlobAs } from "../../api";
 import { ErrorBox, LogoutButton, Spinner, TabPanel, Tabs, TopBar } from "../../components";
+import { api } from "../../api";
+import {
+  ErrorBox, ExerciseDetail, ExerciseFilterBar, LogoutButton, Spinner, TabPanel,
+  Tabs, TopBar,
+} from "../../components";
+import { EMPTY_FILTERS, ExerciseFilters, exerciseQuery } from "../../exerciseFilters";
 import {
   FoodDisclaimer,
   FoodFilters,
@@ -10,12 +16,17 @@ import {
 } from "../../FoodCatalog";
 import {
   DietSuggestionResult,
+  EXERCISE_LEVEL_LABELS,
   ExerciseLibraryItem,
   FoodImportResult,
+  ExerciseListResponse,
   FoodProductRow,
   KNOWLEDGE_CATEGORY_SUGGESTIONS,
   KnowledgeItemRow,
+  MOVEMENT_PATTERN_LABELS,
   MUSCLE_GROUP_LABELS,
+  MUSCLE_LABELS,
+  muscleLabels,
 } from "../../types";
 
 type Tab = "artykuly" | "cwiczenia" | "produkty" | "dieta";
@@ -206,24 +217,125 @@ function ArticlesTab() {
   );
 }
 
-const EMPTY_EXERCISE_FORM = {
+interface ExerciseForm {
+  name: string;
+  muscle_group: string;
+  how_to: string;
+  benefit: string;
+  equipment: string;
+  video_url: string;
+  muscles_primary: string[];
+  muscles_secondary: string[];
+  level: string;
+  pattern: string;
+  steps: string[];
+  mistakes: string[];
+  cues: string[];
+  safety: string;
+  easier: string;
+  harder: string;
+  tempo_hint: string;
+  breathing: string;
+}
+
+const EMPTY_EXERCISE_FORM: ExerciseForm = {
   name: "", muscle_group: "NOGI", how_to: "", benefit: "", equipment: "", video_url: "",
+  muscles_primary: [], muscles_secondary: [], level: "", pattern: "",
+  steps: [""], mistakes: [""], cues: [""], safety: "", easier: "", harder: "",
+  tempo_hint: "", breathing: "",
 };
+
+/** Edytor listy pozycji (kroki techniki / błędy / wskazówki): dodawanie
+ * i usuwanie pojedynczych wierszy. Każde pole ma własną etykietę dla
+ * czytników ekranu. */
+function ListEditor({ id, label, hint, values, onChange, addLabel }: {
+  id: string;
+  label: string;
+  hint?: string;
+  values: string[];
+  onChange: (next: string[]) => void;
+  addLabel: string;
+}) {
+  return (
+    <fieldset className="list-editor">
+      <legend>{label}</legend>
+      {hint && <p className="dim" style={{ margin: "0 0 6px", fontSize: "0.85rem" }}>{hint}</p>}
+      {values.map((value, i) => (
+        <div className="row" key={i} style={{ marginBottom: 6, alignItems: "center" }}>
+          <label className="sr-only" htmlFor={`${id}-${i}`}>{label} — pozycja {i + 1}</label>
+          <input id={`${id}-${i}`} value={value} style={{ flex: 1 }}
+            onChange={(e) => onChange(values.map((v, j) => (j === i ? e.target.value : v)))} />
+          <button type="button" className="btn btn--ghost btn--small"
+            aria-label={`Usuń pozycję ${i + 1} z listy „${label}”`}
+            onClick={() => onChange(values.filter((_, j) => j !== i))}>
+            Usuń
+          </button>
+        </div>
+      ))}
+      <button type="button" className="btn btn--ghost btn--small"
+        onClick={() => onChange([...values, ""])}>
+        + {addLabel}
+      </button>
+    </fieldset>
+  );
+}
+
+/** Wybór partii mięśniowych ze SŁOWNIKA (te same klucze co rysunek
+ * sylwetki) — nic nie jest dobierane automatycznie, decyduje trener. */
+function MusclePicker({ id, label, selected, onChange }: {
+  id: string; label: string; selected: string[]; onChange: (next: string[]) => void;
+}) {
+  const toggle = (key: string) =>
+    onChange(selected.includes(key) ? selected.filter((k) => k !== key) : [...selected, key]);
+  return (
+    <fieldset className="muscle-picker">
+      <legend>{label}</legend>
+      <div className="muscle-picker__grid">
+        {Object.entries(MUSCLE_LABELS).map(([key, name]) => (
+          <label key={key} htmlFor={`${id}-${key}`} className="muscle-picker__item">
+            <input type="checkbox" id={`${id}-${key}`} checked={selected.includes(key)}
+              onChange={() => toggle(key)} />
+            <span>{name}</span>
+          </label>
+        ))}
+      </div>
+    </fieldset>
+  );
+}
+
+const EX_PAGE_SIZE = 40;
 
 function ExercisesTab() {
   const [items, setItems] = useState<ExerciseLibraryItem[] | null>(null);
+  const [total, setTotal] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState<string | "new" | null>(null);
-  const [form, setForm] = useState(EMPTY_EXERCISE_FORM);
+  const [form, setForm] = useState<ExerciseForm>(EMPTY_EXERCISE_FORM);
   const [busy, setBusy] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
+  const [filters, setFilters] = useState<ExerciseFilters>(EMPTY_FILTERS);
+  const [loadingMore, setLoadingMore] = useState(false);
 
-  const load = useCallback(() => {
-    api.get<{ items: ExerciseLibraryItem[] }>("/api/coach/exercises")
-      .then((d) => setItems(d.items))
-      .catch((e) => setError(e.message));
-  }, []);
-  useEffect(load, [load]);
+  const load = useCallback((offset = 0) => {
+    if (offset > 0) setLoadingMore(true);
+    const query = exerciseQuery(filters, offset, EX_PAGE_SIZE, {
+      status: showArchived ? "ARCHIVED" : "ACTIVE",
+    });
+    api.get<ExerciseListResponse>(`/api/coach/exercises?${query}`)
+      .then((d) => {
+        setItems((prev) => (offset > 0 && prev ? [...prev, ...d.items] : d.items));
+        setTotal(d.total);
+        setHasMore(d.has_more);
+      })
+      .catch((e) => setError(e.message))
+      .finally(() => setLoadingMore(false));
+  }, [filters, showArchived]);
+  // Krótkie opóźnienie: przy pisaniu nie wysyłamy zapytania z każdą literą.
+  useEffect(() => {
+    const timer = setTimeout(() => load(0), 200);
+    return () => clearTimeout(timer);
+  }, [load]);
 
   function startNew() {
     setForm(EMPTY_EXERCISE_FORM);
@@ -233,7 +345,15 @@ function ExercisesTab() {
   function startEdit(item: ExerciseLibraryItem) {
     setForm({
       name: item.name, muscle_group: item.muscle_group, how_to: item.how_to,
-      benefit: item.benefit ?? "", equipment: item.equipment ?? "", video_url: item.video_url ?? "",
+      benefit: item.benefit ?? "", equipment: item.equipment ?? "",
+      video_url: item.video_url ?? "",
+      muscles_primary: item.muscles_primary, muscles_secondary: item.muscles_secondary,
+      level: item.level ?? "", pattern: item.pattern ?? "",
+      steps: item.steps.length ? item.steps : [""],
+      mistakes: item.mistakes.length ? item.mistakes : [""],
+      cues: item.cues.length ? item.cues : [""],
+      safety: item.safety ?? "", easier: item.easier ?? "", harder: item.harder ?? "",
+      tempo_hint: item.tempo_hint ?? "", breathing: item.breathing ?? "",
     });
     setEditing(item.id);
   }
@@ -242,10 +362,30 @@ function ExercisesTab() {
     e.preventDefault();
     setBusy(true);
     setError(null);
+    const clean = (list: string[]) => list.map((v) => v.trim()).filter(Boolean);
     try {
+      const steps = clean(form.steps);
       const payload = {
-        ...form, benefit: form.benefit || null, equipment: form.equipment || null,
+        name: form.name,
+        muscle_group: form.muscle_group,
+        // Pole zgodności wstecznej: gdy trener wypełnił kroki, a nie
+        // wpisał skróconego opisu, składamy go z kroków.
+        how_to: form.how_to.trim() || steps.join(" "),
+        benefit: form.benefit || null,
+        equipment: form.equipment || null,
         video_url: form.video_url || null,
+        muscles_primary: form.muscles_primary,
+        muscles_secondary: form.muscles_secondary,
+        level: form.level || null,
+        pattern: form.pattern || null,
+        steps,
+        mistakes: clean(form.mistakes),
+        cues: clean(form.cues),
+        safety: form.safety || null,
+        easier: form.easier || null,
+        harder: form.harder || null,
+        tempo_hint: form.tempo_hint || null,
+        breathing: form.breathing || null,
       };
       if (editing === "new") {
         await api.post("/api/coach/exercises", payload);
@@ -253,7 +393,7 @@ function ExercisesTab() {
         await api.put(`/api/coach/exercises/${editing}`, payload);
       }
       setEditing(null);
-      load();
+      load(0);
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -264,18 +404,17 @@ function ExercisesTab() {
   async function setStatus(id: string, status: string) {
     try {
       await api.post(`/api/coach/exercises/${id}/status?status=${status}`);
-      load();
+      load(0);
     } catch (err) {
       setError((err as Error).message);
     }
   }
 
-  if (error && !items) return <ErrorBox error={error} onRetry={load} />;
+  if (error && !items) return <ErrorBox error={error} onRetry={() => load(0)} />;
   if (!items) return <Spinner />;
 
-  const visible = items.filter((i) => (showArchived ? i.status === "ARCHIVED" : i.status === "ACTIVE"));
   const byGroup = new Map<string, ExerciseLibraryItem[]>();
-  for (const i of visible) {
+  for (const i of items) {
     if (!byGroup.has(i.muscle_group)) byGroup.set(i.muscle_group, []);
     byGroup.get(i.muscle_group)!.push(i);
   }
@@ -284,8 +423,10 @@ function ExercisesTab() {
     <>
       <ErrorBox error={error} />
       <p className="dim" style={{ marginTop: -8 }}>
-        Know-how: technika wykonania i efekt każdego ćwiczenia, z podziałem
-        na partie mięśniowe — widoczne dla wszystkich aktywnie prowadzonych klientów.
+        Know-how: technika wykonania, najczęstsze błędy, wskazówki i warianty —
+        widoczne dla wszystkich aktywnie prowadzonych klientów. To materiał
+        treningowy, nie porada medyczna: aplikacja niczego nie dobiera
+        automatycznie, ćwiczenia do planu wybierasz Ty.
       </p>
 
       {editing && (
@@ -296,7 +437,7 @@ function ExercisesTab() {
             onChange={(e) => setForm({ ...form, name: e.target.value })} />
           <div className="field-row">
             <div>
-              <label htmlFor="ex-group">Partia mięśniowa</label>
+              <label htmlFor="ex-group">Grupa (widok listy)</label>
               <select id="ex-group" value={form.muscle_group}
                 onChange={(e) => setForm({ ...form, muscle_group: e.target.value })}>
                 {Object.entries(MUSCLE_GROUP_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
@@ -308,8 +449,79 @@ function ExercisesTab() {
                 onChange={(e) => setForm({ ...form, equipment: e.target.value })} />
             </div>
           </div>
-          <label htmlFor="ex-howto">Jak wykonać</label>
-          <textarea id="ex-howto" required value={form.how_to} style={{ minHeight: 100 }}
+          <div className="field-row">
+            <div>
+              <label htmlFor="ex-level">Poziom</label>
+              <select id="ex-level" value={form.level}
+                onChange={(e) => setForm({ ...form, level: e.target.value })}>
+                <option value="">— nie określono —</option>
+                {Object.entries(EXERCISE_LEVEL_LABELS).map(([k, v]) => (
+                  <option key={k} value={k}>{v}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label htmlFor="ex-pattern">Wzorzec ruchu</label>
+              <select id="ex-pattern" value={form.pattern}
+                onChange={(e) => setForm({ ...form, pattern: e.target.value })}>
+                <option value="">— nie określono —</option>
+                {Object.entries(MOVEMENT_PATTERN_LABELS).map(([k, v]) => (
+                  <option key={k} value={k}>{v}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <MusclePicker id="ex-primary" label="Mięśnie główne"
+            selected={form.muscles_primary}
+            onChange={(next) => setForm({ ...form, muscles_primary: next })} />
+          <MusclePicker id="ex-secondary" label="Mięśnie pomocnicze"
+            selected={form.muscles_secondary}
+            onChange={(next) => setForm({ ...form, muscles_secondary: next })} />
+
+          <ListEditor id="ex-steps" label="Kroki techniki" addLabel="krok"
+            hint="3–6 punktów: ustawienie, ruch, zakończenie."
+            values={form.steps}
+            onChange={(next) => setForm({ ...form, steps: next })} />
+          <ListEditor id="ex-mistakes" label="Najczęstsze błędy" addLabel="błąd"
+            values={form.mistakes}
+            onChange={(next) => setForm({ ...form, mistakes: next })} />
+          <ListEditor id="ex-cues" label="Wskazówki („cue”)" addLabel="wskazówkę"
+            hint="Krótkie hasła, które klient ma sobie powiedzieć w trakcie serii."
+            values={form.cues}
+            onChange={(next) => setForm({ ...form, cues: next })} />
+
+          <div className="field-row">
+            <div>
+              <label htmlFor="ex-tempo">Tempo (opcjonalnie)</label>
+              <input id="ex-tempo" value={form.tempo_hint} placeholder="np. 3010"
+                onChange={(e) => setForm({ ...form, tempo_hint: e.target.value })} />
+            </div>
+            <div>
+              <label htmlFor="ex-breathing">Oddech (opcjonalnie)</label>
+              <input id="ex-breathing" value={form.breathing}
+                onChange={(e) => setForm({ ...form, breathing: e.target.value })} />
+            </div>
+          </div>
+          <div className="field-row">
+            <div>
+              <label htmlFor="ex-easier">Wariant łatwiejszy</label>
+              <input id="ex-easier" value={form.easier}
+                onChange={(e) => setForm({ ...form, easier: e.target.value })} />
+            </div>
+            <div>
+              <label htmlFor="ex-harder">Wariant trudniejszy</label>
+              <input id="ex-harder" value={form.harder}
+                onChange={(e) => setForm({ ...form, harder: e.target.value })} />
+            </div>
+          </div>
+          <label htmlFor="ex-safety">Uwagi bezpieczeństwa</label>
+          <textarea id="ex-safety" value={form.safety}
+            placeholder="Na co uważać przy wykonaniu; przy bólu lub urazie — konsultacja ze specjalistą."
+            onChange={(e) => setForm({ ...form, safety: e.target.value })} />
+          <label htmlFor="ex-howto">Skrócony opis (zgodność wsteczna)</label>
+          <textarea id="ex-howto" value={form.how_to} style={{ minHeight: 70 }}
+            placeholder="Zostaw puste — złożymy go z kroków techniki."
             onChange={(e) => setForm({ ...form, how_to: e.target.value })} />
           <label htmlFor="ex-benefit">Co to daje (efekt)</label>
           <textarea id="ex-benefit" value={form.benefit}
@@ -327,46 +539,85 @@ function ExercisesTab() {
       )}
 
       {!editing && (
-        <div className="row" style={{ marginBottom: 10 }}>
-          <button className="btn btn--small" onClick={startNew}>+ Nowe ćwiczenie</button>
-          <button className="btn btn--ghost btn--small" aria-pressed={showArchived}
-            onClick={() => setShowArchived(!showArchived)}>
-            {showArchived ? "Pokaż aktywne" : "Pokaż zarchiwizowane"}
-          </button>
-        </div>
+        <>
+          <div className="row" style={{ marginBottom: 10 }}>
+            <button className="btn btn--small" onClick={startNew}>+ Nowe ćwiczenie</button>
+            <button className="btn btn--ghost btn--small" aria-pressed={showArchived}
+              onClick={() => setShowArchived(!showArchived)}>
+              {showArchived ? "Pokaż aktywne" : "Pokaż zarchiwizowane"}
+            </button>
+          </div>
+          <ExerciseFilterBar idPrefix="co" value={filters} onChange={setFilters} />
+          <p className="dim" aria-live="polite">
+            {total === 0
+              ? "Brak ćwiczeń pasujących do wyszukiwania."
+              : `Znaleziono ${total} ćwiczeń — pokazano ${items.length}.`}
+          </p>
+        </>
       )}
 
-      {visible.length === 0 && <p className="dim">Brak ćwiczeń.</p>}
       {Array.from(byGroup.entries()).map(([group, list]) => (
         <div key={group} style={{ marginBottom: 14 }}>
           <h2 style={{ margin: "0 0 6px" }}>{MUSCLE_GROUP_LABELS[group] ?? group}</h2>
           <div className="list">
-            {list.map((i) => (
-              <div className="card" key={i.id}>
-                <div className="row row--between">
-                  <b>{i.name}</b>
-                  <div className="row">
-                    <button className="btn btn--ghost btn--small" onClick={() => startEdit(i)}>Edytuj</button>
-                    {i.status === "ACTIVE" ? (
-                      <button className="btn btn--danger btn--small" onClick={() => setStatus(i.id, "ARCHIVED")}>
-                        Archiwizuj
-                      </button>
-                    ) : (
-                      <button className="btn btn--ghost btn--small" onClick={() => setStatus(i.id, "ACTIVE")}>
-                        Przywróć
-                      </button>
-                    )}
-                  </div>
-                </div>
-                <p className="meta" style={{ marginTop: 6 }}>{i.how_to}</p>
-                {i.benefit && <p className="meta"><b>Efekt:</b> {i.benefit}</p>}
-                {i.equipment && <span className="badge">{i.equipment}</span>}
-              </div>
-            ))}
+            {list.map((i) => <CoachExerciseCard key={i.id} item={i} onEdit={startEdit}
+              onStatus={setStatus} />)}
           </div>
         </div>
       ))}
+      {hasMore && !editing && (
+        <button className="btn btn--ghost" disabled={loadingMore}
+          onClick={() => load(items.length)}>
+          {loadingMore ? "Wczytywanie…" : "Pokaż więcej"}
+        </button>
+      )}
     </>
+  );
+}
+
+function CoachExerciseCard({ item, onEdit, onStatus }: {
+  item: ExerciseLibraryItem;
+  onEdit: (item: ExerciseLibraryItem) => void;
+  onStatus: (id: string, status: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="card">
+      <div className="row row--between">
+        <b>{item.name}</b>
+        <div className="row">
+          <button className="btn btn--ghost btn--small" aria-expanded={open}
+            onClick={() => setOpen(!open)}>
+            {open ? "Zwiń" : "Podgląd"}
+          </button>
+          <button className="btn btn--ghost btn--small" onClick={() => onEdit(item)}>Edytuj</button>
+          {item.status === "ACTIVE" ? (
+            <button className="btn btn--danger btn--small"
+              onClick={() => onStatus(item.id, "ARCHIVED")}>
+              Archiwizuj
+            </button>
+          ) : (
+            <button className="btn btn--ghost btn--small"
+              onClick={() => onStatus(item.id, "ACTIVE")}>
+              Przywróć
+            </button>
+          )}
+        </div>
+      </div>
+      {item.muscles_primary.length > 0 && (
+        <p className="meta" style={{ marginTop: 4 }}>{muscleLabels(item.muscles_primary)}</p>
+      )}
+      {open ? (
+        <div style={{ marginTop: 8 }}><ExerciseDetail item={item} /></div>
+      ) : (
+        <>
+          <p className="meta" style={{ marginTop: 6 }}>
+            {item.steps[0] ?? item.how_to}
+          </p>
+          {item.equipment && <span className="badge">{item.equipment}</span>}
+        </>
+      )}
+    </div>
   );
 }
 

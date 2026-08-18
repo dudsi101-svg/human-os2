@@ -25,6 +25,7 @@ from .consent_catalog import ONBOARDING_CATEGORIES
 from .dates import local_today
 from .db import db_session, run_migrations
 from .food_catalog_data import FOOD_ROWS, FOOD_SOURCE
+from .exercise_catalog import CATALOG as EXERCISE_CATALOG
 from .hos_bridge import ConsentService, record_event
 from .models import (
     CoachClientRelationship,
@@ -49,6 +50,7 @@ from .models import (
     WeeklyCheckin,
     new_id,
 )
+from .muscles import join_muscles
 from .security import hash_password
 
 DEMO_ACCOUNTS = {
@@ -204,6 +206,33 @@ def seed() -> dict[str, str]:
                     title="Budowa masy mięśniowej (+4 kg)", kind="MAIN",
                     created_by=coach.id))
 
+        # --- Baza ćwiczeń trenera (know-how: technika, błędy, warianty) ---
+        # Seedowana PRZED planami, bo pozycje planów odwołują się do niej
+        # przez `exercise_id` (demo pokazuje przepływ „plan układany z bazy”).
+        exercise_ids: dict[str, str] = {}
+        for row in EXERCISE_CATALOG:
+            item = Exercise(
+                id=new_id("EXC"), coach_id=coach.id, name=row["name"],
+                muscle_group=row["group"], how_to=row["how_to"],
+                benefit=row["benefit"], equipment=row["equipment"],
+                muscles_primary=join_muscles(row["primary"]),
+                muscles_secondary=join_muscles(row["secondary"]),
+                level=row["level"], pattern=row["pattern"],
+                steps_json=json.dumps(row["steps"], ensure_ascii=False),
+                mistakes_json=json.dumps(row["mistakes"], ensure_ascii=False),
+                cues_json=json.dumps(row["cues"], ensure_ascii=False),
+                safety=row["safety"], easier=row["easier"], harder=row["harder"],
+                tempo_hint=row["tempo"], breathing=row["breathing"],
+                created_by=coach.id,
+            )
+            db.add(item)
+            exercise_ids[row["name"]] = item.id
+
+        def ex_ref(name: str, **fields: object) -> dict:
+            """Pozycja planu podpięta do bazy ćwiczeń (miękkie odniesienie:
+            nazwa zostaje w planie nawet po archiwizacji ćwiczenia)."""
+            return {"name": name, "exercise_id": exercise_ids[name], **fields}
+
         # --- Plan treningowy klienta A: v1 i v2 (historia wersji) ---
         plan_a = TrainingPlan(id=new_id("PLN"), client_id=client_a.id,
                               coach_id=coach.id, title="Redukcja — siła 3x/tydz.",
@@ -211,24 +240,24 @@ def seed() -> dict[str, str]:
         db.add(plan_a)
         days_v1 = [
             {"name": "Trening A — góra", "weekday": 1, "exercises": [
-                {"name": "Wyciskanie sztangi leżąc", "sets": "4", "reps": "8",
-                 "weight": "70 kg", "tempo": "2011", "rest": "120 s",
-                 "comment": "Ostatnia seria do 1 w zapasie",
-                 "video_url": "https://example.com/wyciskanie"},
-                {"name": "Wiosłowanie hantlem", "sets": "3", "reps": "10",
-                 "weight": "30 kg", "rest": "90 s"},
+                ex_ref("Wyciskanie sztangi leżąc", sets="4", reps="8",
+                       weight="70 kg", tempo="2011", rest="120 s",
+                       comment="Ostatnia seria do 1 w zapasie",
+                       video_url="https://example.com/wyciskanie"),
+                ex_ref("Wiosłowanie hantlem w podporze", sets="3", reps="10",
+                       weight="30 kg", rest="90 s"),
             ]},
             {"name": "Trening B — dół", "weekday": 3, "exercises": [
-                {"name": "Przysiad ze sztangą", "sets": "4", "reps": "6",
-                 "weight": "100 kg", "rest": "180 s"},
-                {"name": "Rumuński martwy ciąg", "sets": "3", "reps": "8",
-                 "weight": "80 kg", "rest": "120 s"},
+                ex_ref("Przysiad ze sztangą", sets="4", reps="6",
+                       weight="100 kg", rest="180 s"),
+                ex_ref("Rumuński martwy ciąg", sets="3", reps="8",
+                       weight="80 kg", rest="120 s"),
             ]},
             {"name": "Trening C — całe ciało", "weekday": 5, "exercises": [
-                {"name": "Martwy ciąg", "sets": "3", "reps": "5",
-                 "weight": "120 kg", "rest": "180 s"},
-                {"name": "OHP", "sets": "3", "reps": "8", "weight": "45 kg",
-                 "rest": "120 s"},
+                ex_ref("Martwy ciąg klasyczny", sets="3", reps="5",
+                       weight="120 kg", rest="180 s"),
+                ex_ref("Wyciskanie żołnierskie (OHP)", sets="3", reps="8",
+                       weight="45 kg", rest="120 s"),
             ]},
         ]
         db.add(TrainingPlanVersion(
@@ -261,15 +290,16 @@ def seed() -> dict[str, str]:
             reason="Plan startowy", created_by=coach.id,
             content_json=json.dumps({"days": [
                 {"name": "FBW 1", "weekday": 2, "exercises": [
-                    {"name": "Przysiad", "sets": "3", "reps": "8", "weight": "80 kg"},
-                    {"name": "Wyciskanie leżąc", "sets": "3", "reps": "8",
-                     "weight": "60 kg"},
+                    ex_ref("Przysiad ze sztangą", sets="3", reps="8", weight="80 kg"),
+                    ex_ref("Wyciskanie sztangi leżąc", sets="3", reps="8",
+                           weight="60 kg"),
                 ]},
                 {"name": "FBW 2", "weekday": 4, "exercises": [
-                    {"name": "Martwy ciąg", "sets": "3", "reps": "5", "weight": "110 kg"},
+                    ex_ref("Martwy ciąg klasyczny", sets="3", reps="5",
+                           weight="110 kg"),
                 ]},
                 {"name": "FBW 3", "weekday": 6, "exercises": [
-                    {"name": "Podciąganie", "sets": "4", "reps": "max"},
+                    ex_ref("Podciąganie na drążku nachwytem", sets="4", reps="max"),
                 ]},
             ]}, ensure_ascii=False),
         ))
@@ -283,12 +313,18 @@ def seed() -> dict[str, str]:
             id=new_id("PLV"), plan_id=tpl.id, version_no=1,
             reason="Szablon bazowy", created_by=coach.id,
             content_json=json.dumps({"days": [
-                {"name": "Push", "exercises": [{"name": "Wyciskanie leżąc",
-                                               "sets": "4", "reps": "8"}]},
-                {"name": "Pull", "exercises": [{"name": "Wiosłowanie", "sets": "4",
-                                               "reps": "10"}]},
-                {"name": "Legs", "exercises": [{"name": "Przysiad", "sets": "4",
-                                               "reps": "8"}]},
+                {"name": "Push", "exercises": [
+                    ex_ref("Wyciskanie sztangi leżąc", sets="4", reps="8"),
+                    ex_ref("Wyciskanie hantli nad głowę siedząc", sets="3", reps="10"),
+                ]},
+                {"name": "Pull", "exercises": [
+                    ex_ref("Wiosłowanie sztangą w opadzie", sets="4", reps="10"),
+                    ex_ref("Ściąganie drążka wyciągu górnego", sets="3", reps="12"),
+                ]},
+                {"name": "Legs", "exercises": [
+                    ex_ref("Przysiad ze sztangą", sets="4", reps="8"),
+                    ex_ref("Rumuński martwy ciąg", sets="3", reps="10"),
+                ]},
             ]}, ensure_ascii=False),
         ))
 
@@ -586,14 +622,14 @@ def seed() -> dict[str, str]:
             reason="Plan startowy", created_by=coach.id,
             content_json=json.dumps({"days": [
                 {"name": "Góra A", "weekday": 1, "exercises": [
-                    {"name": "Wyciskanie sztangi leżąc", "sets": "4", "reps": "8",
-                     "weight": "80 kg", "rest": "150 s"},
-                    {"name": "Wiosłowanie sztangą w opadzie", "sets": "4",
-                     "reps": "10", "weight": "70 kg"},
+                    ex_ref("Wyciskanie sztangi leżąc", sets="4", reps="8",
+                           weight="80 kg", rest="150 s"),
+                    ex_ref("Wiosłowanie sztangą w opadzie", sets="4",
+                           reps="10", weight="70 kg"),
                 ]},
                 {"name": "Dół A", "weekday": 2, "exercises": [
-                    {"name": "Przysiad ze sztangą", "sets": "4", "reps": "8",
-                     "weight": "110 kg", "rest": "180 s"},
+                    ex_ref("Przysiad ze sztangą", sets="4", reps="8",
+                           weight="110 kg", rest="180 s"),
                 ]},
             ]}, ensure_ascii=False),
         ))
@@ -700,60 +736,6 @@ def seed() -> dict[str, str]:
                        body="Śmiało, jest już w bazie wiedzy w kategorii "
                             "Dieta. Daj znać jak smakował!"))
 
-        # --- Baza ćwiczeń trenera (know-how: partia, technika, efekt) ---
-        exercise_rows = [
-            {"name": "Przysiad ze sztangą", "group": "NOGI", "equipment": "Sztanga, stojak",
-             "how_to": "Sztanga na plecach (high/low bar), stopy na szerokość barków. Zejście z kontrolą do pełnego zakresu (uda min. równolegle do podłoża), kolana w linii ze stopami, plecy neutralne. Wstań napędem z pięt/całej stopy.",
-             "benefit": "Buduje siłę i masę całych nóg oraz core; przenosi się na większość sportów i czynności dnia codziennego."},
-            {"name": "Wykrok w chodzie z hantlami", "group": "NOGI", "equipment": "Hantle",
-             "how_to": "Krok do przodu, zejście do kąta ~90° w obu kolanach, tułów pionowo. Odepchnij się przednią nogą do kolejnego kroku.",
-             "benefit": "Siła jednostronna nóg, stabilizacja i balans — zmniejsza asymetrie między nogami."},
-            {"name": "Rumuński martwy ciąg", "group": "NOGI", "equipment": "Sztanga",
-             "how_to": "Sztanga blisko ud, lekkie ugięcie kolan, biodra cofasz do tyłu z plecami neutralnymi, aż poczujesz rozciągnięcie dwugłowych. Wróć napędem z bioder.",
-             "benefit": "Siła i rozciągliwość tylnej taśmy (dwugłowe, pośladki) — kluczowe dla zdrowia dolnego odcinka pleców."},
-            {"name": "Wyciskanie sztangi leżąc", "group": "KLATKA", "equipment": "Sztanga, ławka",
-             "how_to": "Leżenie na ławce, łopatki ściągnięte i przywiedzione, stopy mocno na podłodze. Opuść sztangę do dolnej części klatki, wypchnij po łuku do góry.",
-             "benefit": "Podstawowe ćwiczenie na siłę i masę klatki piersiowej, barków przednich i tricepsów."},
-            {"name": "Rozpiętki z hantlami", "group": "KLATKA", "equipment": "Hantle, ławka",
-             "how_to": "Leżenie na ławce, hantle nad klatką z lekko ugiętymi łokciami. Opuść ramiona w łuku na boki do wyczucia rozciągnięcia, wróć tym samym torem.",
-             "benefit": "Izolowane rozciągnięcie i praca klatki piersiowej — dobre uzupełnienie ćwiczeń wielostawowych."},
-            {"name": "Podciąganie nachwytem", "group": "PLECY", "equipment": "Drążek",
-             "how_to": "Chwyt nieco szerzej niż barki, start z pełnego zwisu. Podciągnij się aż broda nad drążek, kontrolowany powrót do pełnego wyprostu ramion.",
-             "benefit": "Buduje siłę i szerokość pleców (najszersze) oraz siłę chwytu."},
-            {"name": "Wiosłowanie sztangą w opadzie", "group": "PLECY", "equipment": "Sztanga",
-             "how_to": "Tułów pochylony ~45°, plecy neutralne. Przyciągnij sztangę do dolnej części brzucha, łopatki ściągnij na szczycie ruchu.",
-             "benefit": "Grubość pleców i siła pociągu — ważna równowaga dla ćwiczeń pchających (klatka)."},
-            {"name": "Wyciskanie żołnierskie (OHP)", "group": "BARKI", "equipment": "Sztanga",
-             "how_to": "Sztanga na wysokości obojczyków, chwyt na szerokość barków. Wypchnij pionowo nad głowę bez odchylania tułowia, kontroluj powrót.",
-             "benefit": "Siła i masa barków oraz stabilizacja core przy pracy nad głową."},
-            {"name": "Unoszenie hantli bokiem", "group": "BARKI", "equipment": "Hantle",
-             "how_to": "Hantle przy udach, lekko ugięte łokcie. Unieś ramiona bokiem do wysokości barków, kontrolowany powrót — bez bujania tułowiem.",
-             "benefit": "Izolacja mięśnia naramiennego środkowego — szerokość barków w sylwetce."},
-            {"name": "Uginanie ramion ze sztangą", "group": "RECE", "equipment": "Sztanga",
-             "how_to": "Łokcie przy tułowiu przez cały ruch. Ugnij ramiona unosząc sztangę, kontrolowany powrót bez bujania.",
-             "benefit": "Siła i masa bicepsów; kontrola ekscentryczna chroni łokcie."},
-            {"name": "Prostowanie ramion na wyciągu", "group": "RECE", "equipment": "Wyciąg",
-             "how_to": "Łokcie przy tułowiu, chwyt drążka/liny na wyciągu górnym. Wyprostuj ramiona w dół, kontrolowany powrót.",
-             "benefit": "Izolacja tricepsów — dopełnienie ćwiczeń pchających."},
-            {"name": "Plank (deska)", "group": "BRZUCH", "equipment": "Brak",
-             "how_to": "Podpór na przedramionach i palcach stóp, ciało w jednej linii od głowy do pięt, biodra ani uniesione, ani opadnięte. Napnij brzuch i pośladki, oddychaj spokojnie.",
-             "benefit": "Stabilizacja core (odcinek lędźwiowy) — baza pod ciężkie ćwiczenia wielostawowe."},
-            {"name": "Martwy ciąg klasyczny", "group": "CALE_CIALO", "equipment": "Sztanga",
-             "how_to": "Sztanga nad środkiem stopy, chwyt tuż za kolanami, plecy neutralne, biodra wyżej niż w przysiadzie. Wstań napędem z nóg i bioder, sztanga blisko ciała przez cały ruch.",
-             "benefit": "Jedno z najbardziej kompleksowych ćwiczeń — siła całego łańcucha tylnego, chwytu i core."},
-            {"name": "Wspinaczka wysokiego kolana / marsz", "group": "MOBILNOSC", "equipment": "Brak",
-             "how_to": "Aktywna rozgrzewka: naprzemienne unoszenie kolan do klatki w marszu lub truchcie, tempo umiarkowane.",
-             "benefit": "Podnosi tętno i mobilność bioder przed treningiem — mniejsze ryzyko kontuzji."},
-            {"name": "Rozciąganie zginaczy bioder w wykroku", "group": "MOBILNOSC", "equipment": "Brak",
-             "how_to": "Głęboki wykrok, biodro tylnej nogi przesuń do przodu aż do wyczucia rozciągnięcia z przodu biodra. Trzymaj 30-40 s na stronę.",
-             "benefit": "Poprawia zakres ruchu bioder — pomaga przy przysiadzie i martwym ciągu, szczególnie przy pracy siedzącej na co dzień."},
-        ]
-        for row in exercise_rows:
-            db.add(Exercise(
-                id=new_id("EXC"), coach_id=coach.id, name=row["name"],
-                muscle_group=row["group"], how_to=row["how_to"], benefit=row["benefit"],
-                equipment=row["equipment"], created_by=coach.id,
-            ))
 
         # --- Baza produktów spożywczych (makro na 100 g) ---
         # Katalog (400+ pozycji w 16 kategoriach) mieszka w osobnym module
