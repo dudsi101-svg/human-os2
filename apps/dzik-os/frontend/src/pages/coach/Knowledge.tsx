@@ -1,9 +1,17 @@
 import { FormEvent, useCallback, useEffect, useState } from "react";
-import { api } from "../../api";
+import { api, saveBlobAs } from "../../api";
 import { ErrorBox, LogoutButton, Spinner, TabPanel, Tabs, TopBar } from "../../components";
+import {
+  FoodDisclaimer,
+  FoodFilters,
+  FoodLoadMore,
+  FoodProductCard,
+  useFoodCatalog,
+} from "../../FoodCatalog";
 import {
   DietSuggestionResult,
   ExerciseLibraryItem,
+  FoodImportResult,
   FoodProductRow,
   KNOWLEDGE_CATEGORY_SUGGESTIONS,
   KnowledgeItemRow,
@@ -364,24 +372,21 @@ function ExercisesTab() {
 
 const EMPTY_PRODUCT_FORM = {
   name: "", category: "Inne", kcal_100g: "", protein_100g: "", fat_100g: "", carbs_100g: "",
-  default_portion_g: "",
+  fiber_100g: "", default_portion_g: "", unit_name: "", unit_grams: "", source: "", note: "",
 };
 
+function numberOrNull(value: string): number | null {
+  const trimmed = value.trim().replace(",", ".");
+  return trimmed === "" ? null : Number(trimmed);
+}
+
 function ProductsTab() {
-  const [items, setItems] = useState<FoodProductRow[] | null>(null);
+  const catalog = useFoodCatalog("/api/coach/food-products");
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState<string | "new" | null>(null);
   const [form, setForm] = useState(EMPTY_PRODUCT_FORM);
   const [busy, setBusy] = useState(false);
-  const [portionByProduct, setPortionByProduct] = useState<Record<string, string>>({});
-  const [query, setQuery] = useState("");
-
-  const load = useCallback(() => {
-    api.get<{ items: FoodProductRow[] }>("/api/coach/food-products")
-      .then((d) => setItems(d.items))
-      .catch((e) => setError(e.message));
-  }, []);
-  useEffect(load, [load]);
+  const [importResult, setImportResult] = useState<FoodImportResult | null>(null);
 
   function startNew() {
     setForm(EMPTY_PRODUCT_FORM);
@@ -393,7 +398,11 @@ function ProductsTab() {
       name: item.name, category: item.category,
       kcal_100g: String(item.kcal_100g), protein_100g: String(item.protein_100g),
       fat_100g: String(item.fat_100g), carbs_100g: String(item.carbs_100g),
+      fiber_100g: item.fiber_100g != null ? String(item.fiber_100g) : "",
       default_portion_g: item.default_portion_g != null ? String(item.default_portion_g) : "",
+      unit_name: item.unit_name ?? "",
+      unit_grams: item.unit_grams != null ? String(item.unit_grams) : "",
+      source: item.source ?? "", note: item.note ?? "",
     });
     setEditing(item.id);
   }
@@ -407,7 +416,12 @@ function ProductsTab() {
         name: form.name, category: form.category,
         kcal_100g: Number(form.kcal_100g), protein_100g: Number(form.protein_100g),
         fat_100g: Number(form.fat_100g), carbs_100g: Number(form.carbs_100g),
-        default_portion_g: form.default_portion_g ? Number(form.default_portion_g) : null,
+        fiber_100g: numberOrNull(form.fiber_100g),
+        default_portion_g: numberOrNull(form.default_portion_g),
+        unit_name: form.unit_name.trim() || null,
+        unit_grams: numberOrNull(form.unit_grams),
+        source: form.source.trim() || null,
+        note: form.note.trim() || null,
       };
       if (editing === "new") {
         await api.post("/api/coach/food-products", payload);
@@ -415,7 +429,7 @@ function ProductsTab() {
         await api.put(`/api/coach/food-products/${editing}`, payload);
       }
       setEditing(null);
-      load();
+      catalog.reload();
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -426,25 +440,51 @@ function ProductsTab() {
   async function setStatus(id: string, status: string) {
     try {
       await api.post(`/api/coach/food-products/${id}/status?status=${status}`);
-      load();
+      catalog.reload();
     } catch (err) {
       setError((err as Error).message);
     }
   }
 
-  if (error && !items) return <ErrorBox error={error} onRetry={load} />;
-  if (!items) return <Spinner />;
+  async function exportCsv() {
+    setError(null);
+    try {
+      const blob = await api.get<Blob>("/api/coach/food-products/export");
+      saveBlobAs(blob, "dzik-os-produkty.csv");
+    } catch (err) {
+      setError((err as Error).message);
+    }
+  }
 
-  const visible = items.filter((i) => i.status === "ACTIVE" &&
-    (!query || i.name.toLowerCase().includes(query.toLowerCase())));
+  async function importCsv(file: File) {
+    setBusy(true);
+    setError(null);
+    setImportResult(null);
+    try {
+      const result = await api.upload<FoodImportResult>(
+        "/api/coach/food-products/import", file
+      );
+      setImportResult(result);
+      catalog.reload();
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (catalog.error && catalog.items.length === 0) {
+    return <ErrorBox error={catalog.error} onRetry={catalog.reload} />;
+  }
 
   return (
     <>
       <ErrorBox error={error} />
       <p className="dim" style={{ marginTop: -8 }}>
-        Gotowa baza produktów z makroskładnikami na 100 g — wpisz gramaturę
-        porcji, żeby zobaczyć automatycznie przeliczone kalorie i makro.
+        Baza produktów z makroskładnikami na 100 g — wpisz gramaturę albo liczbę
+        sztuk, żeby zobaczyć przeliczone kalorie i makro.
       </p>
+      <FoodDisclaimer text={catalog.disclaimer} />
 
       {editing && (
         <form className="card card--accent" onSubmit={save}>
@@ -466,7 +506,8 @@ function ProductsTab() {
               <input id="fp-kcal" required type="number" step="0.1" min="0" value={form.kcal_100g}
                 onChange={(e) => setForm({ ...form, kcal_100g: e.target.value })} /></div>
             <div><label htmlFor="fp-protein">Białko (g) / 100 g</label>
-              <input id="fp-protein" required type="number" step="0.1" min="0" value={form.protein_100g}
+              <input id="fp-protein" required type="number" step="0.1" min="0"
+                value={form.protein_100g}
                 onChange={(e) => setForm({ ...form, protein_100g: e.target.value })} /></div>
           </div>
           <div className="field-row">
@@ -477,9 +518,30 @@ function ProductsTab() {
               <input id="fp-carbs" required type="number" step="0.1" min="0" value={form.carbs_100g}
                 onChange={(e) => setForm({ ...form, carbs_100g: e.target.value })} /></div>
           </div>
-          <label htmlFor="fp-portion">Domyślna porcja (g, opcjonalnie)</label>
-          <input id="fp-portion" type="number" step="1" min="0" value={form.default_portion_g}
-            onChange={(e) => setForm({ ...form, default_portion_g: e.target.value })} />
+          <div className="field-row">
+            <div><label htmlFor="fp-fiber">Błonnik (g) / 100 g — opcjonalnie</label>
+              <input id="fp-fiber" type="number" step="0.1" min="0" value={form.fiber_100g}
+                onChange={(e) => setForm({ ...form, fiber_100g: e.target.value })} /></div>
+            <div><label htmlFor="fp-portion">Typowa porcja (g, opcjonalnie)</label>
+              <input id="fp-portion" type="number" step="1" min="0" value={form.default_portion_g}
+                onChange={(e) => setForm({ ...form, default_portion_g: e.target.value })} /></div>
+          </div>
+          <div className="field-row">
+            <div><label htmlFor="fp-unit">Jednostka sztukowa (np. kromka, jajko)</label>
+              <input id="fp-unit" value={form.unit_name} maxLength={60}
+                onChange={(e) => setForm({ ...form, unit_name: e.target.value })} /></div>
+            <div><label htmlFor="fp-unit-grams">Ile waży 1 sztuka (g)</label>
+              <input id="fp-unit-grams" type="number" step="0.1" min="0" value={form.unit_grams}
+                onChange={(e) => setForm({ ...form, unit_grams: e.target.value })} /></div>
+          </div>
+          <label htmlFor="fp-source">Źródło wartości (opcjonalnie)</label>
+          <input id="fp-source" maxLength={200} value={form.source}
+            placeholder="np. etykieta producenta, tabele wartości odżywczych"
+            onChange={(e) => setForm({ ...form, source: e.target.value })} />
+          <label htmlFor="fp-note">Uwagi (opcjonalnie)</label>
+          <input id="fp-note" maxLength={300} value={form.note}
+            placeholder="np. wartości dla produktu ugotowanego"
+            onChange={(e) => setForm({ ...form, note: e.target.value })} />
           <div className="row" style={{ marginTop: 10 }}>
             <button className="btn" disabled={busy}>{busy ? "Zapisywanie…" : "Zapisz"}</button>
             <button type="button" className="btn btn--ghost" onClick={() => setEditing(null)}>
@@ -489,71 +551,96 @@ function ProductsTab() {
         </form>
       )}
 
-      <div className="row" style={{ marginBottom: 10 }}>
-        <input className="grow" placeholder="Szukaj produktu…" aria-label="Szukaj produktu" value={query}
-          onChange={(e) => setQuery(e.target.value)} />
-        {!editing && (
-          <button className="btn btn--small" onClick={startNew}>+ Nowy produkt</button>
+      <div className="card">
+        <h2>Własne produkty: import i eksport (CSV)</h2>
+        <p className="dim" style={{ fontSize: "0.85rem", marginTop: -6 }}>
+          Eksport zabiera Twój katalog w otwartym formacie — możesz go trzymać
+          u siebie albo przenieść gdzie indziej. Import dopisuje i aktualizuje
+          wyłącznie Twoje produkty (dopasowanie po nazwie); cudzych katalogów
+          nigdy nie dotyka. Kolumny: nazwa, kategoria, kcal_100g, bialko_100g,
+          tluszcz_100g, wegle_100g, blonnik_100g, porcja_g, jednostka,
+          jednostka_g, zrodlo, uwagi.
+        </p>
+        <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
+          <button className="btn btn--ghost btn--small" onClick={exportCsv}>
+            Pobierz katalog (CSV)
+          </button>
+          <label className="btn btn--ghost btn--small" style={{ cursor: "pointer" }}>
+            {busy ? "Wczytywanie…" : "Wgraj plik CSV"}
+            <input type="file" accept=".csv,text/csv" style={{ display: "none" }}
+              aria-label="Wgraj plik CSV z produktami"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                e.target.value = "";
+                if (file) importCsv(file);
+              }} />
+          </label>
+        </div>
+        {importResult && (
+          <div style={{ marginTop: 10 }}>
+            <p className={importResult.errors.length ? "alert alert--warn" : "alert alert--info"}>
+              Zaimportowano: {importResult.created} nowych,
+              {" "}{importResult.updated} zaktualizowanych,
+              {" "}{importResult.skipped} pominiętych.
+            </p>
+            {importResult.unknown_columns.length > 0 && (
+              <p className="dim" style={{ fontSize: "0.85rem" }}>
+                Pominięte nieznane kolumny: {importResult.unknown_columns.join(", ")}.
+              </p>
+            )}
+            {importResult.errors.length > 0 && (
+              <ul className="dim" style={{ fontSize: "0.85rem" }}>
+                {importResult.errors.map((err, i) => (
+                  <li key={i}>Wiersz {err.row} ({err.field}): {err.message}</li>
+                ))}
+              </ul>
+            )}
+          </div>
         )}
       </div>
 
+      <FoodFilters catalog={catalog} idPrefix="coach-food" />
+      {!editing && (
+        <div className="row" style={{ marginBottom: 10 }}>
+          <button className="btn btn--small" onClick={startNew}>+ Nowy produkt</button>
+        </div>
+      )}
+
+      {catalog.loading && catalog.items.length === 0 && <Spinner />}
       <div className="list">
-        {visible.length === 0 && <p className="dim">Brak produktów.</p>}
-        {visible.map((p) => {
-          const portionStr = portionByProduct[p.id] ??
-            (p.default_portion_g != null ? String(p.default_portion_g) : "100");
-          const portion = Number(portionStr) || 0;
-          const factor = portion / 100;
-          return (
-            <div className="card" key={p.id}>
-              <div className="row row--between">
-                <div>
-                  <b>{p.name}</b> <span className="badge">{p.category}</span>
-                </div>
-                <div className="row">
-                  <button className="btn btn--ghost btn--small" onClick={() => startEdit(p)}>Edytuj</button>
-                  <button className="btn btn--danger btn--small" onClick={() => setStatus(p.id, "ARCHIVED")}>
-                    Archiwizuj
-                  </button>
-                </div>
-              </div>
-              <div className="meta" style={{ marginTop: 4 }}>
-                Na 100 g: {p.kcal_100g} kcal · B {p.protein_100g} g · T {p.fat_100g} g · W {p.carbs_100g} g
-              </div>
-              <div className="row" style={{ marginTop: 6, alignItems: "center", gap: 6 }}>
-                <label style={{ margin: 0 }} htmlFor={`coach-portion-${p.id}`}>Porcja (g)</label>
-                <input id={`coach-portion-${p.id}`} type="number" min="0" style={{ width: 90 }} value={portionStr}
-                  onChange={(e) => setPortionByProduct({ ...portionByProduct, [p.id]: e.target.value })} />
-                <span className="badge badge--accent">
-                  {Math.round(p.kcal_100g * factor)} kcal · B {Math.round(p.protein_100g * factor * 10) / 10} g ·
-                  {" "}T {Math.round(p.fat_100g * factor * 10) / 10} g · W {Math.round(p.carbs_100g * factor * 10) / 10} g
-                </span>
-              </div>
+        {catalog.items.map((p) => (
+          <FoodProductCard key={p.id} product={p} idPrefix="coach-portion" actions={
+            <div className="row">
+              <button className="btn btn--ghost btn--small" onClick={() => startEdit(p)}>
+                Edytuj
+              </button>
+              <button className="btn btn--danger btn--small"
+                onClick={() => setStatus(p.id, "ARCHIVED")}>
+                Archiwizuj
+              </button>
             </div>
-          );
-        })}
+          } />
+        ))}
       </div>
+      <FoodLoadMore catalog={catalog} />
     </>
   );
 }
 
 function DietComposerTab() {
-  const [items, setItems] = useState<FoodProductRow[] | null>(null);
+  const catalog = useFoodCatalog("/api/coach/food-products");
   const [error, setError] = useState<string | null>(null);
-  const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [target, setTarget] = useState({ kcal: "3000", protein_g: "180", fat_g: "80", carbs_g: "350" });
+  const [selected, setSelected] = useState<Map<string, string>>(new Map());
+  const [target, setTarget] = useState({
+    kcal: "3000", protein_g: "180", fat_g: "80", carbs_g: "350",
+  });
   const [result, setResult] = useState<DietSuggestionResult | null>(null);
   const [busy, setBusy] = useState(false);
 
-  useEffect(() => {
-    api.get<{ items: FoodProductRow[] }>("/api/coach/food-products")
-      .then((d) => setItems(d.items))
-      .catch((e) => setError(e.message));
-  }, []);
-
-  function toggle(id: string) {
-    const next = new Set(selected);
-    if (next.has(id)) next.delete(id); else next.add(id);
+  function toggle(item: FoodProductRow) {
+    const next = new Map(selected);
+    if (next.has(item.id)) next.delete(item.id);
+    else next.set(item.id, item.name);
     setSelected(next);
   }
 
@@ -567,7 +654,7 @@ function DietComposerTab() {
         target_protein_g: Number(target.protein_g) || 0,
         target_fat_g: Number(target.fat_g) || 0,
         target_carbs_g: Number(target.carbs_g) || 0,
-        product_ids: Array.from(selected),
+        product_ids: Array.from(selected.keys()),
       });
       setResult(r);
     } catch (err) {
@@ -579,7 +666,12 @@ function DietComposerTab() {
 
   function asMealsText(): string {
     if (!result) return "";
-    return result.items.map((i) => `${i.name}: ${i.grams} g (${i.kcal} kcal)`).join("\n");
+    return result.items
+      .map((i) => {
+        const units = i.units && i.unit_name ? ` ≈ ${i.units} × ${i.unit_name}` : "";
+        return `${i.name}: ${i.grams} g${units} (${i.kcal} kcal)`;
+      })
+      .join("\n");
   }
 
   return (
@@ -609,7 +701,8 @@ function DietComposerTab() {
               onChange={(e) => setTarget({ ...target, carbs_g: e.target.value })} /></div>
         </div>
         <div style={{ marginTop: 8 }}>
-          <button className="btn btn--small" disabled={busy || selected.size === 0} onClick={compose}>
+          <button className="btn btn--small" disabled={busy || selected.size === 0}
+            onClick={compose}>
             {busy ? "Liczenie…" : `Ułóż sugestię (${selected.size} wybranych produktów)`}
           </button>
         </div>
@@ -622,19 +715,32 @@ function DietComposerTab() {
             <p className="alert alert--warn" key={i}>{w}</p>
           ))}
           <div className="stat-grid">
-            <div className="stat"><b>{result.totals.kcal}</b><span>kcal (cel {result.target.kcal})</span></div>
-            <div className="stat"><b>{result.totals.protein_g} g</b><span>białko (cel {result.target.protein_g})</span></div>
-            <div className="stat"><b>{result.totals.fat_g} g</b><span>tłuszcz (cel {result.target.fat_g})</span></div>
-            <div className="stat"><b>{result.totals.carbs_g} g</b><span>węgle (cel {result.target.carbs_g})</span></div>
+            <div className="stat"><b>{result.totals.kcal}</b>
+              <span>kcal (cel {result.target.kcal})</span></div>
+            <div className="stat"><b>{result.totals.protein_g} g</b>
+              <span>białko (cel {result.target.protein_g})</span></div>
+            <div className="stat"><b>{result.totals.fat_g} g</b>
+              <span>tłuszcz (cel {result.target.fat_g})</span></div>
+            <div className="stat"><b>{result.totals.carbs_g} g</b>
+              <span>węgle (cel {result.target.carbs_g})</span></div>
+            {result.totals.fiber_g != null && (
+              <div className="stat"><b>{result.totals.fiber_g} g</b><span>błonnik</span></div>
+            )}
           </div>
           {result.items.map((i) => (
             <div className="exercise" key={i.product_id}>
-              <div><b>{i.name}</b><div className="meta">{i.grams} g · {i.kcal} kcal</div></div>
+              <div><b>{i.name}</b><div className="meta">
+                {i.grams} g
+                {i.units && i.unit_name ? ` ≈ ${i.units} × ${i.unit_name}` : ""}
+                {" · "}{i.kcal} kcal
+                {i.fiber_g != null ? ` · Bł ${i.fiber_g} g` : ""}
+              </div></div>
               <span className="badge">
                 {i.macro_role === "PROTEIN" ? "białko" : i.macro_role === "FAT" ? "tłuszcz" : "węgle"}
               </span>
             </div>
           ))}
+          <FoodDisclaimer text={result.disclaimer} />
           <p className="dim" style={{ fontSize: "0.85rem" }}>{result.note}</p>
           <label htmlFor="dc-result">Do skopiowania w zakładkę Dieta klienta</label>
           <textarea id="dc-result" readOnly value={asMealsText()} style={{ minHeight: 100 }} />
@@ -642,36 +748,33 @@ function DietComposerTab() {
       )}
 
       <h2>Produkty (zaznacz do kompozycji)</h2>
-      {!items && <Spinner />}
-      {items && (
-        <ProductsTabSelector items={items} selected={selected} onToggle={toggle} />
+      {selected.size > 0 && (
+        <p className="dim" style={{ fontSize: "0.85rem" }}>
+          Wybrane: {Array.from(selected.values()).join(", ")}.
+        </p>
       )}
-    </>
-  );
-}
-
-function ProductsTabSelector({ items, selected, onToggle }: {
-  items: FoodProductRow[]; selected: Set<string>; onToggle: (id: string) => void;
-}) {
-  const [query, setQuery] = useState("");
-  const visible = items.filter((i) => i.status === "ACTIVE" &&
-    (!query || i.name.toLowerCase().includes(query.toLowerCase())));
-  return (
-    <>
-      <input placeholder="Szukaj produktu…" aria-label="Szukaj produktu do kompozycji" value={query}
-        onChange={(e) => setQuery(e.target.value)} style={{ marginBottom: 8 }} />
+      {catalog.error && <ErrorBox error={catalog.error} onRetry={catalog.reload} />}
+      <FoodFilters catalog={catalog} idPrefix="diet-food" />
+      {catalog.loading && catalog.items.length === 0 && <Spinner />}
       <div className="list">
-        {visible.map((p) => (
-          <label className="card" key={p.id} style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}>
-            <input type="checkbox" checked={selected.has(p.id)} onChange={() => onToggle(p.id)}
+        {catalog.items.map((p) => (
+          <label className="card" key={p.id}
+            style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}>
+            <input type="checkbox" checked={selected.has(p.id)} onChange={() => toggle(p)}
               aria-label={`Zaznacz produkt: ${p.name}`} />
             <div>
               <b>{p.name}</b> <span className="badge">{p.category}</span>
-              <div className="meta">{p.kcal_100g} kcal · B {p.protein_100g} g · T {p.fat_100g} g · W {p.carbs_100g} g /100 g</div>
+              <div className="meta">
+                {p.kcal_100g} kcal · B {p.protein_100g} g · T {p.fat_100g} g ·
+                {" "}W {p.carbs_100g} g
+                {p.fiber_100g != null ? ` · Bł ${p.fiber_100g} g` : ""} /100 g
+              </div>
+              {p.note && <div className="meta">Uwaga: {p.note}</div>}
             </div>
           </label>
         ))}
       </div>
+      <FoodLoadMore catalog={catalog} />
     </>
   );
 }

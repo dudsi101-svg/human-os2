@@ -619,9 +619,50 @@ export interface FoodProductRow {
   fat_100g: number;
   carbs_100g: number;
   default_portion_g: number | null;
+  /** Pola z migracji nr 18 — zawsze opcjonalne (null = brak danych, nie zero). */
+  fiber_100g?: number | null;
+  unit_name?: string | null;
+  unit_grams?: number | null;
+  source?: string | null;
+  note?: string | null;
   status: string;
   created_at: string;
   updated_at: string;
+}
+
+/** Stronicowana odpowiedź katalogu produktów (API filtruje i stronicuje —
+ * widok nigdy nie ładuje całej bazy 400+ pozycji naraz). */
+export interface FoodProductPage {
+  items: FoodProductRow[];
+  total: number;
+  limit: number;
+  offset: number;
+  has_more: boolean;
+  categories: string[];
+  /** Informacja o przybliżonym charakterze wartości — pokazywana w UI. */
+  disclaimer: string;
+}
+
+export type FoodSort = "name" | "kcal" | "protein";
+
+export const FOOD_SORT_LABELS: Record<FoodSort, string> = {
+  name: "Nazwa (A→Z)",
+  kcal: "Kalorie (najwięcej)",
+  protein: "Białko (najwięcej)",
+};
+
+export interface FoodImportError {
+  row: number;
+  field: string;
+  message: string;
+}
+
+export interface FoodImportResult {
+  created: number;
+  updated: number;
+  skipped: number;
+  errors: FoodImportError[];
+  unknown_columns: string[];
 }
 
 export interface DietSuggestionItem {
@@ -633,6 +674,10 @@ export interface DietSuggestionItem {
   protein_g: number;
   fat_g: number;
   carbs_g: number;
+  fiber_g?: number | null;
+  /** Ile to sztuk jednostki produktu (gdy produkt ma jednostkę sztukową). */
+  units?: number | null;
+  unit_name?: string | null;
 }
 
 export interface PersonalRecordRow {
@@ -662,9 +707,12 @@ export interface PersonalRecordsData {
 export interface DietSuggestionResult {
   target: { kcal: number; protein_g: number; fat_g: number; carbs_g: number };
   items: DietSuggestionItem[];
-  totals: { kcal: number; protein_g: number; fat_g: number; carbs_g: number };
+  totals: {
+    kcal: number; protein_g: number; fat_g: number; carbs_g: number; fiber_g?: number;
+  };
   warnings: string[];
   note: string;
+  disclaimer?: string;
 }
 
 // --- Wspólne wyzwania (moduł prywatny — tylko zaproszeni) ---

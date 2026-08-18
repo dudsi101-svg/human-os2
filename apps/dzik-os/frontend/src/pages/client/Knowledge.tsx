@@ -2,8 +2,14 @@ import { useEffect, useState } from "react";
 import { api } from "../../api";
 import { AuthAttachment, ErrorBox, Icon, Spinner, TabPanel, Tabs, TopBar } from "../../components";
 import {
+  FoodDisclaimer,
+  FoodFilters,
+  FoodLoadMore,
+  FoodProductCard,
+  useFoodCatalog,
+} from "../../FoodCatalog";
+import {
   ExerciseLibraryItem,
-  FoodProductRow,
   KnowledgeItemRow,
   MUSCLE_GROUP_LABELS,
 } from "../../types";
@@ -175,57 +181,30 @@ function ExerciseCard({ item }: { item: ExerciseLibraryItem }) {
 }
 
 function ProductsTab() {
-  const [items, setItems] = useState<FoodProductRow[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [query, setQuery] = useState("");
-  const [portionByProduct, setPortionByProduct] = useState<Record<string, string>>({});
+  // Katalog trenera potrafi mieć setki pozycji — filtrujemy i stronicujemy
+  // po stronie API, zamiast wciągać wszystko do widoku.
+  const catalog = useFoodCatalog("/api/me/food-products");
 
-  const load = () => {
-    setError(null);
-    api.get<{ items: FoodProductRow[] }>("/api/me/food-products")
-      .then((d) => setItems(d.items))
-      .catch((e) => setError(e.message));
-  };
-  useEffect(() => { load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  if (error) return <ErrorBox error={error} onRetry={load} />;
-  if (!items) return <Spinner />;
-  if (items.length === 0) return <p className="dim">Trener nie dodał jeszcze bazy produktów.</p>;
-
-  const visible = items.filter((i) => !query || i.name.toLowerCase().includes(query.toLowerCase()));
+  if (catalog.error && catalog.items.length === 0) {
+    return <ErrorBox error={catalog.error} onRetry={catalog.reload} />;
+  }
+  if (catalog.loading && catalog.items.length === 0 && !catalog.query && !catalog.category) {
+    return <Spinner />;
+  }
+  if (catalog.total === 0 && !catalog.query && !catalog.category) {
+    return <p className="dim">Trener nie dodał jeszcze bazy produktów.</p>;
+  }
 
   return (
     <>
-      <input placeholder="Szukaj produktu…" aria-label="Szukaj produktu" value={query}
-        onChange={(e) => setQuery(e.target.value)} style={{ marginBottom: 10 }} />
+      <FoodDisclaimer text={catalog.disclaimer} />
+      <FoodFilters catalog={catalog} idPrefix="client-food" />
       <div className="list">
-        {visible.map((p) => {
-          const portionStr = portionByProduct[p.id] ??
-            (p.default_portion_g != null ? String(p.default_portion_g) : "100");
-          const portion = Number(portionStr) || 0;
-          const factor = portion / 100;
-          return (
-            <div className="card" key={p.id}>
-              <div className="row row--between">
-                <b>{p.name}</b>
-                <span className="badge">{p.category}</span>
-              </div>
-              <div className="meta" style={{ marginTop: 4 }}>
-                Na 100 g: {p.kcal_100g} kcal · B {p.protein_100g} g · T {p.fat_100g} g · W {p.carbs_100g} g
-              </div>
-              <div className="row" style={{ marginTop: 6, alignItems: "center", gap: 6 }}>
-                <label style={{ margin: 0 }} htmlFor={`portion-${p.id}`}>Porcja (g)</label>
-                <input id={`portion-${p.id}`} type="number" min="0" style={{ width: 90 }} value={portionStr}
-                  onChange={(e) => setPortionByProduct({ ...portionByProduct, [p.id]: e.target.value })} />
-                <span className="badge badge--accent">
-                  {Math.round(p.kcal_100g * factor)} kcal · B {Math.round(p.protein_100g * factor * 10) / 10} g ·
-                  {" "}T {Math.round(p.fat_100g * factor * 10) / 10} g · W {Math.round(p.carbs_100g * factor * 10) / 10} g
-                </span>
-              </div>
-            </div>
-          );
-        })}
+        {catalog.items.map((p) => (
+          <FoodProductCard key={p.id} product={p} idPrefix="portion" />
+        ))}
       </div>
+      <FoodLoadMore catalog={catalog} />
     </>
   );
 }

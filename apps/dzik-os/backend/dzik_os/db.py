@@ -686,6 +686,16 @@ MIGRATIONS: list[tuple[int, str, list[str]]] = [
             "ON ai_usage_counters(usage_date)"
         ),
     ]),
+    (18, "baza produktów: błonnik, jednostka sztukowa, źródło i uwagi", [
+        # Czysto addytywna: same nowe kolumny NULLable na istniejącej tabeli.
+        # Produkty sprzed migracji działają bez zmian (NULL = brak danych,
+        # nigdy 0). Plan wycofania: docs/BAZA_PRODUKTOW.md.
+        "ALTER TABLE food_products ADD COLUMN fiber_100g FLOAT",
+        "ALTER TABLE food_products ADD COLUMN unit_name VARCHAR(60)",
+        "ALTER TABLE food_products ADD COLUMN unit_grams FLOAT",
+        "ALTER TABLE food_products ADD COLUMN source VARCHAR(200)",
+        "ALTER TABLE food_products ADD COLUMN note VARCHAR(300)",
+    ]),
 ]
 
 

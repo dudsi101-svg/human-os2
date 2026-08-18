@@ -84,8 +84,10 @@ to ocena kompletności raportu, nie Ciebie.
   startu — porównanie zawsze wyłącznie z Twoją własną historią, nigdy z
   innymi;
 * **Baza wiedzy** — artykuły trenera, know-how ćwiczeń (partia, technika,
-  efekt) i baza produktów z makro — wpisz gramaturę porcji, żeby
-  zobaczyć automatyczne przeliczenie kalorii;
+  efekt) i baza produktów z kaloriami, makro i błonnikiem — wyszukaj
+  produkt po nazwie i wpisz gramaturę albo liczbę sztuk („2 jajka”),
+  żeby zobaczyć przeliczenie. Wartości są przybliżone i uśrednione
+  (zależą od marki, partii i obróbki) — to oszacowanie, nie pomiar;
 * **Dokumenty i harmonogram** — pliki od trenera i pełny harmonogram
   (każdy element ma zapisanego autora);
 * **Płatności** — terminy i statusy; aplikacja nie przechowuje danych kart;
