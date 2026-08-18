@@ -2,6 +2,49 @@
 
 ## 0.39.0 — 2026-08-18
 
+**Przegląd krzyżowy: dwa potwierdzone znaleziska w cudzym obszarze, zero
+commitów w cudzych plikach.** Pełny raport: `docs/PRZEGLAD_KRZYZOWY_2026-08-18.md`.
+
+* **Po co.** Bloker nr 1 bramki GO/NO-GO brzmi: *„bramkę wykonał ten sam
+  agent, który pisał kod"*. To jedyny z siedmiu blokerów, który da się dziś
+  ruszyć bez pieniędzy, klucza i cudzej zgody — bo pracują dwie sesje.
+  **Nie nazywam tego niezależnym audytem i nie zastępuje go**; bloker
+  zostaje otwarty, zmienia się tylko jego wysokość.
+* **Znalezisko 1 — bomba dekompresyjna w imporcie `.xlsx`.** `.xlsx` to
+  archiwum: plik **1,64 MB** przechodzący limit 5 MB rozpakowuje się do
+  **423 MB** arkusza (3 mln wierszy). `MAX_ROWS = 2000` przycina dopiero
+  WYNIK, gdy wszystko jest już w pamięci. Zmierzone: **1164 MB RSS
+  i 129 s** na jedno żądanie, po czym aplikacja odpowiada uprzejmie —
+  2000 wierszy i ostrzeżenie. `MAX_ROWS` chroni bazę, nie chroni procesu.
+* **Znalezisko 2 — upload czytany bez limitu, choć limit leży obok.** Trzy
+  endpointy importu (`exercises.py:481`, `food_catalog.py:396`,
+  `plans.py:513`) czytają całość przez `await file.read()`. Zmierzone na
+  prawdziwym żądaniu HTTP: plik 290 MB → **1057 MB RSS**, po czym kontrola
+  „większy niż 5 MB" go odrzuca — po zaalokowaniu ~935 MB. **Naprawa już
+  istnieje w tym repozytorium**: `storage._read_limited` czyta w kawałkach
+  i przerywa natychmiast, a jego docstring mówi wprost „klient nie może
+  zapełnić RAM jednym żądaniem".
+* **Waga obu: ŚREDNIA, nie wysoka** — wymagają zalogowanego trenera i nie
+  dotykają poufności ani spójności danych, tylko dostępności. Podnosi ją
+  to, że aplikacja jest jednoprocesowa (koszt ponoszą też klienci) i że
+  **ścieżka przypadkowa jest realna**: prawdziwa duża baza ćwiczeń wygląda
+  dla serwera identycznie jak atak.
+* **Co jest w porządku — powiedziane tak samo wyraźnie.** Nie znalazłem
+  dziury w izolacji na tej powierzchni: `coach.id` bierze się wyłącznie
+  z sesji, nigdy z żądania; cofnięcie importu przechodzi przez
+  `require_owned_resource` z 404 na cudzy identyfikator; podgląd naprawdę
+  niczego nie zapisuje; jedyne `except Exception` w routerach zamienia
+  wyjątek na 422, nie połyka go.
+* **Zdublowany identyfikator ryzyka — mój błąd.** W `RISK_REGISTER.md` dwa
+  różne ryzyka miały numer **R-17**: integralność referencyjna i błędy OCR.
+  Wpis o OCR był pierwszy (0.27.0), ten o integralności dołożyłem ja
+  w `830f74b` i nie sprawdziłem. Integralność referencyjna to teraz
+  **R-18**, jej ostatni otwarty punkt (`PRAGMA foreign_keys=ON`) zamknięty,
+  bo pragma jest włączana na każdym połączeniu SQLite. Znaleziska
+  z przeglądu dopisane jako **R-19**.
+
+### Bramki i uratowana praca
+
 **Ósma kontrola bramki: pliki poza gitem. Plus uratowane dwie wiszące
 gałęzie.** Runda o stabilności — nic nowego dla użytkownika, mniej sposobów
 na cichą utratę pracy.

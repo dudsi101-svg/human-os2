@@ -22,7 +22,7 @@ def _make_engine(url: str):
         # wiersze wskazujące na nieistniejące rekordy, a błąd ujawnia się
         # dopiero na PostgreSQL, czyli przy wdrożeniu produkcyjnym
         # (audyt 18.08.2026: zakładanie konta klienta przez trenera
-        # wywracało się na PG, przechodząc na SQLite — patrz R-17).
+        # wywracało się na PG, przechodząc na SQLite — patrz R-18).
         @event.listens_for(eng, "connect")
         def _wymus_klucze_obce(dbapi_connection, _record):
             cur = dbapi_connection.cursor()
