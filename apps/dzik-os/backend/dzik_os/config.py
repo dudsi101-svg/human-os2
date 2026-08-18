@@ -24,6 +24,20 @@ class Settings:
     audit_db_path: str = field(default_factory=lambda: _env("DZIK_AUDIT_DB", "data/audit.db"))
     upload_dir: str = field(default_factory=lambda: _env("DZIK_UPLOAD_DIR", "data/uploads"))
     max_upload_mb: int = field(default_factory=lambda: int(_env("DZIK_MAX_UPLOAD_MB", "20")))
+    # --- Poczta wychodząca (opcjonalna) ---
+    # Puste `smtp_host` = dostawca `null`, czyli stan sprzed 0.40.0:
+    # aplikacja bez konfiguracji zachowuje się DOKŁADNIE tak jak dotąd
+    # i nie wysyła nic. Hasło wyłącznie ze zmiennej środowiskowej.
+    smtp_host: str = field(default_factory=lambda: _env("DZIK_SMTP_HOST", ""))
+    smtp_port: int = field(default_factory=lambda: int(_env("DZIK_SMTP_PORT", "587")))
+    smtp_user: str = field(default_factory=lambda: _env("DZIK_SMTP_USER", ""))
+    smtp_password: str = field(default_factory=lambda: _env("DZIK_SMTP_PASSWORD", ""))
+    smtp_from: str = field(default_factory=lambda: _env("DZIK_SMTP_FROM", ""))
+    #: "starttls" (domyślnie, port 587), "ssl" (port 465) albo "none" (test).
+    smtp_security: str = field(default_factory=lambda: _env("DZIK_SMTP_SECURITY", "starttls"))
+    #: Sekundy. Bez limitu zawieszony serwer poczty zablokowałby cały
+    #: jednoprocesowy backend — powiadomienie nie może wstrzymać aplikacji.
+    smtp_timeout: float = field(default_factory=lambda: float(_env("DZIK_SMTP_TIMEOUT", "10")))
     # Zdjęcia (nowe uploady image/*): usunięcie EXIF/GPS + ograniczenie
     # rozdzielczości (dłuższy bok) + rekompresja o podanej jakości.
     max_image_px: int = field(default_factory=lambda: int(_env("DZIK_MAX_IMAGE_PX", "2560")))

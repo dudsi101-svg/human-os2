@@ -2,8 +2,48 @@
 
 ## 0.40.0 — 2026-08-18
 
-**Import arkusza przestaje zużywać pamięć proporcjonalną do pliku — R-19
-zamknięte.** Dwa znaleziska z przeglądu krzyżowego naprawione i zmierzone
+**Poczta wychodząca naprawdę wychodzi (bloker nr 4) oraz import arkusza
+przestaje zużywać pamięć proporcjonalną do pliku (R-19 zamknięte).**
+
+### Poczta — bloker nr 4 bramki GO/NO-GO
+
+* **`SMTPNotificationProvider`** — bramka wypisała: *„e-mail nie wychodzi;
+  przypomnienia o płatnościach i digest poniedziałkowy nigdzie nie
+  docierają"*. Funkcja miała ścieżkę kodu, której **nigdy nie wykonano**.
+  Teraz się wykonuje: sprawdzone wysłaniem prawdziwego listu do serwera
+  SMTP postawionego na czas testu — **list dochodzi**, polskie znaki
+  w temacie przeżywają (RFC 2047).
+* **Włączane wyłącznie konfiguracją.** Bez `DZIK_SMTP_HOST` działa
+  `NullNotificationProvider` i aplikacja zachowuje się **dokładnie jak
+  przed tą wersją**. Uruchomienie poczty jest decyzją operatora, nigdy
+  domyślnym zachowaniem; hasło tylko ze zmiennej środowiskowej.
+* **Trzy zasady wymuszone kodem i testami.** (1) `send_email` **nigdy nie
+  rzuca wyjątkiem** — powiadomienie jest kanałem pobocznym i awaria poczty
+  nie ma prawa wywrócić zapisu raportu ani założenia klienta; (2) **limit
+  czasu obowiązkowy** — backend jest jednoprocesowy, więc zawieszony serwer
+  poczty bez `timeout` zatrzymałby aplikację wszystkim; (3) **zero PII
+  w logach** — do logu idzie nazwa klasy wyjątku, nie jego treść, bo
+  komunikat serwera SMTP potrafi zawierać adres odbiorcy. Osobny test
+  sprawdza, że adres, temat i treść nie pojawiają się w logu.
+* 6 testów w `tests/test_powiadomienia_smtp.py`, w tym prawdziwy serwer
+  SMTP na gniazdach — bez dokładania zależności do projektu.
+
+### Testy E2E także w szerokości, w której pracuje trener
+
+* Zestaw chodził wyłącznie na telefonie (Pixel 7). **Klient używa telefonu,
+  ale trener siedzi przy panelu na desktopie** — lista klientów, karta
+  klienta, katalog szablonów nie miały ani jednego testu w swojej
+  szerokości. Dodany projekt `desktop-trener` (1280×800).
+* Desktop dostaje **wyłącznie testy, które nic nie zapisują** — backend ma
+  jedną bazę SQLite, a raport wychodzi raz na tydzień, więc powtórzenie
+  testów zapisujących wywróciłoby je stanem po pierwszym przebiegu.
+  15 testów zielonych (9 telefon + 6 desktop).
+* **Bloker nr 6 zostaje otwarty.** WebKit (silnik Safari) nie da się tu
+  pobrać, a dokładanie niesprawdzonego kroku do CI łamie zasadę IV Karty.
+  Emulacja desktopu to nie to samo co prawdziwy telefon — nie udaję, że to
+  zamyka sprawdzenie na iOS.
+
+### Import arkusza — R-19 zamknięte Dwa znaleziska z przeglądu krzyżowego naprawione i zmierzone
 ponownie, plus sprostowanie jednej własnej liczby.
 
 * **Bomba dekompresyjna w `.xlsx`: 1164 MB → 53 MB, 129 s → 0,00 s.**
