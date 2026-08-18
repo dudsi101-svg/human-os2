@@ -13,6 +13,7 @@ from ..db import get_db
 from ..hos_bridge import ConsentService, record_event
 from ..models import (
     CheckinRevision,
+    CoachClientRelationship,
     ConsentRecord,
     DailyNutritionLog,
     Document,
@@ -40,7 +41,7 @@ from ..models import (
     now_iso,
 )
 from ..schemas import ConsentGrantIn, DeletionRequestIn
-from ..security import current_user, verify_password
+from ..security import current_user, revoke_other_sessions, verify_password
 from ..storage import storage
 
 router = APIRouter(prefix="/api/me", tags=["privacy"])
@@ -341,6 +342,25 @@ def request_deletion(
         for m in db.query(Message).filter(Message.thread_id == t.id).all():
             m.body = "[usunięto]"
             m.file_id = None
+    # Domknięcie dostępu: współprace kończą się, aktywne zgody zostają
+    # cofnięte (trener traci dostęp także do pozostałych, zanonimizowanych
+    # rekordów), a wszystkie sesje są unieważnione — żaden stary token nie
+    # działa po usunięciu konta.
+    for rel in (
+        db.query(CoachClientRelationship)
+        .filter(CoachClientRelationship.client_id == client_id)
+        .all()
+    ):
+        if rel.status != "ENDED":
+            rel.status = "ENDED"
+            rel.ended_at = now_iso()
+    for consent in (
+        db.query(ConsentRecord)
+        .filter(ConsentRecord.subject_id == client_id, ConsentRecord.revoked_at.is_(None))
+        .all()
+    ):
+        consent.revoked_at = now_iso()
+    revoke_other_sessions(db, client_id, keep_token=None)
     user.email = f"deleted-{user.id.lower()}@example.invalid"
     user.display_name = "Konto usunięte"
     user.status = "DELETED"

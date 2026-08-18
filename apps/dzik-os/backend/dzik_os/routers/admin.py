@@ -72,15 +72,31 @@ def list_receipts(
     admin: User = Depends(require_role("ADMIN")),
     db: Session = Depends(get_db),
 ):
+    """Pokwitowania łańcucha audytu — dla admina WYŁĄCZNIE metadane
+    (akcja, identyfikatory, hash, czas). Wolnotekstowe `summary` jest
+    celowo pomijane: bywa pochodną danych zdrowotnych (tytuł celu, powód
+    zmiany planu, kategoria obserwacji), a rola ADMIN jest techniczna i
+    nie ma dostępu do danych zdrowotnych. Pełne pokwitowania (z summary)
+    widzi trener w zakresie zgód klienta (GET /coach/clients/{id}/history).
+    Dostęp jest audytowany."""
     rows = (
         db.query(Receipt).order_by(Receipt.created_at.desc()).limit(min(limit, 500)).all()
     )
+    record_event(
+        db,
+        action="ADMIN_RECEIPTS_ACCESSED",
+        actor_id=admin.id,
+        subject_ids=[admin.id],
+        payload={"count": len(rows)},
+        summary="Administrator przejrzał pokwitowania audytu (metadane, bez summary)",
+    )
+    db.commit()
     return {
         "receipts": [
             {
                 "id": r.id, "event_id": r.event_id, "event_hash": r.event_hash,
                 "action": r.action, "actor_id": r.actor_id, "subject_id": r.subject_id,
-                "summary": r.summary, "created_at": r.created_at,
+                "created_at": r.created_at,
             }
             for r in rows
         ]

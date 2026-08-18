@@ -259,7 +259,9 @@ export interface ReceiptRow {
   action: string;
   actor_id: string;
   subject_id?: string;
-  summary: string;
+  /** Wolny tekst — panel admina go NIE otrzymuje (może zawierać treści
+   *  pochodne danych zdrowotnych); obecny w historii klienta u trenera. */
+  summary?: string;
   created_at: string;
 }
 

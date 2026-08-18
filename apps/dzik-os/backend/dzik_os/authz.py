@@ -16,11 +16,32 @@ from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
 from .hos_bridge import ConsentService
-from .models import CoachClientRelationship, StoredFile, User
+from .models import CoachClientRelationship, MessageThread, StoredFile, User
 from .security import active_roles
 
 CONSENT_PURPOSE = "coaching"
 CONSENT_DOMAIN = "health_data"
+
+
+class ResourceAccessDenied(HTTPException):
+    """Odmowa dostępu do KONKRETNEGO zasobu po pozytywnej autoryzacji roli
+    (IDOR: zasób istnieje, ale należy do kogoś innego / poza zakresem zgód).
+
+    Odpowiedź to zawsze 404 — nie ujawniamy istnienia zasobu. Wyjątek jest
+    przechwytywany centralnie w main.py, gdzie odmowa jest logowana w
+    łańcuchu audytu jako ACCESS_DENIED (endpoint + id aktora, nigdy dane
+    zdrowotne ani sekrety). Zwykłe 404 dla nieistniejących zasobów NIE
+    przechodzi tą ścieżką i nie jest logowane."""
+
+    def __init__(self, actor_id: str, resource: str = "") -> None:
+        super().__init__(status_code=404, detail="Nie znaleziono")
+        self.actor_id = actor_id
+        self.resource = resource
+
+
+def deny(actor_id: str, resource: str = "") -> None:
+    """Skrót: rzuca logowaną odmowę zasobową (404)."""
+    raise ResourceAccessDenied(actor_id, resource)
 
 
 def active_relationship(db: Session, coach_id: str, client_id: str) -> CoachClientRelationship | None:
@@ -63,7 +84,37 @@ def resolve_client_access(
         db, actor.id, client_id, action=action, sensitive=sensitive
     ):
         return client_id
-    raise HTTPException(status_code=404, detail="Nie znaleziono")
+    raise ResourceAccessDenied(actor.id, f"client:{client_id}")
+
+
+def require_owned_resource(entity, *, actor: User, resource: str, owner_attr: str = "coach_id"):
+    """Wspólny wzorzec „zasób musi istnieć I należeć do aktora".
+
+    * zasób nie istnieje → zwykłe 404 (nieudane trafienie identyfikatora,
+      nie jest logowane jako odmowa),
+    * zasób istnieje, ale właścicielem (pole `owner_attr`) jest ktoś inny →
+      ResourceAccessDenied (404 + wpis ACCESS_DENIED w audycie — próba IDOR).
+    Zwraca zasób, jeśli kontrola przeszła."""
+    if entity is None:
+        raise HTTPException(status_code=404, detail="Nie znaleziono")
+    if getattr(entity, owner_attr) != actor.id:
+        raise ResourceAccessDenied(actor.id, resource)
+    return entity
+
+
+def require_thread_party(db: Session, actor: User, thread_id: str) -> MessageThread:
+    """Dostęp do wątku wiadomości: wyłącznie strona wątku. Klient zawsze;
+    trener w ramach aktywnej relacji (treść wiadomości nie jest objęta
+    zgodą health_data → sensitive=False). Obcy → logowana odmowa 404."""
+    thread = db.get(MessageThread, thread_id)
+    if thread is None:
+        raise HTTPException(status_code=404, detail="Nie znaleziono")
+    if actor.id == thread.client_id:
+        return thread
+    if actor.id == thread.coach_id:
+        resolve_client_access(db, actor, thread.client_id, sensitive=False)
+        return thread
+    raise ResourceAccessDenied(actor.id, f"thread:{thread_id}")
 
 
 def require_attachable_file(

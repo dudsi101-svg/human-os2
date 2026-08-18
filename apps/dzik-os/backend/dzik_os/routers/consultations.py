@@ -13,7 +13,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from .. import push_service
-from ..authz import active_relationship
+from ..authz import active_relationship, deny, require_owned_resource
 from ..dates import local_now, local_now_minute
 from ..db import get_db
 from ..hos_bridge import record_event
@@ -84,9 +84,9 @@ def coach_cancel_slot(
     coach: User = Depends(require_role("COACH")),
     db: Session = Depends(get_db),
 ):
-    slot = db.get(ConsultSlot, slot_id)
-    if slot is None or slot.coach_id != coach.id:
-        raise HTTPException(status_code=404, detail="Nie znaleziono")
+    slot = require_owned_resource(
+        db.get(ConsultSlot, slot_id), actor=coach, resource=f"consult_slot:{slot_id}"
+    )
     booked_client = slot.client_id
     slot.status = "CANCELLED"
     record_event(
@@ -152,7 +152,10 @@ def book_slot(
     if slot is None or slot.status != "OPEN":
         raise HTTPException(status_code=404, detail="Termin niedostępny")
     if not active_relationship(db, slot.coach_id, user.id):
-        raise HTTPException(status_code=404, detail="Termin niedostępny")
+        # Slot istnieje, ale należy do trenera, z którym aktor nie ma
+        # AKTYWNEJ relacji — logowana odmowa zasobowa (ta sama odpowiedź
+        # 404, żeby nie ujawniać kalendarza obcego trenera).
+        deny(user.id, f"consult_slot:{slot_id}")
     if slot.starts_at <= local_now_minute():
         raise HTTPException(status_code=422, detail="Termin już minął")
     slot.status = "BOOKED"
@@ -179,8 +182,11 @@ def unbook_slot(
     db: Session = Depends(get_db),
 ):
     slot = db.get(ConsultSlot, slot_id)
-    if slot is None or slot.status != "BOOKED" or slot.client_id != user.id:
+    if slot is None or slot.status != "BOOKED":
         raise HTTPException(status_code=404, detail="Nie znaleziono rezerwacji")
+    if slot.client_id != user.id:
+        # Cudza rezerwacja — logowana odmowa (nie zdradzamy, czyja jest).
+        deny(user.id, f"consult_slot:{slot_id}")
     limit = (local_now() + timedelta(hours=CLIENT_CANCEL_HOURS)).strftime("%Y-%m-%dT%H:%M")
     if slot.starts_at <= limit:
         raise HTTPException(

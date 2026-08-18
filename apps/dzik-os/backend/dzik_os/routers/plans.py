@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from .. import push_service
-from ..authz import require_attachable_file, resolve_client_access
+from ..authz import deny, require_attachable_file, require_owned_resource, resolve_client_access
 from ..db import get_db
 from ..hos_bridge import record_event
 from ..models import (
@@ -108,9 +108,9 @@ def create_plan_version(
 ):
     """Nowa wersja planu — poprzednia wersja pozostaje niezmieniona i dostępna.
     Wymagany jest powód zmiany (decyzja trenera jest audytowana)."""
-    plan = db.get(TrainingPlan, plan_id)
-    if plan is None or plan.coach_id != coach.id:
-        raise HTTPException(status_code=404, detail="Nie znaleziono")
+    plan = require_owned_resource(
+        db.get(TrainingPlan, plan_id), actor=coach, resource=f"plan:{plan_id}"
+    )
     if plan.client_id is not None:
         resolve_client_access(db, coach, plan.client_id, action="write")
     next_no = plan.current_version_no + 1
@@ -155,8 +155,11 @@ def copy_template_to_client(
     Kopia jest niezależna — późniejsza edycja szablonu nie zmienia planów
     klientów (pełna proweniencja zamiast współdzielenia obiektu)."""
     template = db.get(TrainingPlan, template_id)
-    if template is None or template.coach_id != coach.id or not template.is_template:
+    if template is None or not template.is_template:
         raise HTTPException(status_code=404, detail="Nie znaleziono szablonu")
+    if template.coach_id != coach.id:
+        # Szablon innego trenera — logowana odmowa zasobowa.
+        deny(coach.id, f"plan_template:{template_id}")
     resolve_client_access(db, coach, client_id, action="write")
     source_version = (
         db.query(TrainingPlanVersion)
@@ -236,7 +239,8 @@ def plan_versions(
     if plan.client_id is not None:
         resolve_client_access(db, user, plan.client_id)
     elif plan.coach_id != user.id:
-        raise HTTPException(status_code=404, detail="Nie znaleziono")
+        # Szablon (bez klienta) widzi wyłącznie jego autor.
+        deny(user.id, f"plan:{plan_id}")
     rows = (
         db.query(TrainingPlanVersion)
         .filter(TrainingPlanVersion.plan_id == plan_id)
@@ -260,7 +264,9 @@ def log_workout(
         raise HTTPException(status_code=404, detail="Nie znaleziono wersji planu")
     plan = db.get(TrainingPlan, version.plan_id)
     if plan is None or plan.client_id != client_id:
-        raise HTTPException(status_code=404, detail="Plan nie należy do tego klienta")
+        # Wersja planu innego klienta (IDOR na plan_version_id) — logowana
+        # odmowa; komunikat nie potwierdza istnienia cudzego planu.
+        deny(user.id, f"plan_version:{body.plan_version_id}")
     session = WorkoutSession(
         id=new_id("WKS"),
         client_id=client_id,

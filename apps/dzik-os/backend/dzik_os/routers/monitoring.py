@@ -17,7 +17,7 @@ from datetime import timedelta
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from ..authz import resolve_client_access
+from ..authz import deny, resolve_client_access
 from ..dates import local_today, parse_iso_date
 from ..db import get_db
 from ..hos_bridge import record_event
@@ -57,8 +57,11 @@ def complete_schedule_item(
     sam dzień nadpisuje wpis (idempotentne — nie mnoży rekordów)."""
     resolve_client_access(db, user, client_id, action="write")
     item = db.get(ScheduleItem, item_id)
-    if item is None or item.client_id != client_id:
+    if item is None:
         raise HTTPException(status_code=404, detail="Nie znaleziono")
+    if item.client_id != client_id:
+        # item_id z harmonogramu innego klienta (IDOR) — logowana odmowa.
+        deny(user.id, f"schedule_item:{item_id}")
     existing = (
         db.query(ScheduleCompletion)
         .filter_by(schedule_item_id=item_id, completed_on=body.completed_on)

@@ -3,7 +3,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from ..authz import resolve_client_access
+from ..authz import deny, resolve_client_access
 from ..db import get_db
 from ..hos_bridge import record_event
 from ..models import Goal, ProfileField, User, new_id, now_iso
@@ -175,10 +175,13 @@ def set_goal_status(
 ):
     resolve_client_access(db, user, client_id, action="write")
     goal = db.get(Goal, goal_id)
-    if goal is None or goal.client_id != client_id:
+    if goal is None:
         from fastapi import HTTPException
 
         raise HTTPException(status_code=404, detail="Nie znaleziono")
+    if goal.client_id != client_id:
+        # goal_id innego klienta podstawiony pod własny client_id (IDOR).
+        deny(user.id, f"goal:{goal_id}")
     previous = goal.status
     goal.status = body.status
     goal.updated_at = now_iso()

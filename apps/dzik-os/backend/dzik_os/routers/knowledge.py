@@ -8,7 +8,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from ..authz import require_attachable_file
+from ..authz import require_attachable_file, require_owned_resource
 from ..db import get_db
 from ..hos_bridge import record_event
 from ..models import CoachClientRelationship, KnowledgeItem, User, new_id, now_iso
@@ -78,9 +78,9 @@ def update_knowledge_item(
     coach: User = Depends(require_role("COACH")),
     db: Session = Depends(get_db),
 ):
-    item = db.get(KnowledgeItem, item_id)
-    if item is None or item.coach_id != coach.id:
-        raise HTTPException(status_code=404, detail="Nie znaleziono")
+    item = require_owned_resource(
+        db.get(KnowledgeItem, item_id), actor=coach, resource=f"knowledge:{item_id}"
+    )
     _check_file(db, coach, body.file_id)
     item.title, item.category, item.body = body.title, body.category, body.body
     item.external_url, item.file_id, item.pinned = body.external_url, body.file_id, body.pinned
@@ -103,9 +103,9 @@ def set_knowledge_status(
 ):
     if status not in {"ACTIVE", "ARCHIVED"}:
         raise HTTPException(status_code=422, detail="Nieprawidłowy status")
-    item = db.get(KnowledgeItem, item_id)
-    if item is None or item.coach_id != coach.id:
-        raise HTTPException(status_code=404, detail="Nie znaleziono")
+    item = require_owned_resource(
+        db.get(KnowledgeItem, item_id), actor=coach, resource=f"knowledge:{item_id}"
+    )
     item.status = status
     item.updated_at = now_iso()
     db.commit()

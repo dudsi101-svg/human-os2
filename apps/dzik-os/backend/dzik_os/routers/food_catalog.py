@@ -13,6 +13,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
+from ..authz import require_owned_resource
 from ..db import get_db
 from ..hos_bridge import record_event
 from ..models import CoachClientRelationship, FoodProduct, User, new_id, now_iso
@@ -74,9 +75,9 @@ def update_food_product(
     coach: User = Depends(require_role("COACH")),
     db: Session = Depends(get_db),
 ):
-    item = db.get(FoodProduct, item_id)
-    if item is None or item.coach_id != coach.id:
-        raise HTTPException(status_code=404, detail="Nie znaleziono")
+    item = require_owned_resource(
+        db.get(FoodProduct, item_id), actor=coach, resource=f"food_product:{item_id}"
+    )
     item.name, item.category = body.name, body.category
     item.kcal_100g, item.protein_100g = body.kcal_100g, body.protein_100g
     item.fat_100g, item.carbs_100g = body.fat_100g, body.carbs_100g
@@ -100,9 +101,9 @@ def set_food_product_status(
 ):
     if status not in {"ACTIVE", "ARCHIVED"}:
         raise HTTPException(status_code=422, detail="Nieprawidłowy status")
-    item = db.get(FoodProduct, item_id)
-    if item is None or item.coach_id != coach.id:
-        raise HTTPException(status_code=404, detail="Nie znaleziono")
+    item = require_owned_resource(
+        db.get(FoodProduct, item_id), actor=coach, resource=f"food_product:{item_id}"
+    )
     item.status = status
     item.updated_at = now_iso()
     db.commit()

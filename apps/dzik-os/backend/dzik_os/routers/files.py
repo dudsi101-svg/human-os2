@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Response, UploadFile
 from sqlalchemy.orm import Session
 
 from .. import file_safety
-from ..authz import active_relationship, resolve_client_access
+from ..authz import active_relationship, coach_can_access_client, resolve_client_access
 from ..config import settings
 from ..db import get_db
 from ..hos_bridge import record_event
@@ -42,9 +42,10 @@ async def upload_file(
 
 def _thread_attachment_access(db: Session, user: User, file_id: str) -> bool:
     """Załącznik wiadomości: klient z wątku widzi go zawsze (jak treść
-    wiadomości); trener z wątku — tylko dopóki relacja jest AKTYWNA
-    (ten sam kontrakt co messages._accessible_thread; wiadomości nie są
-    objęte zgodą health_data, więc bez bramki zgody)."""
+    wiadomości); trener z wątku — tylko w ramach aktywnej relacji i
+    nieocofniętej zgody (dokładnie ten sam kontrakt co
+    authz.require_thread_party; sensitive=False, bo treść wiadomości nie
+    jest daną zdrowotną)."""
     from ..models import Message, MessageThread
 
     threads = (
@@ -59,8 +60,8 @@ def _thread_attachment_access(db: Session, user: User, file_id: str) -> bool:
     for thread in threads:
         if thread.client_id == user.id:
             return True
-        if thread.coach_id == user.id and active_relationship(
-            db, user.id, thread.client_id
+        if thread.coach_id == user.id and coach_can_access_client(
+            db, user.id, thread.client_id, sensitive=False
         ):
             return True
     return False

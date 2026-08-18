@@ -170,10 +170,15 @@ def revoke_one_session(
     db: Session = Depends(get_db),
 ):
     """Zakończenie wybranej sesji (np. zapomniane urządzenie). Tylko własnej —
-    cudza lub nieznana sesja to 404 (bez ujawniania istnienia)."""
+    cudza lub nieznana sesja to 404 (bez ujawniania istnienia); próba
+    dotknięcia cudzej AKTYWNEJ sesji jest logowana jako ACCESS_DENIED."""
+    from ..authz import deny
+
     row = db.get(AuthSession, session_id)
-    if row is None or row.user_id != user.id or row.revoked_at is not None:
+    if row is None or row.revoked_at is not None:
         raise HTTPException(status_code=404, detail="Nie znaleziono sesji")
+    if row.user_id != user.id:
+        deny(user.id, f"auth_session:{session_id}")
     row.revoked_at = now_iso()
     record_event(
         db,
