@@ -120,7 +120,7 @@ export default function ConsentGate({
 
         {requiredPending.length > 0 && (
           <div className="card">
-            <h3 style={{ marginTop: 0 }}>Wymagane do współpracy</h3>
+            <h2 style={{ marginTop: 0 }}>Wymagane do współpracy</h2>
             <p style={{ fontSize: "0.9rem" }}>
               Te punkty wynikają z umowy o prowadzenie trenerskie (jedna
               współpraca — potwierdzasz je razem). Bez nich aplikacja nie
@@ -153,7 +153,7 @@ export default function ConsentGate({
 
         {optionalPending.length > 0 && (
           <div className="card">
-            <h3 style={{ marginTop: 0 }}>Zgody opcjonalne — zdecyduj o każdej osobno</h3>
+            <h2 style={{ marginTop: 0 }}>Zgody opcjonalne — zdecyduj o każdej osobno</h2>
             <p style={{ fontSize: "0.9rem" }}>
               Każda z tych zgód dotyczy innego celu i jest w pełni
               dobrowolna. Odmowa nie blokuje pozostałych funkcji aplikacji.

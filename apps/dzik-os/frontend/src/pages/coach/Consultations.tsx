@@ -66,21 +66,21 @@ export default function Consultations() {
         chwili z powiadomieniem).
       </p>
       <form className="card" onSubmit={create}>
-        <h3>Nowy termin</h3>
+        <h2>Nowy termin</h2>
         <div className="field-row">
           <div>
-            <label>Data</label>
-            <input type="date" required value={date}
+            <label htmlFor="cs-date">Data</label>
+            <input id="cs-date" type="date" required value={date}
               onChange={(e) => setDate(e.target.value)} />
           </div>
           <div>
-            <label>Godzina</label>
-            <input type="time" required value={time}
+            <label htmlFor="cs-time">Godzina</label>
+            <input id="cs-time" type="time" required value={time}
               onChange={(e) => setTime(e.target.value)} />
           </div>
         </div>
-        <label>Czas trwania</label>
-        <select value={duration} onChange={(e) => setDuration(e.target.value)}>
+        <label htmlFor="cs-duration">Czas trwania</label>
+        <select id="cs-duration" value={duration} onChange={(e) => setDuration(e.target.value)}>
           <option value="15">15 min</option>
           <option value="30">30 min</option>
           <option value="45">45 min</option>

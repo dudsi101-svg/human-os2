@@ -2,8 +2,8 @@ import { FormEvent, useEffect, useState } from "react";
 import { api, clearSession, getUser } from "../../api";
 import { plDate } from "../../dates";
 import {
-  ErrorBox, MfaCard, PushNotificationsCard, SecurityEventsCard, SessionsCard,
-  Spinner, TopBar,
+  ErrorBox, Icon, MfaCard, PushNotificationsCard, SecurityEventsCard,
+  SessionsCard, Spinner, TopBar,
 } from "../../components";
 import { ConsentDetails } from "../ConsentGate";
 import {
@@ -152,16 +152,16 @@ export default function Profile() {
       <TopBar title="Profil" />
       <PushNotificationsCard />
       <ErrorBox error={error} onRetry={load} />
-      {ok && <div className="alert alert--info">{ok}</div>}
+      {ok && <div className="alert alert--info" role="status">{ok}</div>}
 
       <form className="card" onSubmit={saveProfile}>
-        <h3>{user.display_name}</h3>
+        <h2>{user.display_name}</h2>
         <small>{user.email}</small>
         {allKeys.map((key) => {
           const f = byKey[key];
           return (
             <div key={key}>
-              <label>
+              <label htmlFor={`pf-${key}`}>
                 {FIELD_LABELS[key] ?? key}
                 {f && (
                   <span className="dim">
@@ -169,7 +169,7 @@ export default function Profile() {
                   </span>
                 )}
               </label>
-              <input value={edits[key] ?? f?.value ?? ""}
+              <input id={`pf-${key}`} value={edits[key] ?? f?.value ?? ""}
                 onChange={(e) => setEdits({ ...edits, [key]: e.target.value })} />
             </div>
           );
@@ -180,7 +180,7 @@ export default function Profile() {
       </form>
 
       <div className="card">
-        <h3>Cele</h3>
+        <h2>Cele</h2>
         {goals.length === 0 && <small>Brak zdefiniowanych celów.</small>}
         {goals.map((g) => (
           <div className="exercise" key={g.id}>
@@ -207,15 +207,16 @@ export default function Profile() {
       <SecurityEventsCard />
 
       <div className="card">
-        <h3>Twoje dane</h3>
+        <h2>Twoje dane</h2>
         <div className="row" style={{ flexWrap: "wrap" }}>
           <button className="btn btn--ghost btn--small" onClick={exportData}>
-            ⬇️ Eksportuj wszystkie dane (JSON)
+            <Icon name="download" size={16} /> Eksportuj wszystkie dane (JSON)
           </button>
           <button className="btn btn--ghost btn--small" onClick={exportDataExcel}>
-            ⬇️ Eksportuj do Excela
+            <Icon name="download" size={16} /> Eksportuj do Excela
           </button>
-          <button className="btn btn--danger btn--small" onClick={() => setShowDelete(!showDelete)}>
+          <button className="btn btn--danger btn--small" aria-expanded={showDelete}
+            onClick={() => setShowDelete(!showDelete)}>
             Usuń konto i dane
           </button>
         </div>
@@ -225,11 +226,11 @@ export default function Profile() {
               Operacja nieodwracalna: konto zostanie zanonimizowane, zdjęcia i
               pliki usunięte. Wpisz hasło oraz frazę <b>USUŃ MOJE DANE</b>.
             </p>
-            <label>Hasło</label>
-            <input type="password" value={deletePassword}
+            <label htmlFor="del-pass">Hasło</label>
+            <input id="del-pass" type="password" value={deletePassword}
               onChange={(e) => setDeletePassword(e.target.value)} required />
-            <label>Fraza potwierdzająca</label>
-            <input value={deletePhrase} onChange={(e) => setDeletePhrase(e.target.value)}
+            <label htmlFor="del-phrase">Fraza potwierdzająca</label>
+            <input id="del-phrase" value={deletePhrase} onChange={(e) => setDeletePhrase(e.target.value)}
               placeholder="USUŃ MOJE DANE" required />
             <div style={{ marginTop: 10 }}>
               <button className="btn btn--danger">Usuń trwale</button>
@@ -349,18 +350,18 @@ function ConsentsCard({
 
   return (
     <div className="card">
-      <h3>Prywatność i zgody</h3>
+      <h2>Prywatność i zgody</h2>
       <small>
         Twoje dane należą do Ciebie. Każda kategoria to osobna decyzja —
         cofnięcie działa natychmiast i dotyczy tylko tej kategorii.
       </small>
-      <h4 style={{ marginBottom: 4 }}>Wymagane do współpracy (umowa)</h4>
+      <h3 style={{ marginBottom: 4 }}>Wymagane do współpracy (umowa)</h3>
       {section(catalog.filter((c) => c.required))}
-      <h4 style={{ marginBottom: 4 }}>Zgody opcjonalne</h4>
+      <h3 style={{ marginBottom: 4 }}>Zgody opcjonalne</h3>
       {section(catalog.filter((c) => !c.required))}
       {legacyRows.length > 0 && (
         <>
-          <h4 style={{ marginBottom: 4 }}>Zgody historyczne (sprzed podziału na kategorie)</h4>
+          <h3 style={{ marginBottom: 4 }}>Zgody historyczne (sprzed podziału na kategorie)</h3>
           {legacyRows.map((c) => (
             <div className="exercise" key={c.id}>
               <div>

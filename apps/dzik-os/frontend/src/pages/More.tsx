@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { getUser } from "../api";
 import {
-  LogoutButton, MfaCard, PushNotificationsCard, SecurityEventsCard,
+  Icon, LogoutButton, MfaCard, PushNotificationsCard, SecurityEventsCard,
   SessionsCard, TopBar,
 } from "../components";
 
@@ -24,22 +24,40 @@ export default function More() {
       {!isClient && <SecurityEventsCard />}
       {user.roles.includes("COACH") && (
         <div className="list" style={{ marginBottom: 10 }}>
-          <Link className="card" to="/trener/konsultacje">📅 Terminarz konsultacji</Link>
+          <Link className="card card--nav" to="/trener/konsultacje">
+            <Icon name="calendar" /><span>Terminarz konsultacji</span>
+          </Link>
         </div>
       )}
       <div className="list">
         {isClient && (
           <>
-            <Link className="card" to="/postepy">📈 Monitoring i postępy</Link>
-            <Link className="card" to="/wiedza">📚 Baza wiedzy</Link>
-            <Link className="card" to="/konsultacje">📅 Konsultacje z trenerem</Link>
-            <Link className="card" to="/dokumenty">📄 Dokumenty i harmonogram</Link>
-            <Link className="card" to="/platnosci">💳 Płatności</Link>
-            <Link className="card" to="/wiadomosci">💬 Wiadomości</Link>
-            <Link className="card" to="/profil">👤 Profil, zgody i moje dane</Link>
+            <Link className="card card--nav" to="/postepy">
+              <Icon name="chart" /><span>Monitoring i postępy</span>
+            </Link>
+            <Link className="card card--nav" to="/wiedza">
+              <Icon name="knowledge" /><span>Baza wiedzy</span>
+            </Link>
+            <Link className="card card--nav" to="/konsultacje">
+              <Icon name="calendar" /><span>Konsultacje z trenerem</span>
+            </Link>
+            <Link className="card card--nav" to="/dokumenty">
+              <Icon name="file" /><span>Dokumenty i harmonogram</span>
+            </Link>
+            <Link className="card card--nav" to="/platnosci">
+              <Icon name="card" /><span>Płatności</span>
+            </Link>
+            <Link className="card card--nav" to="/wiadomosci">
+              <Icon name="msg" /><span>Wiadomości</span>
+            </Link>
+            <Link className="card card--nav" to="/profil">
+              <Icon name="user" /><span>Profil, zgody i moje dane</span>
+            </Link>
           </>
         )}
-        <Link className="card" to="/haslo">🔑 Zmień hasło</Link>
+        <Link className="card card--nav" to="/haslo">
+          <Icon name="key" /><span>Zmień hasło</span>
+        </Link>
       </div>
       <p className="dim" style={{ fontSize: "0.78rem" }}>
         Dzik OS działa na fundamentach Human OS: Twoje dane są Twoją

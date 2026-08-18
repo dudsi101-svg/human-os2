@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useId, useState } from "react";
 import { api, getUser } from "../../api";
 import { mondayOfWeek, plDate } from "../../dates";
 import { ErrorBox, SectionLabel, Spinner, TopBar } from "../../components";
@@ -76,7 +76,7 @@ export default function Checkin() {
       <TopBar title="Raport tygodniowy" />
       <form className="card" onSubmit={submit}>
         <div className="row row--between">
-          <h3 style={{ margin: 0 }}>Tydzień od {plDate(currentWeek)}</h3>
+          <h2 style={{ margin: 0 }}>Tydzień od {plDate(currentWeek)}</h2>
           {existing && (
             <span className={`badge ${locked ? "badge--ok" : "badge--warn"}`}>
               {locked ? "oceniony" : `rewizja ${existing.revision}`}
@@ -98,20 +98,20 @@ export default function Checkin() {
         <SectionLabel n={1} title="Ciało" />
         <div className="field-row">
           <div>
-            <label>Masa ciała (kg)</label>
-            <input type="number" step="0.1" min="0"
+            <label htmlFor="ck-weight">Masa ciała (kg)</label>
+            <input id="ck-weight" type="number" step="0.1" min="0"
               value={(form.weight_kg as string) ?? ""}
               onChange={(e) => set("weight_kg", e.target.value)} />
           </div>
           <div>
-            <label>Wykonane treningi</label>
-            <input type="number" min="0" max="21"
+            <label htmlFor="ck-trainings">Wykonane treningi</label>
+            <input id="ck-trainings" type="number" min="0" max="21"
               value={(form.trainings_done as string) ?? ""}
               onChange={(e) => set("trainings_done", e.target.value)} />
           </div>
         </div>
-        <label>Zdjęcia sylwetki (opcjonalnie, maks. {MAX_PHOTOS})</label>
-        <input type="file" accept="image/jpeg,image/png,image/webp" multiple
+        <label htmlFor="ck-photos">Zdjęcia sylwetki (opcjonalnie, maks. {MAX_PHOTOS})</label>
+        <input id="ck-photos" type="file" accept="image/jpeg,image/png,image/webp" multiple
           onChange={(e) => setPhotos(Array.from(e.target.files ?? []))} />
         {photos.length > 0 && (
           <small style={photos.length > MAX_PHOTOS ? { color: "var(--danger)" } : undefined}>
@@ -131,19 +131,19 @@ export default function Checkin() {
         ))}
 
         <SectionLabel n={3} title="Ból, urazy i pytania" />
-        <label>Ból lub urazy (jeśli wystąpiły)</label>
-        <textarea value={(form.pain_note as string) ?? ""}
+        <label htmlFor="ck-pain">Ból lub urazy (jeśli wystąpiły)</label>
+        <textarea id="ck-pain" value={(form.pain_note as string) ?? ""}
           placeholder="Opisz dokładnie: gdzie, kiedy, przy jakim ruchu"
           onChange={(e) => set("pain_note", e.target.value)} />
-        <label>Komentarz</label>
-        <textarea value={(form.comment as string) ?? ""}
+        <label htmlFor="ck-comment">Komentarz</label>
+        <textarea id="ck-comment" value={(form.comment as string) ?? ""}
           onChange={(e) => set("comment", e.target.value)} />
-        <label>Pytania do trenera</label>
-        <textarea value={(form.questions as string) ?? ""}
+        <label htmlFor="ck-questions">Pytania do trenera</label>
+        <textarea id="ck-questions" value={(form.questions as string) ?? ""}
           onChange={(e) => set("questions", e.target.value)} />
 
         <ErrorBox error={error} />
-        {ok && <div className="alert alert--info">{ok}</div>}
+        {ok && <div className="alert alert--info" role="status">{ok}</div>}
         <div style={{ marginTop: 12 }}>
           <button className="btn" disabled={busy || locked}>
             {busy ? "Wysyłanie…" : existing ? "Wyślij poprawkę" : "Wyślij raport"}
@@ -187,15 +187,19 @@ export default function Checkin() {
 function ScaleRow({ label, hint, value, onChange }: {
   label: string; hint: string; value: number; onChange: (v: number) => void;
 }) {
+  // Suwak z jawnie połączoną etykietą (for/id) i podpowiedzią skali
+  // (aria-describedby) — czytnik ekranu ogłasza nazwę, wartość i kierunek.
+  const id = useId();
   return (
     <div className="scale-row">
       <div className="row row--between">
-        <label style={{ margin: 0 }}>{label}</label>
-        <span className="badge badge--accent">{value}/5</span>
+        <label htmlFor={id} style={{ margin: 0 }}>{label}</label>
+        <span className="badge badge--accent" aria-hidden>{value}/5</span>
       </div>
-      <input type="range" min="1" max="5" value={value}
+      <input id={id} type="range" min="1" max="5" value={value}
+        aria-describedby={`${id}-hint`} aria-valuetext={`${value} na 5 (${hint})`}
         onChange={(e) => onChange(Number(e.target.value))} />
-      <div className="scale-row__hint">{hint}</div>
+      <div className="scale-row__hint" id={`${id}-hint`}>{hint}</div>
     </div>
   );
 }

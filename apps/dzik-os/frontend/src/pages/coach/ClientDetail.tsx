@@ -5,6 +5,7 @@ import { WEEKDAYS, plDate, plDateTime } from "../../dates";
 import {
   AuthImage,
   ErrorBox,
+  Icon,
   PersonalRecordsCard,
   PhotoCompare,
   ProgressPhotoRow,
@@ -12,6 +13,8 @@ import {
   Sparkline,
   Spinner,
   StrengthChartsCard,
+  TabPanel,
+  Tabs,
   TopBar,
 } from "../../components";
 import {
@@ -96,22 +99,18 @@ export default function ClientDetail() {
       <TopBar title={name || "Klient"}
         right={<Link className="btn btn--ghost btn--small" to="/trener">← Lista</Link>} />
       <ErrorBox error={error} onRetry={() => setAttempt((a) => a + 1)} />
-      <div className="tabs">
-        {TABS.map(([key, label]) => (
-          <button key={key} className={tab === key ? "active" : ""} onClick={() => setTab(key)}>
-            {label}
-          </button>
-        ))}
-      </div>
-      {tab === "profil" && <ProfileTab clientId={clientId!} />}
-      {tab === "plan" && <PlanTab clientId={clientId!} />}
-      {tab === "dieta" && <NutritionTab clientId={clientId!} />}
-      {tab === "harmonogram" && <ScheduleTab clientId={clientId!} />}
-      {tab === "raporty" && <CheckinsTab clientId={clientId!} />}
-      {tab === "pomiary" && <MeasurementsTab clientId={clientId!} />}
-      {tab === "monitoring" && <MonitoringTab clientId={clientId!} />}
-      {tab === "platnosci" && <PaymentsTab clientId={clientId!} />}
-      {tab === "historia" && <HistoryTab clientId={clientId!} />}
+      <Tabs tabs={TABS} value={tab} onChange={setTab} label="Sekcje karty klienta" />
+      <TabPanel id={tab}>
+        {tab === "profil" && <ProfileTab clientId={clientId!} />}
+        {tab === "plan" && <PlanTab clientId={clientId!} />}
+        {tab === "dieta" && <NutritionTab clientId={clientId!} />}
+        {tab === "harmonogram" && <ScheduleTab clientId={clientId!} />}
+        {tab === "raporty" && <CheckinsTab clientId={clientId!} />}
+        {tab === "pomiary" && <MeasurementsTab clientId={clientId!} />}
+        {tab === "monitoring" && <MonitoringTab clientId={clientId!} />}
+        {tab === "platnosci" && <PaymentsTab clientId={clientId!} />}
+        {tab === "historia" && <HistoryTab clientId={clientId!} />}
+      </TabPanel>
     </div>
   );
 }
@@ -153,23 +152,25 @@ function ProfileTab({ clientId }: { clientId: string }) {
   return (
     <>
       <div className="card">
-        <h3>Profil (z proweniencją pól)</h3>
-        <table className="simple">
-          <thead><tr><th>Pole</th><th>Wartość</th><th>Źródło</th><th>Wersja</th></tr></thead>
-          <tbody>
-            {fields.map((f) => (
-              <tr key={f.field_key}>
-                <td>{f.field_key}</td>
-                <td>{f.value}</td>
-                <td><small>{f.source === "CLIENT_DECLARED" ? "klient" : "trener"} · {plDate(f.created_at)}</small></td>
-                <td>v{f.version}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <h2>Profil (z proweniencją pól)</h2>
+        <div className="table-wrap">
+          <table className="simple table--cards">
+            <thead><tr><th>Pole</th><th>Wartość</th><th>Źródło</th><th>Wersja</th></tr></thead>
+            <tbody>
+              {fields.map((f) => (
+                <tr key={f.field_key}>
+                  <td data-label="Pole">{f.field_key}</td>
+                  <td data-label="Wartość">{f.value}</td>
+                  <td data-label="Źródło"><small>{f.source === "CLIENT_DECLARED" ? "klient" : "trener"} · {plDate(f.created_at)}</small></td>
+                  <td data-label="Wersja">v{f.version}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
       <div className="card">
-        <h3>Cele</h3>
+        <h2>Cele</h2>
         {goals.map((g) => (
           <div className="exercise" key={g.id}>
             <div><b>{g.title}</b>{g.target_date && <div className="meta">do {plDate(g.target_date)}</div>}</div>
@@ -178,7 +179,7 @@ function ProfileTab({ clientId }: { clientId: string }) {
         ))}
         <ErrorBox error={goalError} />
         <form className="row" style={{ marginTop: 8 }} onSubmit={addGoal}>
-          <input className="grow" placeholder="Nowy cel…" required value={goalTitle}
+          <input className="grow" placeholder="Nowy cel…" aria-label="Nowy cel" required value={goalTitle}
             onChange={(e) => setGoalTitle(e.target.value)} />
           <button className="btn btn--small">Dodaj</button>
         </form>
@@ -261,6 +262,7 @@ function PlanTab({ clientId }: { clientId: string }) {
           {templates.length > 0 && (
             <>
               <select value={templateId} style={{ width: "auto" }}
+                aria-label="Wybierz szablon planu"
                 onChange={(e) => setTemplateId(e.target.value)}>
                 <option value="">Z szablonu…</option>
                 {templates.map((t) => <option key={t.id} value={t.id}>{t.title}</option>)}
@@ -277,7 +279,7 @@ function PlanTab({ clientId }: { clientId: string }) {
       {plan?.current_version && (
         <div className="card">
           <div className="row row--between">
-            <h3>{plan.title}</h3>
+            <h2>{plan.title}</h2>
             <span className="badge badge--accent">v{plan.current_version_no}</span>
           </div>
           <small>Powód: {plan.current_version.reason}</small>
@@ -298,20 +300,26 @@ function PlanTab({ clientId }: { clientId: string }) {
       )}
       {versions && versions.length > 1 && (
         <div className="card">
-          <h3>Historia wersji</h3>
-          <table className="simple">
-            <thead><tr><th>Wersja</th><th>Data</th><th>Powód</th></tr></thead>
-            <tbody>
-              {versions.slice().reverse().map((v) => (
-                <tr key={v.id}><td>v{v.version_no}</td><td>{plDate(v.created_at)}</td><td>{v.reason}</td></tr>
-              ))}
-            </tbody>
-          </table>
+          <h2>Historia wersji</h2>
+          <div className="table-wrap">
+            <table className="simple table--cards">
+              <thead><tr><th>Wersja</th><th>Data</th><th>Powód</th></tr></thead>
+              <tbody>
+                {versions.slice().reverse().map((v) => (
+                  <tr key={v.id}>
+                    <td data-label="Wersja">v{v.version_no}</td>
+                    <td data-label="Data">{plDate(v.created_at)}</td>
+                    <td data-label="Powód">{v.reason}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
       {workouts.length > 0 && (
         <div className="card">
-          <h3>Wykonane treningi</h3>
+          <h2>Wykonane treningi</h2>
           {workouts.slice(0, 12).map((w) => (
             <div className="exercise" key={w.id}>
               <div>
@@ -403,24 +411,24 @@ function NutritionTab({ clientId }: { clientId: string }) {
         <form className="card card--accent" onSubmit={save}>
           {!plan && (
             <>
-              <label>Nazwa planu żywieniowego</label>
-              <input required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
+              <label htmlFor="nt-title">Nazwa planu żywieniowego</label>
+              <input id="nt-title" required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
             </>
           )}
-          <label>Powód zmiany</label>
-          <input required value={form.reason} onChange={(e) => setForm({ ...form, reason: e.target.value })} />
+          <label htmlFor="nt-reason">Powód zmiany</label>
+          <input id="nt-reason" required value={form.reason} onChange={(e) => setForm({ ...form, reason: e.target.value })} />
           <div className="field-row">
-            <div><label>kcal</label><input type="number" value={form.kcal} onChange={(e) => setForm({ ...form, kcal: e.target.value })} /></div>
-            <div><label>Białko (g)</label><input type="number" value={form.protein_g} onChange={(e) => setForm({ ...form, protein_g: e.target.value })} /></div>
+            <div><label htmlFor="nt-kcal">kcal</label><input id="nt-kcal" type="number" value={form.kcal} onChange={(e) => setForm({ ...form, kcal: e.target.value })} /></div>
+            <div><label htmlFor="nt-protein">Białko (g)</label><input id="nt-protein" type="number" value={form.protein_g} onChange={(e) => setForm({ ...form, protein_g: e.target.value })} /></div>
           </div>
           <div className="field-row">
-            <div><label>Tłuszcze (g)</label><input type="number" value={form.fat_g} onChange={(e) => setForm({ ...form, fat_g: e.target.value })} /></div>
-            <div><label>Węglowodany (g)</label><input type="number" value={form.carbs_g} onChange={(e) => setForm({ ...form, carbs_g: e.target.value })} /></div>
+            <div><label htmlFor="nt-fat">Tłuszcze (g)</label><input id="nt-fat" type="number" value={form.fat_g} onChange={(e) => setForm({ ...form, fat_g: e.target.value })} /></div>
+            <div><label htmlFor="nt-carbs">Węglowodany (g)</label><input id="nt-carbs" type="number" value={form.carbs_g} onChange={(e) => setForm({ ...form, carbs_g: e.target.value })} /></div>
           </div>
-          <label>Zalecenia tekstowe</label>
-          <textarea value={form.zasady} onChange={(e) => setForm({ ...form, zasady: e.target.value })} />
-          <label>Posiłki (jeden na linię: „Nazwa: opis")</label>
-          <textarea value={form.meals} onChange={(e) => setForm({ ...form, meals: e.target.value })} />
+          <label htmlFor="nt-zasady">Zalecenia tekstowe</label>
+          <textarea id="nt-zasady" value={form.zasady} onChange={(e) => setForm({ ...form, zasady: e.target.value })} />
+          <label htmlFor="nt-meals">Posiłki (jeden na linię: „Nazwa: opis")</label>
+          <textarea id="nt-meals" value={form.meals} onChange={(e) => setForm({ ...form, meals: e.target.value })} />
           <div className="row" style={{ marginTop: 10 }}>
             <button className="btn">Zapisz</button>
             <button type="button" className="btn btn--ghost" onClick={() => setEditing(false)}>Anuluj</button>
@@ -430,7 +438,7 @@ function NutritionTab({ clientId }: { clientId: string }) {
       {v && (
         <div className="card">
           <div className="row row--between">
-            <h3>{plan!.title}</h3>
+            <h2>{plan!.title}</h2>
             <span className="badge badge--accent">v{plan!.current_version_no}</span>
           </div>
           <small>Powód: {v.reason}</small>
@@ -493,31 +501,32 @@ function ScheduleTab({ clientId }: { clientId: string }) {
   return (
     <>
       <form className="card" onSubmit={add}>
-        <h3>Dodaj element harmonogramu</h3>
+        <h2>Dodaj element harmonogramu</h2>
         <div className="field-row">
           <div>
-            <label>Nazwa</label>
-            <input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+            <label htmlFor="sch-name">Nazwa</label>
+            <input id="sch-name" required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
           </div>
           <div>
-            <label>Kategoria</label>
-            <select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>
+            <label htmlFor="sch-category">Kategoria</label>
+            <select id="sch-category" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>
               {Object.entries(CATEGORY_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
             </select>
           </div>
         </div>
         <div className="field-row">
           <div>
-            <label>Pora (HH:MM)</label>
-            <input value={form.time_of_day} placeholder="np. 08:00" pattern="\d{2}:\d{2}"
+            <label htmlFor="sch-time">Pora (HH:MM)</label>
+            <input id="sch-time" value={form.time_of_day} placeholder="np. 08:00" pattern="\d{2}:\d{2}"
               onChange={(e) => setForm({ ...form, time_of_day: e.target.value })} />
           </div>
           <div>
-            <label>Dni tygodnia</label>
-            <div className="row" style={{ flexWrap: "wrap", gap: 4 }}>
+            <span style={{ display: "block", fontSize: "0.85rem", color: "var(--text-dim)", margin: "10px 0 4px" }} id="sch-days-label">Dni tygodnia</span>
+            <div className="row" style={{ flexWrap: "wrap", gap: 4 }} role="group" aria-labelledby="sch-days-label">
               {WEEKDAYS.map((w, i) => (
                 <button type="button" key={i}
                   className={`btn btn--ghost btn--small ${form.days.includes(i + 1) ? "active" : ""}`}
+                  aria-pressed={form.days.includes(i + 1)}
                   style={form.days.includes(i + 1) ? { background: "var(--accent)", color: "var(--accent-ink)" } : {}}
                   onClick={() => setForm({
                     ...form,
@@ -531,12 +540,12 @@ function ScheduleTab({ clientId }: { clientId: string }) {
             </div>
           </div>
         </div>
-        <label>Instrukcja</label>
-        <input value={form.instruction} onChange={(e) => setForm({ ...form, instruction: e.target.value })} />
+        <label htmlFor="sch-instruction">Instrukcja</label>
+        <input id="sch-instruction" value={form.instruction} onChange={(e) => setForm({ ...form, instruction: e.target.value })} />
         {form.category === "SUPLEMENT" && (
           <>
-            <label>Autor zalecenia / źródło (wymagane dla suplementów)</label>
-            <input required value={form.author_note}
+            <label htmlFor="sch-author">Autor zalecenia / źródło (wymagane dla suplementów)</label>
+            <input id="sch-author" required value={form.author_note}
               placeholder="np. dawka wpisana na prośbę klienta; zalecenie lekarza"
               onChange={(e) => setForm({ ...form, author_note: e.target.value })} />
             <small className="dim">
@@ -559,13 +568,15 @@ function ScheduleTab({ clientId }: { clientId: string }) {
                 {s.time_of_day && ` · ${s.time_of_day}`}
                 {s.instruction && ` · ${s.instruction}`}
               </div>
-              {s.author_note && <small className="dim">ℹ️ {s.author_note}</small>}
+              {s.author_note && <small className="dim"><Icon name="info" size={14} label="autor zalecenia" /> {s.author_note}</small>}
             </div>
             <div className="row">
               {s.status === "ACTIVE" ? (
-                <button className="btn btn--ghost btn--small" onClick={() => setStatus(s.id, "PAUSED")}>⏸</button>
+                <button className="btn btn--ghost btn--small" aria-label={`Wstrzymaj: ${s.name}`}
+                  onClick={() => setStatus(s.id, "PAUSED")}><Icon name="pause" size={18} /></button>
               ) : (
-                <button className="btn btn--ghost btn--small" onClick={() => setStatus(s.id, "ACTIVE")}>▶</button>
+                <button className="btn btn--ghost btn--small" aria-label={`Wznów: ${s.name}`}
+                  onClick={() => setStatus(s.id, "ACTIVE")}><Icon name="play" size={18} /></button>
               )}
               <button className="btn btn--danger btn--small" onClick={() => setStatus(s.id, "ENDED")}>Zakończ</button>
             </div>
@@ -634,7 +645,7 @@ function CheckinsTab({ clientId }: { clientId: string }) {
         return (
           <div className="card" key={c.id}>
             <div className="row row--between">
-              <h3 style={{ margin: 0 }}>Tydzień {plDate(c.week_start)}</h3>
+              <h2 style={{ margin: 0 }}>Tydzień {plDate(c.week_start)}</h2>
               <span className={`badge ${c.status === "REVIEWED" ? "badge--ok" : "badge--warn"}`}>
                 {c.status === "REVIEWED" ? "oceniony" : `do oceny${c.revision > 1 ? ` · rew. ${c.revision}` : ""}`}
               </span>
@@ -657,7 +668,7 @@ function CheckinsTab({ clientId }: { clientId: string }) {
               <>
                 <SectionLabel n={3} title="Ból, komentarz, pytania" />
                 {typeof c.payload.pain_note === "string" && c.payload.pain_note && (
-                  <p className="alert alert--error">⚠️ Ból/uraz: {c.payload.pain_note}</p>
+                  <p className="alert alert--error"><Icon name="warn" size={16} /> Ból/uraz: {c.payload.pain_note}</p>
                 )}
                 {typeof c.payload.comment === "string" && c.payload.comment && (
                   <p><b>Komentarz:</b> {c.payload.comment}</p>
@@ -688,7 +699,7 @@ function CheckinsTab({ clientId }: { clientId: string }) {
                 {!state && (
                   <button type="button" className="btn btn--ghost btn--small"
                     onClick={() => requestAiSummary(c.id)}>
-                    ✨ Podsumowanie AI (propozycja)
+                    <Icon name="sparkle" size={16} /> Podsumowanie AI (propozycja)
                   </button>
                 )}
                 {state?.loading && <p className="dim">Generowanie propozycji…</p>}
@@ -707,7 +718,8 @@ function CheckinsTab({ clientId }: { clientId: string }) {
                     )}
                   </div>
                 )}
-                <textarea placeholder="Odpowiedź dla klienta…" value={responses[c.id] ?? ""}
+                <textarea placeholder="Odpowiedź dla klienta…" aria-label="Odpowiedź dla klienta"
+                  value={responses[c.id] ?? ""}
                   onChange={(e) => setResponses({ ...responses, [c.id]: e.target.value })} />
                 {state?.draft && (
                   <button type="button" className="btn btn--ghost btn--small" style={{ marginTop: 6 }}
@@ -716,11 +728,15 @@ function CheckinsTab({ clientId }: { clientId: string }) {
                   </button>
                 )}
                 <div className="row row--between" style={{ marginTop: 8, alignItems: "center" }}>
-                  <label style={{ margin: 0 }}>Ocena raportu (opcjonalnie)</label>
-                  <div className="row" style={{ gap: 4 }}>
+                  <span style={{ fontSize: "0.85rem", color: "var(--text-dim)" }} id={`rating-label-${c.id}`}>
+                    Ocena raportu (opcjonalnie)
+                  </span>
+                  <div className="row" style={{ gap: 4 }} role="group" aria-labelledby={`rating-label-${c.id}`}>
                     {[1, 2, 3, 4, 5].map((n) => (
                       <button type="button" key={n}
                         className={`btn btn--ghost btn--small ${ratings[c.id] === n ? "active" : ""}`}
+                        aria-pressed={ratings[c.id] === n}
+                        aria-label={`Ocena ${n} na 5`}
                         style={ratings[c.id] === n ? { background: "var(--accent)", color: "var(--accent-ink)" } : {}}
                         onClick={() => setRatings({ ...ratings, [c.id]: ratings[c.id] === n ? 0 : n })}>
                         {n}
@@ -766,10 +782,10 @@ function MeasurementsTab({ clientId }: { clientId: string }) {
         return (
           <div className="card" key={k}>
             <div className="row row--between">
-              <h3>{KIND_LABELS[k] ?? k}</h3>
+              <h2>{KIND_LABELS[k] ?? k}</h2>
               <span className="badge">{data[data.length - 1].value} {data[data.length - 1].unit}</span>
             </div>
-            <Sparkline unit={data[0].unit}
+            <Sparkline unit={data[0].unit} label={KIND_LABELS[k] ?? k}
               points={data.map((r) => ({ x: plDate(r.measured_at), y: r.value }))} />
           </div>
         );
@@ -829,21 +845,21 @@ function PaymentsTab({ clientId }: { clientId: string }) {
   return (
     <>
       <form className="card" onSubmit={create}>
-        <h3>Nowy pakiet płatności</h3>
+        <h2>Nowy pakiet płatności</h2>
         <div className="field-row">
-          <div><label>Nazwa pakietu</label>
-            <input required value={form.package_name}
+          <div><label htmlFor="pay-name">Nazwa pakietu</label>
+            <input id="pay-name" required value={form.package_name}
               onChange={(e) => setForm({ ...form, package_name: e.target.value })} /></div>
-          <div><label>Kwota (PLN)</label>
-            <input required type="text" inputMode="decimal" value={form.amount}
+          <div><label htmlFor="pay-amount">Kwota (PLN)</label>
+            <input id="pay-amount" required type="text" inputMode="decimal" value={form.amount}
               onChange={(e) => setForm({ ...form, amount: e.target.value })} /></div>
         </div>
         <div className="field-row">
-          <div><label>Pierwszy termin</label>
-            <input required type="date" value={form.first_due_date}
+          <div><label htmlFor="pay-due">Pierwszy termin</label>
+            <input id="pay-due" required type="date" value={form.first_due_date}
               onChange={(e) => setForm({ ...form, first_due_date: e.target.value })} /></div>
-          <div><label>Okres</label>
-            <select value={form.period} onChange={(e) => setForm({ ...form, period: e.target.value })}>
+          <div><label htmlFor="pay-period">Okres</label>
+            <select id="pay-period" value={form.period} onChange={(e) => setForm({ ...form, period: e.target.value })}>
               <option value="MONTHLY">miesięczny</option>
               <option value="WEEKLY">tygodniowy</option>
               <option value="ONE_OFF">jednorazowy</option>
@@ -854,7 +870,7 @@ function PaymentsTab({ clientId }: { clientId: string }) {
       {schedules.map((s) => (
         <div className="card" key={s.schedule_id}>
           <div className="row row--between">
-            <h3>{s.package_name}</h3>
+            <h2>{s.package_name}</h2>
             <div className="row">
               <b>{money(s.amount_cents, s.currency)}</b>
               <button className="btn btn--ghost btn--small" onClick={() => addRecord(s.schedule_id)}>
@@ -862,13 +878,14 @@ function PaymentsTab({ clientId }: { clientId: string }) {
               </button>
             </div>
           </div>
-          <table className="simple">
+          <div className="table-wrap">
+          <table className="simple table--cards">
             <thead><tr><th>Termin</th><th>Status</th><th>Akcje</th></tr></thead>
             <tbody>
               {s.records.map((r) => (
                 <tr key={r.id}>
-                  <td>{plDate(r.due_date)}</td>
-                  <td><span className={`badge ${r.status === "PAID" ? "badge--ok" : r.status === "CANCELLED" ? "" : "badge--warn"}`}>
+                  <td data-label="Termin">{plDate(r.due_date)}</td>
+                  <td data-label="Status"><span className={`badge ${r.status === "PAID" ? "badge--ok" : r.status === "CANCELLED" ? "" : "badge--warn"}`}>
                     {PAYMENT_LABELS[r.status]}</span></td>
                   <td>
                     {r.status !== "PAID" && (
@@ -884,6 +901,7 @@ function PaymentsTab({ clientId }: { clientId: string }) {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       ))}
     </>
@@ -912,7 +930,7 @@ function MonitoringTab({ clientId }: { clientId: string }) {
       {data.goal && (
         <div className="card card--accent">
           <div className="row row--between">
-            <h3>🎯 {data.goal.title}</h3>
+            <h2><Icon name="target" /> {data.goal.title}</h2>
             {data.goal.days_remaining !== null && (
               <span className="badge badge--accent">
                 {data.goal.days_remaining < 0
@@ -932,14 +950,14 @@ function MonitoringTab({ clientId }: { clientId: string }) {
 
       {Object.keys(data.adherence).length > 0 && (
         <div className="card">
-          <h3>Realizacja harmonogramu ({data.period_days} dni)</h3>
+          <h2>Realizacja harmonogramu ({data.period_days} dni)</h2>
           {Object.entries(data.adherence).map(([cat, b]) => (
             <div key={cat} style={{ marginBottom: 12 }}>
               <div className="row row--between">
                 <b style={{ fontSize: "0.9rem" }}>{CATEGORY_LABELS[cat] ?? cat}</b>
                 <small>{b.done}/{b.total}{b.pct !== null && ` · ${b.pct}%`}</small>
               </div>
-              <div style={{ background: "var(--bg-raised)", borderRadius: 999, height: 8, overflow: "hidden", marginTop: 4 }}>
+              <div aria-hidden style={{ background: "var(--bg-raised)", borderRadius: 999, height: 8, overflow: "hidden", marginTop: 4 }}>
                 <div style={{ width: `${Math.min(100, b.pct ?? 0)}%`, background: "var(--accent)", height: "100%" }} />
               </div>
             </div>
@@ -949,14 +967,15 @@ function MonitoringTab({ clientId }: { clientId: string }) {
 
       {Object.keys(data.wellbeing_series).length > 0 && (
         <div className="card">
-          <h3>Samopoczucie</h3>
+          <h2>Samopoczucie</h2>
           {Object.entries(data.wellbeing_series).map(([key, points]) => (
             <div key={key} style={{ marginTop: 10 }}>
               <div className="row row--between">
                 <b style={{ fontSize: "0.9rem" }}>{WELLBEING_LABELS[key] ?? key}</b>
                 <span className="badge">{points[points.length - 1].value}/5</span>
               </div>
-              <Sparkline unit="/5" points={points.map((p) => ({ x: plDate(p.date), y: p.value }))} />
+              <Sparkline unit="/5" label={WELLBEING_LABELS[key] ?? key}
+                points={points.map((p) => ({ x: plDate(p.date), y: p.value }))} />
             </div>
           ))}
         </div>
@@ -965,18 +984,18 @@ function MonitoringTab({ clientId }: { clientId: string }) {
       {data.nutrition.log_series.length >= 2 && (
         <div className="card">
           <div className="row row--between">
-            <h3>Dziennik kaloryczny</h3>
+            <h2>Dziennik kaloryczny</h2>
             {data.nutrition.target_kcal !== null && (
               <span className="badge">cel: {data.nutrition.target_kcal} kcal</span>
             )}
           </div>
-          <Sparkline unit="kcal"
+          <Sparkline unit="kcal" label="Dziennik kaloryczny"
             points={data.nutrition.log_series.map((p) => ({ x: plDate(p.date), y: p.value }))} />
         </div>
       )}
 
       <div className="card">
-        <h3>Obserwacje klienta</h3>
+        <h2>Obserwacje klienta</h2>
         <p className="dim" style={{ fontSize: "0.85rem", marginTop: -4 }}>
           Deklaracje klienta do przeglądu — nie są diagnozą. Wpisy oznaczone
           jako niepokojące wymagają Twojej uwagi.
@@ -1014,7 +1033,7 @@ function HistoryTab({ clientId }: { clientId: string }) {
   if (!receipts) return <Spinner />;
   return (
     <div className="card">
-      <h3>Historia zmian (pokwitowania z łańcucha audytu Human OS)</h3>
+      <h2>Historia zmian (pokwitowania z łańcucha audytu Human OS)</h2>
       {receipts.length === 0 && <small>Brak zdarzeń.</small>}
       {receipts.map((r) => (
         <div className="exercise" key={r.id}>

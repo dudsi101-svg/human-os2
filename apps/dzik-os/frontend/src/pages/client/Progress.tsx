@@ -4,6 +4,7 @@ import { localToday, plDate } from "../../dates";
 import {
   AuthImage,
   ErrorBox,
+  Icon,
   PersonalRecordsCard,
   PhotoCompare,
   Sparkline,
@@ -85,11 +86,11 @@ export default function Progress() {
       <StrengthChartsCard clientId={user.id} />
 
       <form className="card" onSubmit={addMeasurement}>
-        <h3>Dodaj pomiar</h3>
+        <h2>Dodaj pomiar</h2>
         <div className="field-row-3">
           <div>
-            <label>Rodzaj</label>
-            <select value={kind} onChange={(e) => {
+            <label htmlFor="m-kind">Rodzaj</label>
+            <select id="m-kind" value={kind} onChange={(e) => {
               setKind(e.target.value);
               setUnit(e.target.value === "weight" ? "kg" : "cm");
             }}>
@@ -99,13 +100,13 @@ export default function Progress() {
             </select>
           </div>
           <div>
-            <label>Wartość</label>
-            <input type="number" step="0.1" required value={value}
+            <label htmlFor="m-value">Wartość</label>
+            <input id="m-value" type="number" step="0.1" required value={value}
               onChange={(e) => setValue(e.target.value)} />
           </div>
           <div>
-            <label>Jednostka</label>
-            <input value={unit} onChange={(e) => setUnit(e.target.value)} />
+            <label htmlFor="m-unit">Jednostka</label>
+            <input id="m-unit" value={unit} onChange={(e) => setUnit(e.target.value)} />
           </div>
         </div>
         <div style={{ marginTop: 10 }}>
@@ -118,10 +119,10 @@ export default function Progress() {
         return (
           <div className="card" key={k}>
             <div className="row row--between">
-              <h3>{KIND_LABELS[k] ?? k}</h3>
+              <h2>{KIND_LABELS[k] ?? k}</h2>
               <span className="badge">{data[data.length - 1].value} {data[data.length - 1].unit}</span>
             </div>
-            <Sparkline unit={data[0].unit}
+            <Sparkline unit={data[0].unit} label={KIND_LABELS[k] ?? k}
               points={data.map((r) => ({ x: plDate(r.measured_at), y: r.value }))} />
           </div>
         );
@@ -129,14 +130,15 @@ export default function Progress() {
 
       {monitoring && Object.keys(monitoring.wellbeing_series).length > 0 && (
         <div className="card">
-          <h3>Samopoczucie (z raportów tygodniowych)</h3>
+          <h2>Samopoczucie (z raportów tygodniowych)</h2>
           {Object.entries(monitoring.wellbeing_series).map(([key, points]) => (
             <div key={key} style={{ marginTop: 10 }}>
               <div className="row row--between">
                 <b style={{ fontSize: "0.9rem" }}>{WELLBEING_LABELS[key] ?? key}</b>
                 <span className="badge">{points[points.length - 1].value}/5</span>
               </div>
-              <Sparkline unit="/5" points={points.map((p) => ({ x: plDate(p.date), y: p.value }))} />
+              <Sparkline unit="/5" label={WELLBEING_LABELS[key] ?? key}
+                points={points.map((p) => ({ x: plDate(p.date), y: p.value }))} />
             </div>
           ))}
         </div>
@@ -147,7 +149,7 @@ export default function Progress() {
 
       {monitoring && Object.keys(monitoring.adherence).length > 0 && (
         <div className="card">
-          <h3>Realizacja harmonogramu ({monitoring.period_days} dni)</h3>
+          <h2>Realizacja harmonogramu ({monitoring.period_days} dni)</h2>
           {Object.entries(monitoring.adherence).map(([cat, bucket]) => (
             <AdherenceBar key={cat} label={CATEGORY_LABELS[cat] ?? cat} bucket={bucket} />
           ))}
@@ -160,7 +162,7 @@ export default function Progress() {
 
       {photos.length > 0 && (
         <div className="card">
-          <h3>Zdjęcia progresu</h3>
+          <h2>Zdjęcia progresu</h2>
           <div className="photo-grid">
             {photos.map((p) => (
               <AuthImage key={p.id} fileId={p.file_id} alt={`Zdjęcie ${plDate(p.taken_at)}`} />
@@ -176,7 +178,7 @@ function GoalCard({ goal }: { goal: NonNullable<MonitoringData["goal"]> }) {
   return (
     <div className="card card--accent">
       <div className="row row--between">
-        <h3>🎯 {goal.title}</h3>
+        <h2><Icon name="target" /> {goal.title}</h2>
         {goal.days_remaining !== null && (
           <span className={`badge ${goal.days_remaining < 0 ? "badge--warn" : "badge--accent"}`}>
             {goal.days_remaining < 0
@@ -198,7 +200,8 @@ function AdherenceBar({ label, bucket }: { label: string; bucket: MonitoringData
         <b style={{ fontSize: "0.9rem" }}>{label}</b>
         <small>{bucket.done}/{bucket.total}{bucket.pct !== null && ` · ${bucket.pct}%`}</small>
       </div>
-      <div style={{ background: "var(--bg-raised)", borderRadius: 999, height: 8, overflow: "hidden", marginTop: 4 }}>
+      {/* Pasek jest wyłącznie wizualizacją — liczby done/total/% są w tekście. */}
+      <div aria-hidden style={{ background: "var(--bg-raised)", borderRadius: 999, height: 8, overflow: "hidden", marginTop: 4 }}>
         <div style={{ width: `${Math.min(100, pct)}%`, background: "var(--accent)", height: "100%" }} />
       </div>
     </div>
@@ -238,18 +241,18 @@ function NutritionLogCard({ target, series, userId, onSaved }: {
   return (
     <div className="card">
       <div className="row row--between">
-        <h3>Dziennik kaloryczny</h3>
+        <h2>Dziennik kaloryczny</h2>
         {target !== null && <span className="badge">cel: {target} kcal</span>}
       </div>
       <form onSubmit={save}>
         <div className="field-row">
           <div>
-            <label>Dzisiaj — kcal</label>
-            <input type="number" min="0" value={kcal} onChange={(e) => setKcal(e.target.value)} />
+            <label htmlFor="nl-kcal">Dzisiaj — kcal</label>
+            <input id="nl-kcal" type="number" min="0" value={kcal} onChange={(e) => setKcal(e.target.value)} />
           </div>
           <div>
-            <label>Woda (l)</label>
-            <input type="number" step="0.1" min="0" value={waterL}
+            <label htmlFor="nl-water">Woda (l)</label>
+            <input id="nl-water" type="number" step="0.1" min="0" value={waterL}
               onChange={(e) => setWaterL(e.target.value)} />
           </div>
         </div>
@@ -262,7 +265,8 @@ function NutritionLogCard({ target, series, userId, onSaved }: {
       </form>
       {series.length >= 2 && (
         <div style={{ marginTop: 10 }}>
-          <Sparkline unit="kcal" points={series.map((p) => ({ x: plDate(p.date), y: p.value }))} />
+          <Sparkline unit="kcal" label="Dziennik kaloryczny"
+            points={series.map((p) => ({ x: plDate(p.date), y: p.value }))} />
         </div>
       )}
     </div>
@@ -320,7 +324,7 @@ function ObservationsCard({ userId, onSaved }: {
 
   return (
     <div className="card">
-      <h3>Dziennik obserwacji</h3>
+      <h2>Dziennik obserwacji</h2>
       <p className="dim" style={{ fontSize: "0.85rem", marginTop: -4 }}>
         Zapisuj samopoczucie lub reakcje (np. po suplemencie czy posiłku).
         To nie jest diagnoza — wpisy oznaczone jako niepokojące trafiają do
@@ -329,16 +333,16 @@ function ObservationsCard({ userId, onSaved }: {
       <form onSubmit={submit}>
         <div className="field-row">
           <div>
-            <label>Kategoria</label>
-            <select value={category} onChange={(e) => setCategory(e.target.value)}>
+            <label htmlFor="obs-category">Kategoria</label>
+            <select id="obs-category" value={category} onChange={(e) => setCategory(e.target.value)}>
               {Object.entries(OBSERVATION_CATEGORY_LABELS).map(([k, v]) => (
                 <option key={k} value={k}>{v}</option>
               ))}
             </select>
           </div>
           <div>
-            <label>Waga zgłoszenia</label>
-            <select value={severity} onChange={(e) => setSeverity(e.target.value)}>
+            <label htmlFor="obs-severity">Waga zgłoszenia</label>
+            <select id="obs-severity" value={severity} onChange={(e) => setSeverity(e.target.value)}>
               <option value="INFO">Informacja</option>
               <option value="NIEPOKOJACE">Niepokojące — proszę o uwagę</option>
             </select>
@@ -346,8 +350,8 @@ function ObservationsCard({ userId, onSaved }: {
         </div>
         {items.length > 0 && (
           <>
-            <label>Powiązane z elementem harmonogramu (opcjonalnie)</label>
-            <select value={scheduleItemId} onChange={(e) => setScheduleItemId(e.target.value)}>
+            <label htmlFor="obs-item">Powiązane z elementem harmonogramu (opcjonalnie)</label>
+            <select id="obs-item" value={scheduleItemId} onChange={(e) => setScheduleItemId(e.target.value)}>
               <option value="">— brak —</option>
               {items.map((i) => (
                 <option key={i.id} value={i.id}>
@@ -357,8 +361,8 @@ function ObservationsCard({ userId, onSaved }: {
             </select>
           </>
         )}
-        <label>Opis</label>
-        <textarea required value={text} onChange={(e) => setText(e.target.value)}
+        <label htmlFor="obs-text">Opis</label>
+        <textarea id="obs-text" required value={text} onChange={(e) => setText(e.target.value)}
           placeholder="Co zaobserwowałeś/aś?" />
         <ErrorBox error={error} />
         <div style={{ marginTop: 8 }}>

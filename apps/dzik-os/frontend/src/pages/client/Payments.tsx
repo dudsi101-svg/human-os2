@@ -29,24 +29,25 @@ export default function Payments() {
       {schedules.map((s) => (
         <div className="card" key={s.schedule_id}>
           <div className="row row--between">
-            <h3>{s.package_name}</h3>
+            <h2>{s.package_name}</h2>
             <b>{money(s.amount_cents, s.currency)}</b>
           </div>
           <small>
             {s.period === "MONTHLY" ? "rozliczenie miesięczne"
               : s.period === "WEEKLY" ? "rozliczenie tygodniowe" : "płatność jednorazowa"}
           </small>
-          <table className="simple" style={{ marginTop: 8 }}>
-            <thead><tr><th>Termin</th><th>Kwota</th><th>Status</th><th /></tr></thead>
+          <div className="table-wrap" style={{ marginTop: 8 }}>
+          <table className="simple table--cards">
+            <thead><tr><th>Termin</th><th>Kwota</th><th>Status</th><th><span className="sr-only">Akcje</span></th></tr></thead>
             <tbody>
               {s.records.map((r) => {
                 const overdue = r.status === "PENDING" && r.due_date < today;
                 const status = overdue ? "OVERDUE" : r.status;
                 return (
                   <tr key={r.id}>
-                    <td>{plDate(r.due_date)}</td>
-                    <td>{money(r.amount_cents, r.currency)}</td>
-                    <td>
+                    <td data-label="Termin">{plDate(r.due_date)}</td>
+                    <td data-label="Kwota">{money(r.amount_cents, r.currency)}</td>
+                    <td data-label="Status">
                       <span className={`badge ${status === "PAID" ? "badge--ok" : status === "OVERDUE" ? "badge--danger" : "badge--warn"}`}>
                         {PAYMENT_LABELS[status]}
                       </span>
@@ -61,6 +62,7 @@ export default function Payments() {
               })}
             </tbody>
           </table>
+          </div>
           {!s.records.some((r) => r.payment_link) && (
             <small>Szczegóły płatności (np. numer konta) otrzymasz od trenera w wiadomości.</small>
           )}

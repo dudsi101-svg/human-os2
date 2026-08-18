@@ -2,7 +2,7 @@ import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { api, getUser, isCancel } from "../api";
 import { plDateTime } from "../dates";
-import { AuthAttachment, ErrorBox, Spinner, TopBar } from "../components";
+import { AuthAttachment, ErrorBox, Icon, Spinner, TopBar } from "../components";
 import { MessageRow } from "../types";
 
 const UPLOAD_ACCEPT =
@@ -127,25 +127,28 @@ export default function Thread() {
       </div>
       <form onSubmit={send} className="card" style={{ position: "sticky", bottom: "calc(var(--nav-h) + 8px)" }}>
         <ErrorBox error={error} />
-        <textarea placeholder="Napisz wiadomość…" value={body}
+        <textarea placeholder="Napisz wiadomość…" aria-label="Treść wiadomości" value={body}
           onChange={(e) => setBody(e.target.value)} style={{ minHeight: 56 }} />
         {file && file.type.startsWith("audio/") && filePreviewUrl && (
           <div className="row row--between" style={{ marginTop: 8 }}>
-            <audio controls src={filePreviewUrl} style={{ maxWidth: 220 }} />
+            <audio controls src={filePreviewUrl} style={{ maxWidth: 220 }}
+              aria-label="Podgląd nagranej wiadomości głosowej" />
             <button type="button" className="btn btn--ghost btn--small" onClick={() => setFile(null)}>
-              ✕ usuń
+              <Icon name="close" size={14} /> usuń
             </button>
           </div>
         )}
         <div className="row" style={{ marginTop: 8 }}>
-          <input type="file" accept={UPLOAD_ACCEPT}
+          <input type="file" accept={UPLOAD_ACCEPT} aria-label="Załącz plik"
             onChange={(e) => setFile(e.target.files?.[0] ?? null)} className="grow" style={{ padding: 6 }} />
           {!recording ? (
             <button type="button" className="btn btn--ghost btn--small" onClick={startRecording}
-              title="Nagraj wiadomość głosową">🎤</button>
+              title="Nagraj wiadomość głosową" aria-label="Nagraj wiadomość głosową">
+              <Icon name="mic" size={18} />
+            </button>
           ) : (
             <button type="button" className="btn btn--danger btn--small" onClick={stopRecording}>
-              ⏹ Stop
+              <Icon name="stop" size={16} /> Stop
             </button>
           )}
           <button className="btn btn--small" disabled={busy}>Wyślij</button>

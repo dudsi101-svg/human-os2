@@ -54,15 +54,23 @@ export default function App() {
     return <Navigate to="/mfa" replace />;
   }
   if (user && isClient && !needsPassword && location.pathname !== "/haslo") {
-    if (pending === null) return <ConsentSpinner />;
+    if (pending === null) return <main id="main"><ConsentSpinner /></main>;
     if (pending.length > 0) {
-      return <ConsentGate pending={pending} catalog={catalog} onResolved={reload} />;
+      return (
+        <main id="main">
+          <ConsentGate pending={pending} catalog={catalog} onResolved={reload} />
+        </main>
+      );
     }
   }
   const home = roles.includes("COACH") ? "/trener" : roles.includes("ADMIN") ? "/admin" : "/";
   return (
     <>
+      {/* Link pomijający nawigację — pierwszy element w porządku fokusu. */}
+      <a href="#main" className="skip-link">Przejdź do treści</a>
       {user && !needsPassword && !needsMfaSetup && <Nav />}
+      {/* Landmark main: cała treść trasy (nawigacja jest osobnym <nav>). */}
+      <main id="main">
       {/* Granica błędów per trasa: key=pathname resetuje ją przy nawigacji,
           więc awaria jednego widoku nie „przykleja się" do kolejnych. */}
       <ErrorBoundary scope={`route:${maskPathIds(location.pathname)}`} key={location.pathname}>
@@ -107,6 +115,7 @@ export default function App() {
         <Route path="*" element={<Navigate to={user ? home : "/login"} replace />} />
       </Routes>
       </ErrorBoundary>
+      </main>
     </>
   );
 }

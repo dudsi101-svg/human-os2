@@ -1,6 +1,6 @@
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import { api } from "../../api";
-import { ErrorBox, LogoutButton, Spinner, TopBar } from "../../components";
+import { ErrorBox, LogoutButton, Spinner, TabPanel, Tabs, TopBar } from "../../components";
 import {
   DietSuggestionResult,
   ExerciseLibraryItem,
@@ -21,17 +21,13 @@ export default function Knowledge() {
   return (
     <div className="page page--wide">
       <TopBar title="Baza wiedzy" right={<LogoutButton />} />
-      <div className="tabs">
-        {TABS.map(([key, label]) => (
-          <button key={key} className={tab === key ? "active" : ""} onClick={() => setTab(key)}>
-            {label}
-          </button>
-        ))}
-      </div>
-      {tab === "artykuly" && <ArticlesTab />}
-      {tab === "cwiczenia" && <ExercisesTab />}
-      {tab === "produkty" && <ProductsTab />}
-      {tab === "dieta" && <DietComposerTab />}
+      <Tabs tabs={TABS} value={tab} onChange={setTab} label="Sekcje bazy wiedzy" />
+      <TabPanel id={tab}>
+        {tab === "artykuly" && <ArticlesTab />}
+        {tab === "cwiczenia" && <ExercisesTab />}
+        {tab === "produkty" && <ProductsTab />}
+        {tab === "dieta" && <DietComposerTab />}
+      </TabPanel>
     </div>
   );
 }
@@ -124,14 +120,14 @@ function ArticlesTab() {
 
       {editing && (
         <form className="card card--accent" onSubmit={save}>
-          <h3>{editing === "new" ? "Nowy materiał" : "Edytuj materiał"}</h3>
-          <label>Tytuł</label>
-          <input required value={form.title}
+          <h2>{editing === "new" ? "Nowy materiał" : "Edytuj materiał"}</h2>
+          <label htmlFor="art-title">Tytuł</label>
+          <input id="art-title" required value={form.title}
             onChange={(e) => setForm({ ...form, title: e.target.value })} />
           <div className="field-row">
             <div>
-              <label>Kategoria</label>
-              <input list="knowledge-categories" value={form.category}
+              <label htmlFor="art-category">Kategoria</label>
+              <input id="art-category" list="knowledge-categories" value={form.category}
                 onChange={(e) => setForm({ ...form, category: e.target.value })} />
               <datalist id="knowledge-categories">
                 {KNOWLEDGE_CATEGORY_SUGGESTIONS.map((c) => <option key={c} value={c} />)}
@@ -139,19 +135,18 @@ function ArticlesTab() {
             </div>
             <div className="row" style={{ alignItems: "center", marginTop: 24 }}>
               <input type="checkbox" id="pinned" checked={form.pinned}
-                onChange={(e) => setForm({ ...form, pinned: e.target.checked })}
-                style={{ width: "auto" }} />
+                onChange={(e) => setForm({ ...form, pinned: e.target.checked })} />
               <label htmlFor="pinned" style={{ margin: 0 }}>Przypnij jako polecane</label>
             </div>
           </div>
-          <label>Treść</label>
-          <textarea value={form.body} style={{ minHeight: 140 }}
+          <label htmlFor="art-body">Treść</label>
+          <textarea id="art-body" value={form.body} style={{ minHeight: 140 }}
             onChange={(e) => setForm({ ...form, body: e.target.value })} />
-          <label>Link zewnętrzny (opcjonalnie)</label>
-          <input type="url" placeholder="https://…" value={form.external_url}
+          <label htmlFor="art-url">Link zewnętrzny (opcjonalnie)</label>
+          <input id="art-url" type="url" placeholder="https://…" value={form.external_url}
             onChange={(e) => setForm({ ...form, external_url: e.target.value })} />
-          <label>Załącznik (PDF/obraz/wideo, opcjonalnie)</label>
-          <input type="file" accept="image/jpeg,image/png,image/webp,application/pdf,video/mp4"
+          <label htmlFor="art-file">Załącznik (PDF/obraz/wideo, opcjonalnie)</label>
+          <input id="art-file" type="file" accept="image/jpeg,image/png,image/webp,application/pdf,video/mp4"
             onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
           {existingFileId && !file && <small>Obecny załącznik zostanie zachowany.</small>}
           <div className="row" style={{ marginTop: 10 }}>
@@ -166,7 +161,8 @@ function ArticlesTab() {
       {!editing && (
         <div className="row" style={{ marginBottom: 10 }}>
           <button className="btn btn--small" onClick={startNew}>+ Nowy materiał</button>
-          <button className="btn btn--ghost btn--small" onClick={() => setShowArchived(!showArchived)}>
+          <button className="btn btn--ghost btn--small" aria-pressed={showArchived}
+            onClick={() => setShowArchived(!showArchived)}>
             {showArchived ? "Pokaż aktywne" : "Pokaż zarchiwizowane"}
           </button>
         </div>
@@ -286,32 +282,32 @@ function ExercisesTab() {
 
       {editing && (
         <form className="card card--accent" onSubmit={save}>
-          <h3>{editing === "new" ? "Nowe ćwiczenie" : "Edytuj ćwiczenie"}</h3>
-          <label>Nazwa</label>
-          <input required value={form.name}
+          <h2>{editing === "new" ? "Nowe ćwiczenie" : "Edytuj ćwiczenie"}</h2>
+          <label htmlFor="ex-name">Nazwa</label>
+          <input id="ex-name" required value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })} />
           <div className="field-row">
             <div>
-              <label>Partia mięśniowa</label>
-              <select value={form.muscle_group}
+              <label htmlFor="ex-group">Partia mięśniowa</label>
+              <select id="ex-group" value={form.muscle_group}
                 onChange={(e) => setForm({ ...form, muscle_group: e.target.value })}>
                 {Object.entries(MUSCLE_GROUP_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
               </select>
             </div>
             <div>
-              <label>Sprzęt (opcjonalnie)</label>
-              <input value={form.equipment}
+              <label htmlFor="ex-equipment">Sprzęt (opcjonalnie)</label>
+              <input id="ex-equipment" value={form.equipment}
                 onChange={(e) => setForm({ ...form, equipment: e.target.value })} />
             </div>
           </div>
-          <label>Jak wykonać</label>
-          <textarea required value={form.how_to} style={{ minHeight: 100 }}
+          <label htmlFor="ex-howto">Jak wykonać</label>
+          <textarea id="ex-howto" required value={form.how_to} style={{ minHeight: 100 }}
             onChange={(e) => setForm({ ...form, how_to: e.target.value })} />
-          <label>Co to daje (efekt)</label>
-          <textarea value={form.benefit}
+          <label htmlFor="ex-benefit">Co to daje (efekt)</label>
+          <textarea id="ex-benefit" value={form.benefit}
             onChange={(e) => setForm({ ...form, benefit: e.target.value })} />
-          <label>Link do wideo (opcjonalnie)</label>
-          <input type="url" placeholder="https://…" value={form.video_url}
+          <label htmlFor="ex-video">Link do wideo (opcjonalnie)</label>
+          <input id="ex-video" type="url" placeholder="https://…" value={form.video_url}
             onChange={(e) => setForm({ ...form, video_url: e.target.value })} />
           <div className="row" style={{ marginTop: 10 }}>
             <button className="btn" disabled={busy}>{busy ? "Zapisywanie…" : "Zapisz"}</button>
@@ -325,7 +321,8 @@ function ExercisesTab() {
       {!editing && (
         <div className="row" style={{ marginBottom: 10 }}>
           <button className="btn btn--small" onClick={startNew}>+ Nowe ćwiczenie</button>
-          <button className="btn btn--ghost btn--small" onClick={() => setShowArchived(!showArchived)}>
+          <button className="btn btn--ghost btn--small" aria-pressed={showArchived}
+            onClick={() => setShowArchived(!showArchived)}>
             {showArchived ? "Pokaż aktywne" : "Pokaż zarchiwizowane"}
           </button>
         </div>
@@ -334,7 +331,7 @@ function ExercisesTab() {
       {visible.length === 0 && <p className="dim">Brak ćwiczeń.</p>}
       {Array.from(byGroup.entries()).map(([group, list]) => (
         <div key={group} style={{ marginBottom: 14 }}>
-          <h3 style={{ margin: "0 0 6px" }}>{MUSCLE_GROUP_LABELS[group] ?? group}</h3>
+          <h2 style={{ margin: "0 0 6px" }}>{MUSCLE_GROUP_LABELS[group] ?? group}</h2>
           <div className="list">
             {list.map((i) => (
               <div className="card" key={i.id}>
@@ -451,37 +448,37 @@ function ProductsTab() {
 
       {editing && (
         <form className="card card--accent" onSubmit={save}>
-          <h3>{editing === "new" ? "Nowy produkt" : "Edytuj produkt"}</h3>
+          <h2>{editing === "new" ? "Nowy produkt" : "Edytuj produkt"}</h2>
           <div className="field-row">
             <div>
-              <label>Nazwa</label>
-              <input required value={form.name}
+              <label htmlFor="fp-name">Nazwa</label>
+              <input id="fp-name" required value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })} />
             </div>
             <div>
-              <label>Kategoria</label>
-              <input value={form.category}
+              <label htmlFor="fp-category">Kategoria</label>
+              <input id="fp-category" value={form.category}
                 onChange={(e) => setForm({ ...form, category: e.target.value })} />
             </div>
           </div>
           <div className="field-row">
-            <div><label>kcal / 100 g</label>
-              <input required type="number" step="0.1" min="0" value={form.kcal_100g}
+            <div><label htmlFor="fp-kcal">kcal / 100 g</label>
+              <input id="fp-kcal" required type="number" step="0.1" min="0" value={form.kcal_100g}
                 onChange={(e) => setForm({ ...form, kcal_100g: e.target.value })} /></div>
-            <div><label>Białko (g) / 100 g</label>
-              <input required type="number" step="0.1" min="0" value={form.protein_100g}
+            <div><label htmlFor="fp-protein">Białko (g) / 100 g</label>
+              <input id="fp-protein" required type="number" step="0.1" min="0" value={form.protein_100g}
                 onChange={(e) => setForm({ ...form, protein_100g: e.target.value })} /></div>
           </div>
           <div className="field-row">
-            <div><label>Tłuszcz (g) / 100 g</label>
-              <input required type="number" step="0.1" min="0" value={form.fat_100g}
+            <div><label htmlFor="fp-fat">Tłuszcz (g) / 100 g</label>
+              <input id="fp-fat" required type="number" step="0.1" min="0" value={form.fat_100g}
                 onChange={(e) => setForm({ ...form, fat_100g: e.target.value })} /></div>
-            <div><label>Węgle (g) / 100 g</label>
-              <input required type="number" step="0.1" min="0" value={form.carbs_100g}
+            <div><label htmlFor="fp-carbs">Węgle (g) / 100 g</label>
+              <input id="fp-carbs" required type="number" step="0.1" min="0" value={form.carbs_100g}
                 onChange={(e) => setForm({ ...form, carbs_100g: e.target.value })} /></div>
           </div>
-          <label>Domyślna porcja (g, opcjonalnie)</label>
-          <input type="number" step="1" min="0" value={form.default_portion_g}
+          <label htmlFor="fp-portion">Domyślna porcja (g, opcjonalnie)</label>
+          <input id="fp-portion" type="number" step="1" min="0" value={form.default_portion_g}
             onChange={(e) => setForm({ ...form, default_portion_g: e.target.value })} />
           <div className="row" style={{ marginTop: 10 }}>
             <button className="btn" disabled={busy}>{busy ? "Zapisywanie…" : "Zapisz"}</button>
@@ -493,7 +490,7 @@ function ProductsTab() {
       )}
 
       <div className="row" style={{ marginBottom: 10 }}>
-        <input className="grow" placeholder="Szukaj produktu…" value={query}
+        <input className="grow" placeholder="Szukaj produktu…" aria-label="Szukaj produktu" value={query}
           onChange={(e) => setQuery(e.target.value)} />
         {!editing && (
           <button className="btn btn--small" onClick={startNew}>+ Nowy produkt</button>
@@ -524,8 +521,8 @@ function ProductsTab() {
                 Na 100 g: {p.kcal_100g} kcal · B {p.protein_100g} g · T {p.fat_100g} g · W {p.carbs_100g} g
               </div>
               <div className="row" style={{ marginTop: 6, alignItems: "center", gap: 6 }}>
-                <label style={{ margin: 0 }}>Porcja (g)</label>
-                <input type="number" min="0" style={{ width: 90 }} value={portionStr}
+                <label style={{ margin: 0 }} htmlFor={`coach-portion-${p.id}`}>Porcja (g)</label>
+                <input id={`coach-portion-${p.id}`} type="number" min="0" style={{ width: 90 }} value={portionStr}
                   onChange={(e) => setPortionByProduct({ ...portionByProduct, [p.id]: e.target.value })} />
                 <span className="badge badge--accent">
                   {Math.round(p.kcal_100g * factor)} kcal · B {Math.round(p.protein_100g * factor * 10) / 10} g ·
@@ -589,26 +586,26 @@ function DietComposerTab() {
     <>
       <ErrorBox error={error} />
       <div className="card card--accent">
-        <h3>Cel diety</h3>
+        <h2>Cel diety</h2>
         <p className="dim" style={{ marginTop: -6, fontSize: "0.85rem" }}>
           Wybierz produkty poniżej i wpisz cel. Wynik to wyłącznie przejrzysta
           arytmetyka podziału celu na gramaturę — nic nie zapisuje się
           automatycznie w planie klienta. Ty decydujesz, co i jak wpisać do diety.
         </p>
         <div className="field-row">
-          <div><label>Cel kcal</label>
-            <input type="number" min="0" value={target.kcal}
+          <div><label htmlFor="dc-kcal">Cel kcal</label>
+            <input id="dc-kcal" type="number" min="0" value={target.kcal}
               onChange={(e) => setTarget({ ...target, kcal: e.target.value })} /></div>
-          <div><label>Białko (g)</label>
-            <input type="number" min="0" value={target.protein_g}
+          <div><label htmlFor="dc-protein">Białko (g)</label>
+            <input id="dc-protein" type="number" min="0" value={target.protein_g}
               onChange={(e) => setTarget({ ...target, protein_g: e.target.value })} /></div>
         </div>
         <div className="field-row">
-          <div><label>Tłuszcz (g)</label>
-            <input type="number" min="0" value={target.fat_g}
+          <div><label htmlFor="dc-fat">Tłuszcz (g)</label>
+            <input id="dc-fat" type="number" min="0" value={target.fat_g}
               onChange={(e) => setTarget({ ...target, fat_g: e.target.value })} /></div>
-          <div><label>Węglowodany (g)</label>
-            <input type="number" min="0" value={target.carbs_g}
+          <div><label htmlFor="dc-carbs">Węglowodany (g)</label>
+            <input id="dc-carbs" type="number" min="0" value={target.carbs_g}
               onChange={(e) => setTarget({ ...target, carbs_g: e.target.value })} /></div>
         </div>
         <div style={{ marginTop: 8 }}>
@@ -620,7 +617,7 @@ function DietComposerTab() {
 
       {result && (
         <div className="card">
-          <h3>Sugestia</h3>
+          <h2>Sugestia</h2>
           {result.warnings.map((w, i) => (
             <p className="alert alert--warn" key={i}>{w}</p>
           ))}
@@ -639,12 +636,12 @@ function DietComposerTab() {
             </div>
           ))}
           <p className="dim" style={{ fontSize: "0.85rem" }}>{result.note}</p>
-          <label>Do skopiowania w zakładkę Dieta klienta</label>
-          <textarea readOnly value={asMealsText()} style={{ minHeight: 100 }} />
+          <label htmlFor="dc-result">Do skopiowania w zakładkę Dieta klienta</label>
+          <textarea id="dc-result" readOnly value={asMealsText()} style={{ minHeight: 100 }} />
         </div>
       )}
 
-      <h3>Produkty (zaznacz do kompozycji)</h3>
+      <h2>Produkty (zaznacz do kompozycji)</h2>
       {!items && <Spinner />}
       {items && (
         <ProductsTabSelector items={items} selected={selected} onToggle={toggle} />
@@ -661,13 +658,13 @@ function ProductsTabSelector({ items, selected, onToggle }: {
     (!query || i.name.toLowerCase().includes(query.toLowerCase())));
   return (
     <>
-      <input placeholder="Szukaj produktu…" value={query}
+      <input placeholder="Szukaj produktu…" aria-label="Szukaj produktu do kompozycji" value={query}
         onChange={(e) => setQuery(e.target.value)} style={{ marginBottom: 8 }} />
       <div className="list">
         {visible.map((p) => (
           <label className="card" key={p.id} style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}>
             <input type="checkbox" checked={selected.has(p.id)} onChange={() => onToggle(p.id)}
-              style={{ width: "auto" }} />
+              aria-label={`Zaznacz produkt: ${p.name}`} />
             <div>
               <b>{p.name}</b> <span className="badge">{p.category}</span>
               <div className="meta">{p.kcal_100g} kcal · B {p.protein_100g} g · T {p.fat_100g} g · W {p.carbs_100g} g /100 g</div>

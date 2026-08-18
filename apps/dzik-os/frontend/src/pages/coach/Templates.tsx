@@ -35,7 +35,7 @@ export default function Templates() {
       {templates.map((t) => (
         <div className="card" key={t.id}>
           <div className="row row--between">
-            <h3>{t.title}</h3>
+            <h2>{t.title}</h2>
             <small>{plDate(t.current_version?.created_at ?? "")}</small>
           </div>
           {t.current_version?.content.days.map((d, i) => (

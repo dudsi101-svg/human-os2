@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { api, getUser } from "../../api";
 import { WEEKDAYS, localToday, plDate } from "../../dates";
-import { ErrorBox, Spinner, TopBar } from "../../components";
+import { ErrorBox, Icon, Spinner, TopBar } from "../../components";
 import { PlanVersion, TrainingPlan, WorkoutRow } from "../../types";
 
 /** Wiersze serii (ciężar × powtórzenia) wpisywane jako tekst — puste są
@@ -58,7 +58,7 @@ function RestTimer({ seconds }: { seconds: number }) {
   if (left === null) {
     return (
       <button type="button" className="btn btn--ghost btn--small" onClick={start}>
-        ⏱ przerwa {seconds >= 60 ? `${Math.round(seconds / 60)} min` : `${seconds} s`}
+        <Icon name="timer" size={16} /> przerwa {seconds >= 60 ? `${Math.round(seconds / 60)} min` : `${seconds} s`}
       </button>
     );
   }
@@ -72,7 +72,9 @@ function RestTimer({ seconds }: { seconds: number }) {
         : { background: "var(--bg-raised)", color: "var(--accent)", fontVariantNumeric: "tabular-nums" }}
       onClick={done ? () => start() : stop}
     >
-      {done ? "✓ Koniec przerwy — jeszcze raz?" : `⏱ ${Math.floor(left / 60)}:${String(left % 60).padStart(2, "0")} (stop)`}
+      {done
+        ? "✓ Koniec przerwy — jeszcze raz?"
+        : <><Icon name="timer" size={16} /> {Math.floor(left / 60)}:{String(left % 60).padStart(2, "0")} (stop)</>}
     </button>
   );
 }
@@ -172,7 +174,8 @@ export default function Plan() {
               <b>{plan.title}</b>
               <div><small>wersja {plan.current_version_no} · {plDate(plan.current_version.created_at)}</small></div>
             </div>
-            <button className="btn btn--ghost btn--small" onClick={() => setShowHistory(!showHistory)}>
+            <button className="btn btn--ghost btn--small" aria-expanded={showHistory}
+              onClick={() => setShowHistory(!showHistory)}>
               {showHistory ? "Ukryj historię" : "Historia wersji"}
             </button>
           </div>
@@ -182,26 +185,28 @@ export default function Plan() {
 
           {showHistory && versions && (
             <div className="card">
-              <h3>Historia wersji (nic nie znika)</h3>
-              <table className="simple">
-                <thead><tr><th>Wersja</th><th>Data</th><th>Powód zmiany</th></tr></thead>
-                <tbody>
-                  {versions.slice().reverse().map((v) => (
-                    <tr key={v.id}>
-                      <td>v{v.version_no}</td>
-                      <td>{plDate(v.created_at)}</td>
-                      <td>{v.reason}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <h2>Historia wersji (nic nie znika)</h2>
+              <div className="table-wrap">
+                <table className="simple table--cards">
+                  <thead><tr><th>Wersja</th><th>Data</th><th>Powód zmiany</th></tr></thead>
+                  <tbody>
+                    {versions.slice().reverse().map((v) => (
+                      <tr key={v.id}>
+                        <td data-label="Wersja">v{v.version_no}</td>
+                        <td data-label="Data">{plDate(v.created_at)}</td>
+                        <td data-label="Powód zmiany">{v.reason}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
 
           {plan.current_version.content.days.map((day, di) => (
             <div className="card" key={di}>
               <div className="row row--between">
-                <h3>{day.name}</h3>
+                <h2>{day.name}</h2>
                 {day.weekday && <span className="badge">{WEEKDAYS[day.weekday - 1]}</span>}
               </div>
               {day.exercises.map((ex, i) => {
@@ -212,7 +217,7 @@ export default function Plan() {
                       <b>{ex.name}</b>
                       {ex.comment && <div className="meta">{ex.comment}</div>}
                       {ex.video_url && (
-                        <a href={ex.video_url} target="_blank" rel="noreferrer">🎬 technika</a>
+                        <a href={ex.video_url} target="_blank" rel="noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Icon name="film" size={16} /> technika</a>
                       )}
                       {restSeconds !== null && (
                         <div style={{ marginTop: 6 }}><RestTimer seconds={restSeconds} /></div>
@@ -232,16 +237,18 @@ export default function Plan() {
                     const setRows = (next: SetRow[]) => setSets({ ...sets, [i]: next });
                     return (
                       <div key={i} style={{ marginBottom: 12 }}>
-                        <label style={{ marginBottom: 2 }}>{ex.name}</label>
+                        <span style={{ display: "block", fontSize: "0.85rem", color: "var(--text-dim)", margin: "10px 0 2px" }}>{ex.name}</span>
                         {rows.map((row, si) => (
                           <div className="row" key={si} style={{ marginBottom: 4 }}>
-                            <span className="badge">{si + 1}</span>
+                            <span className="badge" aria-hidden>{si + 1}</span>
                             <input type="text" inputMode="decimal" placeholder="kg"
+                              aria-label={`${ex.name} — seria ${si + 1}: ciężar (kg)`}
                               style={{ width: 90 }} value={row.weight}
                               onChange={(e) => setRows(rows.map((r, j) =>
                                 j === si ? { ...r, weight: e.target.value } : r))} />
-                            <span className="dim">×</span>
+                            <span className="dim" aria-hidden>×</span>
                             <input type="number" inputMode="numeric" placeholder="powt."
+                              aria-label={`${ex.name} — seria ${si + 1}: powtórzenia`}
                               style={{ width: 90 }} value={row.reps}
                               onChange={(e) => setRows(rows.map((r, j) =>
                                 j === si ? { ...r, reps: e.target.value } : r))} />
@@ -256,20 +263,22 @@ export default function Plan() {
                           </div>
                         ))}
                         <input placeholder="notatka / wynik tekstowy (opcjonalnie)"
+                          aria-label={`${ex.name} — notatka lub wynik tekstowy`}
                           value={results[i] ?? ""}
                           onChange={(e) => setResults({ ...results, [i]: e.target.value })} />
                       </div>
                     );
                   })}
-                  <label>Komentarz do treningu</label>
-                  <textarea value={comment} onChange={(e) => setComment(e.target.value)} />
+                  <label htmlFor="workout-comment">Komentarz do treningu</label>
+                  <textarea id="workout-comment" value={comment} onChange={(e) => setComment(e.target.value)} />
                   <label className="row" style={{ alignItems: "center" }}>
-                    <input type="checkbox" style={{ width: "auto" }} checked={pain}
+                    <input type="checkbox" checked={pain}
                       onChange={(e) => setPain(e.target.checked)} />
                     <span>Zgłaszam ból / trudność</span>
                   </label>
                   {pain && (
                     <textarea placeholder="Opisz co i kiedy bolało"
+                      aria-label="Opis bólu lub trudności"
                       value={painNote} onChange={(e) => setPainNote(e.target.value)} />
                   )}
                   <ErrorBox error={saveError} onRetry={() => saveWorkout(di)} />
@@ -293,7 +302,7 @@ export default function Plan() {
       <ErrorBox error={historyError} onRetry={loadWorkouts} />
       {workouts.length > 0 && (
         <div className="card">
-          <h3>Ostatnie treningi</h3>
+          <h2>Ostatnie treningi</h2>
           {workouts.slice(0, 10).map((w) => (
             <div className="exercise" key={w.id}>
               <div>
@@ -308,7 +317,7 @@ export default function Plan() {
                   </div>
                 ))}
               </div>
-              <div className="meta">{w.status === "DONE" ? "✅" : w.status}</div>
+              <div className="meta">{w.status === "DONE" ? <Icon name="check" size={16} label="wykonany" /> : w.status}</div>
             </div>
           ))}
         </div>

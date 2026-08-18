@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../../api";
-import { AuthAttachment, ErrorBox, Spinner, TopBar } from "../../components";
+import { AuthAttachment, ErrorBox, Icon, Spinner, TabPanel, Tabs, TopBar } from "../../components";
 import {
   ExerciseLibraryItem,
   FoodProductRow,
@@ -18,16 +18,12 @@ export default function Knowledge() {
   return (
     <div className="page">
       <TopBar title="Baza wiedzy" />
-      <div className="tabs">
-        {TABS.map(([key, label]) => (
-          <button key={key} className={tab === key ? "active" : ""} onClick={() => setTab(key)}>
-            {label}
-          </button>
-        ))}
-      </div>
-      {tab === "artykuly" && <ArticlesTab />}
-      {tab === "cwiczenia" && <ExercisesTab />}
-      {tab === "produkty" && <ProductsTab />}
+      <Tabs tabs={TABS} value={tab} onChange={setTab} label="Sekcje bazy wiedzy" />
+      <TabPanel id={tab}>
+        {tab === "artykuly" && <ArticlesTab />}
+        {tab === "cwiczenia" && <ExercisesTab />}
+        {tab === "produkty" && <ProductsTab />}
+      </TabPanel>
     </div>
   );
 }
@@ -66,7 +62,7 @@ function ArticlesTab() {
 
       {pinned.length > 0 && (
         <div className="list" style={{ marginBottom: 18 }}>
-          <h2 style={{ margin: "0 0 4px" }}>📌 Polecane</h2>
+          <h2 style={{ margin: "0 0 4px", display: "flex", alignItems: "center", gap: 8 }}><Icon name="star" size={18} /> Polecane</h2>
           {pinned.map((i) => <KnowledgeCard key={i.id} item={i} />)}
         </div>
       )}
@@ -85,17 +81,19 @@ function KnowledgeCard({ item }: { item: KnowledgeItemRow }) {
   const [open, setOpen] = useState(false);
   return (
     <div className="card">
-      <button type="button" className="knowledge-card__toggle" onClick={() => setOpen(!open)}>
+      <button type="button" className="knowledge-card__toggle" aria-expanded={open}
+        onClick={() => setOpen(!open)}>
         <b>{item.title}</b>
-        <span className="dim">{open ? "▲" : "▼"}</span>
+        <span className="dim"><Icon name={open ? "chevron-up" : "chevron-down"} size={18} /></span>
       </button>
       {open && (
         <div style={{ marginTop: 10 }}>
           {item.body && <p style={{ whiteSpace: "pre-wrap" }}>{item.body}</p>}
           {item.external_url && (
             <p>
-              <a href={item.external_url} target="_blank" rel="noreferrer">
-                🔗 {item.external_url}
+              <a href={item.external_url} target="_blank" rel="noreferrer"
+                style={{ display: "inline-flex", alignItems: "center", gap: 6, wordBreak: "break-all" }}>
+                <Icon name="link" size={16} /> {item.external_url}
               </a>
             </p>
           )}
@@ -136,7 +134,7 @@ function ExercisesTab() {
 
   return (
     <>
-      <input placeholder="Szukaj ćwiczenia…" value={query}
+      <input placeholder="Szukaj ćwiczenia…" aria-label="Szukaj ćwiczenia" value={query}
         onChange={(e) => setQuery(e.target.value)} style={{ marginBottom: 10 }} />
       {Array.from(byGroup.entries()).map(([group, list]) => (
         <div className="list" key={group} style={{ marginBottom: 18 }}>
@@ -152,9 +150,10 @@ function ExerciseCard({ item }: { item: ExerciseLibraryItem }) {
   const [open, setOpen] = useState(false);
   return (
     <div className="card">
-      <button type="button" className="knowledge-card__toggle" onClick={() => setOpen(!open)}>
+      <button type="button" className="knowledge-card__toggle" aria-expanded={open}
+        onClick={() => setOpen(!open)}>
         <b>{item.name}</b>
-        <span className="dim">{open ? "▲" : "▼"}</span>
+        <span className="dim"><Icon name={open ? "chevron-up" : "chevron-down"} size={18} /></span>
       </button>
       {open && (
         <div style={{ marginTop: 10 }}>
@@ -163,7 +162,10 @@ function ExerciseCard({ item }: { item: ExerciseLibraryItem }) {
           {item.equipment && <span className="badge">{item.equipment}</span>}
           {item.video_url && (
             <p>
-              <a href={item.video_url} target="_blank" rel="noreferrer">🔗 Wideo z techniką</a>
+              <a href={item.video_url} target="_blank" rel="noreferrer"
+              style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+              <Icon name="film" size={16} /> Wideo z techniką
+            </a>
             </p>
           )}
         </div>
@@ -194,7 +196,7 @@ function ProductsTab() {
 
   return (
     <>
-      <input placeholder="Szukaj produktu…" value={query}
+      <input placeholder="Szukaj produktu…" aria-label="Szukaj produktu" value={query}
         onChange={(e) => setQuery(e.target.value)} style={{ marginBottom: 10 }} />
       <div className="list">
         {visible.map((p) => {
@@ -212,8 +214,8 @@ function ProductsTab() {
                 Na 100 g: {p.kcal_100g} kcal · B {p.protein_100g} g · T {p.fat_100g} g · W {p.carbs_100g} g
               </div>
               <div className="row" style={{ marginTop: 6, alignItems: "center", gap: 6 }}>
-                <label style={{ margin: 0 }}>Porcja (g)</label>
-                <input type="number" min="0" style={{ width: 90 }} value={portionStr}
+                <label style={{ margin: 0 }} htmlFor={`portion-${p.id}`}>Porcja (g)</label>
+                <input id={`portion-${p.id}`} type="number" min="0" style={{ width: 90 }} value={portionStr}
                   onChange={(e) => setPortionByProduct({ ...portionByProduct, [p.id]: e.target.value })} />
                 <span className="badge badge--accent">
                   {Math.round(p.kcal_100g * factor)} kcal · B {Math.round(p.protein_100g * factor * 10) / 10} g ·

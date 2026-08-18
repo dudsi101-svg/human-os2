@@ -72,11 +72,8 @@ export default function Login() {
     <div className="login-wrap">
       <div className="login-box">
         <div style={{ textAlign: "center", marginBottom: 14 }}>
-          <img
-            src="/icons/logo-full.png"
-            alt="Dzik OS"
-            style={{ width: "min(78%, 300px)", height: "auto", display: "block", margin: "0 auto 8px" }}
-          />
+          <h1 className="sr-only">Dzik OS — logowanie</h1>
+          <img src="/icons/logo-full.png" alt="Dzik OS" className="login-logo" />
           <small className="dim">Panel Podopiecznego</small>
           {!mfaToken && (
             <>
@@ -114,7 +111,7 @@ export default function Login() {
         )}
         {mfaToken && (
           <form onSubmit={submitCode} className="card">
-            <h3 style={{ marginTop: 0 }}>Weryfikacja dwuetapowa</h3>
+            <h2 style={{ marginTop: 0 }}>Weryfikacja dwuetapowa</h2>
             <p className="dim" style={{ fontSize: "0.88rem" }}>
               Wpisz kod z aplikacji uwierzytelniającej albo jeden z kodów
               odzyskiwania.
