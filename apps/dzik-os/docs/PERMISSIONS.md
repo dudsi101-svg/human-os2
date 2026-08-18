@@ -139,6 +139,9 @@ domeny endpointu (`sensitive` wynika z katalogu kategorii).
 | GET /api/coach/knowledge, /exercises, /food-products | T·own | własny katalog (izolacja między trenerami) | — | — | R |
 | GET /api/me/knowledge, /exercises, /food-products | klient | AKTYWNE wpisy trenerów z AKTYWNĄ relacją | tak | nie (broadcast) | R |
 | POST /api/coach/diet-suggestion | T·own | wyłącznie własne produkty (422 dla cudzych); nic nie zapisuje | — | — | R |
+| GET /api/coach/food-products/export | T·own | eksport CSV wyłącznie własnego katalogu (prawo wyjścia) | — | — | R |
+| POST /api/coach/food-products/import | T·own | import CSV dopisuje/aktualizuje wyłącznie własne produkty — nigdy cudze (dopasowanie po nazwie w obrębie katalogu trenera) | — | — | W |
+| POST /api/food-products/portion | zalogowany | kalkulator porcji: własny produkt (trener) albo AKTYWNY produkt trenera z AKTYWNĄ relacją (klient); 404 poza tym | tak (klient) | nie | R |
 | GET /api/push/public-key; POST /api/push/subscribe, /unsubscribe | zalogowany | własna subskrypcja (endpoint = capability przeglądarki; przejęcie endpointu przez inne konto audytowane `PUSH_ENDPOINT_REBOUND`) | — | — | W |
 | POST/GET /api/coach/consult-slots; POST /{slot_id}/cancel | T·own | własne sloty | — | — | R/W |
 | GET /api/me/consult-slots | zalogowany | wolne sloty trenerów z AKTYWNĄ relacją + własne rezerwacje | tak | nie | R |

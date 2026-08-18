@@ -76,9 +76,18 @@ Zakładka „Wiedza" ma cztery karty:
 * **Ćwiczenia** — Twoje know-how: nazwa, partia mięśniowa, jak wykonać,
   co to daje, sprzęt, link do wideo. Widoczne dla klientów w ich własnej
   bazie wiedzy.
-* **Produkty** — baza produktów z kaloriami i makro na 100 g; wpisz
-  gramaturę porcji, żeby zobaczyć automatyczne przeliczenie. Klienci
-  widzą tę samą bazę z kalkulatorem porcji u siebie.
+* **Produkty** — baza ponad 400 produktów z kaloriami, makro i błonnikiem
+  na 100 g. Wpisz gramaturę **albo liczbę sztuk** („2 jajka”, „1 kromka”),
+  żeby zobaczyć przeliczenie. Szukaj po nazwie (polskie znaki nie mają
+  znaczenia: „losos” znajdzie „Łosoś”), filtruj po kategorii i sortuj po
+  kaloriach lub białku; lista dokłada kolejne pozycje przyciskiem
+  „Pokaż więcej”. Klienci widzą tę samą bazę z kalkulatorem porcji u siebie.
+  **Wartości są przybliżone i uśrednione** — zależą od marki, partii i
+  obróbki; to punkt wyjścia do oszacowania, nie pomiar. Możesz dograć
+  własne produkty hurtem (**import CSV**) i w każdej chwili pobrać cały
+  katalog do pliku (**eksport CSV**) — import dotyka wyłącznie Twoich
+  produktów, katalogi innych trenerów są od siebie odseparowane. Szczegóły
+  formatu: `docs/BAZA_PRODUKTOW.md`.
 * **Kompozytor diety** — podaj cel (kcal + białko/tłuszcz/węglowodany),
   zaznacz produkty z bazy, a system rozłoży cel na gramaturę wg
   dominującego makroskładnika każdego produktu. To wyłącznie przejrzysta

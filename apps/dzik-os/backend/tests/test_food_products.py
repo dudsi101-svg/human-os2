@@ -5,12 +5,16 @@ from conftest import CLIENT_A, COACH, create_user_with_role, login
 
 
 def test_client_sees_seeded_food_products(seeded):
+    # Katalog ma 400+ pozycji i jest stronicowany, więc konkretnego produktu
+    # szukamy przez wyszukiwarkę API, a nie w pierwszej stronie listy.
     ha = login(seeded, CLIENT_A)
     r = seeded.get("/api/me/food-products", headers=ha)
     assert r.status_code == 200
-    items = r.json()["items"]
-    assert len(items) >= 20
-    chicken = next(i for i in items if "kurczaka" in i["name"])
+    body = r.json()
+    assert len(body["items"]) == 50  # domyślna strona
+    assert body["total"] >= 300
+    r = seeded.get("/api/me/food-products?q=kurczaka", headers=ha)
+    chicken = next(i for i in r.json()["items"] if "Pierś z kurczaka" in i["name"])
     assert chicken["protein_100g"] > 20
 
 
@@ -60,9 +64,13 @@ def test_other_coach_cannot_see_or_edit(seeded):
 
 
 def _product_ids(seeded, hc, names):
-    items = seeded.get("/api/coach/food-products", headers=hc).json()["items"]
-    by_name = {i["name"]: i["id"] for i in items}
-    return [by_name[n] for n in names]
+    """Katalog jest stronicowany — każdy produkt wyszukujemy po nazwie."""
+    ids = []
+    for name in names:
+        r = seeded.get("/api/coach/food-products", headers=hc, params={"q": name})
+        items = r.json()["items"]
+        ids.append(next(i["id"] for i in items if i["name"] == name))
+    return ids
 
 
 def test_diet_suggestion_splits_target_by_dominant_macro(seeded):

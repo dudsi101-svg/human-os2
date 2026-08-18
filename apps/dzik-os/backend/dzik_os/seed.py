@@ -24,6 +24,7 @@ from .config import settings
 from .consent_catalog import ONBOARDING_CATEGORIES
 from .dates import local_today
 from .db import db_session, run_migrations
+from .food_catalog_data import FOOD_ROWS, FOOD_SOURCE
 from .hos_bridge import ConsentService, record_event
 from .models import (
     CoachClientRelationship,
@@ -755,53 +756,17 @@ def seed() -> dict[str, str]:
             ))
 
         # --- Baza produktów spożywczych (makro na 100 g) ---
-        food_rows = [
-            ("Pierś z kurczaka, surowa", "Mięso i ryby", 110, 23.0, 1.5, 0.0, 150),
-            ("Indyk, pierś, surowa", "Mięso i ryby", 104, 22.0, 1.2, 0.0, 150),
-            ("Wołowina chuda, surowa", "Mięso i ryby", 158, 21.0, 8.0, 0.0, 150),
-            ("Łosoś, surowy", "Mięso i ryby", 208, 20.0, 13.0, 0.0, 150),
-            ("Dorsz, surowy", "Mięso i ryby", 82, 18.0, 0.7, 0.0, 150),
-            ("Tuńczyk w wodzie, odsączony", "Mięso i ryby", 116, 26.0, 1.0, 0.0, 100),
-            ("Jaja kurze, całe", "Nabiał i jaja", 143, 12.6, 9.5, 0.7, 120),
-            ("Białko jaja kurzego", "Nabiał i jaja", 52, 11.0, 0.2, 0.7, 100),
-            ("Twaróg półtłusty", "Nabiał i jaja", 133, 18.0, 5.5, 3.7, 200),
-            ("Jogurt naturalny 2%", "Nabiał i jaja", 62, 4.3, 2.0, 6.0, 200),
-            ("Skyr naturalny", "Nabiał i jaja", 63, 11.0, 0.2, 4.0, 200),
-            ("Mleko 2%", "Nabiał i jaja", 50, 3.4, 2.0, 4.9, 250),
-            ("Ser żółty typu gouda", "Nabiał i jaja", 356, 25.0, 28.0, 2.2, 30),
-            ("Ryż biały, ugotowany", "Węglowodany", 130, 2.7, 0.3, 28.0, 150),
-            ("Ryż basmati, ugotowany", "Węglowodany", 121, 2.5, 0.4, 25.0, 150),
-            ("Kasza gryczana, ugotowana", "Węglowodany", 92, 3.4, 0.6, 20.0, 150),
-            ("Kasza jaglana, ugotowana", "Węglowodany", 119, 3.5, 1.0, 24.0, 150),
-            ("Ziemniaki, ugotowane", "Węglowodany", 87, 1.9, 0.1, 20.0, 200),
-            ("Słodkie ziemniaki, pieczone", "Węglowodany", 90, 2.0, 0.1, 21.0, 200),
-            ("Makaron pszenny, ugotowany", "Węglowodany", 158, 5.8, 0.9, 31.0, 150),
-            ("Płatki owsiane", "Węglowodany", 372, 13.5, 7.0, 60.0, 60),
-            ("Chleb żytni razowy", "Węglowodany", 220, 7.0, 1.5, 42.0, 60),
-            ("Bułka pszenna", "Węglowodany", 270, 8.5, 3.0, 51.0, 60),
-            ("Komosa ryżowa (quinoa), ugotowana", "Węglowodany", 120, 4.4, 1.9, 21.0, 150),
-            ("Brokuł, gotowany", "Warzywa i owoce", 35, 2.4, 0.4, 7.0, 150),
-            ("Marchew, surowa", "Warzywa i owoce", 41, 0.9, 0.2, 10.0, 100),
-            ("Pomidor, surowy", "Warzywa i owoce", 18, 0.9, 0.2, 3.9, 120),
-            ("Ogórek, surowy", "Warzywa i owoce", 15, 0.7, 0.1, 3.6, 100),
-            ("Papryka czerwona, surowa", "Warzywa i owoce", 31, 1.0, 0.3, 6.0, 120),
-            ("Banan", "Warzywa i owoce", 89, 1.1, 0.3, 23.0, 120),
-            ("Jabłko", "Warzywa i owoce", 52, 0.3, 0.2, 14.0, 150),
-            ("Borówki", "Warzywa i owoce", 57, 0.7, 0.3, 14.0, 100),
-            ("Oliwa z oliwek", "Tłuszcze", 884, 0.0, 100.0, 0.0, 10),
-            ("Masło orzechowe", "Tłuszcze", 588, 25.0, 50.0, 20.0, 20),
-            ("Awokado", "Tłuszcze", 160, 2.0, 15.0, 9.0, 100),
-            ("Migdały", "Tłuszcze", 579, 21.0, 50.0, 22.0, 30),
-            ("Orzechy włoskie", "Tłuszcze", 654, 15.0, 65.0, 14.0, 30),
-            ("Odżywka białkowa WPC (proszek)", "Suplementy diety", 380, 75.0, 6.0, 8.0, 30),
-            ("Ryż preparowany (wafle ryżowe)", "Przekąski", 387, 8.0, 2.8, 82.0, 30),
-            ("Soczewica czerwona, ugotowana", "Rośliny strączkowe", 116, 9.0, 0.4, 20.0, 150),
-        ]
-        for name, category, kcal, protein, fat, carbs, portion in food_rows:
+        # Katalog (400+ pozycji w 16 kategoriach) mieszka w osobnym module
+        # `food_catalog_data`, żeby seed pozostał czytelny. Pochodzenie i
+        # status danych: docs/BAZA_PRODUKTOW.md.
+        for food in FOOD_ROWS:
             db.add(FoodProduct(
-                id=new_id("FOD"), coach_id=coach.id, name=name, category=category,
-                kcal_100g=kcal, protein_100g=protein, fat_100g=fat, carbs_100g=carbs,
-                default_portion_g=portion, created_by=coach.id,
+                id=new_id("FOD"), coach_id=coach.id, name=food.name, category=food.category,
+                kcal_100g=food.kcal, protein_100g=food.protein, fat_100g=food.fat,
+                carbs_100g=food.carbs, fiber_100g=food.fiber,
+                default_portion_g=food.portion_g,
+                unit_name=food.unit_name, unit_grams=food.unit_grams,
+                source=FOOD_SOURCE, note=food.note, created_by=coach.id,
             ))
 
         # --- Baza wiedzy trenera ---

@@ -780,6 +780,17 @@ class FoodProduct(Base):
     fat_100g: Mapped[float] = mapped_column(Float)
     carbs_100g: Mapped[float] = mapped_column(Float)
     default_portion_g: Mapped[float | None] = mapped_column(Float, nullable=True)
+    # Migracja nr 18 — wszystkie pola opcjonalne (pełna zgodność wsteczna:
+    # produkty sprzed migracji działają dalej z samymi NULL-ami).
+    fiber_100g: Mapped[float | None] = mapped_column(Float, nullable=True)
+    # Jednostka sztukowa pozwala liczyć porcje bez wagi: „1 jajko M ≈ 55 g”,
+    # „1 kromka chleba ≈ 35 g”. Sensowna tylko w parze (nazwa + gramy).
+    unit_name: Mapped[str | None] = mapped_column(String(60), nullable=True)
+    unit_grams: Mapped[float | None] = mapped_column(Float, nullable=True)
+    # Skąd pochodzą wartości (np. „tabele wartości odżywczych, wartości
+    # uśrednione”) i uwagi („wartości dla produktu ugotowanego”).
+    source: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    note: Mapped[str | None] = mapped_column(String(300), nullable=True)
     status: Mapped[str] = mapped_column(String(20), default="ACTIVE")  # ACTIVE/ARCHIVED
     created_by: Mapped[str] = mapped_column(String(40))
     created_at: Mapped[str] = mapped_column(String(40), default=now_iso)

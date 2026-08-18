@@ -461,6 +461,22 @@ class FoodProductIn(BaseModel):
     fat_100g: float = Field(ge=0, le=110)
     carbs_100g: float = Field(ge=0, le=110)
     default_portion_g: float | None = Field(default=None, ge=0, le=5000)
+    # Pola z migracji nr 18 — wszystkie opcjonalne; pominięcie ich w żądaniu
+    # zachowuje zachowanie sprzed rozbudowy katalogu (zgodność wsteczna).
+    fiber_100g: float | None = Field(default=None, ge=0, le=110)
+    unit_name: str | None = Field(default=None, max_length=60)
+    unit_grams: float | None = Field(default=None, gt=0, le=5000)
+    source: str | None = Field(default=None, max_length=200)
+    note: str | None = Field(default=None, max_length=300)
+
+
+class PortionCalcIn(BaseModel):
+    """Kalkulator porcji: gramy ALBO liczba sztuk (jednostka produktu).
+    Podanie obu naraz jest błędem — wynik ma być jednoznaczny."""
+
+    product_id: str = Field(min_length=1, max_length=40)
+    grams: float | None = Field(default=None, ge=0, le=10000)
+    units: float | None = Field(default=None, ge=0, le=100)
 
 
 class DietSuggestionIn(BaseModel):

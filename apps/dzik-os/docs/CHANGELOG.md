@@ -1,5 +1,76 @@
 # Changelog — Dzik OS
 
+## 0.22.0 — 2026-08-18
+
+Baza produktów spożywczych jako narzędzie codziennej pracy, nie demo:
+katalog urósł z 40 do **409 pozycji w 16 kategoriach**, doszedł błonnik,
+jednostki sztukowe („2 jajka” = 100 g), źródło i uwagi przy każdej
+wartości, wyszukiwarka odporna na polskie znaki, stronicowanie po stronie
+API oraz import/eksport CSV. Pochodzenie danych, format CSV i plan
+wycofania migracji nr 18: `docs/BAZA_PRODUKTOW.md`.
+
+* **Katalog 409 pozycji** (`dzik_os/food_catalog_data.py` — osobny moduł,
+  żeby seed pozostał czytelny) w kategoriach: mięso i drób (40), ryby i
+  owoce morza (27), jaja (9), nabiał (39), zboża i pieczywo (32), kasze/
+  ryż/makarony (28), warzywa (46), owoce (34), rośliny strączkowe (19),
+  orzechy i nasiona (20), tłuszcze i oleje (15), przekąski i słodycze (24),
+  napoje (20), odżywki i suplementy (15), dania gotowe i fast food (22),
+  przyprawy i dodatki (19). Wartości **uśrednione** dla produktów
+  dostępnych w Polsce; nazwy **generyczne** (zero marek i producentów);
+  stan surowy / ugotowany / gotowy rozróżniony w nazwie i w polu `note`
+  wszędzie, gdzie obróbka istotnie zmienia wartości (ryż, makaron, kasza,
+  strączki, mięso).
+* **Uczciwość danych widoczna w interfejsie, nie w dokumentacji**: każda
+  odpowiedź katalogu, kalkulatora porcji i kompozytora diety niesie pole
+  `disclaimer` („wartości są przybliżone i uśrednione — zależą od marki,
+  partii i obróbki; punkt wyjścia do oszacowania, nie pomiar”), a widok
+  pokazuje go przy katalogu i przy kalkulatorze. Katalog jest **opisowy,
+  nie oceniający** — zero twierdzeń zdrowotnych i rekomendacji; o
+  zastosowaniu produktu decyduje trener.
+* **Nowe pola produktu** (migracja nr 18, czysto addytywna, wszystkie
+  kolumny NULLable): `fiber_100g` (błonnik), `unit_name` + `unit_grams`
+  (jednostka sztukowa: „1 kromka ≈ 35 g” — porcja bez wagi kuchennej),
+  `source` (skąd pochodzą wartości), `note` (uwagi). Pełna zgodność
+  wsteczna: produkty i żądania API sprzed migracji działają bez zmian, a
+  brak danych zostaje `NULL`, nie zerem (0 g błonnika to twierdzenie, brak
+  danych — nie).
+* **Wyszukiwanie i stronicowanie po stronie API** (`q`, `category`, `sort`,
+  `limit`/`offset`, `status`): 400+ rekordów nigdy nie ładuje się do widoku
+  naraz — strona ma 30 pozycji, resztę dokłada „Pokaż więcej”. Wyszukiwarka
+  ignoruje wielkość liter i polskie znaki („losos”, „ŁOSOŚ” → „Łosoś”), a
+  gdy dopasowanie ścisłe nie da nic, drugi przebieg dopasowuje po słowach
+  („lososiowy” → „Łosoś”). Sortowanie: nazwa / kalorie / białko. Filtr
+  kategorii z listą liczoną z całego katalogu (wybór kategorii nie kasuje
+  pozostałych opcji).
+* **Kalkulator porcji** (`POST /api/food-products/portion` + wspólna czysta
+  logika `frontend/src/foodUtils.ts`): gramy **albo** sztuki (podanie obu =
+  422, bo wynik ma być jednoznaczny), błonnik pokazywany, gdy jest znany,
+  sensowne zaokrąglenia (kcal do pełnych, makro do 0,1 g). Panel trenera i
+  panel klienta liczą tą samą funkcją, więc liczby nie mogą się rozjechać.
+  Kompozytor diety pokazuje dodatkowo błonnik i ekwiwalent w sztukach.
+* **Import/eksport CSV katalogu przez trenera** (prawo wyjścia): eksport
+  całego katalogu (UTF-8 z BOM, także archiwum) i import hurtem —
+  separator `,` lub `;`, przecinek dziesiętny, limit 1000 wierszy,
+  walidacja nagłówków, typów i zakresów (kcal 0–900, makro 0–100 na 100 g),
+  **raport błędów per wiersz bez przerywania importu na pierwszym błędzie**.
+  Upsert po nazwie w obrębie katalogu trenera; **izolacja trenerów**: wiersz
+  o nazwie identycznej z cudzym produktem tworzy nowy własny produkt i nigdy
+  nie modyfikuje cudzego. Obieg eksport → import jest idempotentny. Oba
+  działania audytowane (`FOOD_CATALOG_EXPORTED`, `FOOD_CATALOG_IMPORTED`)
+  bez treści produktów.
+* Migracja schematu nr 18 (pięć kolumn na `food_products`) — addytywna, z
+  testem na bazie v1 i planem wycofania w `docs/BAZA_PRODUKTOW.md`.
+  `docs/PERMISSIONS.md` uzupełniony o trzy nowe endpointy.
+* Testy: backend 413 → 446 (nowy `test_food_catalog_extended.py`: migracja
+  18 na starej bazie, rozmiar katalogu i brak duplikatów nazw, polskie
+  znaki w wyszukiwarce, filtr kategorii, stronicowanie, sortowanie,
+  porcja gramowa i sztukowa, izolacja przy imporcie, eksport, walidacja
+  zakresów); frontend helpers 42 → 55 (`foodUtils`: normalizacja nazw,
+  gram↔sztuka, błonnik jako brak danych vs. zero, odporność na złe
+  wejście); Core 275 bez zmian. Świadoma zmiana istniejących testów:
+  `test_food_products.py` nie zakłada już, że cały katalog przychodzi w
+  jednej odpowiedzi — produktów szuka przez `?q=`.
+
 ## 0.21.0 — 2026-08-18
 
 Powiadomienia i prawdziwe przypomnienia (P13): jeden spójny system dla
