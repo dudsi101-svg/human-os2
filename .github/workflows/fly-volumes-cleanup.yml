@@ -28,7 +28,12 @@ on:
     paths: [".github/workflows/fly-volumes-cleanup.yml"]
 
 concurrency:
-  group: fly-deploy
+  # OSOBNA grupa od deployu. Wspólna grupa `fly-deploy` powodowała, że
+  # zadanie konserwacyjne wchodzące do kolejki WYPYCHAŁO z niej oczekujący
+  # deploy (GitHub trzyma w kolejce tylko jeden run na grupę, starszy jest
+  # anulowany) — wdrożenie znikało po cichu. Ochronę przed wyścigiem
+  # z deployem daje teraz filtr wieku wolumenu poniżej.
+  group: fly-maintenance
   cancel-in-progress: false
 
 jobs:
@@ -56,7 +61,34 @@ jobs:
       - name: Usuń wolumeny bez podpiętej maszyny
         run: |
           flyctl volumes list --app "$APP_NAME" --json > vols.json
-          orphans=$(jq -r '.[] | select((.attached_machine_id // "") == "") | .id' vols.json)
+          now=$(date -u +%s)
+          # Usuwamy wyłącznie sieroty STARSZE niż godzina: świeżo utworzony
+          # wolumen może należeć do trwającego właśnie deployu (Fly tworzy go
+          # zanim podepnie maszynę). Wolumen z niedającą się sparsować datą
+          # jest traktowany jak świeży — pomijamy, nigdy nie zgadujemy.
+          orphans=$(jq -r --argjson now "$now" '
+            .[]
+            | select((.attached_machine_id // "") == "")
+            | select(((try (.created_at | fromdateiso8601) catch $now) + 3600) < $now)
+            | .id' vols.json)
+          skipped=$(jq --argjson now "$now" '[
+            .[]
+            | select((.attached_machine_id // "") == "")
+            | select(((try (.created_at | fromdateiso8601) catch $now) + 3600) >= $now)
+          ] | length' vols.json)
+          attached=$(jq '[.[] | select((.attached_machine_id // "") != "")] | length' vols.json)
+          echo "Podpiętych wolumenów: $attached; pominiętych (młodsze niż 1 h): $skipped"
+          # BEZPIECZNIK: sprzątamy wyłącznie, gdy aplikacja jest w zdrowym
+          # stanie, tzn. ma wolumen podpięty do maszyny. Gdy żaden wolumen
+          # nie jest podpięty (zniszczona maszyna, przerwany deploy),
+          # niepodpięty wolumen może być JEDYNYM nośnikiem danych — wtedy
+          # nie ruszamy niczego i zgłaszamy to do ręcznej decyzji.
+          if [ "$attached" -eq 0 ]; then
+            echo "UWAGA: żaden wolumen nie jest podpięty do maszyny."
+            echo "Nie usuwam niczego — niepodpięty wolumen może zawierać dane."
+            echo "Sprawdź stan aplikacji ręcznie (flyctl status / machines list)."
+            exit 0
+          fi
           if [ -z "$orphans" ]; then
             echo "Brak nieużywanych wolumenów — nic do zrobienia."
             exit 0
