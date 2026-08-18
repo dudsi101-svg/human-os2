@@ -15,7 +15,23 @@ export default function Messages() {
       .then((d) => setThreads(d.threads))
       .catch((e) => setError(e.message));
   };
-  useEffect(() => { load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    load();
+    // Kontrolowane odświeżanie listy WYŁĄCZNIE na otwartym ekranie
+    // wiadomości (liczniki nieprzeczytanych): co 30 s + przy powrocie do
+    // karty. Kanał na żywo działa w otwartej rozmowie (Thread.tsx).
+    const timer = setInterval(() => {
+      if (!document.hidden) load();
+    }, 30_000);
+    const onVisible = () => {
+      if (!document.hidden) load();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (error) return <div className="page"><ErrorBox error={error} onRetry={load} /></div>;
   if (!threads) return <div className="page"><Spinner /></div>;

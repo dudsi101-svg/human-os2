@@ -1,5 +1,77 @@
 # Changelog — Dzik OS
 
+## 0.16.0 — 2026-08-18
+
+Wiadomości w czasie rzeczywistym i porządne nagrania głosowe. Pełny opis
+architektury (transport, statusy, formaty audio, retencja, plan wycofania
+migracji 13): `docs/WIADOMOSCI.md`.
+
+* **Kanał czasu rzeczywistego (SSE)**: `GET /api/threads/events` —
+  wybrane SSE zamiast WebSocketu (Bearer w nagłówku przez fetch — token
+  NIGDY w query stringu; ten sam łańcuch middleware co reszta API:
+  nagłówki P5, request id i model błędów P9, no-store; CSP connect-src
+  'self' wystarcza; sw.js nie dotyka /api). Magistrala zdarzeń w pamięci
+  procesu (`realtime.py`); zdarzenia: message.new / message.delivered /
+  message.read / resync / session_expired + keepalive
+  (`DZIK_SSE_KEEPALIVE_S`, domyślnie 25 s). **Każde doręczane zdarzenie
+  przechodzi ponownie bramkę require_thread_party** (cofnięcie zgody
+  odcina kanał trenera w locie), a ważność sesji jest sprawdzana W TRAKCIE
+  strumienia — unieważniony token dostaje session_expired i czytelny
+  powrót do logowania. Ograniczenie: jeden proces (fly:
+  min_machines_running=1) — opisane w docs.
+* **Reconnect + bezpieczny fallback**: frontendowy klient SSE
+  (`realtime.ts`, fetch + własny parser strumienia) z wykładniczym
+  backoffem 1→30 s; po 3 nieudanych próbach kontrolowany polling co 15 s
+  WYŁĄCZNIE na otwartym i widocznym ekranie rozmowy, z powrotem na kanał
+  gdy wróci. Lista wątków: odświeżanie liczników co 30 s na otwartym
+  ekranie + przy powrocie do karty.
+* **Statusy wiadomości** (migracja nr 13: `messages.delivered_at`,
+  `messages.client_msg_id`, indeks porządku i częściowy indeks unikalny;
+  addytywna, plan wycofania w docs): wysłana (potwierdzenie POST) →
+  dostarczona (SSE/GET odbiorcy, na żywo z pokwitowaniem
+  message.delivered) → przeczytana (otwarcie wątku lub
+  `POST /threads/{id}/read` przy otwartym ekranie). Znaczniki
+  monotoniczne, ustawia wyłącznie odbiorca; licznik nieprzeczytanych per
+  wątek jak dotąd w `GET /api/threads`.
+* **Deduplikacja i kolejność**: `client_msg_id` z urządzenia nadawcy
+  (UUID) — ponowienie po utracie sieci zwraca istniejącą wiadomość
+  (`duplicate: true`), unikalność per (wątek, autor, client_msg_id)
+  także indeksem w bazie; stabilny porządek `(created_at, id)` po obu
+  stronach; UI scala duplikaty i spóźnione zdarzenia
+  (`messaging.ts::mergeMessage`).
+* **Paginacja historii**: `?limit=50&before=<id>` + `has_more` i przycisk
+  „Wczytaj starsze wiadomości"; kursor spoza wątku → 404; dociąganie
+  starszych NIE znaczy przeczytania.
+* **Szkic per wątek**: treść pola przeżywa utratę sieci, nawigację
+  i przeładowanie (sessionStorage, czyszczony po wysłaniu); optymistyczny
+  dymek „wysyłanie…" podmieniany potwierdzeniem serwera, a błąd wysyłki
+  nie czyści formularza.
+* **Nagrania głosowe naprawione**: format przez
+  `MediaRecorder.isTypeSupported` (webm/opus → Chrome/Firefox/Android;
+  audio/mp4 AAC → Safari/iOS ≥ 14.3), wysyłany RZECZYWISTY
+  `recorder.mimeType` (typ bazowy, koniec ze sztywnym audio/webm),
+  rozszerzenie wg typu; limit 3 min (auto-stop bez utraty nagrania)
+  i 15 MB; odsłuch/nagraj ponownie/usuń przed wysłaniem; `track.stop()`
+  na WSZYSTKICH ścieżkach mikrofonu po stopie, anulowaniu, błędzie
+  i odmontowaniu; wszystkie Blob URL zwalniane. Logika wydzielona do
+  testowalnego `audioCapture.ts` (wstrzykiwane getUserMedia/MediaRecorder).
+* Backend audio bez zmian allowlisty (webm/m4a/mp3/ogg już wspierane —
+  zweryfikowane magic bytes testami, w tym niezgodność zawartości i typ
+  z parametrem kodeka = 415).
+* **Prywatność**: treści rozmów i nagrania poza logami/metrykami/push
+  (push nadal neutralne „Nowa wiadomość" — test); zdarzenia SSE nie są
+  logowane; IDOR = 404 na wszystkich nowych ścieżkach. Retencja
+  i usuwanie: anonimizacja wątków przy usunięciu konta zweryfikowana,
+  osierocone głosówki trenera sprząta pętla plików-sierot — opis
+  w `docs/WIADOMOSCI.md` §6.
+* Testy: backend 304 → 323 (`test_messages_realtime.py` — wymiana dwóch
+  użytkowników, duplikaty, kolejność, paginacja, IDOR, sesja na kanale,
+  magistrala + przepełnienie, push bez treści, formaty audio; migracja
+  v1→v13); frontend `npm run test:helpers` 10 → 29 (parser SSE, backoff,
+  scalanie/porządek, szkice, wybór formatu, kontroler nagrywania —
+  odmowa mikrofonu i odmontowanie w trakcie nagrania włącznie). Żywy
+  strumień zweryfikowany uvicorn+curl (ograniczenie TestClienta w docs).
+
 ## 0.15.0 — 2026-08-18
 
 Jakość raportów i zdjęć progresu: **koniec fałszywych danych z domyślnych

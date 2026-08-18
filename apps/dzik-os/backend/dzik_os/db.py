@@ -293,6 +293,24 @@ MIGRATIONS: list[tuple[int, str, list[str]]] = [
             "ON idempotency_keys(user_id)"
         ),
     ]),
+    (13, "messages realtime: delivery/read status, client dedup id", [
+        # Status doręczenia: dostarczona (urządzenie odbiorcy odebrało) /
+        # przeczytana (read_at istniał od v1). Model statusów i plan
+        # wycofania: docs/WIADOMOSCI.md.
+        "ALTER TABLE messages ADD COLUMN delivered_at VARCHAR(40)",
+        # Deduplikacja ponowień z urządzenia nadawcy (utrata sieci):
+        # identyfikator kliencki, unikalny per wątek+autor.
+        "ALTER TABLE messages ADD COLUMN client_msg_id VARCHAR(64)",
+        (
+            "CREATE INDEX IF NOT EXISTS ix_messages_thread_created "
+            "ON messages(thread_id, created_at, id)"
+        ),
+        (
+            "CREATE UNIQUE INDEX IF NOT EXISTS ux_messages_thread_author_client_msg "
+            "ON messages(thread_id, author_id, client_msg_id) "
+            "WHERE client_msg_id IS NOT NULL"
+        ),
+    ]),
 ]
 
 

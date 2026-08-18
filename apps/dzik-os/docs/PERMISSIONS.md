@@ -113,7 +113,9 @@ domeny endpointu (`sensitive` wynika z katalogu kategorii).
 | POST /api/checkins/{checkin_id}/review, /ai-summary | T | raport własnego klienta | tak | tak (write) | W |
 | POST/GET /api/clients/{id}/measurements; /metric-definitions | W, T (definicje: POST tylko T) | pomiary jednego klienta | T: tak | T: tak | R/W |
 | GET /api/threads | strona wątku | własne wątki; trener: tylko AKTYWNA relacja + nieocofnięta zgoda (inaczej wątek znika też z listy) | T: tak | T: tak (sens.=False) | R |
-| GET/POST /api/threads/{thread_id}/messages | strona wątku (`require_thread_party`) | jeden wątek | T: tak | T: tak (sens.=False) | R/W |
+| GET/POST /api/threads/{thread_id}/messages | strona wątku (`require_thread_party`) | jeden wątek (paginacja `limit`/`before`; kursor spoza wątku → 404) | T: tak | T: tak (sens.=False) | R/W |
+| POST /api/threads/{thread_id}/read | strona wątku (`require_thread_party`) | oznaczenie cudzych wiadomości wątku jako przeczytane | T: tak | T: tak (sens.=False) | W |
+| GET /api/threads/events | zalogowany (SSE, Bearer w nagłówku — token NIGDY w query) | kanał realtime WŁASNYCH wątków; każde doręczane zdarzenie przechodzi ponownie bramkę strony wątku, a ważność sesji jest sprawdzana w trakcie strumienia (unieważnienie → `session_expired` + zamknięcie); szczegóły: docs/WIADOMOSCI.md | T: tak | T: tak (sens.=False) | R |
 | POST /api/files | W, T (upload dla klienta) | plik własny / klienta z relacji | T: tak | T: tak (write) | W |
 | GET /api/files/{file_id} | patrz tabela „Pliki" niżej | jeden plik | wg tabeli | wg tabeli | R |
 | POST /api/documents | T | dokument dla własnego klienta (plik musi należeć do klienta) | tak | tak (write) | W |

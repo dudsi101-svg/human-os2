@@ -12,6 +12,7 @@ from sqlalchemy import (
     String,
     Text,
     UniqueConstraint,
+    text,
 )
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -485,7 +486,27 @@ class MessageThread(Base):
 
 
 class Message(Base):
+    """Wiadomość w wątku. Statusy doręczenia (model: docs/WIADOMOSCI.md):
+    wysłana = istnieje wiersz (created_at), dostarczona = delivered_at
+    (urządzenie odbiorcy odebrało ją kanałem SSE lub przez GET wątku),
+    przeczytana = read_at (odbiorca miał otwarty wątek). client_msg_id to
+    identyfikator nadany przez urządzenie nadawcy — deduplikacja ponowień
+    po utracie sieci (unikalny per wątek+autor, patrz migracja nr 13)."""
+
     __tablename__ = "messages"
+    __table_args__ = (
+        # Stabilna kolejność i kursor paginacji: (created_at, id).
+        Index("ix_messages_thread_created", "thread_id", "created_at", "id"),
+        Index(
+            "ux_messages_thread_author_client_msg",
+            "thread_id",
+            "author_id",
+            "client_msg_id",
+            unique=True,
+            sqlite_where=text("client_msg_id IS NOT NULL"),
+            postgresql_where=text("client_msg_id IS NOT NULL"),
+        ),
+    )
 
     id: Mapped[str] = mapped_column(String(40), primary_key=True)
     thread_id: Mapped[str] = mapped_column(ForeignKey("message_threads.id"), index=True)
@@ -493,7 +514,9 @@ class Message(Base):
     body: Mapped[str] = mapped_column(Text)
     file_id: Mapped[str | None] = mapped_column(ForeignKey("files.id"), nullable=True)
     created_at: Mapped[str] = mapped_column(String(40), default=now_iso)
+    delivered_at: Mapped[str | None] = mapped_column(String(40), nullable=True)
     read_at: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    client_msg_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
 
 
 class PaymentSchedule(Base):

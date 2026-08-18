@@ -128,6 +128,30 @@ def _extract_token(request: Request) -> str | None:
     return request.cookies.get("dzik_session")
 
 
+def request_token(request: Request) -> str | None:
+    """Token bieżącego żądania (nagłówek Bearer lub ciasteczko) — dla
+    długożyjących połączeń (SSE), które muszą okresowo ponawiać kontrolę
+    ważności sesji w trakcie strumienia (session_is_active)."""
+    return _extract_token(request)
+
+
+def session_is_active(db: Session, token: str | None) -> bool:
+    """Czy sesja tokenu jest wciąż ważna (nieunieważniona i niewygasła)?
+    Używane przez kanał SSE: uwierzytelnienie przy otwarciu strumienia nie
+    wystarcza — wylogowanie/unieważnienie musi zamykać też otwarty kanał."""
+    if not token:
+        return False
+    row = (
+        db.query(AuthSession)
+        .filter(
+            AuthSession.token_hash == _token_hash(token),
+            AuthSession.revoked_at.is_(None),
+        )
+        .one_or_none()
+    )
+    return row is not None and row.expires_at > datetime.now(UTC).isoformat()
+
+
 # Ścieżki dostępne mimo flagi must_change_password (zmiana hasła, wylogowanie,
 # podgląd własnej sesji).
 _PASSWORD_CHANGE_ALLOWED_PATHS = {
