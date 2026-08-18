@@ -16,7 +16,7 @@ import { withGaps } from "./seriesUtils";
 import { KIND_LABELS, PersonalRecordsData, SeriesPoint, StrengthSeriesRow } from "./types";
 
 /** Głowa dzika — marka Dzik OS. */
-export function Logo({ size = 26 }: { size?: number }) {
+export function Logo({ size = 38 }: { size?: number }) {
   return (
     <img
       src="/icons/boar-mark.png"
@@ -74,7 +74,7 @@ const icons: Record<string, ReactNode> = {
 
 /** Ikona z systemu. Bez `label` — czysto dekoracyjna (aria-hidden);
  * z `label` — samodzielna grafika z dostępną nazwą (role="img"). */
-export function Icon({ name, size = 22, label }: {
+export function Icon({ name, size = 26, label }: {
   name: string; size?: number; label?: string;
 }) {
   return (
