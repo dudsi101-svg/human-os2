@@ -11,7 +11,7 @@ przegląd prawny (patrz RISK_REGISTER R-01).
 | Profil treningowy | cel, doświadczenie, sprzęt, dni | dobór planu | umowa | klient, trener (za zgodą) | do usunięcia |
 | Wrażliwe deklarowane | urazy, alergie, preferencje żywieniowe | bezpieczny plan | **zgoda** (health_data, sensitive) | klient, trener (za zgodą) | do usunięcia |
 | Pomiary i raporty | masa, obwody, skale samopoczucia | monitorowanie postępów | zgoda | klient, trener (za zgodą) | do usunięcia |
-| Zdjęcia sylwetki / filmy | progres, technika | ocena postępów/techniki | zgoda | klient, trener (za zgodą) | fizycznie usuwane przy anonimizacji |
+| Zdjęcia sylwetki / filmy | progres, technika | ocena postępów/techniki | zgoda | klient, trener (za zgodą) | fizycznie usuwane przy anonimizacji; nowe uploady zdjęć mają usuwane metadane EXIF (w tym geolokalizację GPS) i ograniczaną rozdzielczość już przy zapisie |
 | Harmonogram (w tym suplementy) | nazwa, dawka wpisana przez człowieka, autor | przypomnienia | zgoda | klient, trener | do usunięcia |
 | Adherencja harmonogramu | odhaczenie wykonania per dzień, notatka | monitorowanie realizacji | zgoda | klient, trener (za zgodą) | notatka usuwana przy anonimizacji |
 | Dziennik obserwacji | samopoczucie/reakcja, waga (informacja/niepokojące) | wychwycenie niekorzystnych reakcji do przeglądu przez trenera — **nigdy diagnoza** | zgoda | klient, trener (za zgodą) | fizycznie usuwane przy anonimizacji |
@@ -19,6 +19,23 @@ przegląd prawny (patrz RISK_REGISTER R-01).
 | Wiadomości i dokumenty | treść, załączniki | komunikacja | umowa | strony wątku | anonimizowane przy usunięciu |
 | Płatności | pakiet, kwota, termin, status | rozliczenia | umowa | klient, trener | metadane mogą pozostać w księgowości trenera |
 | Zdarzenia audytu | identyfikatory, typ akcji, hash | bezpieczeństwo, rozliczalność | uzasadniony interes | admin (weryfikacja), trener (pokwitowania swoich klientów) | trwałe (łańcuch niemutowalny; bez danych zdrowotnych w payloadach jawnych pól profilu — payload zawiera klucze pól, nie wartości wrażliwe) |
+
+## Retencja plików (uzupełnienie)
+
+* **Minimalizacja u źródła**: nowe uploady zdjęć są pozbawiane EXIF
+  (w tym GPS) i rekompresowane (maks. 2560 px dłuższy bok) — aplikacja
+  nigdy nie przechowuje geolokalizacji zdjęć. Pliki wgrane przed tą
+  zmianą pozostają na dysku w oryginalnej postaci (bez retroaktywnego
+  przetwarzania); są objęte tym samym reżimem dostępu i usuwania.
+* **Pliki-sieroty**: upload nie podpięty do żadnego zasobu (raport,
+  wiadomość, dokument, baza wiedzy, trening) jest po 24 h oznaczany
+  `deleted_at` i usuwany z dysku (metadane zostają dla rozliczalności).
+* **Odpowiedzi plikowe** mają `Cache-Control: no-store` — dane
+  zdrowotne/wizerunkowe nie trafiają do cache przeglądarki ani
+  pośredników.
+* **Usunięcie konta** (poniżej) fizycznie usuwa pliki z dysku;
+  **eksport** (`/api/me/export`) wymienia pliki z identyfikatorami do
+  pobrania przez uwierzytelnione `/api/files/{id}`.
 
 ## Prawa użytkownika (wbudowane w aplikację)
 

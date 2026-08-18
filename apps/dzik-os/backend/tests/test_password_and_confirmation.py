@@ -102,9 +102,10 @@ def test_thread_attachment_visible_to_both_parties(seeded):
     threads = seeded.get("/api/threads", headers=hc).json()["threads"]
     thread = next(t for t in threads
                   if t["with_user"]["display_name"] == "Klient Testowy A")
+    from conftest import make_png
+
     up = seeded.post("/api/files", headers=hc, files={
-        "file": ("technika.png", io.BytesIO(b"\x89PNG\r\n\x1a\n" + b"2" * 64),
-                 "image/png")})
+        "file": ("technika.png", io.BytesIO(make_png()), "image/png")})
     file_id = up.json()["id"]
     r = seeded.post(f"/api/threads/{thread['id']}/messages", headers=hc,
                     json={"body": "Zobacz załącznik", "file_id": file_id})

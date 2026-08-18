@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { api, getUser, plDate } from "../../api";
-import { ErrorBox, Spinner, TopBar } from "../../components";
+import { ErrorBox, FileDownloadButton, Spinner, TopBar } from "../../components";
 import { DocumentRow, ScheduleItem, CATEGORY_LABELS } from "../../types";
 import { WEEKDAYS } from "../../api";
 
@@ -17,12 +17,6 @@ export default function Documents() {
       .then((d) => setSchedule(d.items)).catch(() => undefined);
   }, [user.id]);
 
-  async function openDoc(fileId: string) {
-    const blob = await api.get<Blob>(`/api/files/${fileId}`);
-    const url = URL.createObjectURL(blob);
-    window.open(url, "_blank");
-  }
-
   if (error) return <div className="page"><ErrorBox error={error} /></div>;
   if (!docs) return <div className="page"><Spinner /></div>;
 
@@ -38,9 +32,7 @@ export default function Documents() {
               <b>{d.title}</b>
               <div className="meta">{plDate(d.created_at)}</div>
             </div>
-            <button className="btn btn--ghost btn--small" onClick={() => openDoc(d.file_id)}>
-              Otwórz
-            </button>
+            <FileDownloadButton fileId={d.file_id} openInTab label="Otwórz" />
           </div>
         ))}
       </div>

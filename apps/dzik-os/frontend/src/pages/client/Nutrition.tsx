@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { api, getUser, plDate } from "../../api";
-import { ErrorBox, Spinner, TopBar } from "../../components";
+import { ErrorBox, FileDownloadButton, Spinner, TopBar } from "../../components";
 import { NutritionVersion } from "../../types";
 
 interface NutritionPlanRow {
@@ -95,11 +95,12 @@ export default function Nutrition() {
               ))}
             </div>
           )}
-          {v.document_id && (
+          {v.document_file_id && (
             <div className="card">
-              <a href={`/api/files/${v.document_id}`} target="_blank" rel="noreferrer">
-                📄 Pobierz dietę (PDF)
-              </a>
+              {/* Chroniony plik — pobieranie wyłącznie przez uwierzytelnione
+                  API (zwykły link nie wysyła autoryzacji). */}
+              <FileDownloadButton fileId={v.document_file_id}
+                label="📄 Pobierz dietę (PDF)" className="btn btn--small" />
             </div>
           )}
         </>

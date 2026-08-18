@@ -82,3 +82,28 @@ def create_user_with_role(email: str, password: str, name: str, role: str) -> st
 
 def get_user_id(client: TestClient, headers: dict) -> str:
     return client.get("/api/auth/me", headers=headers).json()["id"]
+
+
+def make_png(width: int = 8, height: int = 8, color=(20, 200, 60)) -> bytes:
+    """Prawdziwy, dekodowalny PNG (upload przechodzi magic bytes ORAZ
+    przetwarzanie Pillow — nagłówek z dopełnieniem już nie wystarcza)."""
+    import io
+
+    from PIL import Image
+
+    buf = io.BytesIO()
+    Image.new("RGB", (width, height), color).save(buf, format="PNG")
+    return buf.getvalue()
+
+
+def make_jpeg(width: int = 8, height: int = 8, *, exif: bytes | None = None) -> bytes:
+    """Prawdziwy JPEG; opcjonalnie z blokiem EXIF (do testów usuwania
+    metadanych/geolokalizacji)."""
+    import io
+
+    from PIL import Image
+
+    buf = io.BytesIO()
+    kwargs = {"exif": exif} if exif else {}
+    Image.new("RGB", (width, height), (128, 64, 32)).save(buf, format="JPEG", **kwargs)
+    return buf.getvalue()

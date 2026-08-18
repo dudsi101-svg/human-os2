@@ -30,6 +30,7 @@ export default function Checkin() {
   });
   const [photos, setPhotos] = useState<File[]>([]);
   const [busy, setBusy] = useState(false);
+  const MAX_PHOTOS = 8; // ten sam limit egzekwuje backend (422)
 
   const load = () =>
     api.get<{ checkins: CheckinData[] }>(`/api/clients/${user.id}/checkins`)
@@ -42,6 +43,11 @@ export default function Checkin() {
     setBusy(true);
     setError(null);
     setOk(null);
+    if (photos.length > MAX_PHOTOS) {
+      setError(`Maksymalnie ${MAX_PHOTOS} zdjęć na raport.`);
+      setBusy(false);
+      return;
+    }
     try {
       const photo_ids: string[] = [];
       for (const f of photos) {
@@ -110,10 +116,15 @@ export default function Checkin() {
               onChange={(e) => set("trainings_done", e.target.value)} />
           </div>
         </div>
-        <label>Zdjęcia sylwetki (opcjonalnie)</label>
+        <label>Zdjęcia sylwetki (opcjonalnie, maks. {MAX_PHOTOS})</label>
         <input type="file" accept="image/jpeg,image/png,image/webp" multiple
           onChange={(e) => setPhotos(Array.from(e.target.files ?? []))} />
-        {photos.length > 0 && <small>{photos.length} zdjęć do wysłania</small>}
+        {photos.length > 0 && (
+          <small style={photos.length > MAX_PHOTOS ? { color: "var(--danger)" } : undefined}>
+            {photos.length} zdjęć do wysłania
+            {photos.length > MAX_PHOTOS && ` — limit to ${MAX_PHOTOS}`}
+          </small>
+        )}
 
         <SectionLabel n={2} title="Samopoczucie" />
         <p className="dim" style={{ fontSize: "0.82rem", marginTop: -4 }}>

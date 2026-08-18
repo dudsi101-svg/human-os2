@@ -8,9 +8,10 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
+from ..authz import require_attachable_file
 from ..db import get_db
 from ..hos_bridge import record_event
-from ..models import CoachClientRelationship, KnowledgeItem, StoredFile, User, new_id, now_iso
+from ..models import CoachClientRelationship, KnowledgeItem, User, new_id, now_iso
 from ..schemas import KnowledgeItemIn
 from ..security import current_user, require_role
 
@@ -27,9 +28,12 @@ def _out(item: KnowledgeItem) -> dict:
     }
 
 
-def _check_file(db: Session, file_id: str | None) -> None:
-    if file_id and db.get(StoredFile, file_id) is None:
-        raise HTTPException(status_code=422, detail="Nie znaleziono pliku")
+def _check_file(db: Session, coach: User, file_id: str | None) -> None:
+    """Załącznik bazy wiedzy to broadcast do wszystkich aktywnych klientów
+    trenera — wolno podpiąć wyłącznie plik, którego właścicielem danych
+    jest sam trener (nigdy plik należący do któregoś z klientów)."""
+    if file_id:
+        require_attachable_file(db, coach, file_id, owner_id=coach.id)
 
 
 @router.post("/coach/knowledge", status_code=201)
@@ -38,7 +42,7 @@ def create_knowledge_item(
     coach: User = Depends(require_role("COACH")),
     db: Session = Depends(get_db),
 ):
-    _check_file(db, body.file_id)
+    _check_file(db, coach, body.file_id)
     item = KnowledgeItem(
         id=new_id("KNW"), coach_id=coach.id, title=body.title, category=body.category,
         body=body.body, external_url=body.external_url, file_id=body.file_id,
@@ -77,7 +81,7 @@ def update_knowledge_item(
     item = db.get(KnowledgeItem, item_id)
     if item is None or item.coach_id != coach.id:
         raise HTTPException(status_code=404, detail="Nie znaleziono")
-    _check_file(db, body.file_id)
+    _check_file(db, coach, body.file_id)
     item.title, item.category, item.body = body.title, body.category, body.body
     item.external_url, item.file_id, item.pinned = body.external_url, body.file_id, body.pinned
     item.updated_at = now_iso()

@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from .. import push_service
-from ..authz import resolve_client_access
+from ..authz import require_attachable_file, resolve_client_access
 from ..db import get_db
 from ..hos_bridge import record_event
 from ..models import (
@@ -274,6 +274,9 @@ def log_workout(
     )
     db.add(session)
     for e in body.entries:
+        if e.file_id is not None:
+            # Załącznik wpisu treningowego musi być plikiem tego klienta.
+            require_attachable_file(db, user, e.file_id, owner_id=client_id)
         db.add(
             WorkoutEntry(
                 id=new_id("WKE"),

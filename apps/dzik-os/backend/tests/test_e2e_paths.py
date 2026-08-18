@@ -89,9 +89,10 @@ def test_full_coach_and_client_journey(client):
                      "result": "3x12 @ 16 kg"}],
     })
     assert r.status_code == 201
+    from conftest import make_png
+
     up = client.post("/api/files", headers=hn, files={
-        "file": ("progres.png", io.BytesIO(b"\x89PNG\r\n\x1a\n" + b"1" * 64),
-                 "image/png")})
+        "file": ("progres.png", io.BytesIO(make_png()), "image/png")})
     assert up.status_code == 201
     r = client.post("/api/checkins", headers=hn, json={
         "week_start": "2026-08-17", "weight_kg": 78.5, "trainings_done": 1,

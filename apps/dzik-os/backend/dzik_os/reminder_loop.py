@@ -12,7 +12,7 @@ minucie może najwyżej powtórzyć jedno przypomnienie — akceptowalne.
 from __future__ import annotations
 
 import asyncio
-from datetime import datetime
+from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 from . import push_service
@@ -75,11 +75,29 @@ def _tick(now: datetime) -> int:
     return sent
 
 
+_last_cleanup: datetime | None = None
+
+
+def _maybe_cleanup(now: datetime) -> None:
+    """Raz na godzinę (i od razu po starcie): sprzątanie plików-sierot
+    (patrz file_cleanup) — uploady nigdy nie podpięte do zasobu po TTL."""
+    global _last_cleanup
+    if _last_cleanup is not None and now - _last_cleanup < timedelta(hours=1):
+        return
+    _last_cleanup = now
+    from . import file_cleanup
+
+    with db_session() as db:
+        file_cleanup.cleanup_orphan_files(db)
+
+
 async def run_reminder_loop() -> None:
     tz = ZoneInfo(settings.timezone)
     while True:
         try:
-            _tick(datetime.now(tz))
+            now = datetime.now(tz)
+            _tick(now)
+            _maybe_cleanup(now)
         except Exception as exc:  # noqa: BLE001 - pętla nie może umrzeć
             print(f"[dzik-os] pętla przypomnień: {exc}")
         await asyncio.sleep(60)

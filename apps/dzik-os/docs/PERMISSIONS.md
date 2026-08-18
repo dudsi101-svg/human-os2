@@ -68,6 +68,41 @@ nie dane klienta — inna oś uprawnień niż reszta dokumentu:
   niczego, więc nie wymaga `resolve_client_access` ani zgody klienta
   (zwraca wyłącznie sugestię gramatury, propose-only).
 
+## Pliki (`/api/files`)
+
+Model autoryzacji pobrania (`GET /api/files/{id}`, egzekwowany w
+`routers/files.py::download_file`; każda odmowa = **404**):
+
+| Kto | Warunek |
+|---|---|
+| Właściciel danych | `files.owner_user_id == aktor` (upload trenera z `client_id` = własność klienta) |
+| Trener | aktywna relacja **i** aktywna zgoda coaching/health_data (`resolve_client_access`) — cofnięcie zgody odbiera dostęp również do plików już istniejących |
+| Strona wątku wiadomości | plik jest załącznikiem wiadomości w wątku aktora; klient zawsze, trener tylko przy AKTYWNEJ relacji (bez bramki zgody — jak treść wiadomości) |
+| Klient trenera | plik jest załącznikiem **AKTYWNEGO** wpisu bazy wiedzy trenera, z którym aktor ma AKTYWNĄ relację (broadcast, bez bramki zgody) |
+
+Upload i podpinanie:
+
+* allowlista typów (`ALLOWED_UPLOAD_TYPES`) **bez SVG i plików
+  wykonywalnych**; typ weryfikowany po ZAWARTOŚCI (magic bytes) —
+  niezgodność z deklaracją = 415;
+* limit rozmiaru (`DZIK_MAX_UPLOAD_MB`) egzekwowany strumieniowo;
+* zdjęcia (nowe uploady): EXIF/GPS usuwane, dłuższy bok ≤ 2560 px,
+  rekompresja jakość 85 (Pillow);
+* nazwy plików sanityzowane (kanoniczne rozszerzenie typu, RFC 5987 w
+  `Content-Disposition`); odpowiedzi plików prywatnych mają
+  `X-Content-Type-Options: nosniff` i `Cache-Control: no-store`;
+* magazyn: losowe nazwy UUID w `DZIK_UPLOAD_DIR`; odczyt weryfikuje, że
+  ścieżka nie wychodzi poza ten katalog (path traversal = 404);
+* podpięcie pliku do zasobu (`authz.require_attachable_file`): wiadomość —
+  plik własny/samodzielnie wgrany; zdjęcia raportu — tylko obrazy klienta
+  (limit `DZIK_MAX_CHECKIN_PHOTOS`=8 szt.,
+  `DZIK_MAX_CHECKIN_PHOTOS_TOTAL_MB`=60 MB); dokument — plik klienta;
+  baza wiedzy — wyłącznie plik własny trenera; wpis treningowy — plik
+  klienta;
+* pliki-sieroty (bez żadnej referencji) po `DZIK_ORPHAN_FILE_TTL_H`=24 h:
+  soft delete (`deleted_at`) + usunięcie bajtów z dysku (pętla godzinna,
+  zdarzenie ORPHAN_FILES_CLEANED).
+
 ## Zgody (rejestr wersjonowany)
 
 * Wiersz `consents` = jedna zgoda: podmiot, odbiorca, cel, domena, akcje,
@@ -83,5 +118,7 @@ nie dane klienta — inna oś uprawnień niż reszta dokumentu:
 ## Testy uprawnień
 
 `tests/test_isolation.py`, `tests/test_consents.py`,
-`tests/test_uploads.py`, `tests/test_payments.py` — łącznie 20+ asercji
-między kontami (klient↔klient, obcy trener, admin, brak logowania).
+`tests/test_uploads.py`, `tests/test_files_security.py`,
+`tests/test_payments.py` — łącznie 40+ asercji między kontami
+(klient↔klient, obcy trener, admin, brak logowania, cofnięta zgoda,
+wygasła relacja, załączniki wiadomości/bazy wiedzy).

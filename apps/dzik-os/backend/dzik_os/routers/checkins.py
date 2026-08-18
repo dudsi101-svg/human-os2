@@ -7,7 +7,8 @@ from sqlalchemy.orm import Session
 
 from .. import push_service
 from ..ai_provider import provider as ai_provider
-from ..authz import require_client_self, resolve_client_access
+from ..authz import require_attachable_file, require_client_self, resolve_client_access
+from ..config import settings
 from ..db import get_db
 from ..hos_bridge import record_event
 from ..models import (
@@ -53,6 +54,25 @@ def submit_checkin(
     """Raport tygodniowy klienta. Poprawka istniejącego raportu tworzy nową
     rewizję — poprzednia treść zostaje zachowana (CheckinRevision)."""
     client_id = require_client_self(db, user)
+    # Limity zdjęć raportu: liczba + łączny rozmiar; każdy plik musi być
+    # zdjęciem należącym do tego klienta (nie cudzym file_id).
+    if len(body.photo_ids) > settings.max_checkin_photos:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Maksymalnie {settings.max_checkin_photos} zdjęć na raport",
+        )
+    total_bytes = 0
+    for file_id in body.photo_ids:
+        stored = require_attachable_file(
+            db, user, file_id, owner_id=client_id, require_image=True
+        )
+        total_bytes += stored.size_bytes
+    if total_bytes > settings.max_checkin_photos_total_mb * 1024 * 1024:
+        raise HTTPException(
+            status_code=413,
+            detail="Zdjęcia raportu przekraczają łączny limit "
+            f"{settings.max_checkin_photos_total_mb} MB",
+        )
     payload = body.model_dump(exclude={"photo_ids"})
     existing = (
         db.query(WeeklyCheckin)

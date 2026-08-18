@@ -3,7 +3,9 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException, Response, UploadFile
 from sqlalchemy.orm import Session
 
-from ..authz import resolve_client_access
+from .. import file_safety
+from ..authz import active_relationship, resolve_client_access
+from ..config import settings
 from ..db import get_db
 from ..hos_bridge import record_event
 from ..models import Document, ProgressPhoto, StoredFile, User, new_id
@@ -38,21 +40,45 @@ async def upload_file(
     }
 
 
-def _is_thread_attachment_participant(db: Session, user: User, file_id: str) -> bool:
-    """Załącznik wiadomości może pobrać każda strona wątku (np. plik wysłany
-    przez trenera należy do trenera, ale klient z wątku musi go zobaczyć)."""
+def _thread_attachment_access(db: Session, user: User, file_id: str) -> bool:
+    """Załącznik wiadomości: klient z wątku widzi go zawsze (jak treść
+    wiadomości); trener z wątku — tylko dopóki relacja jest AKTYWNA
+    (ten sam kontrakt co messages._accessible_thread; wiadomości nie są
+    objęte zgodą health_data, więc bez bramki zgody)."""
     from ..models import Message, MessageThread
 
-    return (
-        db.query(Message)
-        .join(MessageThread, Message.thread_id == MessageThread.id)
+    threads = (
+        db.query(MessageThread)
+        .join(Message, Message.thread_id == MessageThread.id)
         .filter(
             Message.file_id == file_id,
             (MessageThread.client_id == user.id) | (MessageThread.coach_id == user.id),
         )
-        .count()
-        > 0
+        .all()
     )
+    for thread in threads:
+        if thread.client_id == user.id:
+            return True
+        if thread.coach_id == user.id and active_relationship(
+            db, user.id, thread.client_id
+        ):
+            return True
+    return False
+
+
+def _knowledge_attachment_access(db: Session, user: User, file_id: str) -> bool:
+    """Załącznik AKTYWNEGO wpisu bazy wiedzy: broadcast trenera do jego
+    aktywnie prowadzonych klientów (relacja ACTIVE, bez bramki zgody
+    health_data — to materiał trenera, nie dane klienta; ten sam kontrakt
+    co GET /api/me/knowledge)."""
+    from ..models import KnowledgeItem
+
+    items = (
+        db.query(KnowledgeItem)
+        .filter(KnowledgeItem.file_id == file_id, KnowledgeItem.status == "ACTIVE")
+        .all()
+    )
+    return any(active_relationship(db, item.coach_id, user.id) for item in items)
 
 
 @router.get("/files/{file_id}")
@@ -61,20 +87,39 @@ def download_file(
     user: User = Depends(current_user),
     db: Session = Depends(get_db),
 ):
+    """Pobranie pliku. Dostęp mają wyłącznie:
+    * właściciel danych (owner_user_id),
+    * strona wątku wiadomości, w którym plik jest załącznikiem
+      (trener: tylko przy aktywnej relacji),
+    * klient aktywnie prowadzony przez trenera — dla załączników
+      AKTYWNYCH wpisów bazy wiedzy tego trenera,
+    * trener z aktywną relacją ORAZ aktywną zgodą coaching/health_data
+      (resolve_client_access) — dla wszystkich pozostałych plików klienta.
+    Każda odmowa to 404 (nie ujawniamy istnienia zasobu)."""
     stored = db.get(StoredFile, file_id)
     if stored is None or stored.deleted_at is not None:
         raise HTTPException(status_code=404, detail="Nie znaleziono")
-    if stored.owner_user_id != user.id and not _is_thread_attachment_participant(
-        db, user, file_id
+    if (
+        stored.owner_user_id != user.id
+        and not _thread_attachment_access(db, user, file_id)
+        and not _knowledge_attachment_access(db, user, file_id)
     ):
         resolve_client_access(db, user, stored.owner_user_id)
     data = storage.read(stored)
+    # Sanityzacja także przy odczycie — obejmuje pliki zapisane przed
+    # wprowadzeniem sanityzacji na uploadzie.
+    filename = file_safety.sanitize_filename(
+        stored.filename, settings.ALLOWED_UPLOAD_TYPES.get(stored.content_type, "")
+    )
     return Response(
         content=data,
         media_type=stored.content_type,
         headers={
-            "Content-Disposition": f'inline; filename="{stored.filename}"',
+            "Content-Disposition": file_safety.content_disposition("inline", filename),
             "X-Content-Type-Options": "nosniff",
+            # Dane prywatne (zdrowotne/wizerunkowe) — nigdy do cache'ów
+            # współdzielonych ani na dysk przeglądarki.
+            "Cache-Control": "no-store",
         },
     )
 
@@ -87,8 +132,13 @@ def create_document(
 ):
     resolve_client_access(db, coach, body.client_id, action="write")
     stored = db.get(StoredFile, body.file_id)
-    if stored is None:
+    if stored is None or stored.deleted_at is not None:
         raise HTTPException(status_code=404, detail="Nie znaleziono pliku")
+    if stored.owner_user_id != body.client_id:
+        # Dokument klienta musi wskazywać plik, którego właścicielem danych
+        # jest ten klient (upload z client_id) — inaczej podpięcie cudzego
+        # pliku nadawałoby dostęp między klientami.
+        raise HTTPException(status_code=422, detail="Plik nie należy do tego klienta")
     doc = Document(
         id=new_id("DOC"),
         client_id=body.client_id,
