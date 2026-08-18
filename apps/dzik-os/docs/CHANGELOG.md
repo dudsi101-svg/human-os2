@@ -1,5 +1,76 @@
 # Changelog — Dzik OS
 
+## 0.15.0 — 2026-08-18
+
+Jakość raportów i zdjęć progresu: **koniec fałszywych danych z domyślnych
+suwaków 3/5, pełny UX wysyłki zdjęć, idempotencja zapisu**.
+
+* **Suwaki bez wartości domyślnej**: każde pytanie subiektywne raportu
+  startuje PUSTE — użytkownik świadomie wybiera 1–5 (z opisem krańców:
+  „1 = brak energii · 5 = pełna energia") albo oznacza pytanie jako
+  „Pomijam" / „Nie dotyczy"; bez decyzji przy każdym pytaniu raportu nie
+  da się wysłać. Model danych rozróżnia CZTERY stany odpowiedzi
+  (`payload.scale_states`): brak odpowiedzi (brak klucza), świadoma
+  wartość ANSWERED (w tym neutralne 3/5), świadome pominięcie SKIPPED,
+  brak zastosowania NOT_APPLICABLE. Walidacja spójności w backendzie
+  (ANSWERED wymaga wartości; SKIPPED/NOT_APPLICABLE jej zabrania; wartość
+  bez stanu = 422). Stare raporty NIE są reinterpretowane — wiersze sprzed
+  zmiany zostają, API oznacza je `scales_declared=false`, a UI trenera
+  pokazuje notę „suwaki mogły pozostać na wartości domyślnej 3/5".
+* **Idempotencja zapisu** (migracja nr 12, tabela `idempotency_keys`):
+  pole `idempotency_key` w POST /api/checkins — powtórka tego samego
+  żądania (podwójne kliknięcie, retry po utracie odpowiedzi sieci) zwraca
+  zapisany wynik zamiast tworzyć rewizję; ten sam klucz z inną treścią =
+  jawny 409. Przycisk wysyłki dodatkowo zablokowany na czas wysyłania.
+  Klucze per użytkownik+operacja; usuwane przy usunięciu konta.
+* **Wersja robocza formularza**: draft w localStorage per użytkownik +
+  tydzień (pola, decyzje skal, klucz idempotencji) — przywracany po
+  błędzie/zamknięciu karty; czyszczony po udanej wysyłce. Zdjęcia
+  (obiekty File) świadomie poza draftem — z jawnym komunikatem.
+* **Raport częściowy jako stan jawny**: `weekly_checkins.photos_expected`
+  (migracja 12) — klient deklaruje liczbę zdjęć przy wysyłce; raport z
+  mniejszą liczbą zapisanych jest oznaczony „częściowy · zdjęcia A/B"
+  u klienta i trenera (`photos_complete` w API), do dokończenia przez
+  nowy `POST /api/checkins/{id}/photos` (dopięcie brakujących po jednym
+  albo świadome zamknięcie bez nich, `set_expected`). Po ocenie trenera
+  zdjęcia raportu są zamrożone (409).
+* **Pełny UX wysyłki zdjęć**: podgląd miniatur przed wysłaniem, obrót
+  zgodny z orientacją EXIF, usuwanie i zmiana kolejności (↑/↓), opis typu
+  ujęcia (przód/bok/tył/inne — kolumny `progress_photos.pose`/`position`,
+  widoczne też u trenera i na liście zdjęć), pasek postępu per plik
+  (upload przez XMLHttpRequest — `uploadFileWithProgress` w api.ts),
+  anulowanie w trakcie, ponowienie wyłącznie nieudanych plików. Każde
+  zdjęcie jest dopinane do raportu zaraz po udanym uploadzie — przerwanie
+  sieci zostawia trwały, widoczny stan częściowy, nie sieroty.
+* **Kompresja i EXIF po stronie klienta**: przed wysłaniem zdjęcie
+  przechodzi przez createImageBitmap+canvas (maks. 2048 px, JPEG 0.85) —
+  co naturalnie usuwa wszystkie metadane EXIF (w tym GPS) już na
+  urządzeniu; backendowy strip z P4 (magic bytes, allowlista, limit
+  strumieniowy, Pillow re-encode) zostaje jako druga warstwa i jedyna
+  dla przeglądarek bez canvas (fallback = oryginał).
+* **Korekta raportu**: bez zmian mechaniki (nowa rewizja, poprzednia
+  treść w `checkin_revisions`, po ocenie 409) — ale dane skorygowane są
+  teraz OZNACZONE: `corrected` w API, badge „skorygowany" u klienta
+  i trenera.
+* **Wykresy bez interpolacji dziur**: `seriesUtils.withGaps` wstawia
+  przerwy w serie o znanym rytmie (samopoczucie — tygodnie bez raportu,
+  dziennik kaloryczny — dni bez wpisu), a `Sparkline` renderuje segmenty
+  z przerwaną linią zamiast łączyć przez dziurę; pominięte pytania nie
+  generują punktów. Punkty samopoczucia niosą `declared` (false = raport
+  sprzed rozróżniania stanów — nota o wiarygodności pod wykresem).
+* **Prywatność zdjęć zweryfikowana**: zdarzenia audytu raportu/zdjęć
+  niosą wyłącznie liczniki (`photos_attached`/`photos_expected`) — zero
+  id i nazw plików (test); push bez zmian (neutralne wezwanie); logi
+  strukturalne z P9 nadal wyłącznie z szablonami ścieżek.
+* Testy: backend 304 → 316 (`test_checkin_quality.py`: cztery stany
+  odpowiedzi, walidacja spójności, ścieżka legacy, idempotencja z 409
+  i separacją per użytkownik, częściowy upload + dokończenie/zamknięcie,
+  odmowy po ocenie/cudzy plik/cudzy raport, pose+kolejność, korekta
+  z historią, flaga `declared` w monitoringu, brak wycieku zdjęć do
+  audytu; migracja v1→v12 ze stubem `progress_photos`); frontend
+  `npm run test:helpers` 7 → 14 (withGaps: dziury tygodniowe/dzienne,
+  tolerancja 1,5×, przełom roku, daty niepoprawne).
+
 ## 0.14.0 — 2026-08-18
 
 Przebudowa zgód i zgodności z RODO: **zgody granularne per kategoria

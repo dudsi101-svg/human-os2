@@ -67,17 +67,51 @@ export interface ScheduleItem {
   status: string;
 }
 
+/** Stan odpowiedzi na pytanie skalowe raportu (payload.scale_states):
+ * ANSWERED = świadomie wybrana wartość (w tym neutralne 3),
+ * SKIPPED = świadome pominięcie, NOT_APPLICABLE = nie dotyczy;
+ * brak klucza = brak odpowiedzi (także raporty sprzed rozróżniania). */
+export type ScaleAnswerState = "ANSWERED" | "SKIPPED" | "NOT_APPLICABLE";
+
+export interface CheckinPhotoRef {
+  id: string;
+  file_id: string;
+  pose: string | null;
+  position: number | null;
+  taken_at: string;
+}
+
 export interface CheckinData {
   id: string;
   week_start: string;
-  payload: Record<string, unknown>;
+  payload: Record<string, unknown> & {
+    scale_states?: Record<string, ScaleAnswerState>;
+  };
   status: string;
   revision: number;
   submitted_at: string;
   coach_response: string | null;
   rating: number | null;
   photo_ids: string[];
+  photos: CheckinPhotoRef[];
+  /** Raport był poprawiany po wysłaniu (historia w /revisions). */
+  corrected: boolean;
+  /** False = raport sprzed rozróżniania stanów odpowiedzi — wartości skal
+   * mogły zostać na domyślnym 3/5 (dane mniej wiarygodne). */
+  scales_declared: boolean;
+  /** Stan plikowy raportu: mniej zapisanych zdjęć niż zadeklarowano =
+   * raport jawnie CZĘŚCIOWY (do dokończenia). */
+  photos_expected: number | null;
+  photos_attached: number;
+  photos_complete: boolean;
 }
+
+export const POSE_LABELS: Record<string, string> = {
+  PRZOD: "przód",
+  BOK: "bok",
+  TYL: "tył",
+  INNE: "inne",
+};
 
 export interface MeasurementRow {
   id: string;
@@ -338,6 +372,10 @@ export interface SeriesPoint {
   date: string;
   value: number;
   unit?: string;
+  /** Punkt samopoczucia: true = wartość świadomie zadeklarowana
+   * (scale_states); false = raport sprzed rozróżniania — wartość mogła
+   * zostać na domyślnym 3/5 (mniej wiarygodna). */
+  declared?: boolean;
 }
 
 export interface AdherenceBucket {

@@ -4,6 +4,7 @@ import { api, isCancel, money } from "../../api";
 import { WEEKDAYS, plDate, plDateTime } from "../../dates";
 import {
   AuthImage,
+  dailySparkPoints,
   ErrorBox,
   PersonalRecordsCard,
   PhotoCompare,
@@ -13,6 +14,7 @@ import {
   Spinner,
   StrengthChartsCard,
   TopBar,
+  wellbeingSparkPoints,
 } from "../../components";
 import {
   CATEGORY_LABELS,
@@ -26,6 +28,7 @@ import {
   PAYMENT_LABELS,
   PaymentScheduleRow,
   PlanVersion,
+  POSE_LABELS,
   ProfileFieldRow,
   ReceiptRow,
   ScheduleItem,
@@ -635,8 +638,21 @@ function CheckinsTab({ clientId }: { clientId: string }) {
           <div className="card" key={c.id}>
             <div className="row row--between">
               <h3 style={{ margin: 0 }}>Tydzień {plDate(c.week_start)}</h3>
-              <span className={`badge ${c.status === "REVIEWED" ? "badge--ok" : "badge--warn"}`}>
-                {c.status === "REVIEWED" ? "oceniony" : `do oceny${c.revision > 1 ? ` · rew. ${c.revision}` : ""}`}
+              <span className="row" style={{ gap: 4 }}>
+                {c.corrected && (
+                  <span className="badge badge--warn" title="Klient poprawił raport po wysłaniu — historia w rewizjach">
+                    skorygowany
+                  </span>
+                )}
+                {!c.photos_complete && (
+                  <span className="badge badge--warn"
+                    title="Klient zadeklarował więcej zdjęć, niż zostało zapisanych">
+                    częściowy · zdjęcia {c.photos_attached}/{c.photos_expected}
+                  </span>
+                )}
+                <span className={`badge ${c.status === "REVIEWED" ? "badge--ok" : "badge--warn"}`}>
+                  {c.status === "REVIEWED" ? "oceniony" : `do oceny${c.revision > 1 ? ` · rew. ${c.revision}` : ""}`}
+                </span>
               </span>
             </div>
 
@@ -648,10 +664,28 @@ function CheckinsTab({ clientId }: { clientId: string }) {
 
             <SectionLabel n={2} title="Samopoczucie" />
             <div className="row" style={{ flexWrap: "wrap", gap: 6 }}>
-              {SCALE_LABELS.filter(([k]) => c.payload[k] != null).map(([k, l]) => (
-                <span className="badge" key={k}>{l} {String(c.payload[k])}/5</span>
-              ))}
+              {SCALE_LABELS.map(([k, l]) => {
+                const value = c.payload[k];
+                const state = c.payload.scale_states?.[k];
+                if (value != null) {
+                  return <span className="badge" key={k}>{l} {String(value)}/5</span>;
+                }
+                if (state === "SKIPPED") {
+                  return <span className="badge" key={k} style={{ opacity: 0.65 }}>{l}: pominięte</span>;
+                }
+                if (state === "NOT_APPLICABLE") {
+                  return <span className="badge" key={k} style={{ opacity: 0.65 }}>{l}: nie dotyczy</span>;
+                }
+                // Brak odpowiedzi — jawnie, zamiast cicho chować pytanie.
+                return <span className="badge" key={k} style={{ opacity: 0.45 }}>{l}: brak odpowiedzi</span>;
+              })}
             </div>
+            {!c.scales_declared && SCALE_LABELS.some(([k]) => c.payload[k] != null) && (
+              <small className="dim">
+                Raport sprzed aktualizacji formularza — suwaki mogły pozostać
+                na wartości domyślnej 3/5 (dane mniej wiarygodne).
+              </small>
+            )}
 
             {Boolean(c.payload.pain_note || c.payload.comment || c.payload.questions) && (
               <>
@@ -668,9 +702,15 @@ function CheckinsTab({ clientId }: { clientId: string }) {
               </>
             )}
 
-            {c.photo_ids.length > 0 && (
+            {c.photos.length > 0 && (
               <div className="photo-grid" style={{ margin: "8px 0" }}>
-                {c.photo_ids.map((fid) => <AuthImage key={fid} fileId={fid} alt="zdjęcie raportu" />)}
+                {c.photos.map((p) => (
+                  <div key={p.file_id} style={{ textAlign: "center" }}>
+                    <AuthImage fileId={p.file_id}
+                      alt={`zdjęcie raportu${p.pose ? ` (${POSE_LABELS[p.pose] ?? p.pose})` : ""}`} />
+                    {p.pose && <small className="dim">{POSE_LABELS[p.pose] ?? p.pose}</small>}
+                  </div>
+                ))}
               </div>
             )}
 
@@ -956,9 +996,16 @@ function MonitoringTab({ clientId }: { clientId: string }) {
                 <b style={{ fontSize: "0.9rem" }}>{WELLBEING_LABELS[key] ?? key}</b>
                 <span className="badge">{points[points.length - 1].value}/5</span>
               </div>
-              <Sparkline unit="/5" points={points.map((p) => ({ x: plDate(p.date), y: p.value }))} />
+              <Sparkline unit="/5" points={wellbeingSparkPoints(points)} />
             </div>
           ))}
+          {Object.values(data.wellbeing_series).some((pts) => pts.some((p) => p.declared === false)) && (
+            <small className="dim">
+              Tygodnie bez raportu to przerwy w linii (nie są uzupełniane).
+              Punkty z raportów sprzed aktualizacji formularza mogą zawierać
+              wartość domyślną 3/5.
+            </small>
+          )}
         </div>
       )}
 
@@ -970,8 +1017,7 @@ function MonitoringTab({ clientId }: { clientId: string }) {
               <span className="badge">cel: {data.nutrition.target_kcal} kcal</span>
             )}
           </div>
-          <Sparkline unit="kcal"
-            points={data.nutrition.log_series.map((p) => ({ x: plDate(p.date), y: p.value }))} />
+          <Sparkline unit="kcal" points={dailySparkPoints(data.nutrition.log_series)} />
         </div>
       )}
 

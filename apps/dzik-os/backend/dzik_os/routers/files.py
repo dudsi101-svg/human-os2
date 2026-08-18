@@ -232,11 +232,18 @@ def list_photos(
         .order_by(ProgressPhoto.taken_at.desc())
         .all()
     )
+    # W obrębie tego samego dnia: kolejność wybrana przez klienta (position),
+    # zdjęcia historyczne bez pozycji na końcu.
+    rows.sort(
+        key=lambda p: (p.position is None, p.position or 0, p.id)
+    )
+    rows.sort(key=lambda p: p.taken_at, reverse=True)
     return {
         "photos": [
             {
                 "id": p.id, "file_id": p.file_id, "checkin_id": p.checkin_id,
                 "taken_at": p.taken_at, "note": p.note,
+                "pose": p.pose, "position": p.position,
             }
             for p in rows
         ]

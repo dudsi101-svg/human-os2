@@ -48,8 +48,30 @@ Migracje: `db.py` — rejestr `schema_migrations`, wersja 1 = schemat MVP.
 |---|---|
 | `schedule_items` | kategoria (TRENING/POSILEK/NAWODNIENIE/REGENERACJA/SUPLEMENT/POMIAR/RAPORT/PLATNOSC/INNE), pora, dni tygodnia, autor_id + author_note (proweniencja zalecenia), status |
 | `reminders` | jednorazowe przypomnienia trenera |
-| `weekly_checkins` | payload_json (formularz), status SUBMITTED/REVIEWED, revision, coach_response, rating (1-5, opcjonalna ocena **raportu** przez trenera — nie ocena osoby) |
-| `checkin_revisions` | poprzednie wersje poprawianych raportów (append-only) |
+| `weekly_checkins` | payload_json (formularz), status SUBMITTED/REVIEWED, revision, coach_response, rating (1-5, opcjonalna ocena **raportu** przez trenera — nie ocena osoby), photos_expected (migracja 12, NULLable — deklarowana liczba zdjęć; mniej zapisanych = raport jawnie CZĘŚCIOWY, `photos_complete=false` w API; NULL = raport historyczny/bez deklaracji, traktowany jako kompletny) |
+| `checkin_revisions` | poprzednie wersje poprawianych raportów (append-only); raport z revision > 1 ma w API flagę `corrected` |
+| `idempotency_keys` | migracja 12: klucz idempotencji operacji zapisu — unique(user_id, operation, idem_key), request_hash (SHA-256 kanonicznego JSON-a żądania), response_json (zapisany wynik operacji: identyfikatory/liczniki, nigdy treść formularza). Powtórka z tym samym kluczem i treścią zwraca zapisany wynik; ten sam klucz z inną treścią = 409. Usuwane przy usunięciu konta. |
+
+### Stany odpowiedzi skalowych raportu (`payload_json.scale_states`)
+
+Subiektywne skale 1–5 (`diet_adherence`, `energy`, `sleep`, `hunger`,
+`stress`, `recovery`) NIE mają wartości domyślnej. `scale_states` (mapa
+klucz → stan, wewnątrz payload_json — bez zmiany schematu) rozróżnia:
+
+| Stan | Wartość skali | Znaczenie |
+|---|---|---|
+| `ANSWERED` | 1–5 (wymagana) | świadomie wybrana wartość — **w tym neutralne 3/5** |
+| `SKIPPED` | NULL (wymuszone) | świadome pominięcie pytania |
+| `NOT_APPLICABLE` | NULL (wymuszone) | pytanie nie dotyczy tego tygodnia |
+| brak klucza | NULL | brak odpowiedzi |
+
+Raporty sprzed 0.15.0 nie mają `scale_states` — ich wartości NIE są
+reinterpretowane (brak retroaktywnej migracji); API oznacza je
+`scales_declared=false`, a punkty samopoczucia w monitoringu niosą
+`declared=false` (UI: nota „wartość mogła zostać na domyślnym 3/5").
+Walidacja spójności (wartość bez stanu, stan bez wartości itd.) w
+`schemas.CheckinIn._validate_scale_states` — działa tylko przy podanym
+`scale_states` (stare klienty API działają bez zmian).
 
 ## Pomiary i pliki
 
@@ -59,7 +81,7 @@ Migracje: `db.py` — rejestr `schema_migrations`, wersja 1 = schemat MVP.
 | `measurements` | kind, value, unit, measured_at, source, created_by |
 | `files` | filename, content_type (whitelist), size, sha256, storage_path (losowa nazwa), uploaded_by, deleted_at |
 | `documents` | metadane dokumentu klienta (tytuł, kategoria) → files |
-| `progress_photos` | zdjęcia sylwetki, opcjonalnie związane z raportem |
+| `progress_photos` | zdjęcia sylwetki, opcjonalnie związane z raportem; pose (PRZOD/BOK/TYL/INNE) i position (kolejność wybrana przez klienta) — migracja 12, NULL = zdjęcie historyczne. Dopinanie: przy wysyłce raportu lub pojedynczo przez `POST /api/checkins/{id}/photos` (dedup po file_id; po ocenie trenera 409). Zdjęcia przechodzą kompresję i usunięcie EXIF/GPS po stronie klienta (canvas) ORAZ backendu (P4, Pillow) — dwie niezależne warstwy. Id i nazwy plików zdjęć nigdy nie trafiają do audytu/push/logów — wyłącznie liczniki. |
 
 ## Monitoring w czasie
 
@@ -139,3 +161,41 @@ Zakazane wzorce: `new Date().toISOString().slice(0, 10)` i
 polskiego wskazują wczorajszy dzień) oraz porównywanie `starts_at`
 z czasem UTC. Strefa per użytkownik: punkt rozszerzenia
 `tz_for_user(user)` honoruje przyszłe pole `User.timezone`.
+
+## Plan wycofania migracji 12 (jakość raportów i zdjęć)
+
+Migracja 12 jest **czysto addytywna**: trzy kolumny NULLable
+(`weekly_checkins.photos_expected`, `progress_photos.pose`,
+`progress_photos.position`) i jedna nowa tabela (`idempotency_keys`).
+Nie zmienia żadnych istniejących wierszy (stare raporty z wartościami
+1–5 pozostają nietknięte; `scale_states` żyje w `payload_json`, więc
+wycofanie kodu nie wymaga migracji danych).
+
+Kroki wycofania (w tej kolejności):
+
+1. **Wycofanie kodu** do wersji sprzed 0.15.0. Stary kod ignoruje nowe
+   kolumny (ORM czyta tylko znane pola przez nazwane atrybuty — SELECT-y
+   nie używają `*` w sposób łamiący zgodność) i nie zna `scale_states`
+   w payloadzie — raporty pozostają czytelne, bez utraty danych.
+   Frontend sprzed 0.15.0 wysyła wartości bez `scale_states` (ścieżka
+   legacy pozostaje wspierana w obie strony).
+2. **Opcjonalne czyszczenie schematu** (tylko jeśli wymagane — kolumny
+   NULLable nie przeszkadzają staremu kodowi):
+   * `DROP TABLE idempotency_keys` (dane operacyjne — identyfikatory
+     i liczniki, brak treści zdrowotnych; utrata = powrót do braku
+     ochrony przed podwójnym wysłaniem, nic więcej),
+   * SQLite ≥ 3.35 / PostgreSQL: `ALTER TABLE weekly_checkins DROP COLUMN
+     photos_expected`, `ALTER TABLE progress_photos DROP COLUMN pose`,
+     `ALTER TABLE progress_photos DROP COLUMN position` — **utrata
+     informacji** o deklaracji kompletności oraz typie ujęcia/kolejności
+     zdjęć; jeśli te dane mają przetrwać ewentualny powrót, pominąć DROP.
+   * `DELETE FROM schema_migrations WHERE version = 12` po zdjęciu
+     schematu (tylko razem z punktem powyżej — nigdy sam).
+3. **Dane, których wycofanie nie dotyka**: `payload_json.scale_states`
+   pozostaje w raportach wysłanych w 0.15.0 — stary kod go nie czyta
+   i pokazuje wartości skal jak dotychczas (pominięte pytania będą
+   widoczne jako puste, co jest poprawne semantycznie).
+
+Ryzyko wycofania: niskie. Jedyny stan tracony bezpowrotnie przy pełnym
+DROP to deklaracje `photos_expected`/`pose`/`position` i klucze
+idempotencji.

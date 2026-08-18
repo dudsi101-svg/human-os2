@@ -145,6 +145,7 @@ def test_migrations_apply_to_existing_v1_database(tmp_path):
         conn.execute(text("CREATE TABLE weekly_checkins (id VARCHAR(40) PRIMARY KEY)"))
         conn.execute(text("CREATE TABLE workout_entries (id VARCHAR(40) PRIMARY KEY)"))
         conn.execute(text("CREATE TABLE auth_sessions (id VARCHAR(40) PRIMARY KEY)"))
+        conn.execute(text("CREATE TABLE progress_photos (id VARCHAR(40) PRIMARY KEY)"))
     applied = run_migrations(eng)
     assert applied == [v for v, _, _ in MIGRATIONS if v != 1]
     with eng.connect() as conn:
@@ -172,3 +173,10 @@ def test_migrations_apply_to_existing_v1_database(tmp_path):
         "client_invitations", "password_reset_tokens",
         "mfa_recovery_codes", "mfa_challenges",
     } <= tables
+    # Migracja 12: jakość raportów — częściowe zdjęcia, ujęcie/kolejność,
+    # klucze idempotencji.
+    assert "photos_expected" in cols_w
+    with eng.connect() as conn:
+        cols_p = [r[1] for r in conn.exec_driver_sql("PRAGMA table_info(progress_photos)")]
+    assert {"pose", "position"} <= set(cols_p)
+    assert "idempotency_keys" in tables

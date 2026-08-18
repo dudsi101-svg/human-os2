@@ -9,7 +9,8 @@ import {
 } from "./api";
 import { plDate, plDateTime } from "./dates";
 import { applyUpdate, onUpdateAvailable } from "./pwa";
-import { KIND_LABELS, PersonalRecordsData, StrengthSeriesRow } from "./types";
+import { withGaps } from "./seriesUtils";
+import { KIND_LABELS, PersonalRecordsData, SeriesPoint, StrengthSeriesRow } from "./types";
 
 /** Głowa dzika — marka Dzik OS. */
 export function Logo({ size = 26 }: { size?: number }) {
@@ -848,26 +849,64 @@ export function AuthAttachment({ fileId, filename }: { fileId: string; filename?
   );
 }
 
+/** Punkty Sparkline dla serii TYGODNIOWEJ (raporty) z przerwami w linii
+ * zamiast interpolacji przez tygodnie bez danych. */
+export function wellbeingSparkPoints(points: SeriesPoint[]) {
+  return withGaps(points.map((p) => ({ date: p.date, value: p.value })), 7)
+    .map((p) => ({ x: p.date ? plDate(p.date) : "", y: p.value }));
+}
+
+/** Punkty Sparkline dla serii DZIENNEJ (dziennik kaloryczny) z przerwami
+ * w linii zamiast łączenia przez dni bez wpisu. */
+export function dailySparkPoints(points: SeriesPoint[]) {
+  return withGaps(points.map((p) => ({ date: p.date, value: p.value })), 1)
+    .map((p) => ({ x: p.date ? plDate(p.date) : "", y: p.value }));
+}
+
 let sparkGradientSeq = 0;
 
 /** Wykres liniowy (SVG) dla pomiarów w czasie — cienka linia akcentu z
  * zanikającym wypełnieniem pod spodem (wzorem paneli Whoop/Oura), bez
- * osi i siatki, żeby trend czytało się od razu. */
-export function Sparkline({ points, unit }: { points: { x: string; y: number }[]; unit: string }) {
+ * osi i siatki, żeby trend czytało się od razu.
+ *
+ * Jakość danych: punkt z `y: null` to PRZERWA (brak danych, np. tydzień
+ * bez raportu — patrz seriesUtils.withGaps). Linia jest wtedy przerywana
+ * zamiast łączyć przez dziurę — brakujące dane nigdy nie są rysowane tak,
+ * jakby były rzeczywistymi pomiarami. */
+export function Sparkline({ points, unit }: {
+  points: { x: string; y: number | null }[];
+  unit: string;
+}) {
   const [gradientId] = useState(() => `spark-fill-${++sparkGradientSeq}`);
-  if (points.length < 2) return <p className="dim">Za mało danych na wykres.</p>;
-  const ys = points.map((p) => p.y);
+  const valid = points.filter((p): p is { x: string; y: number } => p.y !== null);
+  if (valid.length < 2) return <p className="dim">Za mało danych na wykres.</p>;
+  const ys = valid.map((p) => p.y);
   const min = Math.min(...ys);
   const max = Math.max(...ys);
   const range = max - min || 1;
   const w = 300;
   const h = 64;
+  const denominator = Math.max(points.length - 1, 1);
   const coords = points.map((p, i) => ({
-    cx: (i / (points.length - 1)) * (w - 10) + 5,
-    cy: h - 6 - ((p.y - min) / range) * (h - 16),
+    cx: (i / denominator) * (w - 10) + 5,
+    cy: p.y === null ? null : h - 6 - ((p.y - min) / range) * (h - 16),
   }));
-  const path = coords.map((c, i) => `${i === 0 ? "M" : "L"}${c.cx.toFixed(1)},${c.cy.toFixed(1)}`).join(" ");
-  const areaPath = `${path} L${coords[coords.length - 1].cx.toFixed(1)},${h} L${coords[0].cx.toFixed(1)},${h} Z`;
+  // Segmenty ciągłych danych rozdzielone punktami-przerwami (cy === null).
+  const segments: { cx: number; cy: number }[][] = [];
+  let current: { cx: number; cy: number }[] = [];
+  for (const c of coords) {
+    if (c.cy === null) {
+      if (current.length > 0) segments.push(current);
+      current = [];
+    } else {
+      current.push({ cx: c.cx, cy: c.cy });
+    }
+  }
+  if (current.length > 0) segments.push(current);
+  const segPath = (seg: { cx: number; cy: number }[]) =>
+    seg.map((c, i) => `${i === 0 ? "M" : "L"}${c.cx.toFixed(1)},${c.cy.toFixed(1)}`).join(" ");
+  const firstX = valid[0].x;
+  const lastX = valid[valid.length - 1].x;
   return (
     <div>
       <svg className="spark" viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none">
@@ -877,19 +916,25 @@ export function Sparkline({ points, unit }: { points: { x: string; y: number }[]
             <stop offset="100%" stopColor="var(--accent)" stopOpacity="0" />
           </linearGradient>
         </defs>
-        <path className="spark__area" d={areaPath} fill={`url(#${gradientId})`} stroke="none" />
-        <path d={path} fill="none" stroke="var(--accent)" strokeWidth="2.5"
-          strokeLinecap="round" strokeLinejoin="round" />
-        {coords.map((c, i) => (
+        {segments.map((seg, s) => seg.length >= 2 && (
+          <g key={`seg-${s}`}>
+            <path className="spark__area"
+              d={`${segPath(seg)} L${seg[seg.length - 1].cx.toFixed(1)},${h} L${seg[0].cx.toFixed(1)},${h} Z`}
+              fill={`url(#${gradientId})`} stroke="none" />
+            <path d={segPath(seg)} fill="none" stroke="var(--accent)" strokeWidth="2.5"
+              strokeLinecap="round" strokeLinejoin="round" />
+          </g>
+        ))}
+        {segments.flat().map((c, i) => (
           <circle key={i} cx={c.cx} cy={c.cy} r="2.5" fill="var(--accent)" />
         ))}
       </svg>
       <div className="row row--between">
-        <small>{points[0].x}</small>
+        <small>{firstX}</small>
         <small>
           {min.toFixed(1)}–{max.toFixed(1)} {unit}
         </small>
-        <small>{points[points.length - 1].x}</small>
+        <small>{lastX}</small>
       </div>
     </div>
   );

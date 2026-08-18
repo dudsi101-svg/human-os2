@@ -212,6 +212,75 @@ export const api = {
   },
 };
 
+export interface UploadProgressOpts {
+  /** Postęp wysyłania 0..1 (zdarzenia XHR upload.onprogress). */
+  onProgress?: (fraction: number) => void;
+  /** Anulowanie wysyłki z widoku — przerwane żądanie rzuca ApiError
+   * z code="CANCELLED" (patrz isCancel). */
+  signal?: AbortSignal;
+}
+
+/** Upload pliku z postępem per plik i anulowaniem. fetch() nie raportuje
+ * postępu wysyłania, więc ta jedna ścieżka używa XMLHttpRequest —
+ * z tym samym modelem błędów (ApiError, klasyfikacja OFFLINE/CANCELLED,
+ * powrót do logowania po 401) co wspólny klient API. */
+export function uploadFileWithProgress<T>(
+  path: string,
+  file: File,
+  opts?: UploadProgressOpts
+): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", path);
+    const token = getToken();
+    if (token) xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+    const onAbortSignal = () => xhr.abort();
+    opts?.signal?.addEventListener("abort", onAbortSignal);
+    const cleanup = () => opts?.signal?.removeEventListener("abort", onAbortSignal);
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable && opts?.onProgress) opts.onProgress(e.loaded / e.total);
+    };
+    xhr.onload = () => {
+      cleanup();
+      if (xhr.status === 401) {
+        redirectToLogin(SESSION_EXPIRED_MESSAGE);
+        reject(new ApiError(401, SESSION_EXPIRED_MESSAGE, "UNAUTHORIZED"));
+        return;
+      }
+      let data: unknown = null;
+      try {
+        data = JSON.parse(xhr.responseText);
+      } catch {
+        /* Świadomie: odpowiedź bez JSON-a (proxy/HTML) — fallback niżej. */
+      }
+      if (xhr.status >= 200 && xhr.status < 300) {
+        resolve(data as T);
+        return;
+      }
+      const body = (data ?? {}) as { detail?: string; code?: string; request_id?: string };
+      reject(new ApiError(
+        xhr.status,
+        typeof body.detail === "string" ? body.detail : `Błąd ${xhr.status}`,
+        typeof body.code === "string" ? body.code : undefined,
+        typeof body.request_id === "string"
+          ? body.request_id
+          : xhr.getResponseHeader("X-Request-Id") ?? undefined
+      ));
+    };
+    xhr.onerror = () => {
+      cleanup();
+      reject(new ApiError(0, OFFLINE_MESSAGE, "OFFLINE"));
+    };
+    xhr.onabort = () => {
+      cleanup();
+      reject(new ApiError(0, "Żądanie anulowane", "CANCELLED"));
+    };
+    const form = new FormData();
+    form.append("file", file);
+    xhr.send(form);
+  });
+}
+
 // ——— Operacje uwierzytelniania — zawsze przez wspólnego klienta API ———
 // (żadnych gołych fetchy: nagłówek Authorization musi trafić do serwera,
 // inaczej sesja nie zostanie unieważniona po stronie backendu).

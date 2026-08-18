@@ -264,6 +264,35 @@ MIGRATIONS: list[tuple[int, str, list[str]]] = [
             "ON mfa_challenges(user_id)"
         ),
     ]),
+    (12, "checkin data quality: partial photos, pose/order, idempotency keys", [
+        # Zadeklarowana liczba zdjęć raportu — raport z mniejszą liczbą
+        # zapisanych zdjęć jest jawnie CZĘŚCIOWY (do dokończenia), a nie
+        # cicho „wysłany". NULL = raport sprzed migracji / bez deklaracji.
+        "ALTER TABLE weekly_checkins ADD COLUMN photos_expected INTEGER",
+        # Typ ujęcia (PRZOD/BOK/TYL/INNE) i kolejność zdjęć wybrana przez
+        # klienta przed wysyłką. NULL = zdjęcia historyczne.
+        "ALTER TABLE progress_photos ADD COLUMN pose VARCHAR(20)",
+        "ALTER TABLE progress_photos ADD COLUMN position INTEGER",
+        # Klucze idempotencji operacji zapisu: powtórka tego samego żądania
+        # (double-click, retry po utracie odpowiedzi) zwraca zapisany wynik
+        # zamiast tworzyć duplikat/rewizję.
+        """
+        CREATE TABLE IF NOT EXISTS idempotency_keys (
+            id VARCHAR(40) PRIMARY KEY,
+            user_id VARCHAR(40) NOT NULL REFERENCES users(id),
+            operation VARCHAR(80) NOT NULL,
+            idem_key VARCHAR(80) NOT NULL,
+            request_hash VARCHAR(64) NOT NULL,
+            response_json TEXT NOT NULL,
+            created_at VARCHAR(40) NOT NULL,
+            UNIQUE(user_id, operation, idem_key)
+        )
+        """,
+        (
+            "CREATE INDEX IF NOT EXISTS ix_idempotency_keys_user "
+            "ON idempotency_keys(user_id)"
+        ),
+    ]),
 ]
 
 
