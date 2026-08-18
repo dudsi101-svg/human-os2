@@ -10,6 +10,11 @@ Ten dokument opisuje dwa mechanizmy: **rezerwację** (przed pracą) i
 
 ---
 
+> **Status współpracy i zasady, którym ten mechanizm służy, są w
+> `WSPOLPRACA_SESJI.md`.** Ten dokument opisuje NARZĘDZIA; tamten mówi,
+> po co są i kto nad czym pracuje. Nie powielają się — jeśli zaczną,
+> jeden z nich trzeba skreślić.
+
 ## 1. Bramka: `tools/spojnosc.py`
 
 ```bash
@@ -145,7 +150,7 @@ w tabeli niżej **przed** rozpoczęciem pracy, w jednym commicie na `main`:
 | Gałąź / runda | Migracja | Wersja | Główne pliki | Status |
 |---|---|---|---|---|
 | `dzik-os-personal-trainer-app` — dostawca AI + sprzątnięcie styków | **26** (rezerwacja warunkowa) | **0.38.0** | `ai_provider.py`, `sheet_import.py`, `routers/`, `pages/coach/`, `components.tsx`, `docs/` | plan złożony, czeka na uzgodnienie |
-| `ocena-projektu-dzik-os` — bramki, CI, E2E | — (nie dotyka schematu) | **0.39.0** | `tools/spojnosc.py`, `tools/mutacje.py`, `tests/test_spojnosc.py`, `.github/workflows/dzik-os-ci.yml`, `frontend/e2e/`, `e2e/`, `docs/KOORDYNACJA.md`, `docs/DOSTEPNOSC.md` | w scalaniu |
+| `ocena-projektu-dzik-os` — bramki, CI, E2E | — (nie dotyka schematu) | **0.39.0** | `tools/spojnosc.py`, `tools/mutacje.py`, `tests/test_spojnosc.py`, `.github/workflows/dzik-os-ci.yml`, `frontend/e2e/`, `e2e/`, `docs/KOORDYNACJA.md`, `docs/DOSTEPNOSC.md`, `docs/WSPOLPRACA_SESJI.md`, `docs/PRZEGLAD_KRZYZOWY_2026-08-18.md` | w scalaniu |
 
 Następny wolny numer migracji: **27** · następna wolna wersja: **0.40.0**
 

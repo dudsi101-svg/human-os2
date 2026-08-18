@@ -81,6 +81,18 @@ na cichą utratę pracy.
   zostaje domknięta (żadna gałąź jej nie trzyma, wpis jest już w main
   i wdrożony), a kolizja wersji 0.36.0 rozwiązana przez przesunięcie
   tamtej pracy na 0.37.0.
+* **Spisany status współpracy dwóch sesji** (`docs/WSPOLPRACA_SESJI.md`),
+  na wyraźne polecenie właściciela produktu. Punkt wyjścia to policzenie,
+  czego naprawdę dotyczyły dzisiejsze kolizje: **jedenaście z jedenastu
+  dotyczyło zasobu współdzielonego albo różnicy założeń, ZERO było sporem
+  o to, czym ma być produkt.** To zmienia diagnozę — z opisu „konflikt"
+  wynika rozjemca, z opisu „interferencja" wynika mechanizm; potrzebny
+  jest ten drugi. Podział budowa/weryfikacja opisany nie jako rana, tylko
+  jako odpowiedź na **bloker nr 1** bramki („bramkę wykonał ten sam agent,
+  który pisał kod") — dwie sesje z takim podziałem są strukturalnie lepsze
+  niż jedna robiąca obie rzeczy. Sześć zasad, każda wzięta z czegoś
+  zmierzonego, plus rozstrzyganie różnic i jawne stwierdzenie, że dokument
+  nie obowiązuje, dopóki druga sesja go nie przyjmie.
 * **Złapana kolizja znaczeniowa, której git nie pokazał.** Scalenie
   z `main` po cichu nadpisało wiersz rezerwacji, który druga sesja dopiero
   co wpisała do `KOORDYNACJA.md` — bez jednego konfliktu, bo git widział
