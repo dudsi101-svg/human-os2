@@ -1,5 +1,78 @@
 # Changelog — Dzik OS
 
+## 0.18.0 — 2026-08-18
+
+Wspólne wyzwania i współpraca — **moduł PRYWATNY** (tylko-zaproszeni,
+zero publicznych wyzwań). Pełny opis modelu, zasad prywatności, zgodności
+z konstytucją Human OS (interpretacja rankingu opt-in), naliczania,
+moderacji i planu wycofania migracji nr 16: `docs/WYZWANIA.md`.
+
+* **Zgodność z konstytucją Human OS**: zakaz rankingowania ludzi jako
+  mechanizmu domyślnego → ranking jest **opt-in per uczestnik i domyślnie
+  WYŁĄCZONY** (obejmuje wyłącznie osoby z podwójnym opt-in:
+  `share_result` + `ranking_opt_in`); domyślny widok = własny postęp
+  względem celu + **zagregowany postęp grupy bez nazwisk**; wynik
+  jednostkowy widoczny dla innych wyłącznie po świadomej decyzji
+  uczestnika (ukrycie działa natychmiast); pseudonim per wyzwanie;
+  trener nie widzi ukrytych wyników jednostkowych.
+* **Model wyzwania** (migracja nr 16 — pięć nowych tabel, czysto
+  addytywna, zero ALTER-ów): organizator, uczestnicy, cel, zasady,
+  **wyłącznie neutralne jednostki wyniku** (`treningi`/`minuty`/
+  `aktywnosci` — masa ciała odrzucana z jasnym komunikatem 422), daty
+  start/koniec, **strefa czasowa wyzwania** (dzień wpisu liczony wg niej,
+  nie wg strefy urządzenia), widoczność zawsze INVITE_ONLY, statusy
+  DRAFT/ACTIVE/FINISHED/CANCELLED.
+* **Rodzaje**: indywidualne (klient sam ze sobą — nikt inny go nie widzi,
+  nawet trener), grupowe klientów tego samego trenera, prowadzone przez
+  trenera. Zaproszenia wyłącznie do AKTYWNIE prowadzonych klientów.
+* **Uczestnictwo dobrowolne**: zaproszenie → przyjęcie (z wyborem
+  pseudonimu i ustawień widoczności) / odrzucenie; przed decyzją czytelne
+  wyjaśnienie „kto zobaczy jaki wynik"; w każdej chwili: opuszczenie,
+  ukrycie wyniku, wyłączenie rankingu, blokada uczestnika (obustronna
+  niewidoczność), zgłoszenie do organizatora.
+* **Dane zdrowotne nigdy w wyzwaniach**: moduł nie ma żadnej ścieżki do
+  pomiarów, zdjęć, bólu, urazów, żywienia, raportów; jedyna integracja to
+  licznik ukończonych treningów — wyłącznie z danych świadomie
+  przeznaczonych do wyzwania (jawny wpis, jawne wskazanie treningu albo
+  świadome „zaliczaj moje odhaczone treningi" przy dołączaniu).
+* **Uczciwe liczenie**: idempotencja wpisów (`client_entry_id` +
+  unikalność zgłoszonego treningu — powtórka zwraca `duplicate`, nie
+  drugi wpis; auto-zaliczanie deduplikuje per dzień i wyklucza się
+  wzajemnie z wpisami ręcznymi jawnym 409), korekty jako nowe wiersze z
+  łańcuchem historii (nigdy nadpisanie), oznaczanie danych ręcznych,
+  limit wpisów/dzień, walidacja zakresów, zamrożenie po zakończeniu.
+* **Moderacja organizatora + audyt**: wyłącznie własne wyzwania
+  (cudze = 404); usunięcie uczestnika, neutralizacja pseudonimu,
+  czyszczenie notatek, oddalenie; zdarzenia `CHALLENGE_*` w łańcuchu
+  audytu niosą wyłącznie identyfikatory i liczniki (nigdy aliasy,
+  notatki, treści zgłoszeń).
+* **Trwałe wycofanie udziału**: wpisy fizycznie usuwane, pseudonim
+  anonimizowany, agregaty grupy trwale oznaczone „skorygowane"
+  (integralność historii przez audyt, nie trzymanie danych osoby);
+  usunięcie konta robi to samo dla wszystkich udziałów; eksport
+  (export_version 1.3) zawiera udziały i wpisy użytkownika.
+* **Nic nie wychodzi poza zamkniętą grupę**: publikowanie na zewnątrz NIE
+  jest zaimplementowane — wymagałoby nowej kategorii zgody
+  (docs/WYZWANIA.md §8).
+* **Powiadomienia**: push przy zaproszeniu/zakończeniu/odwołaniu/
+  zgłoszeniu — zawsze neutralne (bez tytułu wyzwania, aliasów, wyników);
+  kanał push pozostaje opt-in przez zgodę `przypomnienia`; punkt
+  integracji z przyszłym modelem preferencji P13 odnotowany w docs.
+* **Frontend**: sekcja „Wyzwania" u klienta (`/wyzwania` — zaproszenia z
+  wyjaśnieniem widoczności, lista z paskami postępu, szczegóły z wpisami/
+  korektami/ustawieniami/blokadami, własne wyzwanie indywidualne) i u
+  trenera (`/trener/wyzwania` — tworzenie, zaproszenia, cykl życia,
+  uczestnicy, zgłoszenia z moderacją); linki w „Więcej"; dostępność
+  wzorem P10 (etykiety `for`/`id`, `aria-pressed`, `aria-label` akcji,
+  paski postępu `aria-hidden` z liczbami w tekście, karty na mobile).
+* Testy: backend 335 → 355 (`test_challenges.py` — 20 testów: zaproszenie,
+  odmowa, opuszczenie, ukrycie wyniku, 404 dla osób z zewnątrz i obcego
+  trenera, korekta z historią, strefa czasowa wyzwania, zakończenie,
+  blokada, wycofanie udziału, ranking podwójnego opt-in, idempotencja,
+  auto-zaliczanie treningów, neutralny push/audyt, usunięcie konta,
+  eksport; rozszerzony test migracji v1→…→16); frontend `npx tsc`,
+  `npm run build`, `npm run test:helpers` (36) zielone.
+
 ## 0.17.0 — 2026-08-18
 
 Runda czysto prezentacyjna: **responsywność, wygląd i dostępność**

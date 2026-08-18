@@ -31,6 +31,7 @@ from .observability import (
 from .routers import (
     admin,
     auth,
+    challenges,
     checkins,
     clients,
     consultations,
@@ -123,6 +124,7 @@ def create_app() -> FastAPI:
         payments.router, privacy.router, today.router, admin.router,
         monitoring.router, knowledge.router, exercises.router, food_catalog.router,
         records.router, push.router, consultations.router, telemetry.router,
+        challenges.router,
     ):
         app.include_router(router)
 

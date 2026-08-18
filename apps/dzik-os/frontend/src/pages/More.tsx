@@ -27,6 +27,9 @@ export default function More() {
           <Link className="card card--nav" to="/trener/konsultacje">
             <Icon name="calendar" /><span>Terminarz konsultacji</span>
           </Link>
+          <Link className="card card--nav" to="/trener/wyzwania">
+            <Icon name="trophy" /><span>Wyzwania grupowe</span>
+          </Link>
         </div>
       )}
       <div className="list">
@@ -40,6 +43,9 @@ export default function More() {
             </Link>
             <Link className="card card--nav" to="/konsultacje">
               <Icon name="calendar" /><span>Konsultacje z trenerem</span>
+            </Link>
+            <Link className="card card--nav" to="/wyzwania">
+              <Icon name="trophy" /><span>Wyzwania</span>
             </Link>
             <Link className="card card--nav" to="/dokumenty">
               <Icon name="file" /><span>Dokumenty i harmonogram</span>

@@ -557,3 +557,123 @@ export interface DietSuggestionResult {
   warnings: string[];
   note: string;
 }
+
+// --- Wspólne wyzwania (moduł prywatny — tylko zaproszeni) ---
+
+export interface ChallengeBase {
+  id: string;
+  kind: "INDIVIDUAL" | "GROUP";
+  title: string;
+  description: string | null;
+  unit: string;
+  unit_label: string;
+  goal_value: number | null;
+  starts_on: string;
+  ends_on: string;
+  timezone: string;
+  visibility: string;
+  status: "DRAFT" | "ACTIVE" | "FINISHED" | "CANCELLED";
+  max_entries_per_day: number;
+  aggregates_adjusted: boolean;
+  is_past: boolean;
+}
+
+export interface ChallengeProgress {
+  value: number;
+  goal_value: number | null;
+  progress_pct: number | null;
+  has_manual: boolean;
+}
+
+export interface ChallengeMe {
+  participant_id?: string;
+  status: string;
+  alias?: string | null;
+  share_result?: boolean;
+  ranking_opt_in?: boolean;
+  auto_count_workouts?: boolean;
+  progress?: ChallengeProgress;
+}
+
+export interface ChallengeInvitation extends ChallengeBase {
+  invited_by_name: string | null;
+  invited_at?: string;
+  explainer: string;
+}
+
+export interface ChallengeListItem extends ChallengeBase {
+  me: ChallengeMe;
+  progress: ChallengeProgress;
+}
+
+export interface ChallengeSharedRow {
+  user_id: string;
+  alias: string;
+  value: number;
+  progress_pct?: number;
+  has_manual: boolean;
+  is_me: boolean;
+  position?: number;
+}
+
+export interface ChallengeGroup {
+  active_participants: number;
+  total_value: number;
+  avg_progress_pct: number | null;
+  completed_count: number | null;
+  aggregates_adjusted: boolean;
+}
+
+export interface ChallengeDetail extends ChallengeBase {
+  explainer: string;
+  me?: ChallengeMe;
+  invited_by_name?: string | null;
+  group?: ChallengeGroup;
+  shared?: ChallengeSharedRow[];
+  ranking?: ChallengeSharedRow[];
+  participants?: {
+    participant_id: string;
+    user_id: string;
+    alias: string | null;
+    status: string;
+    share_result: boolean;
+  }[];
+  open_reports?: number;
+}
+
+export interface ChallengeEntryRow {
+  id: string;
+  entry_date: string;
+  value: number;
+  note: string | null;
+  source: "MANUAL" | "WORKOUT";
+  status: "ACTIVE" | "CORRECTED";
+  corrects_entry_id: string | null;
+  created_at: string;
+}
+
+export interface ChallengeUnit {
+  key: string;
+  label: string;
+  fixed_value: number | null;
+  max_value: number;
+}
+
+export interface CoachChallengeRow extends ChallengeBase {
+  active_participants: number;
+  pending_invitations: number;
+  open_reports: number;
+}
+
+export interface ChallengeReportRow {
+  id: string;
+  reporter_name: string | null;
+  reported_user_id: string;
+  reported_name: string | null;
+  reason: string;
+  status: "OPEN" | "RESOLVED";
+  resolution: string | null;
+  resolution_note: string | null;
+  created_at: string;
+  resolved_at: string | null;
+}
