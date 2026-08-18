@@ -752,9 +752,11 @@ MIGRATIONS: list[tuple[int, str, list[str]]] = [
         "ALTER TABLE food_products ADD COLUMN origin_file_id VARCHAR(40)",
         "ALTER TABLE food_products ADD COLUMN origin_engine VARCHAR(20)",
     ]),
-    # Numer 21 jest zarezerwowany dla równoległej rundy — luka w numeracji
-    # jest świadoma. `run_migrations` idzie po numerach z tej listy, więc
-    # dołożenie 21 przy scaleniu nic tu nie psuje.
+    # LUKA: numer 21 został zarezerwowany dla równoległej rundy, która go
+    # ostatecznie nie użyła — i pozostaje wolny. NIE bierz go pod nową
+    # migrację: mogłaby zderzyć się ze starą, niescaloną gałęzią, która
+    # wciąż go trzyma. Numerację prowadzimy dalej od największego numeru.
+    # `run_migrations` idzie po numerach z listy, więc sama luka nic nie psuje.
     (22, "baza ćwiczeń: proweniencja wpisu (skąd wzięły się dane)", [
         # Czysto addytywna: dwie nowe kolumny NULLable na istniejącej
         # tabeli. NULL znaczy „ćwiczenie sprzed tej migracji, nie wiemy” —
@@ -800,8 +802,6 @@ MIGRATIONS: list[tuple[int, str, list[str]]] = [
         "CREATE INDEX IF NOT EXISTS ix_assistant_tasks_key ON assistant_tasks(task_key)",
         "CREATE INDEX IF NOT EXISTS ix_assistant_tasks_status ON assistant_tasks(status)",
     ]),
-    # Numer 23 jest zarezerwowany dla równoległej rundy — luka w numeracji
-    # jest świadoma (ten sam powód co przy numerze 21).
     (24, ("baza ćwiczeń: import biblioteki trenera — nazwa angielska, tagi, "
           "źródło pozycji i notatka o szablonowym opisie"), [
         # Czysto addytywna: cztery kolumny NULLable na istniejącej tabeli,
@@ -869,6 +869,17 @@ def run_migrations(target_engine=None) -> list[int]:
         # Świeża baza: ORM tworzy już docelowy schemat (ze wszystkimi
         # kolumnami), więc DDL późniejszych migracji nie jest wykonywany —
         # tylko stemplowany.
+        #
+        # Import modeli MUSI być tutaj, a nie po stronie wywołującego.
+        # `Base.metadata` jest puste, dopóki moduł `models` nie zostanie
+        # zaimportowany; bez tego `create_all` nie tworzy ANI JEDNEJ tabeli,
+        # a mimo to wszystkie migracje zostają ostemplowane jako wykonane.
+        # Efektem jest baza pusta, lecz „zmigrowana", która nigdy się już
+        # nie naprawi — cichy błąd katastrofalny. Dziś każdy realny punkt
+        # wejścia importuje modele przypadkiem; ta linia zamienia przypadek
+        # w gwarancję. Patrz tests/test_db_migracje.py.
+        from . import models  # noqa: F401 - rejestracja tabel w Base.metadata
+
         Base.metadata.create_all(eng)
         for version, description, _ in MIGRATIONS:
             stamp(version, description)
