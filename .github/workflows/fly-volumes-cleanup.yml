@@ -57,6 +57,18 @@ jobs:
         run: |
           flyctl volumes list --app "$APP_NAME" --json > vols.json
           orphans=$(jq -r '.[] | select((.attached_machine_id // "") == "") | .id' vols.json)
+          attached=$(jq '[.[] | select((.attached_machine_id // "") != "")] | length' vols.json)
+          # BEZPIECZNIK: sprzątamy wyłącznie, gdy aplikacja jest w zdrowym
+          # stanie, tzn. ma wolumen podpięty do maszyny. Gdy żaden wolumen
+          # nie jest podpięty (zniszczona maszyna, przerwany deploy),
+          # niepodpięty wolumen może być JEDYNYM nośnikiem danych — wtedy
+          # nie ruszamy niczego i zgłaszamy to do ręcznej decyzji.
+          if [ "$attached" -eq 0 ]; then
+            echo "UWAGA: żaden wolumen nie jest podpięty do maszyny."
+            echo "Nie usuwam niczego — niepodpięty wolumen może zawierać dane."
+            echo "Sprawdź stan aplikacji ręcznie (flyctl status / machines list)."
+            exit 0
+          fi
           if [ -z "$orphans" ]; then
             echo "Brak nieużywanych wolumenów — nic do zrobienia."
             exit 0
