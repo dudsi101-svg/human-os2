@@ -27,6 +27,13 @@ jobs:
           pip install -e "apps/dzik-os/backend[dev]"
       - name: Lint (ruff)
         run: ruff check apps/dzik-os/backend
+      - name: Kontrola spójności (kolizje między równoległymi rundami)
+        # Wykrywa to, czego git nie widzi: powtórzony numer migracji lub
+        # wersji, trasę przesłoniętą przez parametr, router bez
+        # include_router, test frontendu spoza test:helpers.
+        # Patrz apps/dzik-os/docs/KOORDYNACJA.md
+        run: python apps/dzik-os/tools/spojnosc.py
+
       - name: Core regression tests (hos_engine)
         run: pytest tests/ -q
       - name: Dzik OS backend tests
@@ -40,17 +47,15 @@ jobs:
   # pokazać: SQLite domyślnie nie egzekwuje kluczy obcych, więc kod potrafił
   # zapisywać rekordy wskazujące na jeszcze nieistniejące wiersze.
   #
-  # NIEBLOKUJĄCY (`continue-on-error`) — świadomie, na czas dochodzenia do
-  # zieloności. Naprawione zostały wszystkie naruszenia kluczy obcych, które
-  # ujawnił lokalny przebieg (569 testów przechodzi na SQLite z
-  # `PRAGMA foreign_keys=ON`, czyli z tą samą regułą co PostgreSQL), ale
-  # pełny przebieg na PG nie został jeszcze potwierdzony jako zielony — pierwszy
-  # pokazywał też błędy o innych przyczynach niż klucze obce.
-  # Job ma więc RAPORTOWAĆ stan, a nie blokować pozostałe bramki.
-  # `continue-on-error` należy usunąć, gdy przebieg będzie stabilnie zielony.
+  # BLOKUJĄCY od 18.08.2026. Job wszedł jako nieblokujący, na czas dochodzenia
+  # do zieloności; warunek zdjęcia flagi brzmiał „stabilnie zielony przebieg".
+  # Spełniony: dwa kolejne pełne przebiegi na PostgreSQL zakończyły się
+  # powodzeniem (w tym cykl kopia→odtworzenie przez pg_dump/psql, który
+  # wymagał naprawy `--clean --if-exists`). Od teraz regres na PG zatrzymuje
+  # build tak samo jak na SQLite — inaczej ta bramka tylko raportowałaby
+  # w tle i nikt by jej nie czytał.
   backend-postgres:
     runs-on: ubuntu-latest
-    continue-on-error: true
     services:
       postgres:
         image: postgres:16

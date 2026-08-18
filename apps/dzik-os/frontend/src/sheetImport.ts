@@ -34,6 +34,19 @@ export interface SheetImportReport {
   unlinked_exercises: string[];
   created_names: string[];
   updated_names: string[];
+  /** Punkt przywracania utworzony przez ten import. `null` znaczy „nie ma
+   * czego cofać" — podgląd albo import, który niczego nie zmienił. */
+  snapshot_id: string | null;
+}
+
+export interface ImportSnapshotRow {
+  id: string;
+  kind: "EXERCISES" | "TEMPLATES";
+  source_ref: string;
+  mode: string;
+  rows: number;
+  created_at: string;
+  restored_at: string | null;
 }
 
 export interface SheetColumn {
@@ -155,4 +168,39 @@ export function fileProblem(
   }
   if (file.size === 0) return "Plik jest pusty.";
   return null;
+}
+
+
+/** Czy po tym imporcie da się jeszcze cofnąć zmiany. Podgląd i import bez
+ * zmian nie tworzą punktu przywracania — przycisk „cofnij" nie ma się
+ * wtedy pojawiać, bo obiecywałby coś, czego nie ma. */
+export function canUndo(report: SheetImportReport): boolean {
+  return !report.dry_run && report.snapshot_id !== null;
+}
+
+/** Co dokładnie zrobi cofnięcie — powiedziane wprost PRZED kliknięciem.
+ * „Cofnij" bez wyjaśnienia brzmi jak kasowanie, a nim nie jest. */
+export function undoExplanation(report: SheetImportReport): string {
+  const parts: string[] = [];
+  if (report.updated > 0) {
+    parts.push(
+      report.kind === "TEMPLATES"
+        ? `${report.updated} ${plural(report.updated, "szablon wróci", "szablony wrócą", "szablonów wróci")} do treści sprzed importu (jako nowa wersja — historia zostaje)`
+        : `${report.updated} ${plural(report.updated, "pozycja wróci", "pozycje wrócą", "pozycji wróci")} do wartości sprzed importu`
+    );
+  }
+  if (report.created > 0) {
+    parts.push(
+      `${report.created} ${plural(report.created, "nowa pozycja zostanie zarchiwizowana", "nowe pozycje zostaną zarchiwizowane", "nowych pozycji zostanie zarchiwizowanych")} (nie usunięta — możesz je przywrócić ręcznie)`
+    );
+  }
+  if (parts.length === 0) return "Nie ma czego cofać.";
+  return `Cofnięcie: ${parts.join("; ")}. Można je wykonać tylko raz.`;
+}
+
+/** Etykieta wpisu w historii importów. */
+export function snapshotLabel(row: ImportSnapshotRow): string {
+  const what = row.kind === "TEMPLATES" ? "szablony" : "ćwiczenia";
+  const mode = row.kind === "EXERCISES" && row.mode === "ZASTAP" ? ", tryb: zastąp" : "";
+  return `${what} z pliku „${row.source_ref}" — ${row.rows} ${plural(row.rows, "pozycja", "pozycje", "pozycji")}${mode}`;
 }

@@ -1,6 +1,6 @@
 import {
-  Component, ErrorInfo, KeyboardEvent, ReactNode, useEffect, useId, useRef,
-  useState,
+  Component, ErrorInfo, KeyboardEvent, ReactNode, useCallback, useEffect, useId,
+  useRef, useState,
 } from "react";
 import { NavLink } from "react-router-dom";
 import {
@@ -16,8 +16,9 @@ import {
 } from "./exerciseFilters";
 import { MuscleMap } from "./MuscleMap";
 import {
-  SheetImportReport, SheetSchema, fileProblem, hasChanges, importSummary,
-  linkHint, noChangesHint, sampleLine, unknownColumnsHint,
+  ImportSnapshotRow, SheetImportReport, SheetSchema, canUndo, fileProblem,
+  hasChanges, importSummary, linkHint, noChangesHint, sampleLine,
+  snapshotLabel, undoExplanation, unknownColumnsHint,
 } from "./sheetImport";
 import { applyUpdate, onUpdateAvailable } from "./pwa";
 import { withGaps } from "./seriesUtils";
@@ -1589,9 +1590,10 @@ export function PersonalRecordsCard({ clientId }: { clientId: string }) {
  *   który wykonuje import, więc nie może się z nim rozjechać.
  */
 export function SheetImportPanel({
-  title, description, schemaUrl, importUrl, exampleUrl, exportUrl,
-  exampleFileName, exportFileName, onImported,
+  kind, title, description, schemaUrl, importUrl, exampleUrl, exportUrl,
+  exampleFileName, exportFileName, onImported, embedded = false,
 }: {
+  kind: "EXERCISES" | "TEMPLATES";
   title: string;
   description: ReactNode;
   schemaUrl: string;
@@ -1601,8 +1603,11 @@ export function SheetImportPanel({
   exampleFileName: string;
   exportFileName: string;
   onImported: () => void;
+  /** Panel osadzony w innej karcie (np. w „Dodaj do bazy"): bez własnej
+   * ramki i bez przycisku „Rozwiń" — nagłówek zapewnia rodzic. */
+  embedded?: boolean;
 }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(embedded);
   const [schema, setSchema] = useState<SheetSchema | null>(null);
   const [showColumns, setShowColumns] = useState(false);
   const [file, setFile] = useState<File | null>(null);
@@ -1610,7 +1615,19 @@ export function SheetImportPanel({
   const [report, setReport] = useState<SheetImportReport | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [history, setHistory] = useState<ImportSnapshotRow[]>([]);
+  const [undone, setUndone] = useState<string | null>(null);
   const inputId = useId();
+
+  const loadHistory = useCallback(() => {
+    api.get<{ imports: ImportSnapshotRow[] }>("/api/coach/imports")
+      .then((d) => setHistory(d.imports.filter((r) => r.kind === kind)))
+      .catch(() => setHistory([]));
+  }, [kind]);
+
+  useEffect(() => {
+    if (open) loadHistory();
+  }, [open, loadHistory]);
 
   useEffect(() => {
     if (!open || schema) return;
@@ -1640,7 +1657,8 @@ export function SheetImportPanel({
       if (schema?.modes) params.set("mode", mode);
       const data = await api.upload<SheetImportReport>(`${importUrl}?${params}`, file);
       setReport(data);
-      if (!dryRun) onImported();
+      setUndone(null);
+      if (!dryRun) { onImported(); loadHistory(); }
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -1657,17 +1675,25 @@ export function SheetImportPanel({
     }
   }
 
+  async function undo(snapshotId: string) {
+    setBusy(true);
+    setError(null);
+    try {
+      await api.post(`/api/coach/imports/${snapshotId}/undo`);
+      setUndone(snapshotId);
+      onImported();
+      loadHistory();
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   const saved = report !== null && !report.dry_run;
 
-  return (
-    <div className="card" style={{ marginBottom: 12 }}>
-      <div className="row row--between">
-        <b>{title}</b>
-        <button type="button" className="btn btn--ghost btn--small" aria-expanded={open}
-          onClick={() => setOpen(!open)}>
-          {open ? "Zwiń" : "Rozwiń"}
-        </button>
-      </div>
+  const body = (
+    <>
       {open && (
         <>
           <p className="dim" style={{ marginTop: 4 }}>{description}</p>
@@ -1764,6 +1790,23 @@ export function SheetImportPanel({
                 {importSummary(report)}
               </p>
               {!hasChanges(report) && <p className="meta">{noChangesHint(report)}</p>}
+              {canUndo(report) && report.snapshot_id !== undone && (
+                <div className="row" style={{ flexWrap: "wrap", gap: 6, margin: "6px 0" }}>
+                  <button type="button" className="btn btn--ghost btn--small" disabled={busy}
+                    onClick={() => undo(report.snapshot_id as string)}>
+                    Cofnij ten import
+                  </button>
+                  <small className="dim" style={{ flex: "1 1 260px" }}>
+                    {undoExplanation(report)}
+                  </small>
+                </div>
+              )}
+              {report.snapshot_id === undone && undone !== null && (
+                <p className="meta" aria-live="polite">
+                  <b>Import cofnięty.</b> Zmienione pozycje wróciły do stanu sprzed
+                  niego, a nowe zostały zarchiwizowane — nic nie zostało usunięte.
+                </p>
+              )}
               {unknownColumnsHint(report) && (
                 <p className="meta">{unknownColumnsHint(report)}</p>
               )}
@@ -1800,8 +1843,52 @@ export function SheetImportPanel({
               )}
             </div>
           )}
+
+          {history.length > 0 && (
+            <details style={{ marginTop: 10 }}>
+              <summary className="meta">
+                Ostatnie importy ({history.length}) — możesz je cofnąć
+              </summary>
+              <ul className="meta" style={{ margin: "6px 0 0 0", padding: 0, listStyle: "none" }}>
+                {history.map((row) => (
+                  <li className="row row--between" key={row.id}
+                    style={{ gap: 8, padding: "4px 0" }}>
+                    <span>
+                      {plDateTime(row.created_at)} · {snapshotLabel(row)}
+                      {row.restored_at && <> · <b>cofnięty</b></>}
+                    </span>
+                    {!row.restored_at && (
+                      <button type="button" className="btn btn--ghost btn--small"
+                        disabled={busy} onClick={() => undo(row.id)}>
+                        Cofnij
+                      </button>
+                    )}
+                  </li>
+                ))}
+              </ul>
+              <small className="dim">
+                Cofnięcie przywraca stan sprzed importu i działa raz. Nic nie jest
+                usuwane: pozycje dodane importem zostają zarchiwizowane, a szablony
+                wracają przez nową wersję, więc historia zostaje w całości.
+              </small>
+            </details>
+          )}
         </>
       )}
+    </>
+  );
+
+  if (embedded) return body;
+  return (
+    <div className="card" style={{ marginBottom: 12 }}>
+      <div className="row row--between">
+        <b>{title}</b>
+        <button type="button" className="btn btn--ghost btn--small" aria-expanded={open}
+          onClick={() => setOpen(!open)}>
+          {open ? "Zwiń" : "Rozwiń"}
+        </button>
+      </div>
+      {body}
     </div>
   );
 }

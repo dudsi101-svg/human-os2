@@ -1,6 +1,6 @@
 # Changelog — Dzik OS
 
-## 0.33.0 — 2026-08-18
+## 0.36.0 — 2026-08-18
 
 **Gotowe schematy treningowe — 24 szablony z materiału trenera.** Pełny
 opis: `docs/SZABLONY_TRENINGOWE.md`.
@@ -114,6 +114,125 @@ na produkcji i wycofania: `docs/BAZA_CWICZEN.md` §11.
   `--dry-run` niczego nie zapisuje, klient nie widzi notatki roboczej,
   odmowa wyboru trenera w komendzie. Do tego 6 testów czystej logiki
   raportu po stronie frontendu (`npm run test:helpers`).
+## 0.35.0 — 2026-08-18
+
+**Porządki: bramka przeciw kolizjom między równoległymi rundami.**
+Pełny opis mechanizmu, rezerwacji zasobów globalnych i tego, czego bramka
+NIE złapie: `docs/KOORDYNACJA.md`.
+
+* **Problem, który to rozwiązuje.** Rundy bywają rozwijane równolegle, w
+  osobnych kopiach repozytorium; każda widzi kod sprzed swojego startu i
+  nie wie, co robią pozostałe. Git wykrywa kolizje **tekstu** — kolizje
+  **znaczenia** przechodzą przez scalenie bez jednego konfliktu.
+* **`tools/spojnosc.py` — sześć kontroli, każda z prawdziwego błędu:**
+  powtórzony numer migracji (zdarzyło się przy nr 24), ta sama wersja w
+  CHANGELOG-u przydzielona dwa razy (0.29.0), **trasa statyczna
+  przesłonięta przez wcześniejszą parametryzowaną** (`import-schema` w
+  0.32.0 — kod poprawny, funkcja nieosiągalna), router bez
+  `include_router`, plik `scripts/test-*.mjs` spoza `test:helpers` (czyli
+  test, który nigdy się nie uruchamia), martwy odnośnik do dokumentu.
+* **Bramka w CI** (`dzik-os-ci.yml`) — kolizja nie ma jak przejść
+  niezauważona, nawet gdy nikt o niej nie pamięta.
+* **Kontrola, która sama nie zgnije.** Pierwsza wersja kontroli tras
+  widziała **35 z około 200 tras** (ta wersja FastAPI nie spłaszcza
+  dołączonych routerów do `app.routes`) i przechodziła zawsze. Wyszło to
+  dopiero przy próbie z celowo wstrzykniętym błędem. Stąd dwa
+  zabezpieczenia: `PROG_TRAS` wywraca kontrolę, gdy widzi podejrzanie mało
+  tras, a `tests/test_spojnosc.py` **wstrzykuje każdy z tych błędów** i
+  sprawdza, że kontrola się zapala — oraz że przy poprawnej kolejności
+  milczy.
+* **Rezerwacja zasobów globalnych** (numer migracji, numer wersji, lista
+  plików) w tabeli w `KOORDYNACJA.md` — do wypełnienia PRZED pracą.
+* **Wypisane wprost, czego bramka nie złapie:** sprzeczności logicznej
+  między rundami (realny przypadek: jedna filtrowała płatności po
+  `PENDING`, druga wprowadziła `OVERDUE` — scalenie po cichu wyłączyło
+  przypomnienia o zaległościach), testu sprawdzającego nieaktualne
+  założenie, dublującego się pomysłu. Przy scalaniu **czyta się obie
+  zmiany**; bramka zdejmuje część mechaniczną, nie zastępuje czytania.
+* **Brief dla pracy równoległej** — jeden zestaw ograniczeń w jednym
+  miejscu, łącznie z wymogiem raportowania, **co uruchomiono i co widać**.
+* Testy: 7 nowych (`tests/test_spojnosc.py`), w tym próba z wstrzykniętym
+  błędem dla każdej kontroli.
+
+## 0.34.0 — 2026-08-18
+
+**Jedno „Dodaj do bazy" zamiast czterech paneli + zasada uruchomienia.**
+
+* **Zakładka Ćwiczenia przestała witać gąszczem.** Były tam cztery
+  niezależne drogi dodania pozycji: dwie rozwijane karty importu na samej
+  górze (gotowa biblioteka, plik) plus formularz i odczyt z opisu/zdjęcia
+  schowane gdzie indziej. Każda z osobna sensowna, razem — ściana.
+  Teraz jest jedna karta z jednym pytaniem, które trener naprawdę ma w
+  głowie: **„skąd bierzesz to ćwiczenie?"** — *Wpiszę sam · Mam opis lub
+  zdjęcie · Mam plik z bazą · Weź gotową bibliotekę*. Widoczna jest
+  wyłącznie wybrana droga.
+* **Nic nie zostało usunięte ani zmienione funkcjonalnie.** Wszystkie
+  cztery drogi działają jak dotąd, łącznie z podglądem przed zapisem,
+  cofaniem importu i wzorem pliku. Zmieniło się tylko to, że nie widać ich
+  naraz. `SheetImportPanel` i `LibraryImport` dostały tryb `embedded`
+  (bez własnej ramki i „Rozwiń"), a `DescriptionAssist` — `defaultOpen`,
+  żeby wybór „mam opis lub zdjęcie" nie kazał klikać drugi raz w to samo.
+* **Zasada uruchomienia** (`docs/ZASADA_URUCHOMIENIA.md`, ustalona przez
+  właściciela produktu): zupełnie nowa funkcja nie jest gotowa, dopóki nie
+  została **uruchomiona w działającej aplikacji** i obejrzana. Przechodzące
+  testy są warunkiem wstępnym, nie dowodem. Dokument podaje, co konkretnie
+  jest dowodem dla każdego rodzaju zmiany (ekran, endpoint, komenda,
+  ścieżka nieodwracalna, integracja) i wymaga wpisania do raportu **co
+  zostało kliknięte i co widać** — a gdy czegoś sprawdzić się nie da,
+  powiedzenia tego wprost. Odnośnik z `README.md`.
+* **Przeklik tej rundy** (zgodnie z powyższą zasadą): jedna karta „Dodaj do
+  bazy" na ekranie, zero starych kart importu; wybór „mam plik" pokazuje
+  pole pliku i wzór, a podgląd zwraca raport; przełączenie na „gotową
+  bibliotekę" chowa panel plikowy; „wpiszę sam" otwiera pusty formularz ze
+  zwiniętym odczytem; „mam opis lub zdjęcie" otwiera formularz z odczytem
+  już rozwiniętym i dostępnym zdjęciem; zapis obiema drogami kończy się
+  201 i pozycja jest odnajdywalna na liście. Bez błędów JS.
+
+## 0.33.0 — 2026-08-18
+
+**Nic nie ginie bezpowrotnie: punkt przywracania dla importu + sprawdzona
+procedura odtworzenia kopii zapasowej.** Pełny opis pięciu warstw
+odzyskiwania i uczciwa lista tego, czego odzyskać się nie da:
+`docs/ODZYSKIWANIE.md`.
+
+* **Zamknięta realna dziura.** Plany i diety mają niemutowalną historię
+  wersji, ale **ćwiczenia jej nie mają**. Import w trybie `ZASTAP`
+  (dodany w 0.32.0) nadpisywał opis techniki napisany przez trenera i nie
+  było jak go odzyskać — jeden zły plik kasował pracę na zawsze. Migawka
+  zdejmowana PRZED zapisem zamyka tę dziurę.
+* **„Cofnij ten import".** Nowa tabela `import_snapshots` (migracja nr 25,
+  czysto addytywna) trzyma stan sprzed importu wyłącznie tych pozycji,
+  których import dotknął. `POST /api/coach/imports/{id}/undo` przywraca:
+  pozycje zmienione wracają pole po polu, pozycje **utworzone** zostają
+  **zarchiwizowane, nigdy usunięte**, a szablon wraca przez **nową wersję**
+  z dawną treścią — historia, łącznie z samym importem i jego cofnięciem,
+  zostaje w całości.
+* **Cofnięcie jest jednorazowe i ograniczone do 20 ostatnich importów.**
+  Starsza migawka przywracałaby stan sprzed późniejszych, świadomych zmian
+  trenera, o których nic nie wie — to byłaby cicha strata, nie ratunek.
+* **Kontrakt pilnowany przez kod.** `_assert_snapshot_covers_import()`
+  wywraca import modułu, jeśli import zapisuje pole, którego migawka nie
+  obejmuje. Dołożenie kolumny nie może po cichu wyłączyć dla niej cofania.
+* **Interfejs mówi, co zrobi cofnięcie, PRZED kliknięciem** („3 pozycje
+  wrócą do wartości sprzed importu; 2 nowe zostaną zarchiwizowane — nie
+  usunięte; można to zrobić tylko raz"). Panel importu ma też listę
+  ostatnich importów z przyciskiem „Cofnij" i oznaczeniem już cofniętych.
+  Podgląd i import bez zmian **nie tworzą** punktu przywracania — przycisk
+  się wtedy nie pojawia, bo obiecywałby coś, czego nie ma.
+* **Procedura odtworzenia kopii zapasowej — przećwiczona, nie
+  zadeklarowana.** Na pełnej bazie (7 kont, 256 ćwiczeń, 4 plany, pliki
+  uploadów) skasowano bazę, audyt i uploady, po czym odtworzono je z
+  archiwum: komplet danych zgodny ze stanem sprzed skasowania, skasowany
+  plik uploadu z powrotem na dysku, `verify_chain() = True`.
+* **Nazwana słabość, której nie ukrywamy:** archiwa kopii zapasowych leżą
+  na tym samym wolumenie, który mają chronić. Przy utracie wolumenu zostaje
+  wyłącznie snapshot Fly, którego odtworzenia jeszcze nie ćwiczyliśmy.
+  Wyniesienie kopii poza Fly czeka na decyzję o dostawcy magazynu.
+* Audyt: `IMPORT_UNDONE` (identyfikator migawki, rodzaj, plik, tryb i
+  liczby — nigdy treść wierszy).
+* Testy: 10 nowych po stronie backendu i 5 nowych testów pomocniczych
+  frontendu, w tym jawny test odwracalności trybu `ZASTAP` pole po polu.
+
 ## 0.32.0 — 2026-08-18
 
 **Import własnej bazy danych z pliku — ćwiczenia i szablony treningowe.**

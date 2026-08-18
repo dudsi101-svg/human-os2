@@ -47,7 +47,14 @@ from typing import Any
 from sqlalchemy.orm import Session
 
 from .exercise_parser import SOURCE_IMPORTED, map_muscle_phrase
-from .models import Exercise, TrainingPlan, TrainingPlanVersion, new_id, now_iso
+from .models import (
+    Exercise,
+    ImportSnapshot,
+    TrainingPlan,
+    TrainingPlanVersion,
+    new_id,
+    now_iso,
+)
 from .muscles import (
     EXERCISE_LEVELS,
     LEVEL_LABELS,
@@ -385,6 +392,10 @@ class SheetReport:
     unlinked_exercises: list[str] = field(default_factory=list)
     created_names: list[str] = field(default_factory=list)
     updated_names: list[str] = field(default_factory=list)
+    #: Stan SPRZED importu tych pozycji, których import dotknął — materiał
+    #: na punkt przywracania. Wypełniany wyłącznie przy realnym zapisie i
+    #: NIE wychodzi w `as_dict()`: to stan wewnętrzny, nie treść odpowiedzi.
+    snapshot: list[dict[str, Any]] = field(default_factory=list)
 
     def error(self, row_no: int, column: str, message: str) -> None:
         self.errors.append({"row": row_no, "column": column, "message": message})
@@ -660,6 +671,7 @@ def import_exercises_sheet(
                 item.source_ref = source_ref
             db.add(item)
             existing[key] = item
+            report.snapshot.append({"id": item.id, "created": True, "before": {}})
             continue
 
         changes = _changes_for(target, values, mode=mode)
@@ -670,6 +682,10 @@ def import_exercises_sheet(
         report.updated_names.append(name)
         if dry_run:
             continue
+        report.snapshot.append({
+            "id": target.id, "created": False,
+            "before": {attr: getattr(target, attr) for attr in changes},
+        })
         for attr, value in changes.items():
             setattr(target, attr, value)
         target.updated_at = now_iso()
@@ -870,6 +886,7 @@ def import_templates_sheet(
                 id=new_id("PLV"), plan_id=plan_row.id, version_no=1,
                 reason=reason, content_json=content, created_by=coach_id,
             ))
+            report.snapshot.append({"id": plan_row.id, "created": True, "version_no": 0})
             continue
 
         latest = (
@@ -884,6 +901,10 @@ def import_templates_sheet(
         report.updated_names.append(title)
         if dry_run:
             continue
+        report.snapshot.append({
+            "id": current.id, "created": False,
+            "version_no": current.current_version_no,
+        })
         current.current_version_no += 1
         current.updated_at = now_iso()
         db.add(TrainingPlanVersion(
@@ -989,3 +1010,143 @@ def templates_csv(plans: list[tuple[TrainingPlan, str]]) -> bytes:
                 }
                 rows.append([str(mapping.get(c.key) or "") for c in TEMPLATE_COLUMNS])
     return _csv_bytes([c.key for c in TEMPLATE_COLUMNS], rows)
+
+
+# --- Punkt przywracania: „cofnij ten import" --------------------------
+
+#: Pola ćwiczenia, które import może zmienić — dokładnie te i tylko te
+#: trafiają do migawki i tylko te przywraca cofnięcie. Lista wyprowadzona
+#: z kontraktu kolumn, żeby nowa kolumna importu nie mogła po cichu
+#: wypaść poza zasięg cofania.
+SNAPSHOT_FIELDS: tuple[str, ...] = (
+    "muscle_group", "level", "pattern", "muscles_primary", "muscles_secondary",
+    *(attr for _, attr in _EXERCISE_TEXT_FIELDS),
+    *(attr for _, attr in _EXERCISE_LIST_FIELDS),
+)
+
+#: Ile migawek trzymamy na trenera. Cofnięcie ma sens tuż po imporcie —
+#: starsze i tak przywracałyby stan sprzed późniejszych, świadomych zmian.
+SNAPSHOT_KEEP = 20
+
+
+def _assert_snapshot_covers_import() -> None:
+    """Każde pole, które import ustawia, musi być w migawce. Sprawdzane
+    przy imporcie modułu — inaczej dołożenie kolumny do importu po cichu
+    wyłączyłoby dla niej cofanie."""
+    written = {"muscle_group", "how_to", "level", "pattern",
+               "muscles_primary", "muscles_secondary"}
+    written |= {attr for _, attr in _EXERCISE_TEXT_FIELDS}
+    written |= {attr for _, attr in _EXERCISE_LIST_FIELDS}
+    missing = written - set(SNAPSHOT_FIELDS)
+    if missing:
+        raise RuntimeError(
+            "Pola zapisywane przez import, których nie obejmuje migawka "
+            f"(nie dałoby się ich cofnąć): {sorted(missing)}"
+        )
+
+
+_assert_snapshot_covers_import()
+
+
+def store_snapshot(db: Session, coach_id: str, report: SheetReport) -> str | None:
+    """Zapisuje punkt przywracania dla właśnie wykonanego importu.
+
+    Zwraca identyfikator migawki albo None, gdy nie ma czego cofać (import
+    niczego nie zmienił). Stare migawki są przycinane do `SNAPSHOT_KEEP` —
+    cofnięcie sprzed wielu operacji przywracałoby stan sprzed świadomych,
+    późniejszych zmian trenera, o których ta migawka nic nie wie."""
+    if report.dry_run or not report.snapshot:
+        return None
+    row = ImportSnapshot(
+        id=new_id("IMS"), coach_id=coach_id, kind=report.kind,
+        source_ref=report.source_ref or "plik", mode=report.mode,
+        rows=len(report.snapshot),
+        payload_json=json.dumps(report.snapshot, ensure_ascii=False),
+    )
+    db.add(row)
+    db.flush()
+    stale = (
+        db.query(ImportSnapshot)
+        .filter(ImportSnapshot.coach_id == coach_id)
+        .order_by(ImportSnapshot.created_at.desc())
+        .offset(SNAPSHOT_KEEP)
+        .all()
+    )
+    for old in stale:
+        db.delete(old)
+    return row.id
+
+
+def snapshot_out(row: ImportSnapshot) -> dict[str, Any]:
+    return {
+        "id": row.id, "kind": row.kind, "source_ref": row.source_ref,
+        "mode": row.mode, "rows": row.rows, "created_at": row.created_at,
+        "restored_at": row.restored_at,
+    }
+
+
+def undo_import(db: Session, coach_id: str, row: ImportSnapshot) -> dict[str, Any]:
+    """Cofa jeden import do stanu sprzed niego.
+
+    DWIE REGUŁY, które odróżniają cofnięcie od kasowania:
+
+    * pozycja UTWORZONA przez import zostaje **zarchiwizowana**, nigdy
+      usunięta — historia zostaje, a trener może ją przywrócić ręcznie;
+    * pozycja ZMIENIONA wraca do wartości sprzed importu, pole po polu, i
+      wyłącznie w polach, których import dotknął. Szablon nie cofa się
+      przez skasowanie wersji: dostaje **nową wersję** z treścią sprzed
+      importu, więc pełna historia (łącznie z samym importem) zostaje.
+
+    Cofnięcie jest jednorazowe — patrz `ImportSnapshot.restored_at`."""
+    if row.restored_at:
+        raise SheetError("Ten import został już cofnięty.")
+    payload = json.loads(row.payload_json)
+    restored = archived = missing = 0
+
+    if row.kind == "EXERCISES":
+        for entry in payload:
+            item = db.get(Exercise, entry["id"])
+            if item is None or item.coach_id != coach_id:
+                missing += 1
+                continue
+            if entry.get("created"):
+                item.status = "ARCHIVED"
+                item.updated_at = now_iso()
+                archived += 1
+                continue
+            for attr, value in entry.get("before", {}).items():
+                if attr in SNAPSHOT_FIELDS:
+                    setattr(item, attr, value)
+            item.updated_at = now_iso()
+            restored += 1
+    else:
+        for entry in payload:
+            plan = db.get(TrainingPlan, entry["id"])
+            if plan is None or plan.coach_id != coach_id:
+                missing += 1
+                continue
+            if entry.get("created"):
+                plan.status = "ARCHIVED"
+                plan.updated_at = now_iso()
+                archived += 1
+                continue
+            previous = (
+                db.query(TrainingPlanVersion)
+                .filter_by(plan_id=plan.id, version_no=entry["version_no"])
+                .one_or_none()
+            )
+            if previous is None:
+                missing += 1
+                continue
+            plan.current_version_no += 1
+            plan.updated_at = now_iso()
+            db.add(TrainingPlanVersion(
+                id=new_id("PLV"), plan_id=plan.id,
+                version_no=plan.current_version_no,
+                reason=f"Cofnięcie importu z pliku: {row.source_ref}",
+                content_json=previous.content_json, created_by=coach_id,
+            ))
+            restored += 1
+
+    row.restored_at = now_iso()
+    return {"restored": restored, "archived": archived, "missing": missing}

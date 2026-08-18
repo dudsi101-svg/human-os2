@@ -195,6 +195,11 @@ MATRIX: dict[tuple[str, str], Access] = {
     ("POST", "/api/coach/food-products/import"): Access.COACH_ONLY,
     ("PUT", "/api/coach/food-products/{item_id}"): Access.COACH_ONLY,
     ("POST", "/api/coach/food-products/{item_id}/status"): Access.COACH_ONLY,
+    # Historia importów TEGO trenera (identyfikator z sesji).
+    ("GET", "/api/coach/imports"): Access.COACH_ONLY,
+    # Cofnięcie importu wskazuje zasób po jego id — cudzy kończy się 404
+    # (imports.py: require_owned_resource), więc sama rola COACH nie wystarcza.
+    ("POST", "/api/coach/imports/{snapshot_id}/undo"): Access.RESOURCE_SCOPED,
     ("GET", "/api/coach/knowledge"): Access.COACH_ONLY,
     ("POST", "/api/coach/knowledge"): Access.COACH_ONLY,
     ("PUT", "/api/coach/knowledge/{item_id}"): Access.COACH_ONLY,

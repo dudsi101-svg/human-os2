@@ -1372,3 +1372,37 @@ class Receipt(Base):
     subject_id: Mapped[str] = mapped_column(String(40), index=True)
     summary: Mapped[str] = mapped_column(Text)
     created_at: Mapped[str] = mapped_column(String(40), default=now_iso)
+
+
+class ImportSnapshot(Base):
+    """Punkt przywracania sprzed importu z pliku — „cofnij ten import".
+
+    POWÓD ISTNIENIA: plany i diety mają niemutowalną historię wersji, ale
+    **ćwiczenia jej nie mają**. Import w trybie ZASTAP nadpisuje opis
+    techniki napisany przez trenera i bez tej tabeli nie dałoby się go
+    odzyskać — jeden zły plik kasowałby pracę bezpowrotnie. Migawka
+    zdejmowana PRZED zapisem zamyka tę dziurę.
+
+    `payload_json` niesie stan sprzed importu wyłącznie tych pozycji,
+    których import dotknął: dla każdej `{"id", "created": bool, "before":
+    {pole: wartość}}`. Pozycje utworzone przez import mają `created=true`
+    i pusty `before` — cofnięcie je ARCHIWIZUJE (status ARCHIVED), nigdy
+    nie kasuje, zgodnie z zasadą „historia zostaje".
+
+    To NIE jest kopia zapasowa bazy (od tego jest `backup.py`) — to wąski,
+    krótkotrwały punkt cofnięcia jednej operacji trenera."""
+
+    __tablename__ = "import_snapshots"
+
+    id: Mapped[str] = mapped_column(String(40), primary_key=True)
+    coach_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
+    kind: Mapped[str] = mapped_column(String(20))  # EXERCISES / TEMPLATES
+    source_ref: Mapped[str] = mapped_column(String(200))
+    mode: Mapped[str] = mapped_column(String(20))
+    rows: Mapped[int] = mapped_column(Integer, default=0)
+    payload_json: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[str] = mapped_column(String(40), default=now_iso)
+    # Cofnięcie jest jednorazowe: raz cofnięty import nie da się cofnąć
+    # drugi raz (inaczej przywracałby stan sprzed cudzych późniejszych
+    # zmian, o których ta migawka nic nie wie).
+    restored_at: Mapped[str | None] = mapped_column(String(40), nullable=True)
