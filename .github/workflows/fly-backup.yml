@@ -29,8 +29,12 @@ on:
     paths: [".github/workflows/fly-backup.yml"]
 
 concurrency:
-  # Ta sama grupa co deploy/reset — operacje na /data nie nakładają się.
-  group: fly-deploy
+  # OSOBNA grupa od deployu: zadanie konserwacyjne w kolejce grupy
+  # `fly-deploy` wypychało z niej oczekujące wdrożenie (GitHub trzyma
+  # w kolejce jeden run na grupę), przez co deploy bywał anulowany.
+  # Backup jest bezpieczny równolegle z deployem — sqlite3 backup API
+  # działa na żywej bazie.
+  group: fly-maintenance
   cancel-in-progress: false
 
 jobs:
