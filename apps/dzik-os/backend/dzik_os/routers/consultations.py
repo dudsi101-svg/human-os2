@@ -6,15 +6,15 @@ przed terminem, trener w każdej chwili (z powiadomieniem drugiej strony);
 
 from __future__ import annotations
 
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
-from .. import push_service
+from .. import notifications
 from ..authz import active_relationship, deny, require_owned_resource
-from ..dates import local_now, local_now_minute
+from ..dates import local_now, local_now_minute, tz_for_user
 from ..db import get_db
 from ..hos_bridge import record_event
 from ..models import CoachClientRelationship, ConsultSlot, User, new_id, now_iso
@@ -96,13 +96,22 @@ def coach_cancel_slot(
                  "was_booked": booked_client is not None},
         summary=f"Odwołano termin konsultacji {slot.starts_at}",
     )
+    # Odwołanie terminu anuluje zaplanowane przypomnienie przed konsultacją.
+    notifications.cancel_source(db, f"consult_slot:{slot.id}")
+    notification = None
     if booked_client:
-        push_service.send_to_user(
-            db, booked_client, "Konsultacja odwołana",
-            f"Trener odwołał konsultację {slot.starts_at.replace('T', ' ')}. "
-            "Zarezerwuj nowy termin w aplikacji.", "/konsultacje",
+        notification = notifications.notify_now(
+            db,
+            user_id=booked_client,
+            category="KONSULTACJA",
+            title="Konsultacja odwołana",
+            body=f"Trener odwołał konsultację {slot.starts_at.replace('T', ' ')}. "
+            "Zarezerwuj nowy termin w aplikacji.",
+            url="/konsultacje",
+            dedup_key=f"consult-cancel:{slot.id}:{now_iso()}",
         )
     db.commit()
+    notifications.publish_realtime(notification)
     return {"ok": True}
 
 
@@ -166,12 +175,35 @@ def book_slot(
         payload={"slot_id": slot.id, "starts_at": slot.starts_at},
         summary=f"Rezerwacja konsultacji {slot.starts_at}",
     )
-    push_service.send_to_user(
-        db, slot.coach_id, "Nowa rezerwacja konsultacji",
-        f"{user.display_name} zarezerwował(a) {slot.starts_at.replace('T', ' ')}.",
-        "/trener/konsultacje",
+    notification = notifications.notify_now(
+        db,
+        user_id=slot.coach_id,
+        category="KONSULTACJA",
+        title="Nowa rezerwacja konsultacji",
+        body=f"{user.display_name} zarezerwował(a) {slot.starts_at.replace('T', ' ')}.",
+        url="/trener/konsultacje",
+        dedup_key=f"consult-book:{slot.id}:{slot.booked_at}",
     )
+    # Przypomnienie dla klienta 60 min przed startem (anulowane, gdy termin
+    # zostanie odwołany albo rezerwacja zdjęta — punkt 9 modelu powiadomień).
+    tz = tz_for_user(user)
+    starts_local = datetime.strptime(slot.starts_at, "%Y-%m-%dT%H:%M").replace(tzinfo=tz)
+    remind_utc = starts_local.astimezone(UTC) - timedelta(minutes=60)
+    if remind_utc > datetime.now(UTC):
+        notifications.schedule(
+            db,
+            user_id=user.id,
+            category="KONSULTACJA",
+            title=f"Konsultacja o {slot.starts_at[11:]}",
+            body="Za godzinę masz konsultację z trenerem.",
+            url="/konsultacje",
+            source=f"consult_slot:{slot.id}",
+            dedup_key=f"consult-remind:{slot.id}:{user.id}",
+            scheduled_at_utc=remind_utc,
+            timezone=str(tz),
+        )
     db.commit()
+    notifications.publish_realtime(notification)
     return _out(slot, db)
 
 
@@ -203,11 +235,18 @@ def unbook_slot(
         payload={"slot_id": slot.id, "starts_at": slot.starts_at},
         summary=f"Odwołano rezerwację konsultacji {slot.starts_at}",
     )
-    push_service.send_to_user(
-        db, slot.coach_id, "Odwołana rezerwacja",
-        f"{cancelling_client} odwołał(a) konsultację "
+    # Zdjęcie rezerwacji anuluje zaplanowane przypomnienie klienta.
+    notifications.cancel_source(db, f"consult_slot:{slot.id}")
+    notification = notifications.notify_now(
+        db,
+        user_id=slot.coach_id,
+        category="KONSULTACJA",
+        title="Odwołana rezerwacja",
+        body=f"{cancelling_client} odwołał(a) konsultację "
         f"{slot.starts_at.replace('T', ' ')} — termin znów wolny.",
-        "/trener/konsultacje",
+        url="/trener/konsultacje",
+        dedup_key=f"consult-unbook:{slot.id}:{now_iso()}",
     )
     db.commit()
+    notifications.publish_realtime(notification)
     return {"ok": True}

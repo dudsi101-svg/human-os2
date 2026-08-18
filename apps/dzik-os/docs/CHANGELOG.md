@@ -1,5 +1,85 @@
 # Changelog — Dzik OS
 
+## 0.18.0 — 2026-08-18
+
+Powiadomienia i prawdziwe przypomnienia (P13): jeden spójny system dla
+wszystkich kategorii i kanałów — przebudowa istniejących mechanizmów
+(pętla przypomnień, pushe rozsiane po routerach), nie drugi równoległy.
+Pełny opis modelu, strategii harmonogramu, zasad prywatności treści
+i planu wycofania migracji 14: `docs/POWIADOMIENIA.md`.
+
+* **Nowość — wspólny model powiadomienia** (`notifications`, migracja
+  nr 14): kategoria (trening / suplement / harmonogram / raport /
+  wiadomość / płatność / dokument / zmiana planu / konsultacja),
+  odbiorca, kanały (centrum w aplikacji / push / e-mail), termin w UTC
+  wyliczony w lokalnej strefie odbiorcy, statusy
+  SCHEDULED/SENT/CANCELLED/SUPPRESSED z powodem tłumienia, **klucz
+  idempotencji w bazie** (`UNIQUE(user_id, dedup_key)`) i źródło
+  zdarzenia. Zastępuje dedup `_sent` w pamięci pętli — restart maszyny
+  niczego nie duplikuje ani nie gubi (nadganianie do 30 min).
+* **Przebudowa pętli przypomnień** (`reminder_loop`): planowanie
+  dzisiejszych wystąpień (harmonogram z porą, jednorazowe przypomnienia
+  trenera 08:00, płatności z dzisiejszym terminem) + doręczanie po
+  terminie z bramkami PRZY WYSYŁCE: zadanie wykonane (trening
+  odhaczony, raport wysłany, płatność opłacona) = przypomnienie nie
+  wychodzi; wstrzymany element / odwołany slot = anulacja zaplanowanych
+  wierszy (`cancel_source`).
+* **Strefa czasowa per użytkownik**: nowa kolumna `users.timezone`
+  (IANA) czytana przez przygotowany punkt rozszerzenia
+  `dates.tz_for_user()` — steruje porami przypomnień i datami
+  kalendarzowymi; DST rozstrzyga `zoneinfo` (testy na przejściu
+  Europe/Warsaw). Zmiana w ustawieniach powiadomień.
+* **Preferencje per kategoria × kanał** (`notification_preferences`;
+  domyślnie push+centrum włączone, e-mail wyłączony) oraz
+  **ciche godziny** (wyciszają push/e-mail, centrum zawsze dostaje
+  wpis; zakres może przechodzić przez północ), **dni aktywne**
+  przypomnień i **częstotliwość przypomnienia o raporcie**
+  (codziennie vs raz w tygodniu — klucz idempotencji per dzień albo
+  per tydzień ISO).
+* **Dyskrecja na ekranie blokady**: push i e-mail niosą wyłącznie
+  neutralny tytuł kategorii + „Masz nowe powiadomienie w Dzik OS" —
+  nigdy dane zdrowotne, nazwy suplementów (SUPLEMENT ma celowo ogólny
+  tytuł), kwoty, treści wiadomości ani tytuły dokumentów; klik prowadzi
+  do właściwego ekranu (url per kategoria), a pełna treść jest w
+  centrum po zalogowaniu. Istniejące pushe (wiadomości, raporty, plan,
+  konsultacje, dokumenty) przepięte na wspólny system i zneutralizowane.
+* **Nowość — centrum powiadomień w aplikacji** (`/powiadomienia`):
+  lista z pełną treścią, przeczytane/nieprzeczytane (per sztuka
+  i „oznacz wszystkie"), filtr kategorii, plakietka nieprzeczytanych
+  w „Więcej"; **żywe aktualizacje przez SSE z P12** (zdarzenie
+  `notification.new` w istniejącym kanale `/api/threads/events`).
+  Na tym samym ekranie pełne ustawienia doręczeń.
+* **Kontekstowe zachęty do push** (`PushContextPrompt`): zamiast prosić
+  o zgodę od razu — karta z wyjaśnieniem korzyści na ekranie Dzisiaj
+  (przypomnienia o harmonogramie) i w Wiadomościach (odpowiedzi
+  trenera); systemowy dialog dopiero po świadomym „Włącz", „Nie teraz"
+  zapamiętywane per kontekst.
+* **Nowość — przypomnienie przed konsultacją**: rezerwacja slotu
+  planuje powiadomienie 60 min przed startem; odwołanie terminu przez
+  trenera lub zdjęcie rezerwacji anuluje je automatycznie.
+* **E-mail jako opcjonalny kanał awaryjny**: per kategoria, przez
+  istniejący adapter `notifications_provider` (domyślnie Null — nic nie
+  wychodzi, dopóki operator nie skonfiguruje dostawcy); treść tak samo
+  neutralna jak push.
+* **Monitoring doręczeń** w `/api/metrics` (ADMIN): liczniki
+  `notif_sent_center` / `notif_sent_push` / `notif_sent_email` /
+  `notif_email_failures` / `notif_suppressed` — bez treści i bez metryk
+  zaangażowania.
+* Eksport danych (`export_version` 1.3) i usunięcie konta objęły
+  powiadomienia, preferencje i ustawienia; zmiany ustawień audytowane
+  bez treści (`NOTIFICATION_SETTINGS_CHANGED`).
+* Migracja schematu nr 14 (trzy nowe tabele + `users.timezone`) —
+  addytywna, z testem v1→14 i planem wycofania w POWIADOMIENIA.md.
+* Testy: backend 335 → 357 (nowy `test_notifications.py`: strefa per
+  użytkownik, DST Europe/Warsaw, duplikaty po restarcie, przestój
+  i nadganianie, ciche godziny, dni aktywne, anulowanie terminu,
+  zadanie wykonane / raport wysłany / płatność opłacona, wygasła
+  subskrypcja, cofnięta zgoda, wiele urządzeń, url i neutralność per
+  kategoria, preferencje, częstotliwość raportu, centrum, metryki,
+  kanał e-mail); frontend helpers 36 → 42 (`notificationsUtils`:
+  ciche godziny, dni aktywne, plakietka, scalanie SSE, wyłącznie
+  wewnętrzne urle); Core 275 bez zmian.
+
 ## 0.17.0 — 2026-08-18
 
 Runda czysto prezentacyjna: **responsywność, wygląd i dostępność**

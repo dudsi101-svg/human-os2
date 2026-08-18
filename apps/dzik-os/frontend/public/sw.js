@@ -49,10 +49,16 @@ self.addEventListener("message", (event) => {
   if (event.data && event.data.type === "SKIP_WAITING") self.skipWaiting();
 });
 
-// Web Push — treść przychodzi z backendu (nigdy dane zdrowotne,
-// tylko neutralne wezwanie do wejścia do aplikacji).
+// Web Push — treść przychodzi z backendu (nigdy dane zdrowotne, kwoty ani
+// treści wiadomości — tylko neutralne wezwanie do wejścia do aplikacji;
+// klik prowadzi do właściwego ekranu przez data.url). Fallback poniżej
+// obowiązuje też przy pustym/uszkodzonym payloadzie.
 self.addEventListener("push", (event) => {
-  let data = { title: "Dzik OS", body: "", url: "/" };
+  let data = {
+    title: "Dzik OS",
+    body: "Masz nowe powiadomienie w Dzik OS.",
+    url: "/",
+  };
   try {
     data = { ...data, ...event.data.json() };
   } catch {

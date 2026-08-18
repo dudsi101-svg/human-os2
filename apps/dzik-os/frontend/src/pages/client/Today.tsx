@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api, getUser, money } from "../../api";
 import { plDate } from "../../dates";
-import { ErrorBox, Icon, Spinner, TopBar } from "../../components";
+import { ErrorBox, Icon, PushContextPrompt, Spinner, TopBar } from "../../components";
 import { CATEGORY_LABELS, ConsultSlotRow, TodayData } from "../../types";
 
 export default function Today() {
@@ -82,6 +82,11 @@ export default function Today() {
             dopasuje plan do Ciebie. Zajmie 2 minuty.
           </p>
         </Link>
+      )}
+      {(data.schedule?.length ?? 0) > 0 && (
+        <PushContextPrompt context="today"
+          benefit="Dostaniesz przypomnienie o treningu i punktach harmonogramu
+          dokładnie o zaplanowanej porze — nawet gdy aplikacja jest zamknięta." />
       )}
       {nextConsult && (
         <Link to="/konsultacje" className="card" style={{ display: "block", marginBottom: 10 }}>

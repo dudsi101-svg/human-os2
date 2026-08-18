@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../api";
 import { plDateTime } from "../dates";
-import { ErrorBox, Spinner, TopBar } from "../components";
+import { ErrorBox, PushContextPrompt, Spinner, TopBar } from "../components";
 import { ThreadRow } from "../types";
 
 export default function Messages() {
@@ -39,6 +39,11 @@ export default function Messages() {
   return (
     <div className="page">
       <TopBar title="Wiadomości" />
+      {threads.length > 0 && (
+        <PushContextPrompt context="messages"
+          benefit="Dowiesz się od razu o nowej wiadomości — powiadomienie
+          nie zdradza treści, prowadzi prosto do rozmowy." />
+      )}
       {threads.length === 0 && <p className="dim">Brak wątków.</p>}
       <div className="list">
         {threads.map((t) => (

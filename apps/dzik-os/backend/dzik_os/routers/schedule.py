@@ -3,6 +3,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
+from .. import notifications
 from ..authz import DOMAIN_TRAINING, resolve_client_access
 from ..db import get_db
 from ..hos_bridge import record_event
@@ -100,6 +101,10 @@ def set_schedule_status(
     item.status = status
     item.updated_at = now_iso()
     item.version += 1
+    if status != "ACTIVE":
+        # Wstrzymanie/zakończenie elementu anuluje jego ZAPLANOWANE
+        # przypomnienia (zmiana terminu = anulacja, punkt 9 modelu).
+        notifications.cancel_source(db, f"schedule_item:{item.id}")
     record_event(
         db,
         action="SCHEDULE_ITEM_STATUS_CHANGED",

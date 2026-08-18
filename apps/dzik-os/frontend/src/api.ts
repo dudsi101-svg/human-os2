@@ -539,3 +539,72 @@ export function openBlobInNewTab(blob: Blob) {
 
 export const money = (cents: number, currency = "PLN") =>
   `${(cents / 100).toFixed(2).replace(".", ",")} ${currency}`;
+
+// ——— Centrum powiadomień i ustawienia doręczeń (P13) ————————————————————
+
+export interface NotificationCategoryMeta {
+  key: string;
+  label: string;
+  push_title: string;
+  url: string;
+}
+
+export interface NotificationSettingsData {
+  categories: NotificationCategoryMeta[];
+  channels: string[];
+  /** Klucz "KATEGORIA:KANAŁ" -> włączony. */
+  preferences: Record<string, boolean>;
+  settings: {
+    quiet_hours_start: string | null;
+    quiet_hours_end: string | null;
+    active_days: string;
+    raport_frequency: string;
+    timezone: string | null;
+  };
+}
+
+export interface NotificationSettingsUpdate {
+  quiet_hours_start?: string | null;
+  quiet_hours_end?: string | null;
+  active_days?: string;
+  raport_frequency?: string;
+  timezone?: string;
+  preferences?: { category: string; channel: string; enabled: boolean }[];
+}
+
+export const listNotifications = (
+  params?: { category?: string; unread_only?: boolean },
+  opts?: RequestOpts
+) => {
+  const q = new URLSearchParams();
+  if (params?.category) q.set("category", params.category);
+  if (params?.unread_only) q.set("unread_only", "true");
+  const suffix = q.toString() ? `?${q}` : "";
+  return api.get<{ notifications: NotificationRowApi[]; unread: number }>(
+    `/api/notifications${suffix}`, opts
+  );
+};
+
+export interface NotificationRowApi {
+  id: string;
+  category: string;
+  category_label: string;
+  title: string;
+  body: string;
+  url: string;
+  created_at: string;
+  sent_at: string | null;
+  read_at: string | null;
+}
+
+export const markNotificationRead = (id: string) =>
+  api.post<{ ok: boolean }>(`/api/notifications/${id}/read`);
+
+export const markAllNotificationsRead = () =>
+  api.post<{ ok: boolean; marked: number }>("/api/notifications/read-all");
+
+export const getNotificationSettings = (opts?: RequestOpts) =>
+  api.get<NotificationSettingsData>("/api/notifications/settings", opts);
+
+export const updateNotificationSettings = (body: NotificationSettingsUpdate) =>
+  api.put<{ ok: boolean }>("/api/notifications/settings", body);

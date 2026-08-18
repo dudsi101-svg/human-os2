@@ -3,7 +3,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException, Response, UploadFile
 from sqlalchemy.orm import Session
 
-from .. import file_safety
+from .. import file_safety, notifications
 from ..authz import (
     DOMAIN_COLLABORATION,
     DOMAIN_MESSAGES,
@@ -190,7 +190,19 @@ def create_document(
         payload={"document_id": doc.id, "title": doc.title, "category": doc.category},
         summary=f"Udostępniono dokument: {doc.title}",
     )
+    # Powiadomienie klienta o nowym dokumencie (kategoria DOKUMENT) —
+    # push/e-mail neutralne; tytuł dokumentu wyłącznie w centrum.
+    notification = notifications.notify_now(
+        db,
+        user_id=body.client_id,
+        category="DOKUMENT",
+        title=f"Nowy dokument: {doc.title}",
+        body="Trener udostępnił Ci dokument.",
+        url="/dokumenty",
+        dedup_key=f"document:{doc.id}",
+    )
     db.commit()
+    notifications.publish_realtime(notification)
     return {"id": doc.id}
 
 

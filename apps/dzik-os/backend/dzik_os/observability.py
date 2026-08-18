@@ -172,6 +172,13 @@ class Metrics:
                 # Zawsze obecne kluczowe liczniki (0 zamiast braku klucza).
                 "reminder_loop_errors": counters.get("reminder_loop_errors", 0),
                 "push_send_failures": counters.get("push_send_failures", 0),
+                # Monitoring doręczeń powiadomień per kanał — wyłącznie
+                # liczniki, nigdy treść (docs/POWIADOMIENIA.md).
+                "notif_sent_center": counters.get("notif_sent_center", 0),
+                "notif_sent_push": counters.get("notif_sent_push", 0),
+                "notif_sent_email": counters.get("notif_sent_email", 0),
+                "notif_email_failures": counters.get("notif_email_failures", 0),
+                "notif_suppressed": counters.get("notif_suppressed", 0),
                 "frontend_error_reports": counters.get("frontend_error_reports", 0),
                 "frontend_error_reports_dropped": counters.get(
                     "frontend_error_reports_dropped", 0

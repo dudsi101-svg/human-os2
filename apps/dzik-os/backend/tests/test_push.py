@@ -88,19 +88,25 @@ def test_reminder_loop_sends_for_matching_schedule(seeded, monkeypatch):
     monkeypatch.setattr(
         push_service, "_send_one", lambda sub, payload: sent.append((sub.user_id, payload)) or True
     )
-    reminder_loop._sent.clear()
-    reminder_loop._sent_date = None
 
     ha = login(seeded, CLIENT_A)
     seeded.post("/api/push/subscribe", headers=ha, json=SUB)
     client_id = get_user_id(seeded, ha)
 
     # Element harmonogramu klienta A: kreatyna o 08:00 codziennie (seed).
-    now = datetime(2026, 8, 19, 8, 0, tzinfo=ZoneInfo("Europe/Warsaw"))  # środa
+    # 08:00 Europe/Warsaw (lato) = 06:00 UTC; środa.
+    now = datetime(2026, 8, 19, 8, 0, tzinfo=ZoneInfo("Europe/Warsaw"))
     count = reminder_loop._tick(now)
     assert count >= 1
-    assert any(uid == client_id and "Kreatyna" in payload for uid, payload in sent)
+    # Push wychodzi do klienta, ale z treścią NEUTRALNĄ — nazwa suplementu
+    # (dana zdrowotna) NIGDY nie trafia na ekran blokady.
+    assert any(uid == client_id for uid, _ in sent)
+    assert all("Kreatyna" not in payload for _, payload in sent)
+    # Pełna treść jest w centrum powiadomień (po zalogowaniu).
+    inbox = seeded.get("/api/notifications", headers=ha).json()
+    assert any("Kreatyna" in n["title"] for n in inbox["notifications"])
 
-    # Druga iteracja w tej samej minucie/dniu nie dubluje wysyłki.
+    # Druga iteracja w tej samej minucie/dniu nie dubluje wysyłki —
+    # klucz idempotencji w bazie (przeżywa restart procesu).
     sent.clear()
     assert reminder_loop._tick(now) == 0

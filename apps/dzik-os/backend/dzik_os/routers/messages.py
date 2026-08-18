@@ -21,7 +21,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
-from .. import push_service
+from .. import notifications
 from ..authz import (
     DOMAIN_MESSAGES,
     coach_can_access_client,
@@ -258,13 +258,23 @@ def send_message(
         client_msg_id=body.client_msg_id,
     )
     db.add(message)
-    # Push do drugiej strony wątku — bez treści wiadomości (tylko wezwanie).
+    db.flush()  # message.id dla klucza idempotencji powiadomienia
+    # Powiadomienie do drugiej strony wątku przez wspólny system (kanały wg
+    # preferencji; push/e-mail zawsze bez treści wiadomości — neutralne
+    # wezwanie). Treść w centrum: tylko nadawca, nigdy tekst wiadomości.
     recipient_id = _other_party_id(thread, user.id)
-    push_service.send_to_user(
-        db, recipient_id, "Nowa wiadomość",
-        f"{user.display_name} napisał(a) do Ciebie.", f"/wiadomosci/{thread.id}",
+    notification = notifications.notify_now(
+        db,
+        user_id=recipient_id,
+        category="WIADOMOSC",
+        title="Nowa wiadomość",
+        body=f"{user.display_name} napisał(a) do Ciebie.",
+        url=f"/wiadomosci/{thread.id}",
+        source=f"message:{message.id}",
+        dedup_key=f"message:{message.id}",
     )
     db.commit()
+    notifications.publish_realtime(notification)
     # Realtime dopiero PO commicie (zdarzenie nie może wyprzedzić trwałego
     # zapisu). Odbiorca — o ile bramka wątku na to pozwala; autor — jego
     # pozostałe urządzenia (synchronizacja własnych kart/telefonu).
@@ -282,6 +292,13 @@ def _deliver_event(user_id: str, event: dict) -> dict | None:
     znacznik delivered_at dla świeżo doręczonej wiadomości i potwierdzenie
     doręczenia do nadawcy. Zwraca payload do wysłania albo None (odrzut —
     treść nie płynie do strony bez dostępu)."""
+    event_kind = str(event.get("type", ""))
+    if event_kind.startswith("notification."):
+        # Zdarzenia centrum powiadomień: adresowane wprost do użytkownika
+        # (bus.publish per user_id), bez bramki wątku — nie zawierają danych
+        # innych osób, a treść jest przeznaczona dla zalogowanego odbiorcy.
+        data = {k: v for k, v in event.items() if k != "type"}
+        return {"event": event_kind, "data": data, "id": data.get("id")}
     thread_id = event.get("thread_id")
     if not thread_id:
         return None

@@ -40,7 +40,15 @@ def test_full_booking_flow_with_push(seeded, monkeypatch):
     r = seeded.post(f"/api/consult-slots/{slot_id}/book", headers=ha)
     assert r.status_code == 200
     assert r.json()["status"] == "BOOKED"
-    assert any(uid == coach_id and "rezerwacja" in payload.lower() for uid, payload in sent)
+    # Push do trenera z treścią NEUTRALNĄ (bez nazwiska klienta i terminu);
+    # szczegóły rezerwacji lądują w centrum powiadomień.
+    assert any(uid == coach_id for uid, _ in sent)
+    assert all("Klient Testowy" not in payload for _, payload in sent)
+    inbox = seeded.get("/api/notifications", headers=hc).json()
+    assert any(
+        n["category"] == "KONSULTACJA" and "rezerwacja" in n["title"].lower()
+        for n in inbox["notifications"]
+    )
 
     # Zarezerwowany slot znika z wolnych, jest w moich; trener widzi nazwisko.
     slots = seeded.get("/api/me/consult-slots", headers=ha).json()

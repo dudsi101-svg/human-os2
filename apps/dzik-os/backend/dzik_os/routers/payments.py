@@ -3,6 +3,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
+from .. import notifications
 from ..authz import DOMAIN_COLLABORATION, deny, require_owned_resource, resolve_client_access
 from ..db import get_db
 from ..hos_bridge import record_event
@@ -154,5 +155,17 @@ def add_payment_record(
         currency=schedule.currency,
     )
     db.add(record)
+    # Powiadomienie o nowej pozycji płatności — BEZ kwoty (zasada: kwoty
+    # nigdy w powiadomieniach; szczegóły na ekranie Płatności po kliku).
+    notification = notifications.notify_now(
+        db,
+        user_id=schedule.client_id,
+        category="PLATNOSC",
+        title="Nowa pozycja płatności",
+        body=f"Termin: {due_date}. Szczegóły na ekranie Płatności.",
+        url="/platnosci",
+        dedup_key=f"payment-created:{record.id}",
+    )
     db.commit()
+    notifications.publish_realtime(notification)
     return {"id": record.id}

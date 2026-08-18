@@ -62,6 +62,10 @@ class User(Base):
     totp_secret: Mapped[str | None] = mapped_column(String(64), nullable=True)
     totp_confirmed_at: Mapped[str | None] = mapped_column(String(40), nullable=True)
     totp_last_counter: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    # Strefa czasowa użytkownika (IANA, np. "Europe/Warsaw"). NULL = strefa
+    # aplikacji (DZIK_TZ). Odczytywana przez dates.tz_for_user() — steruje
+    # datami kalendarzowymi i porami przypomnień (migracja nr 14).
+    timezone: Mapped[str | None] = mapped_column(String(64), nullable=True)
 
 
 class RoleGrant(Base):
@@ -716,6 +720,87 @@ class PushSubscription(Base):
     p256dh: Mapped[str] = mapped_column(String(200))
     auth: Mapped[str] = mapped_column(String(100))
     created_at: Mapped[str] = mapped_column(String(40), default=now_iso)
+
+
+class Notification(Base):
+    """Wspólny model powiadomienia (migracja nr 14) — jedno źródło prawdy
+    dla wszystkich kanałów: centrum w aplikacji (ten wiersz), push i e-mail.
+
+    Zasady (docs/POWIADOMIENIA.md):
+    - title/body to treść dla CENTRUM (widoczna dopiero po zalogowaniu);
+      kanały push/e-mail dostają WYŁĄCZNIE neutralne wezwanie per kategoria
+      (nigdy dane zdrowotne, kwoty, nazwy suplementów ani treści wiadomości);
+    - dedup_key jest kluczem idempotencji w bazie — restart procesu nie
+      może zdublować ani zgubić powiadomienia (UNIQUE(user_id, dedup_key));
+    - scheduled_at (UTC) + timezone: termin wyliczony w lokalnej strefie
+      odbiorcy w chwili planowania (DST rozstrzyga zoneinfo);
+    - source wskazuje obiekt źródłowy (np. schedule_item:...) — zmiana lub
+      odwołanie terminu anuluje zaplanowane wiersze po source."""
+
+    __tablename__ = "notifications"
+    __table_args__ = (
+        UniqueConstraint("user_id", "dedup_key"),
+        Index("ix_notifications_user_status", "user_id", "status"),
+        Index("ix_notifications_status_scheduled", "status", "scheduled_at"),
+        Index("ix_notifications_source", "source"),
+    )
+
+    id: Mapped[str] = mapped_column(String(40), primary_key=True)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
+    # TRENING / SUPLEMENT / HARMONOGRAM / RAPORT / WIADOMOSC / PLATNOSC /
+    # DOKUMENT / ZMIANA_PLANU / KONSULTACJA (notifications.CATEGORIES).
+    category: Mapped[str] = mapped_column(String(20))
+    title: Mapped[str] = mapped_column(String(200))
+    body: Mapped[str] = mapped_column(Text, default="")
+    # Ekran docelowy w aplikacji (klik w push/centrum) — per kategoria.
+    url: Mapped[str] = mapped_column(String(300), default="/")
+    # SCHEDULED (czeka na termin) / SENT / CANCELLED / SUPPRESSED.
+    status: Mapped[str] = mapped_column(String(20), default="SCHEDULED")
+    # Powód SUPPRESSED: task_done / preferences / expired / source_gone.
+    suppressed_reason: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    # Kanały, którymi faktycznie doręczono (CSV: "center,push,email").
+    channels: Mapped[str | None] = mapped_column(String(60), nullable=True)
+    dedup_key: Mapped[str] = mapped_column(String(120))
+    source: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    timezone: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    scheduled_at: Mapped[str | None] = mapped_column(String(40), nullable=True)  # UTC ISO
+    created_at: Mapped[str] = mapped_column(String(40), default=now_iso)
+    sent_at: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    read_at: Mapped[str | None] = mapped_column(String(40), nullable=True)
+
+
+class NotificationPreference(Base):
+    """Preferencja użytkownika per kategoria × kanał (PUSH/CENTER/EMAIL).
+    Brak wiersza = domyślne: PUSH i CENTER włączone, EMAIL wyłączony."""
+
+    __tablename__ = "notification_preferences"
+    __table_args__ = (UniqueConstraint("user_id", "category", "channel"),)
+
+    id: Mapped[str] = mapped_column(String(40), primary_key=True)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
+    category: Mapped[str] = mapped_column(String(20))
+    channel: Mapped[str] = mapped_column(String(10))  # PUSH / CENTER / EMAIL
+    enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+    updated_at: Mapped[str] = mapped_column(String(40), default=now_iso)
+
+
+class NotificationSetting(Base):
+    """Ustawienia doręczeń per użytkownik: ciche godziny (czas lokalny,
+    zakres może przechodzić przez północ), dni aktywne przypomnień
+    harmonogramu i częstotliwość przypomnień o raporcie. Strefa czasowa
+    mieszka na users.timezone (czyta ją dates.tz_for_user)."""
+
+    __tablename__ = "notification_settings"
+
+    id: Mapped[str] = mapped_column(String(40), primary_key=True)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id"), unique=True, index=True)
+    quiet_hours_start: Mapped[str | None] = mapped_column(String(5), nullable=True)  # "22:00"
+    quiet_hours_end: Mapped[str | None] = mapped_column(String(5), nullable=True)  # "07:00"
+    active_days: Mapped[str] = mapped_column(String(30), default="1,2,3,4,5,6,7")
+    # DAILY = przypomnienie o raporcie w każdy zaplanowany dzień;
+    # WEEKLY = raz w tygodniu (klucz idempotencji per tydzień ISO).
+    raport_frequency: Mapped[str] = mapped_column(String(10), default="DAILY")
+    updated_at: Mapped[str] = mapped_column(String(40), default=now_iso)
 
 
 class ConsentRecord(Base):

@@ -105,6 +105,11 @@ wieloprocesowym — per proces). Bez sekretów i bez danych użytkowników.
   "counters": {
     "reminder_loop_errors": 0,
     "push_send_failures": 0,
+    "notif_sent_center": 0,
+    "notif_sent_push": 0,
+    "notif_sent_email": 0,
+    "notif_email_failures": 0,
+    "notif_suppressed": 0,
     "frontend_error_reports": 0,
     "frontend_error_reports_dropped": 0,
     "unhandled_exceptions": 0,
@@ -161,6 +166,9 @@ endpoint kontem ADMIN; dziś: przegląd ręczny):
 | `latency_ms.p95` | > 500 ms | > 2000 ms | przeciążenie / wolne zapytania SQL |
 | `reminder_loop_errors` | każdy nowy | przyrost w 3 kolejnych godz. | przypomnienia push nie wychodzą |
 | `push_send_failures` | > 20/godz. | rosnący trend dobowy | problem z VAPID / dostawcą push |
+| `notif_sent_center` / `notif_sent_push` / `notif_sent_email` | spadek do 0 przy aktywnych użytkownikach | — | doręczenia stanęły (pętla/preferencje/subskrypcje) — liczniki per kanał, **bez treści** (POWIADOMIENIA.md) |
+| `notif_email_failures` | każdy nowy przy skonfigurowanym dostawcy | przyrost ciągły | awaria dostawcy e-mail (kanał awaryjny) |
+| `notif_suppressed` | — (informacyjny) | nagły skok | masowe tłumienie (np. źle ustawione preferencje/ciche godziny) |
 | `audit_log_failures` | **każdy** | — | łańcuch audytu nie zapisuje — uruchom `/api/admin/audit/verify` |
 | `access_denied` | skok ponad linię bazową | seria z jednego konta | próby IDOR — przejrzyj zdarzenia `ACCESS_DENIED` w audycie |
 | `frontend_error_reports` | skok po wdrożeniu | ciągły wzrost | regresja UI — sprawdź `frontend_error` w logach |

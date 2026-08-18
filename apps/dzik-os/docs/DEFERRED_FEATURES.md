@@ -39,8 +39,11 @@ Zgodnie z zakresem MVP (sekcja 13 briefu). Architektura ich nie blokuje.
   Podłączenie realnego modelu (np. Claude API) to decyzja operatora —
   wymaga klucza API poza repozytorium i ustalenia minimalnego zakresu
   danych wysyłanych na zewnątrz (patrz DATA_PROCESSING_MAP.md §AI);
-* powiadomienia push PWA (wymagają kluczy VAPID + subskrypcji service
-  workera) — obecnie przypomnienia i flagi widoczne po wejściu do aplikacji;
+* ~~powiadomienia push PWA~~ — ZROBIONE (0.6.x Web Push/VAPID, a od
+  0.18.0 wspólny system powiadomień z centrum w aplikacji, preferencjami,
+  cichymi godzinami i harmonogramem serwerowym — `docs/POWIADOMIENIA.md`);
+  e-mail jako kanał awaryjny nadal wymaga skonfigurowania dostawcy przez
+  operatora (`notifications_provider.py`);
 * integracja z arkuszami zewnętrznymi (import z Excela) — eksport do
   Excela jest zrobiony (`/api/me/export.xlsx`), import w drugą stronę nie;
 * webhook prawdziwego operatora płatności (interfejs providera gotowy:
