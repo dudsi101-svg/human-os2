@@ -15,6 +15,10 @@ import {
   EMPTY_FILTERS, EQUIPMENT_SUGGESTIONS, ExerciseFilters, hasActiveFilters,
 } from "./exerciseFilters";
 import { MuscleMap } from "./MuscleMap";
+import {
+  SheetImportReport, SheetSchema, fileProblem, hasChanges, importSummary,
+  linkHint, noChangesHint, sampleLine, unknownColumnsHint,
+} from "./sheetImport";
 import { applyUpdate, onUpdateAvailable } from "./pwa";
 import { withGaps } from "./seriesUtils";
 import {
@@ -1511,6 +1515,237 @@ export function PersonalRecordsCard({ clientId }: { clientId: string }) {
           </span>
         </div>
       ))}
+    </div>
+  );
+}
+
+/** Panel „Importuj bazę z pliku” — wspólny dla bazy ćwiczeń i szablonów.
+ *
+ * Te same reguły interfejsu, co przy imporcie gotowej biblioteki, OCR i
+ * czytaniu opisu:
+ * * najpierw PODGLĄD (`dry_run=true`) — nic się nie zapisuje, dopóki
+ *   trener nie kliknie „Zaimportuj”;
+ * * raport mówi wprost, ile pozycji powstanie, ile się zmieni, czego NIE
+ *   dało się rozpoznać i które wiersze odpadły oraz dlaczego;
+ * * zła kolumna, zły format i zbyt duży plik są nazwane po imieniu —
+ *   nigdy „coś poszło nie tak”;
+ * * instrukcja („jakie kolumny?”) jest budowana z tego samego kontraktu,
+ *   który wykonuje import, więc nie może się z nim rozjechać.
+ */
+export function SheetImportPanel({
+  title, description, schemaUrl, importUrl, exampleUrl, exportUrl,
+  exampleFileName, exportFileName, onImported,
+}: {
+  title: string;
+  description: ReactNode;
+  schemaUrl: string;
+  importUrl: string;
+  exampleUrl: string;
+  exportUrl: string;
+  exampleFileName: string;
+  exportFileName: string;
+  onImported: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [schema, setSchema] = useState<SheetSchema | null>(null);
+  const [showColumns, setShowColumns] = useState(false);
+  const [file, setFile] = useState<File | null>(null);
+  const [mode, setMode] = useState("UZUPELNIJ");
+  const [report, setReport] = useState<SheetImportReport | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const inputId = useId();
+
+  useEffect(() => {
+    if (!open || schema) return;
+    api.get<SheetSchema>(schemaUrl).then(setSchema).catch((e: Error) => setError(e.message));
+  }, [open, schema, schemaUrl]);
+
+  function pick(next: File | null) {
+    setReport(null);
+    setError(null);
+    if (next && schema) {
+      const problem = fileProblem(next, schema);
+      if (problem) {
+        setFile(null);
+        setError(problem);
+        return;
+      }
+    }
+    setFile(next);
+  }
+
+  async function run(dryRun: boolean) {
+    if (!file) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const params = new URLSearchParams({ dry_run: String(dryRun) });
+      if (schema?.modes) params.set("mode", mode);
+      const data = await api.upload<SheetImportReport>(`${importUrl}?${params}`, file);
+      setReport(data);
+      if (!dryRun) onImported();
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function download(url: string, filename: string) {
+    setError(null);
+    try {
+      saveBlobAs(await api.get<Blob>(url), filename);
+    } catch (err) {
+      setError((err as Error).message);
+    }
+  }
+
+  const saved = report !== null && !report.dry_run;
+
+  return (
+    <div className="card" style={{ marginBottom: 12 }}>
+      <div className="row row--between">
+        <b>{title}</b>
+        <button type="button" className="btn btn--ghost btn--small" aria-expanded={open}
+          onClick={() => setOpen(!open)}>
+          {open ? "Zwiń" : "Rozwiń"}
+        </button>
+      </div>
+      {open && (
+        <>
+          <p className="dim" style={{ marginTop: 4 }}>{description}</p>
+          <div className="row" style={{ flexWrap: "wrap", gap: 6 }}>
+            <button type="button" className="btn btn--ghost btn--small"
+              onClick={() => download(exampleUrl, exampleFileName)}>
+              Pobierz wzór pliku
+            </button>
+            <button type="button" className="btn btn--ghost btn--small"
+              onClick={() => download(exportUrl, exportFileName)}>
+              Pobierz to, co mam teraz
+            </button>
+            <button type="button" className="btn btn--ghost btn--small"
+              aria-expanded={showColumns} onClick={() => setShowColumns(!showColumns)}>
+              {showColumns ? "Ukryj opis kolumn" : "Jakie kolumny?"}
+            </button>
+          </div>
+
+          {showColumns && schema && (
+            <div className="card card--accent" style={{ marginTop: 8 }}>
+              <p className="meta" style={{ marginTop: 0 }}>
+                Pierwszy wiersz pliku to nagłówek. Kolejność kolumn jest dowolna,
+                kolumn spoza listy po prostu nie czytamy. Formaty:{" "}
+                {schema.formats.join(", ")}; do {schema.max_rows} wierszy.
+              </p>
+              <ul className="meta" style={{ margin: "0 0 6px 18px" }}>
+                {schema.columns.map((c) => (
+                  <li key={c.key}>
+                    <code>{c.key}</code>{c.required ? " (wymagana)" : ""} — {c.label}
+                    {c.example && <> Przykład: <i>{c.example}</i></>}
+                  </li>
+                ))}
+              </ul>
+              {schema.dictionaries && Object.entries(schema.dictionaries).map(([name, values]) => (
+                <p className="meta" key={name}>
+                  <b>{name}:</b> {values.map((v) => v.key).join(", ")}.
+                </p>
+              ))}
+            </div>
+          )}
+
+          <div className="field" style={{ marginTop: 8 }}>
+            <label htmlFor={inputId}>Plik z bazą</label>
+            <input id={inputId} type="file" accept=".csv,.xlsx,.xlsm,text/csv"
+              onChange={(e) => pick(e.target.files?.[0] ?? null)} />
+          </div>
+
+          {schema?.modes && (
+            <div className="field">
+              <span className="label">Co zrobić z pozycjami, które już mam</span>
+              <div className="row" role="group" aria-label="Tryb importu" style={{ gap: 6 }}>
+                {[
+                  ["UZUPELNIJ", "Uzupełnij puste pola"],
+                  ["ZASTAP", "Zastąp danymi z pliku"],
+                ].map(([value, label]) => (
+                  <button key={value} type="button" aria-pressed={mode === value}
+                    className={`btn btn--small ${mode === value ? "" : "btn--ghost"}`}
+                    onClick={() => { setMode(value); setReport(null); }}>
+                    {label}
+                  </button>
+                ))}
+              </div>
+              <small className="dim">
+                {mode === "UZUPELNIJ"
+                  ? "Twoje opisy zostają nietknięte — dopisujemy tylko to, czego brakuje."
+                  : "Nadpiszemy wypełnione pola wartościami z pliku. Pusta komórka niczego nie kasuje."}
+              </small>
+            </div>
+          )}
+
+          <div className="row" style={{ flexWrap: "wrap", gap: 6 }}>
+            <button type="button" className="btn btn--small" disabled={!file || busy}
+              onClick={() => run(true)}>
+              {busy ? "Liczenie…" : "Pokaż, co się zmieni"}
+            </button>
+            {report && !saved && hasChanges(report) && (
+              <button type="button" className="btn btn--small" disabled={busy}
+                onClick={() => run(false)}>
+                Zaimportuj do mojej bazy
+              </button>
+            )}
+            {report && (
+              <button type="button" className="btn btn--ghost btn--small"
+                onClick={() => setReport(null)}>
+                Zamknij raport
+              </button>
+            )}
+          </div>
+          <ErrorBox error={error} />
+
+          {report && (
+            <div className="card card--accent" style={{ marginTop: 8 }}>
+              <p className="meta" style={{ marginTop: 0 }} aria-live="polite">
+                {importSummary(report)}
+              </p>
+              {!hasChanges(report) && <p className="meta">{noChangesHint(report)}</p>}
+              {unknownColumnsHint(report) && (
+                <p className="meta">{unknownColumnsHint(report)}</p>
+              )}
+              {linkHint(report) && <p className="meta">{linkHint(report)}</p>}
+              {report.unmapped_muscles.length > 0 && (
+                <p className="meta">
+                  <b>Nie rozpoznano partii mięśniowych:</b>{" "}
+                  {sampleLine(report.unmapped_muscles)} — te pola zostają puste,
+                  uzupełnij je sam.
+                </p>
+              )}
+              {report.created_names.length > 0 && (
+                <p className="meta">
+                  <b>Nowe:</b> {sampleLine(report.created_names, 10)}
+                </p>
+              )}
+              {report.warnings.length > 0 && (
+                <ul className="meta" style={{ margin: "0 0 6px 18px" }}>
+                  {report.warnings.slice(0, 15).map((w, i) => <li key={i}>{w}</li>)}
+                </ul>
+              )}
+              {report.errors.length > 0 && (
+                <>
+                  <p className="meta"><b>Wiersze, których NIE zaimportowano:</b></p>
+                  <ul className="meta" style={{ margin: "0 0 6px 18px" }}>
+                    {report.errors.slice(0, 20).map((e, i) => (
+                      <li key={i}>wiersz {e.row}, kolumna „{e.column}”: {e.message}</li>
+                    ))}
+                  </ul>
+                  {report.errors.length > 20 && (
+                    <p className="meta">…i jeszcze {report.errors.length - 20}.</p>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 }

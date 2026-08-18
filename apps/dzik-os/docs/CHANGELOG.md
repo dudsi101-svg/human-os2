@@ -1,5 +1,63 @@
 # Changelog — Dzik OS
 
+## 0.32.0 — 2026-08-18
+
+**Import własnej bazy danych z pliku — ćwiczenia i szablony treningowe.**
+Trener przygotowuje bazę tam, gdzie mu wygodnie (arkusz, eksport z innego
+narzędzia, czyjaś praca) i wgrywa ją do aplikacji. Pełna specyfikacja
+formatu — kolumny, słowniki, limity, reguły — jest w `docs/IMPORT_BAZ.md`.
+
+* **Dwie bazy, jeden mechanizm.** `backend/dzik_os/sheet_import.py` czyta
+  **CSV (UTF-8) i XLSX**, wykrywa separator, normalizuje nagłówki (wielkość
+  liter, polskie znaki, spacje i myślniki nie mają znaczenia) i przyjmuje
+  wypisane aliasy kolumn (`name`, `how_to`, `weekday`…). Kolejność kolumn
+  jest dowolna; kolumn spoza kontraktu nie czytamy, ale ich **nazwy trafiają
+  do raportu** — literówka w nagłówku ma być widoczna, a nie cicha.
+* **Ćwiczenia:** 21 kolumn, 3 wymagane (`nazwa`, `grupa`, `opis`).
+  Dopasowanie do istniejącej pozycji po znormalizowanej nazwie, także wśród
+  **zarchiwizowanych** — inaczej import robiłby duplikat czegoś świadomie
+  schowanego. Dwa tryby: `UZUPELNIJ` (domyślny — wypełnia wyłącznie puste
+  pola, opis techniki trenera zostaje nietknięty) i `ZASTAP`. **Pusta
+  komórka nigdy nie kasuje danych — w obu trybach.**
+* **Szablony treningowe:** jeden wiersz = jedno ćwiczenie w jednym dniu
+  jednego szablonu; grupowanie po kolumnie `szablon`, kolejność z
+  `dzien_nr`/`pozycja` albo z kolejności w pliku. Nazwy ćwiczeń są
+  **dopasowywane do aktywnej bazy trenera** i zapisywane jako miękkie
+  odniesienie `exercise_id` — ten sam kontrakt, co przy ręcznym układaniu
+  planu. Brak dopasowania **nie jest błędem**: pozycja wchodzi z samą nazwą
+  i trafia na listę w raporcie.
+* **Historia jest nienaruszalna.** Szablon o tej samej nazwie nie jest
+  nadpisywany — dostaje **nową wersję** z powodem wskazującym plik, a
+  poprzednie wersje zostają. Szablon o identycznej treści nie dostaje pustej
+  wersji „bo import”.
+* **Próba przed zapisem i brak zgadywania** — te same reguły, co przy OCR,
+  czytaniu opisu i imporcie gotowej biblioteki. `dry_run=true` (domyślne)
+  **nie dotyka ani jednego obiektu sesji**. Wartość spoza zamkniętego
+  słownika albo pomija wiersz z podaniem przyczyny (kolumny wymagane), albo
+  zostawia pole puste i ląduje w raporcie. Nazwa zbiorcza („góra ciała”) jest
+  odrzucana, nie zaokrąglana do najbliższej partii.
+* **Podróż w obie strony.** `GET .../export-file` eksportuje bazę w
+  **dokładnie tym formacie**, który przyjmuje import (prawo wyjścia + masowa
+  edycja: pobierz → popraw w arkuszu → wgraj). Testy pilnują, że eksport
+  wgrany z powrotem daje **zero zmian**. Jest też wzór pliku do pobrania —
+  i test, że sam wzór przechodzi import bez błędu.
+* **Interfejs.** Wspólny `SheetImportPanel` (`frontend/src/components.tsx`)
+  w panelu trenera: Baza wiedzy → Ćwiczenia oraz Szablony planów. Opis
+  kolumn i słowników w aplikacji buduje się z `GET .../import-schema`, czyli
+  z tego samego kontraktu, który wykonuje import — nie ma jak się rozjechać.
+  Zły format, zbyt duży i pusty plik są odrzucane **przed wysyłką**, z
+  nazwaniem przyczyny.
+* **Bez migracji.** Zero zmian w schemacie bazy — import korzysta z
+  istniejących kolumn (m.in. proweniencji z migracji nr 22 i 24). Nowe
+  pozycje dostają `source_kind = IMPORTED` i nazwę pliku w `source_ref`;
+  **istniejące pozycje nazwy pliku nie dostają** — nie pochodzą z niego, a
+  doklejanie jej psułoby idempotencję.
+* **Audyt.** `EXERCISES_IMPORTED` / `PLAN_TEMPLATES_IMPORTED` oraz
+  `EXERCISES_EXPORTED` / `PLAN_TEMPLATES_EXPORTED`; payload zawiera nazwę
+  pliku, tryb i liczby — nigdy treści wierszy.
+* Testy: 26 nowych po stronie backendu (`tests/test_sheet_import.py`) i 11
+  nowych testów pomocniczych frontendu (`scripts/test-sheet-import.mjs`).
+
 ## 0.31.0 — 2026-08-18
 
 **Import własnej biblioteki ćwiczeń trenera (120 pozycji) do bazy
