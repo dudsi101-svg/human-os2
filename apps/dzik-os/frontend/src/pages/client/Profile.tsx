@@ -1,7 +1,10 @@
 import { FormEvent, useEffect, useState } from "react";
 import { api, clearSession, getUser } from "../../api";
 import { plDate } from "../../dates";
-import { ErrorBox, PushNotificationsCard, SessionsCard, Spinner, TopBar } from "../../components";
+import {
+  ErrorBox, MfaCard, PushNotificationsCard, SecurityEventsCard, SessionsCard,
+  Spinner, TopBar,
+} from "../../components";
 import { ConsentRow, GoalRow, ProfileFieldRow } from "../../types";
 
 const FIELD_LABELS: Record<string, string> = {
@@ -187,7 +190,9 @@ export default function Profile() {
         ))}
       </div>
 
+      <MfaCard />
       <SessionsCard />
+      <SecurityEventsCard />
 
       <div className="card">
         <h3>Twoje dane</h3>

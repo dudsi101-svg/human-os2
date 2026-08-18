@@ -6,11 +6,20 @@ Otwórz adres aplikacji w przeglądarce, zaloguj się i wybierz
 „Dodaj do ekranu głównego" (Android/Chrome: menu ⋮ → „Zainstaluj
 aplikację"; iPhone/Safari: Udostępnij → „Do ekranu początkowego").
 
-Przy pierwszym logowaniu aplikacja poprosi Cię kolejno o:
-1. **ustawienie własnego hasła** (hasło startowe od trenera przestaje
-   działać, a Twoje dane są niedostępne, dopóki go nie zmienisz);
-2. **potwierdzenie zgody** na dostęp trenera do Twoich danych — możesz
-   ją też odrzucić, a później w każdej chwili cofnąć w Profilu.
+Konto zaczyna się od **linku aktywacyjnego** od trenera (e-mail albo
+przekazany bezpośrednio): otwierasz link, widzisz swoje konto i **sam
+ustawiasz hasło** — nikt inny (także trener) go nie zna. Link działa
+tylko raz i wygasa po 7 dniach; w razie czego trener wyśle nowy.
+
+Przy pierwszym logowaniu aplikacja poprosi Cię o **potwierdzenie
+zgody** na dostęp trenera do Twoich danych — możesz ją też odrzucić,
+a później w każdej chwili cofnąć w Profilu.
+
+W Profilu możesz dodatkowo włączyć **weryfikację dwuetapową (MFA)** —
+kod z aplikacji uwierzytelniającej przy każdym logowaniu (opcjonalnie),
+z jednorazowymi kodami odzyskiwania na wypadek utraty telefonu — oraz
+podejrzeć aktywne sesje i historię zdarzeń bezpieczeństwa. Zapomniane
+hasło zresetujesz przez „Nie pamiętasz hasła?" na ekranie logowania.
 
 ## Ekran „Dzisiaj"
 

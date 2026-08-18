@@ -175,9 +175,42 @@ class ReminderIn(BaseModel):
 
 
 class RelationshipIn(BaseModel):
+    """Zaproszenie klienta: wyłącznie niezbędne dane (e-mail + imię).
+    Hasła nie podaje nikt poza samym klientem — konto aktywuje jednorazowy
+    link (POST /api/auth/activate)."""
+
     client_email: EmailStr
     client_name: str = Field(min_length=1, max_length=200)
-    initial_password: str = Field(min_length=10, max_length=200)
+
+
+class ActivationInspectIn(BaseModel):
+    token: str = Field(min_length=16, max_length=200)
+
+
+class ActivateAccountIn(BaseModel):
+    token: str = Field(min_length=16, max_length=200)
+    password: str = Field(min_length=10, max_length=200)
+
+
+class PasswordResetRequestIn(BaseModel):
+    email: EmailStr
+
+
+class PasswordResetConfirmIn(BaseModel):
+    token: str = Field(min_length=16, max_length=200)
+    new_password: str = Field(min_length=10, max_length=200)
+
+
+class MfaVerifyIn(BaseModel):
+    """Drugi krok logowania: token wyzwania + kod TOTP (6 cyfr) albo kod
+    odzyskiwania (XXXXX-XXXXX)."""
+
+    mfa_token: str = Field(min_length=16, max_length=200)
+    code: str = Field(min_length=6, max_length=20)
+
+
+class MfaCodeIn(BaseModel):
+    code: str = Field(min_length=6, max_length=20)
 
 
 class ConsentGrantIn(BaseModel):

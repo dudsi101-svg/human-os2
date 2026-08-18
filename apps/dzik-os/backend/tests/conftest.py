@@ -12,6 +12,11 @@ os.environ["DZIK_UPLOAD_DIR"] = f"{_tmp}/uploads"
 os.environ["DZIK_VAPID_KEY"] = f"{_tmp}/vapid.pem"
 os.environ["DZIK_ENV"] = "test"
 os.environ["DZIK_BCRYPT_ROUNDS"] = "4"  # szybkie hasła w testach
+# Wymuszanie MFA dla COACH/ADMIN jest globalnie WYŁĄCZONE w testach (inaczej
+# każdy test trenera wymagałby konfiguracji TOTP). Dedykowane testy
+# egzekwowania (tests/test_mfa.py) włączają je punktowo przez
+# monkeypatch(settings, "mfa_required_roles", ...).
+os.environ["DZIK_MFA_REQUIRED_ROLES"] = ""
 
 import pytest
 from fastapi.testclient import TestClient
@@ -21,7 +26,13 @@ from dzik_os import seed as seed_module
 from dzik_os.db import Base, engine, run_migrations
 from dzik_os.main import app
 from dzik_os.models import RoleGrant, User, new_id
-from dzik_os.security import hash_password, login_rate_limiter, password_change_rate_limiter
+from dzik_os.security import (
+    hash_password,
+    login_rate_limiter,
+    mfa_rate_limiter,
+    password_change_rate_limiter,
+    password_reset_rate_limiter,
+)
 
 COACH = {"email": "dzik@example.com", "password": "DzikTrener#2026"}
 CLIENT_A = {"email": "klient.a@example.com", "password": "KlientA#2026!x"}
@@ -41,6 +52,8 @@ def _reset_state() -> None:
         audit.unlink()
     login_rate_limiter._attempts.clear()
     password_change_rate_limiter._attempts.clear()
+    password_reset_rate_limiter._attempts.clear()
+    mfa_rate_limiter._attempts.clear()
     run_migrations()
 
 
@@ -83,6 +96,41 @@ def create_user_with_role(email: str, password: str, name: str, role: str) -> st
 
 def get_user_id(client: TestClient, headers: dict) -> str:
     return client.get("/api/auth/me", headers=headers).json()["id"]
+
+
+def invite_client(
+    client: TestClient, coach_headers: dict, email: str, name: str = "Nowy Klient"
+) -> dict:
+    """Nowy przepływ onboardingu: trener wysyła zaproszenie (bez hasła).
+    Zwraca odpowiedź {client_id, relationship_id, invitation}."""
+    r = client.post("/api/coach/clients", headers=coach_headers, json={
+        "client_email": email, "client_name": name,
+    })
+    assert r.status_code == 201, r.text
+    return r.json()
+
+
+def activation_token(created: dict) -> str:
+    """Token z linku aktywacyjnego (fragment #...) — w testach dostawca
+    e-mail to NullProvider, więc link wraca do trenera w odpowiedzi API."""
+    link = created["invitation"]["activation_link"]
+    return link.split("#", 1)[1]
+
+
+def activate_account(client: TestClient, token: str, password: str) -> None:
+    r = client.post("/api/auth/activate", json={"token": token, "password": password})
+    assert r.status_code == 200, r.text
+
+
+def create_activated_client(
+    client: TestClient, coach_headers: dict, email: str,
+    password: str = "WlasneHaslo#123", name: str = "Nowy Klient",
+) -> str:
+    """Pełny nowy przepływ: zaproszenie → aktywacja z własnym hasłem.
+    Zwraca client_id."""
+    created = invite_client(client, coach_headers, email, name)
+    activate_account(client, activation_token(created), password)
+    return created["client_id"]
 
 
 def make_png(width: int = 8, height: int = 8, color=(20, 200, 60)) -> bytes:

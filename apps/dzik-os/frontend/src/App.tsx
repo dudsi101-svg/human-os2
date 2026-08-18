@@ -3,6 +3,9 @@ import { getUser } from "./api";
 import { Nav } from "./components";
 import Login from "./pages/Login";
 import ChangePassword from "./pages/ChangePassword";
+import Activate from "./pages/Activate";
+import ResetPassword from "./pages/ResetPassword";
+import MfaSetup from "./pages/MfaSetup";
 import ConsentGate, { ConsentSpinner, usePendingConsents } from "./pages/ConsentGate";
 import Today from "./pages/client/Today";
 import Intake from "./pages/client/Intake";
@@ -31,14 +34,23 @@ export default function App() {
   const roles = user?.roles ?? [];
   const isClient = roles.includes("CLIENT");
   const needsPassword = user?.must_change_password === true;
+  const needsMfaSetup = user?.mfa_setup_required === true;
   const { pending, reload } = usePendingConsents(
-    !!user && isClient && !needsPassword
+    !!user && isClient && !needsPassword && !needsMfaSetup
   );
-  if (!user && location.pathname !== "/login") {
+  // Ekrany publiczne (bez zalogowania): logowanie, aktywacja konta z
+  // zaproszenia, reset hasła (żądanie + ustawienie nowego).
+  const publicPaths = ["/login", "/aktywacja", "/reset-hasla"];
+  if (!user && !publicPaths.includes(location.pathname)) {
     return <Navigate to="/login" replace />;
   }
   if (user && needsPassword && location.pathname !== "/haslo") {
     return <Navigate to="/haslo" replace />;
+  }
+  // Rola z obowiązkowym MFA bez konfiguracji: serwer blokuje wszystko poza
+  // konfiguracją MFA — prowadź od razu na dedykowany ekran.
+  if (user && !needsPassword && needsMfaSetup && location.pathname !== "/mfa") {
+    return <Navigate to="/mfa" replace />;
   }
   if (user && isClient && !needsPassword && location.pathname !== "/haslo") {
     if (pending === null) return <ConsentSpinner />;
@@ -49,10 +61,13 @@ export default function App() {
   const home = roles.includes("COACH") ? "/trener" : roles.includes("ADMIN") ? "/admin" : "/";
   return (
     <>
-      {user && !needsPassword && <Nav />}
+      {user && !needsPassword && !needsMfaSetup && <Nav />}
       <Routes>
         <Route path="/login" element={user ? <Navigate to={home} replace /> : <Login />} />
+        <Route path="/aktywacja" element={<Activate />} />
+        <Route path="/reset-hasla" element={<ResetPassword />} />
         {user && <Route path="/haslo" element={<ChangePassword />} />}
+        {user && <Route path="/mfa" element={<MfaSetup />} />}
         {roles.includes("CLIENT") && (
           <>
             <Route path="/" element={<Today />} />

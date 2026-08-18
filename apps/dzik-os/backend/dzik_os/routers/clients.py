@@ -1,15 +1,19 @@
 from __future__ import annotations
 
-from datetime import timedelta
+import secrets
+from datetime import UTC, datetime, timedelta
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 
 from ..authz import CONSENT_DOMAIN, CONSENT_PURPOSE, active_relationship, resolve_client_access
+from ..config import settings
 from ..dates import local_now_minute, local_today, parse_iso_date
 from ..db import get_db
 from ..hos_bridge import ConsentService, record_event
+from ..links import activation_link
 from ..models import (
+    ClientInvitation,
     CoachClientRelationship,
     ConsultSlot,
     Exercise,
@@ -27,22 +31,85 @@ from ..models import (
     new_id,
     now_iso,
 )
+from ..notifications_provider import provider as notifications
 from ..schemas import RelationshipIn
-from ..security import active_roles, hash_password, require_role
+from ..security import _token_hash, active_roles, require_role
 
 router = APIRouter(prefix="/api/coach", tags=["coach"])
+
+
+def _issue_invitation(
+    db: Session, request: Request, coach: User, client: User
+) -> dict:
+    """Wystawia jednorazowe zaproszenie aktywacyjne dla konta PENDING.
+    Nowy token unieważnia wszystkie poprzednie aktywne (bez mnożenia
+    tokenów). W bazie ląduje wyłącznie hash SHA-256; link z tokenem jest
+    wysyłany e-mailem, a przy NullNotificationProvider zwracany trenerowi
+    do ręcznego przekazania (świadomy kompromis — docs/PERMISSIONS.md)."""
+    now = now_iso()
+    for old in (
+        db.query(ClientInvitation)
+        .filter(
+            ClientInvitation.client_id == client.id,
+            ClientInvitation.used_at.is_(None),
+            ClientInvitation.cancelled_at.is_(None),
+        )
+        .all()
+    ):
+        old.cancelled_at = now
+    token = secrets.token_urlsafe(32)
+    invitation = ClientInvitation(
+        id=new_id("INV"),
+        coach_id=coach.id,
+        client_id=client.id,
+        email=client.email,
+        token_hash=_token_hash(token),
+        expires_at=(
+            datetime.now(UTC) + timedelta(days=settings.invitation_ttl_days)
+        ).isoformat(),
+    )
+    db.add(invitation)
+    link = activation_link(request, token)
+    # Treść e-maila celowo bez JAKICHKOLWIEK danych zdrowotnych — tylko
+    # zaproszenie i link (imię i nazwa trenera nie są danymi zdrowotnymi).
+    sent = notifications.send_email(
+        to=client.email,
+        subject=f"{settings.brand_name}: aktywuj swoje konto",
+        body=(
+            f"Cześć {client.display_name}!\n\n"
+            f"{coach.display_name} zaprasza Cię do aplikacji "
+            f"{settings.brand_name}.\n\n"
+            f"Aktywuj konto i ustaw własne hasło (link ważny "
+            f"{settings.invitation_ttl_days} dni):\n{link}\n\n"
+            "Link jest jednorazowy. Jeśli to nie do Ciebie — zignoruj tę "
+            "wiadomość."
+        ),
+    )
+    delivery = "email" if sent else "manual"
+    result = {
+        "id": invitation.id,
+        "expires_at": invitation.expires_at,
+        "delivery": delivery,
+    }
+    if not sent:
+        # Brak skonfigurowanego dostawcy e-mail: jedyny kanał doręczenia to
+        # trener ("link do przekazania"). Token nie trafia do audytu/logów.
+        result["activation_link"] = link
+    return result
 
 
 @router.post("/clients", status_code=201)
 def create_client(
     body: RelationshipIn,
+    request: Request,
     coach: User = Depends(require_role("COACH")),
     db: Session = Depends(get_db),
 ):
-    """Zakłada konto klienta i aktywną współpracę. Zgoda na przetwarzanie
-    danych zdrowotnych jest rejestrowana jako deklaracja z onboardingu
-    (proweniencja jawna w audycie); klient widzi ją w aplikacji i może ją
-    w każdej chwili cofnąć."""
+    """Zaprasza klienta: zakłada konto PENDING (bez hasła — ustawi je sam
+    klient przez jednorazowy link aktywacyjny) i aktywną współpracę.
+    Zgoda na przetwarzanie danych zdrowotnych jest rejestrowana jako
+    deklaracja z onboardingu (proweniencja jawna w audycie); klient widzi
+    ją w aplikacji i może ją w każdej chwili cofnąć."""
     email = body.client_email.lower()
     existing = db.query(User).filter(User.email == email).one_or_none()
     new_account = existing is None
@@ -52,21 +119,22 @@ def create_client(
             raise HTTPException(status_code=409, detail="Współpraca już istnieje")
         # Istniejące konto można podpiąć wyłącznie, gdy jest aktywnym
         # kontem KLIENTA — nie wolno tą ścieżką tworzyć „relacji" z kontem
-        # trenera/admina ani z kontem usuniętym (jedna odpowiedź 409, żeby
-        # nie ujawniać roli/statusu cudzego konta).
+        # trenera/admina ani z kontem usuniętym/nieaktywowanym (jedna
+        # odpowiedź 409, żeby nie ujawniać roli/statusu cudzego konta).
         if client.status != "ACTIVE" or "CLIENT" not in active_roles(db, client.id):
             raise HTTPException(status_code=409, detail="Współpraca już istnieje")
     else:
         client = User(
             id=new_id("USR"),
             email=email,
-            password_hash=hash_password(body.initial_password),
+            # Konto czeka na aktywację: nie ma ŻADNEGO hasła ("!" nigdy nie
+            # zweryfikuje się w bcrypt), a status PENDING blokuje logowanie.
+            # Hasło ustawi wyłącznie klient na ekranie aktywacji.
+            password_hash="!",
             display_name=body.client_name,
             identity_id=new_id("ID"),
-            status="ACTIVE",
-            # Hasło startowe zna trener — klient musi je zmienić przy
-            # pierwszym logowaniu, zanim uzyska dostęp do danych.
-            must_change_password=True,
+            status="PENDING",
+            must_change_password=False,
         )
         db.add(client)
         db.add(
@@ -134,8 +202,101 @@ def create_client(
         },
         summary=f"Start współpracy: {coach.display_name} ↔ {client.display_name}",
     )
+    invitation = None
+    if new_account:
+        invitation = _issue_invitation(db, request, coach, client)
+        record_event(
+            db,
+            action="CLIENT_INVITED",
+            actor_id=coach.id,
+            subject_ids=[client.id],
+            # Payload BEZ tokenu i BEZ linku — wyłącznie metadane zaproszenia.
+            payload={
+                "invitation_id": invitation["id"],
+                "expires_at": invitation["expires_at"],
+                "delivery": invitation["delivery"],
+            },
+            summary=f"Zaproszenie do aktywacji konta dla {client.display_name}",
+        )
     db.commit()
-    return {"client_id": client.id, "relationship_id": rel.id}
+    return {"client_id": client.id, "relationship_id": rel.id, "invitation": invitation}
+
+
+def _own_pending_client(db: Session, coach: User, client_id: str) -> User:
+    """Klient PENDING w ramach własnej relacji trenera (do operacji na
+    zaproszeniach); inaczej 404/409 bez ujawniania szczegółów."""
+    rel = (
+        db.query(CoachClientRelationship)
+        .filter_by(coach_id=coach.id, client_id=client_id)
+        .one_or_none()
+    )
+    client = db.get(User, client_id) if rel is not None else None
+    if client is None:
+        raise HTTPException(status_code=404, detail="Nie znaleziono")
+    if client.status != "PENDING":
+        raise HTTPException(status_code=409, detail="Konto jest już aktywowane")
+    return client
+
+
+@router.post("/clients/{client_id}/invitations", status_code=201)
+def resend_invitation(
+    client_id: str,
+    request: Request,
+    coach: User = Depends(require_role("COACH")),
+    db: Session = Depends(get_db),
+):
+    """Ponowne wysłanie zaproszenia (np. link wygasł albo zaginął).
+    Nowy token unieważnia wszystkie poprzednie — zawsze co najwyżej jedno
+    aktywne zaproszenie na konto."""
+    client = _own_pending_client(db, coach, client_id)
+    invitation = _issue_invitation(db, request, coach, client)
+    record_event(
+        db,
+        action="CLIENT_INVITATION_RESENT",
+        actor_id=coach.id,
+        subject_ids=[client.id],
+        payload={
+            "invitation_id": invitation["id"],
+            "expires_at": invitation["expires_at"],
+            "delivery": invitation["delivery"],
+        },
+        summary=f"Ponowne zaproszenie do aktywacji konta dla {client.display_name}",
+    )
+    db.commit()
+    return {"invitation": invitation}
+
+
+@router.post("/clients/{client_id}/invitations/cancel")
+def cancel_invitation(
+    client_id: str,
+    coach: User = Depends(require_role("COACH")),
+    db: Session = Depends(get_db),
+):
+    """Anulowanie aktywnych zaproszeń — link natychmiast przestaje działać."""
+    client = _own_pending_client(db, coach, client_id)
+    now = now_iso()
+    cancelled = 0
+    for row in (
+        db.query(ClientInvitation)
+        .filter(
+            ClientInvitation.client_id == client.id,
+            ClientInvitation.used_at.is_(None),
+            ClientInvitation.cancelled_at.is_(None),
+        )
+        .all()
+    ):
+        row.cancelled_at = now
+        cancelled += 1
+    record_event(
+        db,
+        action="CLIENT_INVITATION_CANCELLED",
+        actor_id=coach.id,
+        subject_ids=[client.id],
+        payload={"cancelled": cancelled},
+        summary=f"Anulowanie zaproszenia do aktywacji konta dla {client.display_name}",
+    )
+    db.commit()
+    return {"ok": True, "cancelled": cancelled}
 
 
 def _client_flags(db: Session, coach: User, client: User, today) -> dict:
@@ -236,6 +397,20 @@ def list_clients(
             purpose=CONSENT_PURPOSE, domain=CONSENT_DOMAIN, action="read", sensitive=True,
         )
         flags = _client_flags(db, coach, client, today)
+        invitation_expires_at = None
+        if client.status == "PENDING":
+            active_inv = (
+                db.query(ClientInvitation)
+                .filter(
+                    ClientInvitation.client_id == client.id,
+                    ClientInvitation.used_at.is_(None),
+                    ClientInvitation.cancelled_at.is_(None),
+                )
+                .order_by(ClientInvitation.created_at.desc())
+                .first()
+            )
+            if active_inv is not None:
+                invitation_expires_at = active_inv.expires_at
         out.append(
             {
                 "client_id": client.id,
@@ -243,6 +418,11 @@ def list_clients(
                 "email": client.email,
                 "relationship_status": rel.status,
                 "consent_active": has_consent,
+                # Konto z zaproszenia, które nie zostało jeszcze aktywowane
+                # (klient nie ustawił hasła); expires_at aktywnego
+                # zaproszenia — bez tokenu (serwer zna tylko hash).
+                "account_pending": client.status == "PENDING",
+                "invitation_expires_at": invitation_expires_at,
                 "flags": {
                     "checkin_overdue": flags["checkin_overdue"],
                     "awaiting_review": flags["awaiting_review"],

@@ -184,6 +184,10 @@ export interface CoachClientRow {
   email: string;
   relationship_status: string;
   consent_active: boolean;
+  /** Konto z zaproszenia czekające na aktywację (klient nie ustawił hasła). */
+  account_pending: boolean;
+  /** Termin ważności aktywnego zaproszenia (bez tokenu — serwer zna tylko hash). */
+  invitation_expires_at: string | null;
   flags: {
     checkin_overdue: boolean;
     awaiting_review: boolean;

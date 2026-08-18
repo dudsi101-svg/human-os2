@@ -42,13 +42,25 @@ class User(Base):
     # Tożsamość Human OS (AXIS A: rodzaj podmiotu). Rola uprawnień to osobna
     # oś (RoleGrant) — nie utożsamiamy typu tożsamości z rolą.
     identity_id: Mapped[str] = mapped_column(String(40), unique=True)
-    status: Mapped[str] = mapped_column(String(20), default="ACTIVE")  # ACTIVE/SUSPENDED/DELETED
+    # PENDING = konto z zaproszenia, czeka na aktywację (klient sam ustawia
+    # hasło); ACTIVE / SUSPENDED / DELETED jak dotąd. PENDING nie może się
+    # zalogować (login filtruje status == ACTIVE).
+    status: Mapped[str] = mapped_column(String(20), default="ACTIVE")
     created_at: Mapped[str] = mapped_column(String(40), default=now_iso)
     last_login_at: Mapped[str | None] = mapped_column(String(40), nullable=True)
     anonymized_at: Mapped[str | None] = mapped_column(String(40), nullable=True)
     # Konto założone przez trenera z hasłem startowym musi je zmienić przy
-    # pierwszym logowaniu (egzekwowane w security.current_user).
+    # pierwszym logowaniu (egzekwowane w security.current_user). Historyczny
+    # przepływ — nowe konta powstają z zaproszenia (bez hasła startowego).
     must_change_password: Mapped[bool] = mapped_column(Boolean, default=False)
+    # MFA (TOTP, RFC 6238). Sekret jest potrzebny serwerowi do weryfikacji
+    # kodów, więc nie może być hashem; nigdy nie trafia do logów, audytu ani
+    # odpowiedzi API (poza jednorazowym zwrotem przy konfiguracji).
+    # totp_confirmed_at != NULL oznacza aktywne MFA; totp_last_counter to
+    # licznik ostatnio zaakceptowanego okna (ochrona przed replayem kodu).
+    totp_secret: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    totp_confirmed_at: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    totp_last_counter: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
 
 class RoleGrant(Base):
@@ -86,6 +98,68 @@ class AuthSession(Base):
     # Ostatnie użycie tokenu (rozdzielczość ~5 min — patrz security.current_user);
     # pokazywane na ekranie aktywnych sesji.
     last_used_at: Mapped[str | None] = mapped_column(String(40), nullable=True)
+
+
+class ClientInvitation(Base):
+    """Zaproszenie do aktywacji konta klienta. Serwer przechowuje WYŁĄCZNIE
+    hash SHA-256 tokenu aktywacyjnego (jak AuthSession.token_hash) — sam
+    token istnieje tylko w linku przekazanym klientowi. Jednorazowe
+    (used_at), anulowalne (cancelled_at), z terminem ważności; nowe
+    zaproszenie unieważnia poprzednie aktywne (bez mnożenia tokenów)."""
+
+    __tablename__ = "client_invitations"
+
+    id: Mapped[str] = mapped_column(String(40), primary_key=True)
+    coach_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
+    client_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
+    email: Mapped[str] = mapped_column(String(255))
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    created_at: Mapped[str] = mapped_column(String(40), default=now_iso)
+    expires_at: Mapped[str] = mapped_column(String(40))
+    used_at: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    cancelled_at: Mapped[str | None] = mapped_column(String(40), nullable=True)
+
+
+class PasswordResetToken(Base):
+    """Token resetu hasła: tylko hash SHA-256, jednorazowy (used_at),
+    krótki termin ważności; użycie unieważnia wszystkie sesje konta."""
+
+    __tablename__ = "password_reset_tokens"
+
+    id: Mapped[str] = mapped_column(String(40), primary_key=True)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    created_at: Mapped[str] = mapped_column(String(40), default=now_iso)
+    expires_at: Mapped[str] = mapped_column(String(40))
+    used_at: Mapped[str | None] = mapped_column(String(40), nullable=True)
+
+
+class MfaRecoveryCode(Base):
+    """Kod odzyskiwania MFA — przechowywany wyłącznie jako hash SHA-256;
+    jednorazowy (used_at); regeneracja unieważnia wszystkie poprzednie."""
+
+    __tablename__ = "mfa_recovery_codes"
+
+    id: Mapped[str] = mapped_column(String(40), primary_key=True)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
+    code_hash: Mapped[str] = mapped_column(String(64), index=True)
+    created_at: Mapped[str] = mapped_column(String(40), default=now_iso)
+    used_at: Mapped[str | None] = mapped_column(String(40), nullable=True)
+
+
+class MfaChallenge(Base):
+    """Krok pośredni logowania z MFA: poprawne hasło wydaje krótkotrwały
+    token wyzwania (tu tylko jego hash SHA-256); dopiero poprawny kod TOTP
+    lub kod odzyskiwania wymienia wyzwanie na pełną sesję. Jednorazowe."""
+
+    __tablename__ = "mfa_challenges"
+
+    id: Mapped[str] = mapped_column(String(40), primary_key=True)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    created_at: Mapped[str] = mapped_column(String(40), default=now_iso)
+    expires_at: Mapped[str] = mapped_column(String(40))
+    used_at: Mapped[str | None] = mapped_column(String(40), nullable=True)
 
 
 class CoachClientRelationship(Base):
