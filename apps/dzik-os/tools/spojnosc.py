@@ -247,6 +247,93 @@ def sprawdz_dokumenty(w: Wynik) -> None:
                              + ", ".join(sorted(gdzie)))
 
 
+# --- 7. Higiena gałęzi -------------------------------------------------
+
+#: Progi wyznaczone z faktów, nie z przeczucia. 18.08.2026 rundy scalane
+#: w kilka–kilkadziesiąt minut nie wywołały ANI JEDNEGO konfliktu, mimo że
+#: równoległość trwała cały czas. Gałąź, która przeżyła 6,5 godziny przy
+#: takcie main około 30 minut, wymagała ośmiu scaleń nadążających i zdążyła
+#: wprowadzić regres (trasa przesłonięta po scaleniu).
+PROG_COMMITOW_MAIN = 5      # ile commitów przybyło na main od odgałęzienia
+PROG_GODZIN = 3.0           # wiek gałęzi liczony od punktu odgałęzienia
+PROG_SCALEN = 2             # ile razy trzeba było nadganiać main
+
+
+def _git(*args: str) -> str | None:
+    """Wynik polecenia git albo None, gdy się nie powiodło."""
+    import subprocess
+
+    try:
+        out = subprocess.run(
+            ["git", *args], cwd=APP, capture_output=True, text=True,
+            timeout=15, check=False,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return None
+    return out.stdout.strip() if out.returncode == 0 else None
+
+
+def sprawdz_galaz(w: Wynik) -> None:
+    """Objawy gałęzi, która żyje za długo jak na tempo main.
+
+    To jedyna kontrola, która nie patrzy na kod, tylko na SPOSÓB PRACY —
+    bo właśnie sposób pracy, a nie treść zmian, wygenerował dziś większość
+    kolizji. Lista zadań nigdy nie była groźna; groźne było zbieranie ich
+    wszystkich na jednej, długo żyjącej gałęzi.
+
+    Sygnały są UWAGAMI, nigdy błędami: długa gałąź bywa uzasadniona, a
+    zatrzymanie builda z powodu upływu czasu byłoby karą za zegar. Rzecz
+    w tym, żeby ryzyko było widoczne ZANIM zamieni się w konflikt — dziś
+    zobaczyliśmy je dopiero przy ósmym scaleniu.
+    """
+    baza = _git("merge-base", "HEAD", "origin/main")
+    if not baza:
+        return  # brak origin/main (świeży klon, praca offline) — nie ma o czym mówić
+
+    glowa = _git("rev-parse", "HEAD")
+    czolo_main = _git("rev-parse", "origin/main")
+    if glowa == czolo_main:
+        return  # jesteśmy na main — pojęcie „wiek gałęzi" nie ma zastosowania
+
+    przed = _git("rev-list", "--count", f"{baza}..origin/main")
+    moje = _git("rev-list", "--count", f"{baza}..HEAD")
+    if przed is None or moje is None:
+        return
+    przed_n, moje_n = int(przed), int(moje)
+    if moje_n == 0:
+        return  # gałąź bez własnych commitów
+
+    if przed_n > PROG_COMMITOW_MAIN:
+        w.uwaga(
+            "gałąź",
+            f"na main przybyło {przed_n} commitów od odgałęzienia "
+            f"(próg {PROG_COMMITOW_MAIN}) — im dłużej, tym pewniejszy konflikt. "
+            "Rozważ domknięcie tego, co gotowe, osobnym PR-em.",
+        )
+
+    stempel = _git("log", "-1", "--format=%ct", baza)
+    if stempel:
+        import time
+
+        godziny = (time.time() - int(stempel)) / 3600
+        if godziny > PROG_GODZIN:
+            w.uwaga(
+                "gałąź",
+                f"gałąź odgałęziła się {godziny:.1f} h temu przy {moje_n} własnych "
+                f"commitach (próg {PROG_GODZIN} h) — rundy scalane na bieżąco "
+                "nie generowały kolizji, długie generowały.",
+            )
+
+    scalenia = _git("rev-list", "--count", "--merges", f"{baza}..HEAD")
+    if scalenia and int(scalenia) > PROG_SCALEN:
+        w.uwaga(
+            "gałąź",
+            f"{scalenia} scaleń nadążających za main w tej gałęzi "
+            f"(próg {PROG_SCALEN}) — każde kolejne to czas oddany na nadganianie, "
+            "nie na pracę.",
+        )
+
+
 KONTROLE = (
     ("migracje", sprawdz_migracje),
     ("changelog", sprawdz_changelog),
@@ -254,6 +341,7 @@ KONTROLE = (
     ("routery", sprawdz_routery),
     ("testy frontendu", sprawdz_testy_frontendu),
     ("dokumenty", sprawdz_dokumenty),
+    ("higiena gałęzi", sprawdz_galaz),
 )
 
 

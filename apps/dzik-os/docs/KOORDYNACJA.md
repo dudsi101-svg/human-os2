@@ -17,7 +17,7 @@ python apps/dzik-os/tools/spojnosc.py     # 0 = czysto, 1 = są kolizje
 ```
 
 Uruchamiana w CI (`dzik-os-ci.yml`) i lokalnie przed każdym scaleniem.
-Sześć kontroli, każda wzięta z błędu, który **naprawdę się zdarzył**:
+Siedem kontroli, każda wzięta z błędu, który **naprawdę się zdarzył**:
 
 | Kontrola | Co łapie | Kiedy się zdarzyło |
 |---|---|---|
@@ -27,6 +27,7 @@ Sześć kontroli, każda wzięta z błędu, który **naprawdę się zdarzył**:
 | `routery` | moduł w `routers/` bez `include_router` w `main.py` | — (zapobiegawczo) |
 | `testy frontendu` | `scripts/test-*.mjs` spoza `test:helpers`, czyli test-widmo | przy dokładaniu testów pomocniczych |
 | `dokumenty` | martwy odnośnik `docs/COŚ.md` (uwaga, nie błąd) | przy przenoszeniu dokumentacji |
+| `higiena gałęzi` | objawy gałęzi żyjącej za długo jak na tempo main (uwagi, nigdy błąd) | PR #11: 6,5 h życia, 8 scaleń nadążających |
 
 Kontrola **niczego nie naprawia** — od tego jest człowiek albo agent,
 który zna zamiar. Ma wyłącznie nie pozwolić kolizji przejść niezauważenie.
@@ -60,6 +61,39 @@ Uruchamiaj po każdej zmianie w `spojnosc.py` i po dołożeniu kontroli — bez
 tego „mamy testy" jest deklaracją, nie faktem.
 
 ---
+
+### 1a. Higiena gałęzi — jedyna kontrola patrząca na SPOSÓB pracy
+
+Sześć pierwszych kontroli patrzy na kod. Siódma patrzy na to, **jak
+pracujemy** — bo 18.08.2026 to sposób pracy, a nie treść zmian, wygenerował
+większość kolizji.
+
+Fakty z tego dnia, z których wzięły się progi:
+
+| | PR #1–#9 | PR #11 |
+|---|---|---|
+| Czas życia gałęzi | od kilku sekund do 109 min | **6 h 20 min** |
+| Scaleń nadążających za main | 0–1 | **8** |
+| Konflikty | **żadne** | changelog ×3, trasy, importy |
+| Regresy | brak | przesłonięte trasy importu z pliku |
+
+Równoległość trwała przez cały ten czas — także wtedy, gdy nie było ani
+jednego konfliktu. **Nie ona była przyczyną, tylko długość życia gałęzi.**
+Lista zadań też nie: była zwyczajna. Zawiodła metoda — zebranie wszystkich
+punktów listy na jednej gałęzi zamiast domykania ich po kolei.
+
+Progi (`spojnosc.py`): `PROG_COMMITOW_MAIN = 5`, `PROG_GODZIN = 3.0`,
+`PROG_SCALEN = 2`. Najważniejszy jest pierwszy — liczba commitów, które
+przybyły na main od odgałęzienia. Mierzy ryzyko wprost, niezależnie od
+zegara i strefy czasowej.
+
+**To zawsze UWAGI, nigdy błędy.** Długa gałąź bywa uzasadniona, a
+zatrzymanie builda z powodu upływu czasu byłoby karą za zegar. Rzecz w tym,
+żeby ryzyko było widoczne **zanim** zamieni się w konflikt — 18.08 zobaczyliśmy
+je dopiero przy ósmym scaleniu.
+
+Zasada, która przez pierwsze sześć godzin dała zero konfliktów:
+**jedna rzecz → PR → merge → następna rzecz.**
 
 ## 2. Rezerwacja: zanim zaczniesz pracę
 
