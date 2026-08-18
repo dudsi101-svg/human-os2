@@ -5,7 +5,7 @@ import os
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -109,14 +109,50 @@ def create_app() -> FastAPI:
             name="assets",
         )
 
+        @app.middleware("http")
+        async def asset_cache_headers(request: Request, call_next):
+            # Hashowane assety Vite są niezmienne per wersja — mogą żyć
+            # w cache przeglądarki na zawsze (nowa wersja = nowy hash).
+            response = await call_next(request)
+            if request.url.path.startswith("/assets/") and response.status_code == 200:
+                response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+            return response
+
+        # Jawne typy MIME dla plików, których mimetypes potrafi nie znać
+        # (zły Content-Type dla sw.js/modułów = odmowa wykonania w PWA).
+        media_types = {
+            ".js": "text/javascript",
+            ".mjs": "text/javascript",
+            ".css": "text/css",
+            ".webmanifest": "application/manifest+json",
+        }
+        # Punkty wejścia PWA muszą być zawsze rewalidowane (inaczej
+        # przeglądarka może długo nie zobaczyć nowej wersji aplikacji
+        # i service workera); hashowane assety — patrz middleware wyżej.
+        no_cache = {"Cache-Control": "no-cache"}
+
         @app.get("/{full_path:path}", include_in_schema=False)
         def spa(full_path: str):
             candidate = frontend_dist / full_path
             if full_path and candidate.is_file() and candidate.resolve().is_relative_to(
                 frontend_dist.resolve()
             ):
-                return FileResponse(candidate)
-            return FileResponse(frontend_dist / "index.html")
+                suffix = candidate.suffix.lower()
+                headers = (
+                    no_cache
+                    if suffix in {".html", ".webmanifest"} or full_path == "sw.js"
+                    else None
+                )
+                return FileResponse(
+                    candidate, media_type=media_types.get(suffix), headers=headers
+                )
+            # Ścieżka plikowa (segment z rozszerzeniem), a pliku nie ma →
+            # 404. NIGDY index.html: HTML zwrócony zamiast JS/CSS/obrazka
+            # to błąd MIME i pusty ekran aplikacji.
+            last_segment = full_path.rsplit("/", 1)[-1]
+            if "." in last_segment:
+                raise HTTPException(status_code=404)
+            return FileResponse(frontend_dist / "index.html", headers=no_cache)
 
     return app
 
