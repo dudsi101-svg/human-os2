@@ -35,6 +35,21 @@ export interface TrainingPlan {
   current_version?: PlanVersion | null;
 }
 
+/** Pozycja suplementacji w planie diety. Trener nie jest lekarzem —
+ * aplikacja wyłącznie przechowuje zalecenie człowieka wraz z jego
+ * podstawą (`source`); nic nie jest dobierane automatycznie. */
+export interface SupplementEntry {
+  name: string;
+  dose: string;
+  timing: string;
+  purpose: string;
+  source: string;
+  form?: string | null;
+  duration?: string | null;
+  notes?: string | null;
+  specialist_consulted?: boolean;
+}
+
 export interface NutritionContent {
   kcal?: number | null;
   protein_g?: number | null;
@@ -42,6 +57,8 @@ export interface NutritionContent {
   carbs_g?: number | null;
   sections: { title: string; body: string }[];
   meals: { name: string; description?: string; swaps?: string }[];
+  /** Wersje planu sprzed wprowadzenia suplementacji: pusta lista z API. */
+  supplements: SupplementEntry[];
 }
 
 export interface NutritionVersion {

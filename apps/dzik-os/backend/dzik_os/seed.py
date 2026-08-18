@@ -321,6 +321,23 @@ def seed() -> dict[str, str]:
                     {"name": "Kolacja", "description":
                         "Twaróg półtłusty 250 g + pomidor + pieczywo 2 kromki"},
                 ],
+                "supplements": [
+                    {"name": "Witamina D3", "dose": "2000 IU", "form": "kapsułki",
+                     "timing": "rano, do posiłku zawierającego tłuszcz",
+                     "purpose": "Uzupełnienie niedoboru stwierdzonego w badaniach",
+                     "source": "Zalecenie lekarza rodzinnego z 2026-07-12 "
+                               "(wynik 25(OH)D poniżej normy)",
+                     "duration": "do kontrolnych badań w listopadzie",
+                     "notes": "Przy zmianie dawki najpierw kontakt z lekarzem.",
+                     "specialist_consulted": True},
+                    {"name": "Kreatyna monohydrat", "dose": "5 g",
+                     "form": "proszek", "timing": "codziennie, pora dowolna",
+                     "purpose": "Wsparcie treningu siłowego",
+                     "source": "Zalecenie trenera — standardowa dawka podtrzymująca",
+                     "duration": "stale w okresie siłowym",
+                     "notes": "Pilnuj nawodnienia (min. 2,5 l wody dziennie).",
+                     "specialist_consulted": False},
+                ],
             }, ensure_ascii=False),
         ))
 

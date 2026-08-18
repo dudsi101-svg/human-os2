@@ -105,6 +105,46 @@ export default function Nutrition() {
               ))}
             </div>
           )}
+          {v.content.supplements.length > 0 && (
+            <div className="card">
+              <h2>Suplementacja</h2>
+              <p className="dim" style={{ marginTop: 0, fontSize: "0.85rem" }}>
+                Zalecenia zapisane przez trenera w wersji {v.version_no} planu.
+                Każda zmiana dawki zostaje w historii wersji.
+              </p>
+              {v.content.supplements.map((s, i) => (
+                <div className="exercise" key={i}>
+                  <div style={{ width: "100%" }}>
+                    <div className="row row--between">
+                      <b>{s.name}{s.form ? ` · ${s.form}` : ""}</b>
+                      <span className="badge badge--accent">{s.dose}</span>
+                    </div>
+                    <div className="meta">Kiedy: {s.timing}</div>
+                    <div className="meta">Po co: {s.purpose}</div>
+                    {s.duration && <div className="meta">Okres: {s.duration}</div>}
+                    <div className="meta">
+                      Podstawa zalecenia: {s.source}
+                      {s.specialist_consulted && " · konsultowane ze specjalistą"}
+                    </div>
+                    {s.notes && (
+                      <div className="meta" style={{ whiteSpace: "pre-wrap" }}>
+                        Uwagi: {s.notes}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+              <div className="alert alert--info" style={{ marginTop: 10 }}>
+                Suplementy to nie leki i nie zastępują diety ani leczenia.
+                Trener personalny nie stawia diagnoz. Przed zmianą lub
+                rozpoczęciem suplementacji skonsultuj się z lekarzem lub
+                dietetykiem — zwłaszcza przy chorobach, lekach, ciąży
+                i karmieniu. Zgłoś trenerowi każdą alergię i nietolerancję;
+                w razie niepokojących objawów przerwij i skontaktuj się
+                z lekarzem.
+              </div>
+            </div>
+          )}
           {v.document_file_id && (
             <div className="card">
               {/* Chroniony plik — pobieranie wyłącznie przez uwierzytelnione

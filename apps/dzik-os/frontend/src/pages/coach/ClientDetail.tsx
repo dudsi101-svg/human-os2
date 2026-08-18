@@ -36,6 +36,7 @@ import {
   ReceiptRow,
   ScheduleItem,
   SEVERITY_LABELS,
+  SupplementEntry,
   TrainingPlan,
   WELLBEING_LABELS,
   WorkoutRow,
@@ -352,6 +353,8 @@ function NutritionTab({ clientId }: { clientId: string }) {
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState({ title: "", reason: "", kcal: "", protein_g: "", fat_g: "", carbs_g: "", zasady: "", meals: "" });
+  const [supplements, setSupplements] = useState<SupplementEntry[]>([]);
+  const [allergies, setAllergies] = useState<string | null>(null);
 
   const plan = plans?.[0] ?? null;
   const load = useCallback(() => {
@@ -361,8 +364,39 @@ function NutritionTab({ clientId }: { clientId: string }) {
   }, [clientId]);
   useEffect(load, [load]);
 
+  // Zadeklarowane alergie/nietolerancje — pokazywane przy edycji
+  // suplementacji, żeby zalecenie nie powstawało w oderwaniu od tego, co
+  // klient zgłosił. Brak zgody na dane żywieniowe = pole po prostu się
+  // nie pojawia (backend i tak filtruje pola wrażliwe per domena).
+  useEffect(() => {
+    api.get<{ fields: { field_key: string; value: string; is_current?: boolean }[] }>(
+      `/api/clients/${clientId}/profile`
+    )
+      .then((d) => {
+        const row = d.fields.find((f) => f.field_key === "alergie" && f.is_current !== false);
+        setAllergies(row?.value ?? null);
+      })
+      .catch(() => setAllergies(null));
+  }, [clientId]);
+
+  const setSupplement = (index: number, patch: Partial<SupplementEntry>) =>
+    setSupplements((list) => list.map((s, i) => (i === index ? { ...s, ...patch } : s)));
+
   async function save(e: FormEvent) {
     e.preventDefault();
+    // Pozycja suplementacji bez kompletu wymaganych pól jest błędem, a nie
+    // powodem do cichego pominięcia — inaczej trener zapisałby wersję
+    // przekonany, że preparat jest w planie.
+    const incomplete = supplements.some(
+      (s) => !s.name.trim() || !s.dose.trim() || !s.timing.trim()
+        || !s.purpose.trim() || !s.source.trim()
+    );
+    if (incomplete) {
+      setError(
+        "Każdy suplement wymaga nazwy, dawki, pory, celu i podstawy zalecenia."
+      );
+      return;
+    }
     const version = {
       reason: form.reason,
       kcal: form.kcal ? Number(form.kcal) : null,
@@ -376,6 +410,7 @@ function NutritionTab({ clientId }: { clientId: string }) {
             return { name: name.trim(), description: rest.join(":").trim() };
           })
         : [],
+      supplements,
     };
     try {
       if (plan) {
@@ -405,6 +440,10 @@ function NutritionTab({ clientId }: { clientId: string }) {
               zasady: v?.content.sections.map((s) => s.body).join("\n") ?? "",
               meals: v?.content.meals.map((m) => `${m.name}: ${m.description ?? ""}`).join("\n") ?? "",
             });
+            // Suplementacja przechodzi do nowej wersji — nowa wersja planu
+            // nie może po cichu odstawić preparatów; odstawienie ma być
+            // świadomym usunięciem pozycji przez trenera.
+            setSupplements(v?.content.supplements.map((s) => ({ ...s })) ?? []);
             setEditing(true);
           }}>
           {plan ? "Nowa wersja diety" : "+ Nowa dieta"}
@@ -432,6 +471,85 @@ function NutritionTab({ clientId }: { clientId: string }) {
           <textarea id="nt-zasady" value={form.zasady} onChange={(e) => setForm({ ...form, zasady: e.target.value })} />
           <label htmlFor="nt-meals">Posiłki (jeden na linię: „Nazwa: opis")</label>
           <textarea id="nt-meals" value={form.meals} onChange={(e) => setForm({ ...form, meals: e.target.value })} />
+
+          <h3 style={{ marginBottom: 4 }}>Suplementacja</h3>
+          <p className="dim" style={{ margin: "0 0 8px", fontSize: "0.85rem" }}>
+            Aplikacja niczego nie dobiera — zapisujesz zalecenie, które sam
+            wydałeś lub które pochodzi od specjalisty. Podstawa zalecenia jest
+            wymagana i widoczna dla klienta.
+          </p>
+          {allergies && (
+            <div className="alert alert--warn" role="status">
+              Zadeklarowane alergie i nietolerancje klienta: {allergies}
+            </div>
+          )}
+          {supplements.map((s, i) => (
+            <div className="exercise" key={i} style={{ display: "block" }}>
+              <div className="field-row">
+                <div>
+                  <label htmlFor={`sup-name-${i}`}>Preparat</label>
+                  <input id={`sup-name-${i}`} value={s.name}
+                    onChange={(e) => setSupplement(i, { name: e.target.value })} />
+                </div>
+                <div>
+                  <label htmlFor={`sup-dose-${i}`}>Dawka</label>
+                  <input id={`sup-dose-${i}`} value={s.dose} placeholder="np. 1 kapsułka 2000 IU"
+                    onChange={(e) => setSupplement(i, { dose: e.target.value })} />
+                </div>
+              </div>
+              <div className="field-row">
+                <div>
+                  <label htmlFor={`sup-timing-${i}`}>Kiedy</label>
+                  <input id={`sup-timing-${i}`} value={s.timing} placeholder="np. rano, do posiłku"
+                    onChange={(e) => setSupplement(i, { timing: e.target.value })} />
+                </div>
+                <div>
+                  <label htmlFor={`sup-form-${i}`}>Postać (opcjonalnie)</label>
+                  <input id={`sup-form-${i}`} value={s.form ?? ""} placeholder="kapsułki, proszek…"
+                    onChange={(e) => setSupplement(i, { form: e.target.value })} />
+                </div>
+              </div>
+              <label htmlFor={`sup-purpose-${i}`}>Cel</label>
+              <input id={`sup-purpose-${i}`} value={s.purpose}
+                onChange={(e) => setSupplement(i, { purpose: e.target.value })} />
+              <label htmlFor={`sup-source-${i}`}>Podstawa zalecenia (kto i na jakiej podstawie)</label>
+              <input id={`sup-source-${i}`} value={s.source}
+                placeholder="np. zalecenie lekarza z 2026-07-12 / wynik badań"
+                onChange={(e) => setSupplement(i, { source: e.target.value })} />
+              <div className="field-row">
+                <div>
+                  <label htmlFor={`sup-duration-${i}`}>Okres (opcjonalnie)</label>
+                  <input id={`sup-duration-${i}`} value={s.duration ?? ""} placeholder="np. 8 tygodni"
+                    onChange={(e) => setSupplement(i, { duration: e.target.value })} />
+                </div>
+                <div>
+                  <label htmlFor={`sup-notes-${i}`}>Uwagi (opcjonalnie)</label>
+                  <input id={`sup-notes-${i}`} value={s.notes ?? ""}
+                    onChange={(e) => setSupplement(i, { notes: e.target.value })} />
+                </div>
+              </div>
+              <div className="row row--between" style={{ marginTop: 8 }}>
+                <label htmlFor={`sup-spec-${i}`} style={{ margin: 0 }}>
+                  <input id={`sup-spec-${i}`} type="checkbox" checked={!!s.specialist_consulted}
+                    onChange={(e) => setSupplement(i, { specialist_consulted: e.target.checked })} />
+                  {" "}Konsultowane ze specjalistą
+                </label>
+                <button type="button" className="btn btn--ghost btn--small"
+                  aria-label={`Usuń pozycję ${s.name || i + 1}`}
+                  onClick={() => setSupplements(supplements.filter((_, j) => j !== i))}>
+                  Usuń pozycję
+                </button>
+              </div>
+            </div>
+          ))}
+          <button type="button" className="btn btn--ghost btn--small"
+            onClick={() => setSupplements([...supplements, {
+              name: "", dose: "", timing: "", purpose: "", source: "",
+              form: "", duration: "", notes: "", specialist_consulted: false,
+            }])}>
+            + Dodaj suplement
+          </button>
+
           <div className="row" style={{ marginTop: 10 }}>
             <button className="btn">Zapisz</button>
             <button type="button" className="btn btn--ghost" onClick={() => setEditing(false)}>Anuluj</button>
@@ -456,9 +574,75 @@ function NutritionTab({ clientId }: { clientId: string }) {
               <div><b>{m.name}</b><div className="meta">{m.description}</div></div>
             </div>
           ))}
+          {v.content.supplements.length > 0 && (
+            <>
+              <h3>Suplementacja (v{plan!.current_version_no})</h3>
+              {v.content.supplements.map((s, i) => (
+                <SupplementRow key={i} planId={plan!.id} supplement={s} onError={setError} />
+              ))}
+            </>
+          )}
         </div>
       )}
     </>
+  );
+}
+
+/** Pozycja suplementacji w widoku trenera z jednoklikowym utworzeniem
+ * przypomnienia. Dawka i sposób przyjmowania są brane po stronie serwera
+ * z planu — tutaj wskazujemy wyłącznie godzinę, więc przypomnienie nie może
+ * rozjechać się z tym, co klient widzi w diecie. */
+function SupplementRow({ planId, supplement, onError }: {
+  planId: string;
+  supplement: SupplementEntry;
+  onError: (message: string) => void;
+}) {
+  const [time, setTime] = useState("08:00");
+  const [busy, setBusy] = useState(false);
+  const [done, setDone] = useState<string | null>(null);
+
+  async function addReminder() {
+    setBusy(true);
+    try {
+      const res = await api.post<{ created: number; skipped: number }>(
+        `/api/nutrition/${planId}/supplements/reminders`,
+        { entries: [{ name: supplement.name, time_of_day: time }] }
+      );
+      setDone(res.created > 0
+        ? `Dodano przypomnienie na ${time}.`
+        : "Takie przypomnienie już istnieje w harmonogramie.");
+    } catch (err) {
+      onError((err as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="exercise" style={{ display: "block" }}>
+      <div className="row row--between">
+        <b>{supplement.name}{supplement.form ? ` · ${supplement.form}` : ""}</b>
+        <span className="badge badge--accent">{supplement.dose}</span>
+      </div>
+      <div className="meta">Kiedy: {supplement.timing} · Cel: {supplement.purpose}</div>
+      <div className="meta">
+        Podstawa: {supplement.source}
+        {supplement.specialist_consulted && " · konsultowane ze specjalistą"}
+      </div>
+      {supplement.notes && <div className="meta">Uwagi: {supplement.notes}</div>}
+      <div className="row" style={{ marginTop: 8, gap: 6, alignItems: "flex-end" }}>
+        <div>
+          <label htmlFor={`sup-rem-${planId}-${supplement.name}`}>Godzina przypomnienia</label>
+          <input id={`sup-rem-${planId}-${supplement.name}`} type="time" value={time}
+            onChange={(e) => setTime(e.target.value)} style={{ width: "auto" }} />
+        </div>
+        <button type="button" className="btn btn--ghost btn--small" disabled={busy}
+          onClick={addReminder}>
+          {busy ? "Dodawanie…" : "Dodaj do harmonogramu"}
+        </button>
+      </div>
+      {done && <small className="dim" role="status">{done}</small>}
+    </div>
   );
 }
 

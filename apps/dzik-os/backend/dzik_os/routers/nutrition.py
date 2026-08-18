@@ -5,11 +5,24 @@ import json
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from ..authz import DOMAIN_NUTRITION, require_owned_resource, resolve_client_access
+from ..authz import (
+    DOMAIN_NUTRITION,
+    DOMAIN_TRAINING,
+    require_owned_resource,
+    resolve_client_access,
+)
 from ..db import get_db
 from ..hos_bridge import record_event
-from ..models import Document, NutritionPlan, NutritionPlanVersion, User, new_id, now_iso
-from ..schemas import NutritionCreateIn, NutritionVersionIn
+from ..models import (
+    Document,
+    NutritionPlan,
+    NutritionPlanVersion,
+    ScheduleItem,
+    User,
+    new_id,
+    now_iso,
+)
+from ..schemas import NutritionCreateIn, NutritionVersionIn, SupplementRemindersIn
 from ..security import current_user, require_role
 
 router = APIRouter(prefix="/api", tags=["nutrition"])
@@ -19,11 +32,15 @@ def _version_out(db: Session, v: NutritionPlanVersion) -> dict:
     # document_id wskazuje rekord documents; frontend do pobrania potrzebuje
     # file_id tego dokumentu (endpoint /api/files/{id} operuje na plikach).
     doc = db.get(Document, v.document_id) if v.document_id else None
+    content = json.loads(v.content_json)
+    # Wersje sprzed wprowadzenia suplementacji nie mają tego klucza —
+    # API zawsze zwraca listę, żeby klient nie musiał zgadywać.
+    content.setdefault("supplements", [])
     return {
         "id": v.id,
         "version_no": v.version_no,
         "reason": v.reason,
-        "content": json.loads(v.content_json),
+        "content": content,
         "document_id": v.document_id,
         "document_file_id": doc.file_id if doc is not None and doc.status == "ACTIVE" else None,
         "created_by": v.created_by,
@@ -50,6 +67,10 @@ def _content_json(body: NutritionVersionIn) -> str:
             "carbs_g": body.carbs_g,
             "sections": body.sections,
             "meals": body.meals,
+            # Suplementacja jest częścią WERSJI planu — każda zmiana dawki
+            # czy odstawienie preparatu zostaje w historii wersji razem
+            # z powodem zmiany (bez osobnej migracji: treść planu to JSON).
+            "supplements": [s.model_dump() for s in body.supplements],
         },
         ensure_ascii=False,
     )
@@ -86,8 +107,11 @@ def create_nutrition_plan(
         action="NUTRITION_PLAN_CREATED",
         actor_id=coach.id,
         subject_ids=[body.client_id],
+        # Liczba pozycji suplementacji, NIGDY nazwy preparatów: audyt ma
+        # pokazywać fakt zmiany, a nie powielać dane zdrowotne klienta.
         payload={"plan_id": plan.id, "title": plan.title, "version_no": 1,
-                 "reason": body.version.reason},
+                 "reason": body.version.reason,
+                 "supplements_count": len(body.version.supplements)},
         summary=f"Nowy plan żywieniowy: {plan.title} (v1)",
     )
     db.commit()
@@ -124,7 +148,8 @@ def create_nutrition_version(
         action="NUTRITION_VERSION_CREATED",
         actor_id=coach.id,
         subject_ids=[plan.client_id],
-        payload={"plan_id": plan.id, "version_no": next_no, "reason": body.reason},
+        payload={"plan_id": plan.id, "version_no": next_no, "reason": body.reason,
+                 "supplements_count": len(body.supplements)},
         summary=f"Dieta '{plan.title}': nowa wersja v{next_no} — {body.reason}",
     )
     db.commit()
@@ -181,3 +206,85 @@ def nutrition_versions(
     )
     return {"plan_id": plan_id, "title": plan.title,
             "versions": [_version_out(db, v) for v in rows]}
+
+
+@router.post("/nutrition/{plan_id}/supplements/reminders", status_code=201)
+def create_supplement_reminders(
+    plan_id: str,
+    body: SupplementRemindersIn,
+    coach: User = Depends(require_role("COACH")),
+    db: Session = Depends(get_db),
+):
+    """Tworzy elementy harmonogramu (kategoria SUPLEMENT) z pozycji
+    suplementacji z BIEŻĄCEJ wersji planu — żeby dawka i pora w przypomnieniu
+    pochodziły dokładnie z tego, co trener zapisał w planie, a nie z ręcznego
+    przepisania. System niczego nie dobiera: nazwa, dawka, pora i podstawa
+    zalecenia pochodzą z planu wprowadzonego przez człowieka.
+
+    Idempotentne: pozycja o tej samej nazwie i porze, która już istnieje
+    w aktywnym harmonogramie, jest pomijana (ponowne kliknięcie nie mnoży
+    przypomnień)."""
+    plan = require_owned_resource(
+        db.get(NutritionPlan, plan_id), actor=coach, resource=f"nutrition_plan:{plan_id}"
+    )
+    resolve_client_access(db, coach, plan.client_id, action="write", domain=DOMAIN_NUTRITION)
+    # Harmonogram żyje w domenie treningowej — ta sama bramka, co przy
+    # dodawaniu pozycji przez /api/schedule.
+    resolve_client_access(db, coach, plan.client_id, action="write", domain=DOMAIN_TRAINING)
+    current = (
+        db.query(NutritionPlanVersion)
+        .filter(
+            NutritionPlanVersion.plan_id == plan.id,
+            NutritionPlanVersion.version_no == plan.current_version_no,
+        )
+        .one_or_none()
+    )
+    if current is None:
+        raise HTTPException(status_code=404, detail="Nie znaleziono")
+    supplements = {
+        s["name"]: s for s in json.loads(current.content_json).get("supplements", [])
+    }
+    existing = {
+        (i.name, i.time_of_day)
+        for i in db.query(ScheduleItem).filter(
+            ScheduleItem.client_id == plan.client_id,
+            ScheduleItem.category == "SUPLEMENT",
+            ScheduleItem.status == "ACTIVE",
+        )
+    }
+    created: list[str] = []
+    skipped: list[str] = []
+    for entry in body.entries:
+        supplement = supplements.get(entry.name)
+        if supplement is None:
+            raise HTTPException(
+                status_code=422,
+                detail="Pozycja spoza bieżącej wersji planu suplementacji",
+            )
+        if (entry.name, entry.time_of_day) in existing:
+            skipped.append(entry.name)
+            continue
+        item = ScheduleItem(
+            id=new_id("SCH"),
+            client_id=plan.client_id,
+            name=entry.name,
+            category="SUPLEMENT",
+            time_of_day=entry.time_of_day,
+            days_of_week=entry.days_of_week,
+            instruction=f"{supplement['dose']} — {supplement['timing']}",
+            author_id=coach.id,
+            author_note=supplement["source"],
+        )
+        db.add(item)
+        existing.add((entry.name, entry.time_of_day))
+        created.append(item.id)
+    record_event(
+        db,
+        action="SUPPLEMENT_REMINDERS_CREATED",
+        actor_id=coach.id,
+        subject_ids=[plan.client_id],
+        payload={"plan_id": plan.id, "created": len(created), "skipped": len(skipped)},
+        summary=f"Suplementacja: dodano {len(created)} przypomnień z planu '{plan.title}'",
+    )
+    db.commit()
+    return {"created": len(created), "skipped": len(skipped), "item_ids": created}

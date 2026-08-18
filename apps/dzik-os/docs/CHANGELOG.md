@@ -1,5 +1,45 @@
 # Changelog — Dzik OS
 
+## 0.18.0 — 2026-08-18
+
+**Suplementacja jako część planu diety** — do tej pory suplementy istniały
+wyłącznie jako gołe pozycje harmonogramu (nazwa + godzina), bez dawki, celu
+i podstawy zalecenia w samym planie.
+
+* Nowa sekcja **Suplementacja** w wersji planu żywieniowego: preparat, dawka,
+  pora (i relacja do posiłku), cel, **podstawa zalecenia** (kto i na jakiej
+  podstawie), opcjonalnie postać, okres i uwagi oraz znacznik „konsultowane
+  ze specjalistą". Nazwa, dawka, pora, cel i podstawa są WYMAGANE — w planie
+  nie może wylądować sama nazwa preparatu bez proweniencji.
+* Bez migracji schematu: suplementacja jest częścią treści wersji planu
+  (JSON), więc **każda zmiana dawki albo odstawienie preparatu zostaje
+  w historii wersji** razem z powodem zmiany. Wersje sprzed tej rundy
+  zwracają pustą listę (API normalizuje brakujący klucz).
+* Nowa wersja planu **przenosi dotychczasową suplementację** do edytora —
+  odstawienie preparatu musi być świadomym usunięciem pozycji, nigdy
+  efektem ubocznym zapisania nowej wersji diety.
+* `POST /api/nutrition/{plan_id}/supplements/reminders` — jednoklikowe
+  przypomnienia w harmonogramie (kategoria SUPLEMENT) tworzone Z PLANU:
+  dawka i sposób przyjmowania pochodzą z zapisanej pozycji, a nie z ręcznego
+  przepisania, więc przypomnienie nie może rozjechać się z dietą. Wywołanie
+  jest idempotentne (ta sama nazwa + godzina = pominięcie), a pozycja spoza
+  bieżącej wersji planu jest odrzucana (422).
+* Granice roli trenera: aplikacja niczego nie dobiera ani nie modyfikuje
+  dawkowania — wyłącznie przechowuje zalecenie wprowadzone przez człowieka.
+  Klient widzi przy suplementacji jednoznaczną informację, że suplementy nie
+  są lekami, trener nie stawia diagnoz, a zmiany warto konsultować z lekarzem
+  lub dietetykiem (zwłaszcza przy chorobach, lekach, ciąży i karmieniu).
+  Trener przy edycji widzi zadeklarowane przez klienta alergie
+  i nietolerancje.
+* Audyt notuje fakt zmiany i LICZBĘ pozycji suplementacji — nigdy nazwy
+  preparatów (nie powielamy danych zdrowotnych w dzienniku zdarzeń).
+* Seed demo: plan „Redukcja 2300 kcal" ma teraz przykładową suplementację
+  (witamina D3 z zaleceniem lekarza, kreatyna z zaleceniem trenera).
+* Testy: 335 → 341 (walidacja kompletności wpisu, historia wersji przy
+  zmianie suplementacji, audyt bez nazw preparatów, przypomnienia z planu
+  + idempotencja, pozycja spoza planu, brak edycji przez klienta i izolacja
+  cudzego planu).
+
 ## 0.17.0 — 2026-08-18
 
 Runda czysto prezentacyjna: **responsywność, wygląd i dostępność**

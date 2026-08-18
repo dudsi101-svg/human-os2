@@ -81,6 +81,29 @@ class WorkoutSessionIn(BaseModel):
     entries: list[WorkoutEntryIn] = []
 
 
+class SupplementIn(BaseModel):
+    """Pozycja suplementacji w planie żywieniowym.
+
+    Trener personalny NIE jest lekarzem ani dietetykiem klinicznym: system
+    wyłącznie PRZECHOWUJE zalecenie wprowadzone przez człowieka i wymaga
+    jawnej proweniencji (`source`) — nigdy sam nie dobiera preparatu ani
+    dawki. Pola `purpose`, `dose` i `timing` są obowiązkowe, żeby w planie
+    nie lądowała naga nazwa preparatu bez celu i sposobu przyjmowania."""
+
+    name: str = Field(min_length=1, max_length=200)
+    dose: str = Field(min_length=1, max_length=120)
+    timing: str = Field(min_length=1, max_length=200)
+    purpose: str = Field(min_length=1, max_length=300)
+    # Podstawa zalecenia: kto je wydał i na jakiej podstawie (np. „zalecenie
+    # lekarza z 2026-07-12", „wynik badań", „konsultacja dietetyczna").
+    source: str = Field(min_length=1, max_length=300)
+    form: str | None = Field(default=None, max_length=60)
+    duration: str | None = Field(default=None, max_length=120)
+    notes: str | None = Field(default=None, max_length=1000)
+    # Deklaracja trenera, że preparat był konsultowany ze specjalistą.
+    specialist_consulted: bool = False
+
+
 class NutritionVersionIn(BaseModel):
     reason: str = Field(min_length=1, max_length=2000)
     kcal: int | None = Field(default=None, ge=0, le=20000)
@@ -89,6 +112,7 @@ class NutritionVersionIn(BaseModel):
     carbs_g: int | None = Field(default=None, ge=0, le=4000)
     sections: list[dict] = []  # [{"title","body"}]
     meals: list[dict] = []  # [{"name","description","swaps"}]
+    supplements: list[SupplementIn] = Field(default_factory=list, max_length=40)
     document_id: str | None = None
 
 
@@ -96,6 +120,20 @@ class NutritionCreateIn(BaseModel):
     client_id: str
     title: str = Field(min_length=1, max_length=300)
     version: NutritionVersionIn
+
+
+class SupplementReminderIn(BaseModel):
+    """Prośba o przypomnienie dla JEDNEJ pozycji suplementacji. Dawka
+    i sposób przyjmowania są brane z planu (po nazwie) — tutaj wskazujemy
+    tylko, o której i w jakie dni przypominać."""
+
+    name: str = Field(min_length=1, max_length=200)
+    time_of_day: str = Field(pattern=r"^\d{2}:\d{2}$")
+    days_of_week: str = Field(default="1,2,3,4,5,6,7", max_length=30)
+
+
+class SupplementRemindersIn(BaseModel):
+    entries: list[SupplementReminderIn] = Field(min_length=1, max_length=40)
 
 
 class ScheduleItemIn(BaseModel):
