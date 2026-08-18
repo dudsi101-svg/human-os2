@@ -24,18 +24,40 @@ def _upload_png(client, headers) -> str:
     return r.json()["id"]
 
 
+def _db_member() -> str:
+    """Nazwa wpisu z bazą w archiwum — zależy od silnika.
+
+    SQLite trafia do archiwum jako plik bazy, PostgreSQL jako zrzut
+    `pg_dump`. Test ma sprawdzać, że baza JEST w kopii, a nie zakładać
+    jeden silnik (zestaw chodzi na obu — patrz DZIK_TEST_DATABASE_URL)."""
+    return (
+        "db/dzik.db"
+        if settings.database_url.startswith("sqlite")
+        else "db/dzik.sql"
+    )
+
+
 def _destroy_data() -> None:
     """Symulacja utraty danych: kasuje bazę, audit.db i uploady."""
     import shutil
     from pathlib import Path
 
-    from dzik_os.db import engine
+    from dzik_os.db import Base, engine
 
-    engine.dispose()
     hos_bridge.reset_event_store()
     db_file = backup_mod._sqlite_path(settings.database_url)
-    assert db_file is not None
-    db_file.unlink()
+    if db_file is not None:
+        engine.dispose()
+        db_file.unlink()
+    else:
+        # PostgreSQL: nie ma pliku do skasowania — utratę danych symulujemy
+        # usunięciem schematu (odtworzenie i tak odtwarza go ze zrzutu).
+        from sqlalchemy import text
+
+        Base.metadata.drop_all(engine)
+        with engine.begin() as conn:
+            conn.execute(text("DROP TABLE IF EXISTS schema_migrations"))
+        engine.dispose()
     Path(settings.audit_db_path).unlink()
     shutil.rmtree(settings.upload_dir)
 
@@ -53,7 +75,7 @@ def test_full_backup_restore_cycle(seeded, tmp_path):
     with tarfile.open(archive) as tar:
         names = tar.getnames()
     assert "manifest.json" in names
-    assert "db/dzik.db" in names
+    assert _db_member() in names
     assert "audit/audit.db" in names
     assert any(name.startswith("uploads/") for name in names)
 

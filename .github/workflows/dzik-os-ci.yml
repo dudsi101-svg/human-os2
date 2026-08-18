@@ -39,6 +39,50 @@ jobs:
       - name: Dzik OS backend tests
         run: pytest apps/dzik-os/backend/tests -q
 
+  # Ten sam zestaw testów na PostgreSQL.
+  #
+  # Audyt 18.08.2026: PostgreSQL był zadeklarowany w `pyproject.toml`, w gałęzi
+  # kopii zapasowych i w indeksach częściowych modeli — a nie wykonała się na
+  # nim ANI JEDNA linia. Pierwszy przebieg wykazał, czego SQLite nie mógł
+  # pokazać: SQLite domyślnie nie egzekwuje kluczy obcych, więc kod potrafił
+  # zapisywać rekordy wskazujące na jeszcze nieistniejące wiersze.
+  #
+  # BLOKUJĄCY od 18.08.2026. Job wszedł jako nieblokujący, na czas dochodzenia
+  # do zieloności; warunek zdjęcia flagi brzmiał „stabilnie zielony przebieg".
+  # Spełniony: dwa kolejne pełne przebiegi na PostgreSQL zakończyły się
+  # powodzeniem (w tym cykl kopia→odtworzenie przez pg_dump/psql, który
+  # wymagał naprawy `--clean --if-exists`). Od teraz regres na PG zatrzymuje
+  # build tak samo jak na SQLite — inaczej ta bramka tylko raportowałaby
+  # w tle i nikt by jej nie czytał.
+  backend-postgres:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: dzik_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install hos_engine + backend (z PostgreSQL)
+        run: |
+          pip install -e ".[dev]"
+          pip install -e "apps/dzik-os/backend[dev,postgres]"
+      - name: Dzik OS backend tests na PostgreSQL
+        env:
+          DZIK_TEST_DATABASE_URL: postgresql+psycopg2://postgres:postgres@127.0.0.1:5432/dzik_test
+        run: pytest apps/dzik-os/backend/tests -q
+
   frontend:
     runs-on: ubuntu-latest
     steps:
@@ -54,3 +98,46 @@ jobs:
       - name: Dependency audit (informational)
         working-directory: apps/dzik-os/frontend
         run: npm audit --omit=dev || true
+
+  # Testy E2E: jedyna bramka, która sprawdza interfejs w działaniu.
+  # Testy jednostkowe frontendu pokrywają wyłącznie funkcje pomocnicze,
+  # a testy backendu wołają API z pominięciem przeglądarki — bez tego joba
+  # regresja w ekranie logowania czy raportu przechodziła niezauważona.
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install backend
+        run: |
+          pip install -e ".[dev]"
+          pip install -e "apps/dzik-os/backend[dev]"
+      - name: Install frontend and build
+        working-directory: apps/dzik-os/frontend
+        # E2E chodzi po zbudowanym `dist/` serwowanym przez backend,
+        # czyli po tej samej ścieżce co produkcja.
+        run: |
+          npm install --no-audit --no-fund
+          npm run build
+      - name: Install Chromium
+        working-directory: apps/dzik-os/frontend
+        run: npx playwright install --with-deps chromium
+      - name: E2E (Playwright)
+        working-directory: apps/dzik-os/frontend
+        env:
+          DZIK_E2E_STAMP: ${{ github.run_id }}
+        run: npx playwright test
+      - name: Raport z nieudanego przebiegu
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            apps/dzik-os/frontend/playwright-report
+            apps/dzik-os/frontend/test-results
+          retention-days: 7

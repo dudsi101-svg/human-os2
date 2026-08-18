@@ -137,6 +137,10 @@ def create_client(
             must_change_password=False,
         )
         db.add(client)
+        # Konto musi istnieć w bazie przed wszystkim, co wskazuje na nie
+        # kluczem obcym (rola, relacja, wątek). SQLite nie egzekwuje kluczy
+        # obcych i wybaczał dowolną kolejność; PostgreSQL odrzuca zapis.
+        db.flush()
         db.add(
             RoleGrant(
                 id=new_id("ROL"), user_id=client.id, role="CLIENT",

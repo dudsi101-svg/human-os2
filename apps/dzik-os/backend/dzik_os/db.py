@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Iterator
 from contextlib import contextmanager
 
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine, event, text
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
 from .config import settings
@@ -15,7 +15,21 @@ class Base(DeclarativeBase):
 
 def _make_engine(url: str):
     if url.startswith("sqlite"):
-        return create_engine(url, connect_args={"check_same_thread": False})
+        eng = create_engine(url, connect_args={"check_same_thread": False})
+
+        # SQLite domyślnie NIE egzekwuje kluczy obcych — trzeba go o to
+        # poprosić na każdym połączeniu z osobna. Bez tego baza przyjmuje
+        # wiersze wskazujące na nieistniejące rekordy, a błąd ujawnia się
+        # dopiero na PostgreSQL, czyli przy wdrożeniu produkcyjnym
+        # (audyt 18.08.2026: zakładanie konta klienta przez trenera
+        # wywracało się na PG, przechodząc na SQLite — patrz R-17).
+        @event.listens_for(eng, "connect")
+        def _wymus_klucze_obce(dbapi_connection, _record):
+            cur = dbapi_connection.cursor()
+            cur.execute("PRAGMA foreign_keys=ON")
+            cur.close()
+
+        return eng
     return create_engine(url, pool_pre_ping=True)
 
 
@@ -29,7 +43,7 @@ SessionLocal = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False
 MIGRATIONS: list[tuple[int, str, list[str]]] = [
     (1, "initial schema (created from ORM metadata)", []),
     (2, "forced password change + consent confirmation", [
-        "ALTER TABLE users ADD COLUMN must_change_password BOOLEAN NOT NULL DEFAULT 0",
+        "ALTER TABLE users ADD COLUMN must_change_password BOOLEAN NOT NULL DEFAULT false",
         "ALTER TABLE consents ADD COLUMN confirmed_at VARCHAR(40)",
     ]),
     (3, "monitoring: schedule adherence, observations, daily nutrition log", [
@@ -99,7 +113,7 @@ MIGRATIONS: list[tuple[int, str, list[str]]] = [
             body TEXT,
             external_url VARCHAR(500),
             file_id VARCHAR(40) REFERENCES files(id),
-            pinned BOOLEAN NOT NULL DEFAULT 0,
+            pinned BOOLEAN NOT NULL DEFAULT false,
             status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
             created_by VARCHAR(40) NOT NULL,
             created_at VARCHAR(40) NOT NULL,
@@ -359,7 +373,7 @@ MIGRATIONS: list[tuple[int, str, list[str]]] = [
             user_id VARCHAR(40) NOT NULL REFERENCES users(id),
             category VARCHAR(20) NOT NULL,
             channel VARCHAR(10) NOT NULL,
-            enabled BOOLEAN NOT NULL DEFAULT 1,
+            enabled BOOLEAN NOT NULL DEFAULT true,
             updated_at VARCHAR(40) NOT NULL,
             UNIQUE(user_id, category, channel)
         )
@@ -479,7 +493,7 @@ MIGRATIONS: list[tuple[int, str, list[str]]] = [
             visibility VARCHAR(20) NOT NULL DEFAULT 'INVITE_ONLY',
             status VARCHAR(20) NOT NULL DEFAULT 'DRAFT',
             max_entries_per_day INTEGER NOT NULL DEFAULT 5,
-            aggregates_adjusted BOOLEAN NOT NULL DEFAULT 0,
+            aggregates_adjusted BOOLEAN NOT NULL DEFAULT false,
             created_at VARCHAR(40) NOT NULL,
             updated_at VARCHAR(40) NOT NULL,
             finished_at VARCHAR(40),
@@ -494,9 +508,9 @@ MIGRATIONS: list[tuple[int, str, list[str]]] = [
             user_id VARCHAR(40) NOT NULL REFERENCES users(id),
             status VARCHAR(20) NOT NULL DEFAULT 'INVITED',
             alias VARCHAR(80),
-            share_result BOOLEAN NOT NULL DEFAULT 0,
-            ranking_opt_in BOOLEAN NOT NULL DEFAULT 0,
-            auto_count_workouts BOOLEAN NOT NULL DEFAULT 0,
+            share_result BOOLEAN NOT NULL DEFAULT false,
+            ranking_opt_in BOOLEAN NOT NULL DEFAULT false,
+            auto_count_workouts BOOLEAN NOT NULL DEFAULT false,
             invited_by VARCHAR(40),
             invited_at VARCHAR(40),
             joined_at VARCHAR(40),
@@ -593,7 +607,7 @@ MIGRATIONS: list[tuple[int, str, list[str]]] = [
             summary_mode VARCHAR(20) NOT NULL DEFAULT 'FORM',
             summary_mode_reason TEXT,
             current_step_id VARCHAR(40),
-            safety_flag BOOLEAN NOT NULL DEFAULT 0,
+            safety_flag BOOLEAN NOT NULL DEFAULT false,
             safety_flag_at VARCHAR(40),
             ai_rejections INTEGER NOT NULL DEFAULT 0,
             started_at VARCHAR(40) NOT NULL,
@@ -619,12 +633,12 @@ MIGRATIONS: list[tuple[int, str, list[str]]] = [
             step_id VARCHAR(40) NOT NULL,
             topic VARCHAR(80) NOT NULL,
             value TEXT NOT NULL DEFAULT '',
-            skipped BOOLEAN NOT NULL DEFAULT 0,
-            sensitive BOOLEAN NOT NULL DEFAULT 0,
-            safety_flagged BOOLEAN NOT NULL DEFAULT 0,
+            skipped BOOLEAN NOT NULL DEFAULT false,
+            sensitive BOOLEAN NOT NULL DEFAULT false,
+            safety_flagged BOOLEAN NOT NULL DEFAULT false,
             safety_signals TEXT,
             version INTEGER NOT NULL DEFAULT 1,
-            is_current BOOLEAN NOT NULL DEFAULT 1,
+            is_current BOOLEAN NOT NULL DEFAULT true,
             created_at VARCHAR(40) NOT NULL,
             UNIQUE(session_id, step_id, version)
         )
@@ -646,11 +660,11 @@ MIGRATIONS: list[tuple[int, str, list[str]]] = [
             step_id VARCHAR(40),
             origin VARCHAR(20) NOT NULL DEFAULT 'DETERMINISTIC',
             confidence VARCHAR(10) NOT NULL DEFAULT 'HIGH',
-            needs_confirmation BOOLEAN NOT NULL DEFAULT 0,
-            sensitive BOOLEAN NOT NULL DEFAULT 0,
-            coach_confirmed BOOLEAN NOT NULL DEFAULT 0,
+            needs_confirmation BOOLEAN NOT NULL DEFAULT false,
+            sensitive BOOLEAN NOT NULL DEFAULT false,
+            coach_confirmed BOOLEAN NOT NULL DEFAULT false,
             version INTEGER NOT NULL DEFAULT 1,
-            is_current BOOLEAN NOT NULL DEFAULT 1,
+            is_current BOOLEAN NOT NULL DEFAULT true,
             created_at VARCHAR(40) NOT NULL,
             UNIQUE(session_id, field_key, version)
         )
@@ -755,6 +769,14 @@ MIGRATIONS: list[tuple[int, str, list[str]]] = [
     # Numer 21 jest zarezerwowany dla równoległej rundy — luka w numeracji
     # jest świadoma. `run_migrations` idzie po numerach z tej listy, więc
     # dołożenie 21 przy scaleniu nic tu nie psuje.
+    # Numer 21 nigdy nie istniał — kolejna migracja dostała od razu 22.
+    # Luki w numeracji nie wolno zostawić otwartej: baza stosuje wyłącznie
+    # BRAKUJĄCE numery, więc gdyby ktoś później dopisał migrację 21, na
+    # bazach mających już 22 wykonałaby się PO niej, łamiąc kolejność.
+    # Zamknięcie luki pustym wpisem jest bezpieczne dla obu przypadków:
+    # istniejąca baza tylko stempluje wersję (zero instrukcji), a nowa
+    # dostaje schemat z metadanych ORM jak zawsze.
+    (21, "numer niewykorzystany (luka domknięta, brak zmian schematu)", []),
     (22, "baza ćwiczeń: proweniencja wpisu (skąd wzięły się dane)", [
         # Czysto addytywna: dwie nowe kolumny NULLable na istniejącej
         # tabeli. NULL znaczy „ćwiczenie sprzed tej migracji, nie wiemy” —

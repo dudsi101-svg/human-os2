@@ -238,6 +238,8 @@ def submit_checkin(
             revision=1,
         )
         db.add(checkin)
+        # Raport przed swoimi zdjęciami (klucz obcy checkin_id w ProgressPhoto).
+        db.flush()
         action = "CHECKIN_SUBMITTED"
     attached = _attach_photos(db, user, checkin, client_id, specs)
     if body.photos_expected is not None:
