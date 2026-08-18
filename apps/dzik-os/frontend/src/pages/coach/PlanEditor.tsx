@@ -56,27 +56,27 @@ export default function PlanEditor({
 
   return (
     <form className="card card--accent" onSubmit={save}>
-      <h3>{existingPlan ? `Nowa wersja: ${existingPlan.title}` : "Nowy plan treningowy"}</h3>
+      <h2>{existingPlan ? `Nowa wersja: ${existingPlan.title}` : "Nowy plan treningowy"}</h2>
       {!existingPlan && (
         <>
-          <label>Nazwa planu</label>
-          <input required value={title} onChange={(e) => setTitle(e.target.value)} />
+          <label htmlFor="pe-title">Nazwa planu</label>
+          <input id="pe-title" required value={title} onChange={(e) => setTitle(e.target.value)} />
         </>
       )}
-      <label>Powód {existingPlan ? "zmiany" : "utworzenia"} (obowiązkowy — trafia do historii)</label>
-      <input required value={reason} onChange={(e) => setReason(e.target.value)}
+      <label htmlFor="pe-reason">Powód {existingPlan ? "zmiany" : "utworzenia"} (obowiązkowy — trafia do historii)</label>
+      <input id="pe-reason" required value={reason} onChange={(e) => setReason(e.target.value)}
         placeholder="np. progresja po raporcie z tygodnia 3" />
       {days.map((day, di) => (
         <div key={di} className="card" style={{ marginTop: 10 }}>
           <div className="field-row">
             <div>
-              <label>Nazwa dnia</label>
-              <input value={day.name} onChange={(e) => setDay(di, { ...day, name: e.target.value })}
+              <label htmlFor={`pe-day-name-${di}`}>Nazwa dnia</label>
+              <input id={`pe-day-name-${di}`} value={day.name} onChange={(e) => setDay(di, { ...day, name: e.target.value })}
                 placeholder="np. Trening A — góra" />
             </div>
             <div>
-              <label>Dzień tygodnia</label>
-              <select value={day.weekday ?? ""}
+              <label htmlFor={`pe-day-weekday-${di}`}>Dzień tygodnia</label>
+              <select id={`pe-day-weekday-${di}`} value={day.weekday ?? ""}
                 onChange={(e) => setDay(di, { ...day, weekday: e.target.value ? Number(e.target.value) : null })}>
                 <option value="">— dowolny —</option>
                 {WEEKDAYS.map((w, i) => (
@@ -87,8 +87,8 @@ export default function PlanEditor({
           </div>
           {day.exercises.map((ex, ei) => (
             <div key={ei} style={{ borderTop: "1px solid var(--border)", paddingTop: 8, marginTop: 8 }}>
-              <label>Ćwiczenie {ei + 1}</label>
-              <input value={ex.name} placeholder="nazwa ćwiczenia"
+              <label htmlFor={`pe-ex-${di}-${ei}`}>Ćwiczenie {ei + 1}</label>
+              <input id={`pe-ex-${di}-${ei}`} value={ex.name} placeholder="nazwa ćwiczenia"
                 onChange={(e) => {
                   const exs = [...day.exercises];
                   exs[ei] = { ...ex, name: e.target.value };
@@ -97,6 +97,7 @@ export default function PlanEditor({
               <div className="field-row-3" style={{ marginTop: 6 }}>
                 {(["sets", "reps", "weight"] as const).map((f) => (
                   <input key={f} value={(ex[f] as string) ?? ""}
+                    aria-label={`Ćwiczenie ${ei + 1} — ${{ sets: "serie", reps: "powtórzenia", weight: "ciężar" }[f]}`}
                     placeholder={{ sets: "serie", reps: "powt.", weight: "ciężar" }[f]}
                     onChange={(e) => {
                       const exs = [...day.exercises];
@@ -107,12 +108,14 @@ export default function PlanEditor({
               </div>
               <div className="field-row" style={{ marginTop: 6 }}>
                 <input value={ex.tempo ?? ""} placeholder="tempo (np. 2011)"
+                  aria-label={`Ćwiczenie ${ei + 1} — tempo`}
                   onChange={(e) => {
                     const exs = [...day.exercises];
                     exs[ei] = { ...ex, tempo: e.target.value };
                     setDay(di, { ...day, exercises: exs });
                   }} />
                 <input value={ex.rest ?? ""} placeholder="przerwa (np. 120 s)"
+                  aria-label={`Ćwiczenie ${ei + 1} — przerwa`}
                   onChange={(e) => {
                     const exs = [...day.exercises];
                     exs[ei] = { ...ex, rest: e.target.value };
@@ -120,12 +123,14 @@ export default function PlanEditor({
                   }} />
               </div>
               <input style={{ marginTop: 6 }} value={ex.comment ?? ""} placeholder="komentarz"
+                aria-label={`Ćwiczenie ${ei + 1} — komentarz`}
                 onChange={(e) => {
                   const exs = [...day.exercises];
                   exs[ei] = { ...ex, comment: e.target.value };
                   setDay(di, { ...day, exercises: exs });
                 }} />
               <input style={{ marginTop: 6 }} value={ex.video_url ?? ""}
+                aria-label={`Ćwiczenie ${ei + 1} — link do filmu instruktażowego`}
                 placeholder="link do filmu instruktażowego (https://…)"
                 onChange={(e) => {
                   const exs = [...day.exercises];

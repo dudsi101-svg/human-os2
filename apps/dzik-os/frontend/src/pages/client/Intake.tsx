@@ -59,25 +59,29 @@ export default function Intake() {
         Twój trener (za Twoją zgodą).
       </p>
       <form className="card" onSubmit={submit}>
+        <h2 className="sr-only">Pytania wywiadu</h2>
         <SectionLabel n={1} title="Cel" />
-        <label>Twój główny cel *</label>
-        <input required value={goal} placeholder="np. redukcja 6 kg do wakacji"
+        <label htmlFor="in-goal">Twój główny cel *</label>
+        <input id="in-goal" required value={goal} placeholder="np. redukcja 6 kg do wakacji"
           onChange={(e) => setGoal(e.target.value)} />
 
         <SectionLabel n={2} title="Trening" />
-        <label>Doświadczenie</label>
-        <select value={experience} onChange={(e) => setExperience(e.target.value)}>
+        <label htmlFor="in-exp">Doświadczenie</label>
+        <select id="in-exp" value={experience} onChange={(e) => setExperience(e.target.value)}>
           <option value="">— wybierz —</option>
           <option>Zaczynam od zera</option>
           <option>Trenowałem(-am) kiedyś, wracam po przerwie</option>
           <option>Trenuję regularnie do 2 lat</option>
           <option>Trenuję regularnie ponad 2 lata</option>
         </select>
-        <label>Dni, w które możesz trenować</label>
-        <div className="row" style={{ flexWrap: "wrap", gap: 4 }}>
+        <span style={{ display: "block", fontSize: "0.85rem", color: "var(--text-dim)", margin: "10px 0 4px" }} id="in-days-label">
+          Dni, w które możesz trenować
+        </span>
+        <div className="row" style={{ flexWrap: "wrap", gap: 4 }} role="group" aria-labelledby="in-days-label">
           {WEEKDAYS.map((w, i) => (
             <button type="button" key={i}
               className="btn btn--ghost btn--small"
+              aria-pressed={days.includes(i + 1)}
               style={days.includes(i + 1)
                 ? { background: "var(--accent)", color: "var(--accent-ink)" } : {}}
               onClick={() => setDays(days.includes(i + 1)
@@ -86,19 +90,19 @@ export default function Intake() {
             </button>
           ))}
         </div>
-        <label>Dostępny sprzęt / miejsce treningu</label>
-        <input value={equipment} placeholder="np. siłownia komercyjna / hantle w domu"
+        <label htmlFor="in-equipment">Dostępny sprzęt / miejsce treningu</label>
+        <input id="in-equipment" value={equipment} placeholder="np. siłownia komercyjna / hantle w domu"
           onChange={(e) => setEquipment(e.target.value)} />
 
         <SectionLabel n={3} title="Żywienie i zdrowie" />
-        <label>Preferencje żywieniowe</label>
-        <input value={dietPrefs} placeholder="np. nie jem ryb; lubię proste posiłki"
+        <label htmlFor="in-dietprefs">Preferencje żywieniowe</label>
+        <input id="in-dietprefs" value={dietPrefs} placeholder="np. nie jem ryb; lubię proste posiłki"
           onChange={(e) => setDietPrefs(e.target.value)} />
-        <label>Alergie i nietolerancje</label>
-        <input value={allergies} placeholder="np. orzechy, laktoza"
+        <label htmlFor="in-allergies">Alergie i nietolerancje</label>
+        <input id="in-allergies" value={allergies} placeholder="np. orzechy, laktoza"
           onChange={(e) => setAllergies(e.target.value)} />
-        <label>Kontuzje i ograniczenia zdrowotne</label>
-        <textarea value={injuries}
+        <label htmlFor="in-injuries">Kontuzje i ograniczenia zdrowotne</label>
+        <textarea id="in-injuries" value={injuries}
           placeholder="np. przebyty uraz barku — unikam wyciskania za głowę"
           onChange={(e) => setInjuries(e.target.value)} />
         <small className="dim">

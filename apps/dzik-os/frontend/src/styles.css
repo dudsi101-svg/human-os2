@@ -11,7 +11,9 @@
   --bg-card: #191d21;
   --bg-hover: #20252a;
   --border: rgba(255, 255, 255, 0.08);
-  --border-strong: rgba(255, 255, 255, 0.14);
+  /* Obrys elementów interaktywnych (pola, przyciski ghost, taby):
+     ~3:1 względem tła karty (WCAG 1.4.11 dla granic komponentów). */
+  --border-strong: rgba(255, 255, 255, 0.34);
   --text: #eef0f2;
   --text-dim: #97a1ab;
   --accent: #b3f23e;
@@ -55,6 +57,31 @@ h2 {
 h3 { font-size: 0.95rem; font-weight: 700; margin: 0 0 6px; }
 small, .dim { color: var(--text-dim); }
 
+/* Widoczny wskaźnik fokusu dla nawigacji klawiaturą (spójny w całej
+   aplikacji; pola formularzy mają dodatkowo własny obrys akcentu). */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Link pomijający nawigację — pierwszy element fokusowalny strony. */
+.skip-link {
+  position: fixed; top: 0; left: 0; z-index: 300;
+  transform: translateY(-150%);
+  background: var(--accent); color: var(--accent-ink);
+  font-weight: 700; padding: 10px 16px;
+  border-radius: 0 0 var(--radius-sm) 0;
+}
+.skip-link:focus-visible { transform: translateY(0); }
+
+/* Tekst tylko dla czytników ekranu. */
+.sr-only {
+  position: absolute; width: 1px; height: 1px;
+  padding: 0; margin: -1px; overflow: hidden;
+  clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
 .page {
   max-width: 720px;
   margin: 0 auto;
@@ -89,7 +116,18 @@ a.card:active, button.card:active { transform: scale(0.995); }
     radial-gradient(120% 140% at 0% 0%, var(--accent-glow), transparent 55%),
     var(--bg-card);
 }
-.card h3 { display: flex; align-items: center; gap: 8px; }
+/* Nagłówki kart: semantycznie h2 (pod h1 strony), wizualnie jak dotąd.
+   Zagnieżdżone h3 wewnątrz kart wyglądają identycznie. */
+.card h2, .card h3 {
+  font-family: var(--font-body);
+  font-size: 0.95rem; font-weight: 700; letter-spacing: 0;
+  margin: 0 0 6px;
+  display: flex; align-items: center; gap: 8px;
+}
+.card h2 svg, .card h3 svg { flex-shrink: 0; color: var(--accent); }
+/* Karta-link nawigacyjna (lista skrótów w „Więcej"). */
+a.card--nav { display: flex; align-items: center; gap: 12px; }
+a.card--nav svg { flex-shrink: 0; color: var(--accent); }
 
 .list { display: flex; flex-direction: column; gap: 10px; }
 
@@ -99,6 +137,7 @@ a.card:active, button.card:active { transform: scale(0.995); }
   border: none; border-radius: var(--radius-sm);
   padding: 12px 18px; font-size: 1rem; font-weight: 700;
   cursor: pointer; width: 100%;
+  min-height: 44px; /* obszar dotykowy ~44 px */
   transition: transform 140ms var(--ease-out), filter 140ms var(--ease-out), opacity 140ms;
 }
 .btn:disabled { opacity: 0.5; cursor: default; }
@@ -109,7 +148,11 @@ a.card:active, button.card:active { transform: scale(0.995); }
   border: 1px solid var(--border-strong);
 }
 .btn--ghost:not(:disabled):hover { background: var(--bg-hover); filter: none; }
-.btn--small { width: auto; padding: 8px 14px; font-size: 0.9rem; }
+.btn--small { width: auto; padding: 8px 14px; font-size: 0.9rem; min-height: 38px; }
+/* Na ekranach dotykowych każdy interaktywny element ma min. ~44 px. */
+@media (pointer: coarse) {
+  .btn--small, .tabs button, .knowledge-card__toggle { min-height: 44px; }
+}
 .btn--danger { background: transparent; color: var(--danger); border: 1px solid var(--danger); }
 .btn--danger:not(:disabled):hover { background: rgba(255, 122, 122, 0.1); filter: none; }
 
@@ -130,17 +173,31 @@ input:focus, textarea:focus, select:focus {
 }
 label { display: block; font-size: 0.85rem; color: var(--text-dim); margin: 10px 0 4px; }
 textarea { min-height: 84px; resize: vertical; }
+/* Pola wyboru: większy, dotykalny rozmiar + kolor marki. */
+input[type="checkbox"], input[type="radio"] {
+  width: 20px; height: 20px; accent-color: var(--accent); flex-shrink: 0;
+}
 
 .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .field-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+/* Na bardzo wąskich ekranach pola formularzy schodzą do jednej kolumny;
+   .field-row--keep zostaje obok siebie (naprawdę krótkie pary, np. kg × powt.). */
+@media (max-width: 459px) {
+  .field-row:not(.field-row--keep),
+  .field-row-3:not(.field-row--keep) { grid-template-columns: 1fr; }
+}
 
-.section-label {
+/* Nagłówek sekcji formularza — semantycznie h3 (pod h2 karty); selektory
+   z elementem wygrywają z ogólnym stylem .card h3. */
+h3.section-label, .card h3.section-label {
   display: flex; align-items: center; gap: 10px;
   margin: 22px 0 10px; padding-top: 16px; border-top: 1px solid var(--border);
   font-family: var(--font-display); font-weight: 600;
   font-size: 0.88rem; letter-spacing: 0.2px;
 }
-.section-label:first-of-type { margin-top: 14px; padding-top: 0; border-top: none; }
+h3.section-label:first-of-type, .card h3.section-label:first-of-type {
+  margin-top: 14px; padding-top: 0; border-top: none;
+}
 .section-label__num {
   display: inline-flex; align-items: center; justify-content: center;
   width: 22px; height: 22px; border-radius: 999px;
@@ -148,8 +205,11 @@ textarea { min-height: 84px; resize: vertical; }
   font-family: var(--font-body); font-size: 0.75rem; font-weight: 800; flex-shrink: 0;
 }
 .scale-row { margin-bottom: 14px; }
-.scale-row input[type="range"] { margin-top: 6px; accent-color: var(--accent); }
-.scale-row__hint { font-size: 0.72rem; color: var(--text-dim); margin-top: 2px; }
+.scale-row input[type="range"] {
+  margin-top: 6px; accent-color: var(--accent);
+  height: 28px; /* wygodniejszy uchwyt dotykowy suwaka */
+}
+.scale-row__hint { font-size: 0.75rem; color: var(--text-dim); margin-top: 2px; }
 
 .badge {
   display: inline-block; padding: 2px 10px; border-radius: 999px;
@@ -175,14 +235,18 @@ textarea { min-height: 84px; resize: vertical; }
 .nav a {
   flex: 1; display: flex; flex-direction: column; align-items: center;
   justify-content: center; gap: 2px;
-  color: var(--text-dim); font-size: 0.66rem; font-weight: 600;
+  /* min. 12 px — etykiety nawigacji muszą być czytelne */
+  color: var(--text-dim); font-size: 0.75rem; font-weight: 600;
   transition: color 140ms var(--ease-out);
 }
 .nav a.active { color: var(--accent); }
 .nav svg { width: 22px; height: 22px; transition: transform 200ms var(--ease-out); }
 .nav a.active svg { transform: translateY(-1px); }
 
-.row { display: flex; align-items: center; gap: 10px; }
+/* Wiersze łamią się zamiast wypychać stronę w bok na wąskich ekranach;
+   min-width:0 pozwala polom (input.grow) kurczyć się w kontenerze flex. */
+.row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.row > * { min-width: 0; }
 .row--between { justify-content: space-between; }
 .grow { flex: 1; }
 
@@ -191,16 +255,45 @@ textarea { min-height: 84px; resize: vertical; }
 .alert--info { background: var(--accent-soft); color: var(--accent); }
 .alert--warn { background: rgba(240, 180, 80, 0.12); color: var(--warn); }
 
+/* Tabele: na szerszych ekranach klasyczna tabela w kontenerze z
+   kontrolowanym przewijaniem poziomym; na wąskich — karty wierszy z
+   etykietami danych (data-label na każdej komórce). */
+.table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 table.simple { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
 table.simple th, table.simple td {
   text-align: left; padding: 8px 8px; border-bottom: 1px solid var(--border);
 }
 table.simple th { color: var(--text-dim); font-weight: 600; font-size: 0.78rem; }
+@media (max-width: 620px) {
+  table.table--cards thead {
+    position: absolute; width: 1px; height: 1px; overflow: hidden;
+    clip: rect(0 0 0 0); white-space: nowrap;
+  }
+  table.table--cards, table.table--cards tbody,
+  table.table--cards tr, table.table--cards td { display: block; width: 100%; }
+  table.table--cards tr {
+    background: var(--bg-raised);
+    border: 1px solid var(--border); border-radius: var(--radius-sm);
+    padding: 8px 12px; margin-bottom: 8px;
+  }
+  table.table--cards td {
+    display: flex; justify-content: space-between; align-items: baseline;
+    gap: 12px; border-bottom: none; padding: 3px 0;
+  }
+  table.table--cards td::before {
+    content: attr(data-label);
+    color: var(--text-dim); font-size: 0.78rem; font-weight: 600;
+    flex-shrink: 0;
+  }
+  table.table--cards td:not([data-label])::before,
+  table.table--cards td[data-label=""]::before { content: none; }
+  table.table--cards td:empty { display: none; }
+}
 
 .msg { max-width: 82%; padding: 10px 13px; border-radius: 16px; margin-bottom: 8px; }
 .msg--own { background: var(--accent); color: var(--accent-ink); margin-left: auto; border-bottom-right-radius: 4px; }
 .msg--other { background: var(--bg-card); border: 1px solid var(--border); border-bottom-left-radius: 4px; }
-.msg small { display: block; opacity: 0.75; font-size: 0.68rem; margin-top: 3px; color: inherit; }
+.msg small { display: block; opacity: 0.85; font-size: 0.75rem; margin-top: 3px; color: inherit; }
 
 .tabs { display: flex; gap: 6px; overflow-x: auto; margin-bottom: 14px; padding-bottom: 2px; }
 .tabs button {
@@ -215,6 +308,9 @@ table.simple th { color: var(--text-dim); font-weight: 600; font-size: 0.78rem; 
 .exercise {
   display: grid; grid-template-columns: 1fr auto; gap: 4px 10px;
   padding: 10px 0; border-bottom: 1px solid var(--border);
+  /* start, nie stretch: plakietka/przycisk w prawej kolumnie nie rozciąga
+     się na wysokość wielolinijkowego tekstu (balonowate pigułki). */
+  align-items: start;
 }
 .exercise:last-child { border-bottom: none; }
 .exercise .meta { color: var(--text-dim); font-size: 0.85rem; }
@@ -266,6 +362,19 @@ table.simple th { color: var(--text-dim); font-weight: 600; font-size: 0.78rem; 
   align-items: center; justify-content: center; padding: 24px;
 }
 .login-box { width: 100%; max-width: 380px; }
+.login-logo {
+  width: min(78%, 300px); height: auto;
+  display: block; margin: 0 auto 8px;
+}
+/* Niskie ekrany (telefon w orientacji poziomej): mniejsze logo i układ
+   od góry, żeby formularz logowania mieścił się bez walki o wysokość. */
+@media (max-height: 640px) {
+  .login-wrap { justify-content: flex-start; padding-top: 16px; }
+  .login-logo {
+    width: auto; height: clamp(64px, 22vh, 110px);
+    margin-bottom: 4px;
+  }
+}
 
 @keyframes card-in {
   from { opacity: 0; transform: translateY(6px); }
@@ -280,8 +389,21 @@ table.simple th { color: var(--text-dim); font-weight: 600; font-size: 0.78rem; 
       transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
 }
 
+/* Tablet (768 px): więcej oddechu, statystyki w 4 kolumnach. */
+@media (min-width: 700px) {
+  .page { padding: 20px 24px calc(var(--nav-h) + 28px); }
+  .stat-grid { grid-template-columns: repeat(4, 1fr); }
+  .photo-grid { grid-template-columns: repeat(4, 1fr); }
+}
+
+/* Desktop (≥900 px): nawigacja na górze. */
 @media (min-width: 900px) {
   .nav { top: 0; bottom: auto; height: 58px; border-top: none; border-bottom: 1px solid var(--border); justify-content: center; gap: 8px; }
   .nav a { flex: 0 0 auto; flex-direction: row; gap: 8px; padding: 0 16px; font-size: 0.85rem; }
   .page { padding-top: calc(58px + 20px); }
+}
+
+/* Szeroki desktop (≥1200 px): panel trenera/admina dostaje pełną szerokość. */
+@media (min-width: 1200px) {
+  .page--wide { max-width: 1160px; }
 }

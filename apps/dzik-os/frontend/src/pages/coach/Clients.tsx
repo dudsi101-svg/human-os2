@@ -2,7 +2,7 @@ import { FormEvent, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../../api";
 import { plDate } from "../../dates";
-import { ErrorBox, LogoutButton, Spinner, TopBar } from "../../components";
+import { ErrorBox, Icon, LogoutButton, Spinner, TopBar } from "../../components";
 import { CoachClientRow, CoachDashboardData } from "../../types";
 
 type Filter = "all" | "review" | "checkin" | "payment" | "messages" | "pain" | "observation";
@@ -28,7 +28,7 @@ function InvitationPanel({ invitation, onClose }: { invitation: InvitationInfo; 
   const [copied, setCopied] = useState(false);
   return (
     <div className="card card--accent">
-      <h3>Zaproszenie wysłane</h3>
+      <h2>Zaproszenie wysłane</h2>
       {invitation.delivery === "email" ? (
         <p>
           Klient otrzymał e-mail z jednorazowym linkiem aktywacyjnym
@@ -147,7 +147,7 @@ export default function Clients() {
       <ErrorBox error={error} onRetry={load} />
       {dashboard && (
         <div className="card" style={{ marginBottom: 10 }}>
-          <h3 style={{ marginTop: 0 }}>Dashboard</h3>
+          <h2 style={{ marginTop: 0 }}>Dashboard</h2>
           <p className="dim" style={{ fontSize: "0.82rem", marginTop: -4 }}>
             Metadane operacyjne — co wymaga Twojej uwagi teraz, nie ranking klientów.
           </p>
@@ -164,8 +164,10 @@ export default function Clients() {
       )}
       <div className="row" style={{ marginBottom: 10 }}>
         <input placeholder="Szukaj po nazwisku lub e-mailu…" value={query}
+          aria-label="Szukaj klienta po nazwisku lub e-mailu"
           onChange={(e) => setQuery(e.target.value)} className="grow" />
-        <button className="btn btn--small" onClick={() => setShowNew(!showNew)}>
+        <button className="btn btn--small" aria-expanded={showNew}
+          onClick={() => setShowNew(!showNew)}>
           + Nowy klient
         </button>
       </div>
@@ -174,12 +176,12 @@ export default function Clients() {
       )}
       {showNew && (
         <form className="card card--accent" onSubmit={createClient}>
-          <h3>Zaproś podopiecznego</h3>
-          <label>Imię i nazwisko</label>
-          <input required value={newClient.client_name}
+          <h2>Zaproś podopiecznego</h2>
+          <label htmlFor="nc-name">Imię i nazwisko</label>
+          <input id="nc-name" required value={newClient.client_name}
             onChange={(e) => setNewClient({ ...newClient, client_name: e.target.value })} />
-          <label>E-mail</label>
-          <input type="email" required value={newClient.client_email}
+          <label htmlFor="nc-email">E-mail</label>
+          <input id="nc-email" type="email" required value={newClient.client_email}
             onChange={(e) => setNewClient({ ...newClient, client_email: e.target.value })} />
           <small>
             Klient otrzyma jednorazowy link aktywacyjny i SAM ustawi swoje
@@ -192,7 +194,7 @@ export default function Clients() {
           </div>
         </form>
       )}
-      <div className="tabs">
+      <div className="tabs" role="group" aria-label="Filtry listy klientów">
         {([
           ["all", `Wszyscy (${clients.length})`],
           ["review", `Raport do oceny (${clients.filter((c) => c.flags.awaiting_review).length})`],
@@ -202,7 +204,8 @@ export default function Clients() {
           ["pain", `Zgłoszony ból (${clients.filter((c) => c.flags.recent_pain_reports > 0).length})`],
           ["observation", `Niepokojąca obserwacja (${clients.filter((c) => c.flags.flagged_observations > 0).length})`],
         ] as [Filter, string][]).map(([key, label]) => (
-          <button key={key} className={filter === key ? "active" : ""}
+          <button key={key} type="button" className={filter === key ? "active" : ""}
+            aria-pressed={filter === key}
             onClick={() => setFilter(key)}>{label}</button>
         ))}
       </div>
@@ -234,11 +237,15 @@ export default function Clients() {
                 {c.flags.checkin_overdue && <span className="badge badge--warn">zaległy raport</span>}
                 {c.flags.payment_overdue && <span className="badge badge--danger">płatność</span>}
                 {c.flags.unread_messages > 0 && (
-                  <span className="badge badge--accent">✉ {c.flags.unread_messages}</span>
+                  <span className="badge badge--accent" style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                    <Icon name="msg" size={12} label="nieprzeczytane wiadomości" /> {c.flags.unread_messages}
+                  </span>
                 )}
                 {c.flags.recent_pain_reports > 0 && <span className="badge badge--danger">ból</span>}
                 {c.flags.flagged_observations > 0 && (
-                  <span className="badge badge--danger">⚠ obserwacja</span>
+                  <span className="badge badge--danger" style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                    <Icon name="warn" size={12} /> obserwacja
+                  </span>
                 )}
               </div>
             </div>

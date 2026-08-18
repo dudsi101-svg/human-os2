@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { api, getUser } from "../../api";
 import { plDate } from "../../dates";
-import { ErrorBox, FileDownloadButton, Spinner, TopBar } from "../../components";
+import { ErrorBox, FileDownloadButton, Icon, Spinner, TopBar } from "../../components";
 import { NutritionVersion } from "../../types";
 
 interface NutritionPlanRow {
@@ -52,25 +52,32 @@ export default function Nutrition() {
               <b>{plan.title}</b>
               <div><small>wersja {v.version_no} · {plDate(v.created_at)}</small></div>
             </div>
-            <button className="btn btn--ghost btn--small" onClick={() => setShowHistory(!showHistory)}>
+            <button className="btn btn--ghost btn--small" aria-expanded={showHistory}
+              onClick={() => setShowHistory(!showHistory)}>
               {showHistory ? "Ukryj historię" : "Historia wersji"}
             </button>
           </div>
           {showHistory && versions && (
             <div className="card" style={{ marginTop: 10 }}>
-              <h3>Historia wersji</h3>
-              <table className="simple">
-                <thead><tr><th>Wersja</th><th>Data</th><th>Powód</th></tr></thead>
-                <tbody>
-                  {versions.slice().reverse().map((hv) => (
-                    <tr key={hv.id}><td>v{hv.version_no}</td><td>{plDate(hv.created_at)}</td><td>{hv.reason}</td></tr>
-                  ))}
-                </tbody>
-              </table>
+              <h2>Historia wersji</h2>
+              <div className="table-wrap">
+                <table className="simple table--cards">
+                  <thead><tr><th>Wersja</th><th>Data</th><th>Powód</th></tr></thead>
+                  <tbody>
+                    {versions.slice().reverse().map((hv) => (
+                      <tr key={hv.id}>
+                        <td data-label="Wersja">v{hv.version_no}</td>
+                        <td data-label="Data">{plDate(hv.created_at)}</td>
+                        <td data-label="Powód">{hv.reason}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
           <div className="card" style={{ marginTop: 10 }}>
-            <h3>Cele dzienne</h3>
+            <h2>Cele dzienne</h2>
             <div className="stat-grid">
               <div className="stat"><b>{v.content.kcal ?? "—"}</b><span>kcal</span></div>
               <div className="stat"><b>{v.content.protein_g ?? "—"} g</b><span>białko</span></div>
@@ -80,19 +87,19 @@ export default function Nutrition() {
           </div>
           {v.content.sections.map((s, i) => (
             <div className="card" key={i}>
-              <h3>{s.title}</h3>
+              <h2>{s.title}</h2>
               <p style={{ whiteSpace: "pre-wrap", margin: 0 }}>{s.body}</p>
             </div>
           ))}
           {v.content.meals.length > 0 && (
             <div className="card">
-              <h3>Przykładowe posiłki</h3>
+              <h2>Przykładowe posiłki</h2>
               {v.content.meals.map((m, i) => (
                 <div className="exercise" key={i}>
                   <div>
                     <b>{m.name}</b>
                     {m.description && <div className="meta">{m.description}</div>}
-                    {m.swaps && <div className="meta">🔁 {m.swaps}</div>}
+                    {m.swaps && <div className="meta"><Icon name="swap" size={14} label="zamienniki" /> {m.swaps}</div>}
                   </div>
                 </div>
               ))}
@@ -103,7 +110,8 @@ export default function Nutrition() {
               {/* Chroniony plik — pobieranie wyłącznie przez uwierzytelnione
                   API (zwykły link nie wysyła autoryzacji). */}
               <FileDownloadButton fileId={v.document_file_id}
-                label="📄 Pobierz dietę (PDF)" className="btn btn--small" />
+                label={<><Icon name="download" size={16} /> Pobierz dietę (PDF)</>}
+                className="btn btn--small" />
             </div>
           )}
         </>

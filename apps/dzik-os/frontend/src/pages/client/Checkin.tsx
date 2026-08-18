@@ -403,7 +403,7 @@ export default function Checkin() {
       <TopBar title="Raport tygodniowy" />
       <form className="card" onSubmit={submit}>
         <div className="row row--between">
-          <h3 style={{ margin: 0 }}>Tydzień od {plDate(currentWeek)}</h3>
+          <h2 style={{ margin: 0 }}>Tydzień od {plDate(currentWeek)}</h2>
           {existing && (
             <span className={`badge ${locked ? "badge--ok" : "badge--warn"}`}>
               {locked ? "oceniony" : serverPartial
@@ -442,21 +442,21 @@ export default function Checkin() {
         <SectionLabel n={1} title="Ciało" />
         <div className="field-row">
           <div>
-            <label>Masa ciała (kg)</label>
-            <input type="number" step="0.1" min="0"
+            <label htmlFor="ck-weight">Masa ciała (kg)</label>
+            <input id="ck-weight" type="number" step="0.1" min="0"
               value={form.weight_kg ?? ""}
               onChange={(e) => set("weight_kg", e.target.value)} />
           </div>
           <div>
-            <label>Wykonane treningi</label>
-            <input type="number" min="0" max="21"
+            <label htmlFor="ck-trainings">Wykonane treningi</label>
+            <input id="ck-trainings" type="number" min="0" max="21"
               value={form.trainings_done ?? ""}
               onChange={(e) => set("trainings_done", e.target.value)} />
           </div>
         </div>
 
-        <label>Zdjęcia sylwetki (opcjonalnie, maks. {MAX_PHOTOS})</label>
-        <input type="file" accept="image/jpeg,image/png,image/webp" multiple
+        <label htmlFor="ck-photos">Zdjęcia sylwetki (opcjonalnie, maks. {MAX_PHOTOS})</label>
+        <input id="ck-photos" type="file" accept="image/jpeg,image/png,image/webp" multiple
           disabled={uploading}
           onChange={(e) => {
             const files = Array.from(e.target.files ?? []);
@@ -500,19 +500,19 @@ export default function Checkin() {
         ))}
 
         <SectionLabel n={3} title="Ból, urazy i pytania" />
-        <label>Ból lub urazy (jeśli wystąpiły)</label>
-        <textarea value={form.pain_note ?? ""}
+        <label htmlFor="ck-pain">Ból lub urazy (jeśli wystąpiły)</label>
+        <textarea id="ck-pain" value={form.pain_note ?? ""}
           placeholder="Opisz dokładnie: gdzie, kiedy, przy jakim ruchu"
           onChange={(e) => set("pain_note", e.target.value)} />
-        <label>Komentarz</label>
-        <textarea value={form.comment ?? ""}
+        <label htmlFor="ck-comment">Komentarz</label>
+        <textarea id="ck-comment" value={form.comment ?? ""}
           onChange={(e) => set("comment", e.target.value)} />
-        <label>Pytania do trenera</label>
-        <textarea value={form.questions ?? ""}
+        <label htmlFor="ck-questions">Pytania do trenera</label>
+        <textarea id="ck-questions" value={form.questions ?? ""}
           onChange={(e) => set("questions", e.target.value)} />
 
         <ErrorBox error={error} />
-        {ok && <div className="alert alert--info">{ok}</div>}
+        {ok && <div className="alert alert--info" role="status">{ok}</div>}
         {partial && (
           <div className="alert alert--error">
             {partial}
@@ -602,11 +602,12 @@ function ScaleRow({ label, low, high, answer, disabled, onChange }: {
         <label style={{ margin: 0 }}>{label}</label>
         <span className={`badge ${answer ? "badge--accent" : ""}`}>{badge}</span>
       </div>
-      <div className="row" style={{ gap: 4, marginTop: 6, flexWrap: "wrap" }}>
+      <div className="row" role="group" aria-label={label}
+        style={{ gap: 4, marginTop: 6, flexWrap: "wrap" }}>
         {[1, 2, 3, 4, 5].map((n) => {
           const active = answer?.state === "ANSWERED" && answer.value === n;
           return (
-            <button type="button" key={n} disabled={disabled}
+            <button type="button" key={n} disabled={disabled} aria-pressed={active}
               className="btn btn--ghost btn--small"
               style={active ? { background: "var(--accent)", color: "var(--accent-ink)" } : {}}
               onClick={() => onChange({ state: "ANSWERED", value: n })}>
@@ -616,12 +617,14 @@ function ScaleRow({ label, low, high, answer, disabled, onChange }: {
         })}
         <button type="button" disabled={disabled}
           className="btn btn--ghost btn--small"
+          aria-pressed={answer?.state === "SKIPPED"}
           style={answer?.state === "SKIPPED" ? { borderColor: "var(--accent)" } : {}}
           onClick={() => onChange({ state: "SKIPPED" })}>
           Pomijam
         </button>
         <button type="button" disabled={disabled}
           className="btn btn--ghost btn--small"
+          aria-pressed={answer?.state === "NOT_APPLICABLE"}
           style={answer?.state === "NOT_APPLICABLE" ? { borderColor: "var(--accent)" } : {}}
           onClick={() => onChange({ state: "NOT_APPLICABLE" })}>
           Nie dotyczy

@@ -1,5 +1,71 @@
 # Changelog — Dzik OS
 
+## 0.17.0 — 2026-08-18
+
+Runda czysto prezentacyjna: **responsywność, wygląd i dostępność**
+(WCAG 2.2 AA jako punkt odniesienia) — zero zmian logiki biznesowej,
+API i schematu bazy. Pełny opis, protokoły testów ręcznych i świadome
+ograniczenia: `docs/DOSTEPNOSC.md`.
+
+* **Responsywność**: formularze dwu-/trzykolumnowe schodzą do jednej
+  kolumny poniżej 460 px (wyjątek `.field-row--keep` dla naprawdę
+  krótkich par, np. kg × powtórzenia i porównywarki zdjęć); wszystkie
+  tabele w kontenerze `.table-wrap` (kontrolowany poziomy scroll),
+  a poniżej 620 px jako karty wierszy z etykietami danych
+  (`data-label`); wiersze `.row` łamią się zamiast wypychać stronę
+  w bok (koniec poziomego scrolla od 320 px — test e2e na
+  320/375/768/1024); nowe breakpointy 700 px (stat/photo-grid
+  4 kolumny) i 1200 px (szerszy panel trenera); ekran logowania na
+  niskich ekranach (landscape telefonu) z mniejszym logo i układem od
+  góry.
+* **Rozmiary dotykowe i typografia**: przyciski min. 44 px (małe 44 px
+  na ekranach dotykowych — `pointer: coarse`), linki nawigacji
+  wypełniają cały pasek, checkboksy 20 px, suwaki z wyższym uchwytem;
+  koniec tekstów poniżej 12 px (etykiety nawigacji z ~10,5 px → 12 px,
+  podpisy suwaków i metadane wiadomości podniesione).
+* **Kontrast**: obrysy elementów interaktywnych (`--border-strong`)
+  podniesione do ~3:1 względem tła karty (WCAG 1.4.11); tekst
+  przygaszony i kolory statusów ≥ 4,5:1 (wyliczenia w DOSTEPNOSC.md).
+* **Jeden system ikon**: rozszerzony komponent `Icon` (~35 własnych SVG,
+  opcjonalna dostępna nazwa `label`); emoji pełniące rolę ikon w UI
+  zastąpione (nagłówki kart, skróty w „Więcej", załączniki, mikrofon,
+  timer przerwy, pauza/wznów, ostrzeżenia, pobieranie…); emoji w
+  treściach pisanych przez ludzi pozostają.
+* **Semantyka**: skip-link „Przejdź do treści", landmarki `<main>` i
+  `<nav aria-label>`, porządek nagłówków h1→h2→h3 bez przeskoków w całej
+  aplikacji (nagłówki kart to teraz h2, `SectionLabel` to h3, sr-only h1
+  na logowaniu), `html lang="pl"`, viewport bez blokady powiększania
+  (było poprawnie — teraz pilnowane testem).
+* **Formularze**: wszystkie pola z etykietami `for`/`id` albo
+  `aria-label` (ok. 90 pól w 14 plikach); suwaki raportu z
+  `aria-valuetext` i opisem skali; ocena raportu 1–5, dni tygodnia,
+  filtry listy klientów i przełączniki archiwum jako przyciski z
+  `aria-pressed` w nazwanych grupach; elementy rozwijane z
+  `aria-expanded`.
+* **Zakładki** (karta klienta, baza wiedzy trenera i klienta): wspólny
+  komponent `Tabs`/`TabPanel` wg wzorca WAI-ARIA Tabs — role,
+  `aria-selected`, roving tabindex, strzałki/Home/End.
+* **Dynamiczne treści**: `role="status"`/`aria-live` dla spinnera,
+  komunikatów sukcesu, banera aktualizacji PWA i stanu pobierania;
+  `ErrorBox` pozostaje `role="alert"`; wykresy `Sparkline` z `role="img"`
+  i generowaną alternatywą tekstową (zakres dat/wartości, ostatnia
+  wartość), wykresy siły nazwane per ćwiczenie; paski postępu
+  `aria-hidden` (liczby stoją obok); załączniki audio/wideo z
+  dostępnymi nazwami.
+* **Klawiatura i fokus**: globalny `:focus-visible` (obrys akcentu),
+  pełna obsługa klawiaturą; modali własnych brak — natywne
+  `confirm()`/`prompt()` (focus trap/Escape natywnie), odnotowane
+  wymaganie dla przyszłych modali.
+* **Ruch**: `prefers-reduced-motion` bez zmian (wyłącza animacje) —
+  potwierdzone w rundzie.
+* **Testy**: nowy `e2e/test_a11y.mjs` (Playwright + Chromium; axe-core
+  wstrzykiwany, gdy dostępny w środowisku, plus własne asercje:
+  skip-link, landmarki, etykiety pól, porządek nagłówków, brak
+  poziomego scrolla na 4 szerokościach, rozmiary nawigacji, suwaki,
+  wykresy, zakładki z klawiaturą, landscape logowania) — 40 kontroli
+  zielonych; regresja `test_pwa_offline.mjs` zielona; backend 304 i
+  Core 275 bez zmian.
+
 ## 0.16.0 — 2026-08-18
 
 Wiadomości w czasie rzeczywistym i porządne nagrania głosowe. Pełny opis

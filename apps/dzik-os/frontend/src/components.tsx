@@ -1,4 +1,7 @@
-import { Component, ErrorInfo, ReactNode, useEffect, useState } from "react";
+import {
+  Component, ErrorInfo, KeyboardEvent, ReactNode, useEffect, useId, useRef,
+  useState,
+} from "react";
 import { NavLink } from "react-router-dom";
 import {
   api, ApiError, AuthSessionRow, fetchFile, fetchFileBlob, fetchFileUrl,
@@ -25,6 +28,9 @@ export function Logo({ size = 26 }: { size?: number }) {
   );
 }
 
+/** Jeden spójny system ikon aplikacji (własne SVG, stroke 24×24).
+ * Emoji w UI pełniące rolę ikon zostały zastąpione tym zestawem;
+ * emoji w treściach pisanych przez ludzi pozostają nietknięte. */
 const icons: Record<string, ReactNode> = {
   today: <path d="M8 2v4M16 2v4M3 9h18M5 5h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z" />,
   plan: <path d="M6.5 6.5v11M17.5 6.5v11M3 9v6M21 9v6M6.5 12h11" />,
@@ -35,14 +41,97 @@ const icons: Record<string, ReactNode> = {
   clients: <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />,
   templates: <path d="M4 4h16v4H4zM4 12h10v8H4zM18 12h2v8h-2z" />,
   knowledge: <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20M4 4.5A2.5 2.5 0 0 1 6.5 2H20v18H6.5A2.5 2.5 0 0 0 4 22.5v-18z" />,
+  calendar: <path d="M8 2v4M16 2v4M3 9h18M5 5h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2zM8 13h3v3H8z" />,
+  chart: <path d="M3 3v18h18M7 14l4-4 3 3 5-6" />,
+  file: <path d="M14 3H6v18h12V8l-4-5zM14 3v5h4M9 13h6M9 17h6" />,
+  card: <path d="M3 6h18v12H3zM3 10h18M6 15h4" />,
+  user: <path d="M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1" />,
+  key: <path d="M14 10h7M18 10v3M9 15a5 5 0 1 1 5-5 5 5 0 0 1-5 5z" />,
+  bell: <path d="M18 9a6 6 0 1 0-12 0c0 6-2 7-2 7h16s-2-1-2-7M10 20a2 2 0 0 0 4 0" />,
+  clipboard: <path d="M9 4h6v3H9zM9 4H6a1 1 0 0 0-1 1v16h14V5a1 1 0 0 0-1-1h-3M9 12h6M9 16h6" />,
+  trophy: <path d="M8 3h8v6a4 4 0 0 1-8 0zM8 5H4c0 4 2 5.5 4.4 5.9M16 5h4c0 4-2 5.5-4.4 5.9M12 13v4M8 21h8M9.5 17h5v4h-5z" />,
+  star: <path d="M12 3l2.7 5.6 6.1.8-4.5 4.2 1.2 6-5.5-3-5.5 3 1.2-6L3.2 9.4l6.1-.8z" />,
+  link: <path d="M10 14a5 5 0 0 0 7.1 0l2.4-2.4a5 5 0 0 0-7.1-7.1l-1.2 1.2M14 10a5 5 0 0 0-7.1 0l-2.4 2.4a5 5 0 0 0 7.1 7.1l1.2-1.2" />,
+  paperclip: <path d="M20.5 12.5l-8 8a5 5 0 0 1-7-7l8.5-8.5a3.3 3.3 0 0 1 4.7 4.7L10.2 18a1.7 1.7 0 0 1-2.4-2.4L15.5 8" />,
+  mic: <path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zM19 11a7 7 0 0 1-14 0M12 18v3" />,
+  stop: <path d="M7 7h10v10H7z" />,
+  timer: <path d="M10 2h4M12 9v4l2.5 1.5M12 22a8 8 0 1 0 0-16 8 8 0 0 0 0 16z" />,
+  warn: <path d="M12 3.5L22 21H2zM12 10v5M12 18h.01" />,
+  info: <path d="M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM12 8h.01M12 11v6" />,
+  download: <path d="M12 3v12M7 10l5 5 5-5M4 21h16" />,
+  moon: <path d="M20.5 14A8.5 8.5 0 1 1 10 3.5 7 7 0 0 0 20.5 14z" />,
+  target: <path d="M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM12 17a5 5 0 1 0 0-10 5 5 0 0 0 0 10zM12 13a1 1 0 1 0 0-2 1 1 0 0 0 0 2z" />,
+  film: <path d="M4 5h16v14H4zM4 9h16M4 15h16M8 5v14M16 5v14" />,
+  swap: <path d="M4 8h13l-3-3M20 16H7l3 3" />,
+  "chevron-down": <path d="M6 9l6 6 6-6" />,
+  "chevron-up": <path d="M6 15l6-6 6 6" />,
+  pause: <path d="M9 5v14M15 5v14" strokeWidth="2.4" />,
+  play: <path d="M8 5l11 7-11 7z" />,
+  check: <path d="M4 12.5l5 5L20 6.5" />,
+  close: <path d="M6 6l12 12M18 6L6 18" />,
+  sparkle: <path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8zM19 16l.9 2.1L22 19l-2.1.9L19 22l-.9-2.1L16 19l2.1-.9z" />,
 };
 
-export function Icon({ name }: { name: string }) {
+/** Ikona z systemu. Bez `label` — czysto dekoracyjna (aria-hidden);
+ * z `label` — samodzielna grafika z dostępną nazwą (role="img"). */
+export function Icon({ name, size = 22, label }: {
+  name: string; size?: number; label?: string;
+}) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"
-      strokeLinecap="round" strokeLinejoin="round" width="22" height="22" aria-hidden>
+      strokeLinecap="round" strokeLinejoin="round" width={size} height={size}
+      {...(label
+        ? { role: "img", "aria-label": label }
+        : { "aria-hidden": true })}>
       {icons[name] ?? icons.more}
     </svg>
+  );
+}
+
+/** Zakładki przełączające panele treści — wzorzec WAI-ARIA Tabs:
+ * role=tablist/tab, aria-selected, roving tabindex, strzałki/Home/End.
+ * Aktywny panel owija <TabPanel id={aktywny_klucz}>. */
+export function Tabs<T extends string>({ tabs, value, onChange, label }: {
+  tabs: readonly (readonly [T, string])[];
+  value: T;
+  onChange: (t: T) => void;
+  label: string;
+}) {
+  const refs = useRef<(HTMLButtonElement | null)[]>([]);
+  const idx = tabs.findIndex(([k]) => k === value);
+  function onKeyDown(e: KeyboardEvent<HTMLDivElement>) {
+    let next = -1;
+    if (e.key === "ArrowRight") next = (idx + 1) % tabs.length;
+    else if (e.key === "ArrowLeft") next = (idx - 1 + tabs.length) % tabs.length;
+    else if (e.key === "Home") next = 0;
+    else if (e.key === "End") next = tabs.length - 1;
+    if (next >= 0) {
+      e.preventDefault();
+      onChange(tabs[next][0]);
+      refs.current[next]?.focus();
+    }
+  }
+  return (
+    <div className="tabs" role="tablist" aria-label={label} onKeyDown={onKeyDown}>
+      {tabs.map(([key, l], i) => (
+        <button key={key} type="button" role="tab" id={`tab-${key}`}
+          ref={(el) => { refs.current[i] = el; }}
+          aria-selected={key === value} aria-controls={`panel-${key}`}
+          tabIndex={key === value ? 0 : -1}
+          className={key === value ? "active" : ""}
+          onClick={() => onChange(key)}>
+          {l}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+export function TabPanel({ id, children }: { id: string; children: ReactNode }) {
+  return (
+    <div role="tabpanel" id={`panel-${id}`} aria-labelledby={`tab-${id}`}>
+      {children}
+    </div>
   );
 }
 
@@ -70,7 +159,7 @@ export function Nav() {
           { to: "/wiecej", label: "Więcej", icon: "more" },
         ];
   return (
-    <nav className="nav">
+    <nav className="nav" aria-label="Główna nawigacja">
       {items.map((i) => (
         <NavLink key={i.to} to={i.to} end={i.to === "/" || i.to === "/trener"}
           className={({ isActive }) => (isActive ? "active" : "")}>
@@ -89,8 +178,10 @@ export function UpdateBanner() {
   useEffect(() => onUpdateAvailable(() => setAvailable(true)), []);
   if (!available) return null;
   return (
-    <div className="update-banner">
-      <span>🐗 Dostępna nowa wersja Dzik OS</span>
+    <div className="update-banner" role="status">
+      <span className="row" style={{ gap: 8 }}>
+        <Logo size={20} /> Dostępna nowa wersja Dzik OS
+      </span>
       <button className="btn btn--small" onClick={applyUpdate}>Odśwież</button>
     </div>
   );
@@ -186,7 +277,7 @@ export function ErrorBox({ error, onRetry }: {
 }
 
 export function Spinner() {
-  return <p className="dim">Wczytywanie…</p>;
+  return <p className="dim" role="status">Wczytywanie…</p>;
 }
 
 /** Granica błędów React: awaria renderowania nie wygasza całej aplikacji
@@ -220,7 +311,7 @@ export class ErrorBoundary extends Component<
     return (
       <div className="page">
         <div className="card">
-          <h3>Coś poszło nie tak</h3>
+          <h2>Coś poszło nie tak</h2>
           <p className="dim">
             Ten widok napotkał nieoczekiwany błąd. Twoje dane są bezpieczne —
             spróbuj ponownie albo wróć do ekranu głównego.
@@ -240,13 +331,14 @@ export class ErrorBoundary extends Component<
 }
 
 /** Numerowany nagłówek sekcji formularza/przeglądu — dzieli treść na
- * jasne bloki zamiast jednej długiej listy pól (raporty, formularze). */
+ * jasne bloki zamiast jednej długiej listy pól (raporty, formularze).
+ * Semantycznie h3 — poziom pod nagłówkiem karty (h2). */
 export function SectionLabel({ n, title }: { n: number; title: string }) {
   return (
-    <div className="section-label">
-      <span className="section-label__num">{n}</span>
+    <h3 className="section-label">
+      <span className="section-label__num" aria-hidden>{n}</span>
       <span>{title}</span>
-    </div>
+    </h3>
   );
 }
 
@@ -323,7 +415,7 @@ export function SessionsCard() {
   const others = (sessions ?? []).filter((s) => !s.current);
   return (
     <div className="card">
-      <h3>Aktywne sesje</h3>
+      <h2>Aktywne sesje</h2>
       <p className="dim" style={{ fontSize: "0.85rem" }}>
         Urządzenia zalogowane na Twoje konto. Jeśli widzisz sesję, której nie
         rozpoznajesz — zakończ ją i zmień hasło.
@@ -389,8 +481,9 @@ export function SecurityEventsCard() {
   return (
     <div className="card">
       <div className="row row--between">
-        <h3 style={{ margin: 0 }}>Historia bezpieczeństwa</h3>
-        <button className="btn btn--ghost btn--small" onClick={() => setOpen(!open)}>
+        <h2 style={{ margin: 0 }}>Historia bezpieczeństwa</h2>
+        <button className="btn btn--ghost btn--small" aria-expanded={open}
+          onClick={() => setOpen(!open)}>
           {open ? "Zwiń" : "Pokaż"}
         </button>
       </div>
@@ -515,7 +608,7 @@ export function MfaCard({ forced = false }: { forced?: boolean }) {
 
   return (
     <div className="card">
-      <h3>Weryfikacja dwuetapowa (MFA)</h3>
+      <h2>Weryfikacja dwuetapowa (MFA)</h2>
       {forced && (
         <p className="alert alert--info">
           Twoja rola wymaga MFA. Skonfiguruj je teraz — do tego czasu konto ma
@@ -640,7 +733,8 @@ export function FileDownloadButton({ fileId, filename, label = "Pobierz", openIn
 
   return (
     <span style={{ display: "inline-flex", flexDirection: "column", gap: 4, alignItems: "flex-start" }}>
-      <button type="button" className={className} disabled={busy} onClick={run}>
+      <button type="button" className={className} disabled={busy} onClick={run}
+        aria-live="polite">
         {busy ? "Pobieranie…" : done ? "✓ Gotowe" : label}
       </button>
       {error && (
@@ -722,7 +816,7 @@ export function PushNotificationsCard() {
 
   return (
     <div className="card">
-      <h3>Przypomnienia push</h3>
+      <h2>Przypomnienia push</h2>
       {state === "unsupported" ? (
         <p className="dim" style={{ fontSize: "0.85rem" }}>
           Ta przeglądarka nie obsługuje powiadomień push. Na iPhonie
@@ -766,31 +860,36 @@ export function PhotoCompare({ photos, formatDate }: {
   const oldestFirst = photos.slice().reverse();
   const [leftId, setLeftId] = useState(oldestFirst[0]?.id ?? "");
   const [rightId, setRightId] = useState(photos[0]?.id ?? "");
+  const fieldId = useId();
   if (photos.length < 2) return null;
   const left = photos.find((p) => p.id === leftId) ?? oldestFirst[0];
   const right = photos.find((p) => p.id === rightId) ?? photos[0];
   return (
     <div className="card">
-      <h3>Przed / po</h3>
-      <div className="field-row">
+      <h2>Przed / po</h2>
+      <div className="field-row field-row--keep">
         <div>
-          <label>Zdjęcie „przed"</label>
-          <select value={left.id} onChange={(e) => setLeftId(e.target.value)}>
+          <label htmlFor={`${fieldId}-before`}>Zdjęcie „przed"</label>
+          <select id={`${fieldId}-before`} value={left.id}
+            onChange={(e) => setLeftId(e.target.value)}>
             {oldestFirst.map((p) => (
               <option key={p.id} value={p.id}>{formatDate(p.taken_at)}</option>
             ))}
           </select>
         </div>
         <div>
-          <label>Zdjęcie „po"</label>
-          <select value={right.id} onChange={(e) => setRightId(e.target.value)}>
+          <label htmlFor={`${fieldId}-after`}>Zdjęcie „po"</label>
+          <select id={`${fieldId}-after`} value={right.id}
+            onChange={(e) => setRightId(e.target.value)}>
             {photos.map((p) => (
               <option key={p.id} value={p.id}>{formatDate(p.taken_at)}</option>
             ))}
           </select>
         </div>
       </div>
-      <div className="field-row" style={{ marginTop: 8 }}>
+      {/* Porównanie obok siebie to sedno tej karty — zostaje dwukolumnowe
+          także na wąskich ekranach (field-row--keep). */}
+      <div className="field-row field-row--keep" style={{ marginTop: 8 }}>
         <div style={{ textAlign: "center" }}>
           <AuthImage fileId={left.file_id} alt={`Zdjęcie ${formatDate(left.taken_at)}`} />
           <small className="dim">{formatDate(left.taken_at)}</small>
@@ -831,20 +930,28 @@ export function AuthAttachment({ fileId, filename }: { fileId: string; filename?
     };
   }, [fileId]);
   if (error) {
-    return <small role="alert" style={{ color: "var(--danger)" }}>📎 {error}</small>;
+    return <small role="alert" style={{ color: "var(--danger)" }}>{error}</small>;
   }
   if (!state) return <div className="stat" style={{ minHeight: 40 }} />;
-  if (state.type.startsWith("image/")) return <img src={state.url} alt="załącznik" />;
+  if (state.type.startsWith("image/")) {
+    return <img src={state.url} alt={filename ? `Załącznik: ${filename}` : "Załącznik graficzny"} />;
+  }
   if (state.type.startsWith("audio/")) {
-    return <audio controls src={state.url} style={{ width: "100%", maxWidth: 260 }} />;
+    return (
+      <audio controls src={state.url} style={{ width: "100%", maxWidth: 260 }}
+        aria-label={filename ? `Nagranie audio: ${filename}` : "Nagranie audio"} />
+    );
   }
   if (state.type.startsWith("video/")) {
-    return <video controls src={state.url} style={{ width: "100%", borderRadius: 10 }} />;
+    return (
+      <video controls src={state.url} style={{ width: "100%", borderRadius: 10 }}
+        aria-label={filename ? `Wideo: ${filename}` : "Załącznik wideo"} />
+    );
   }
   return (
     <a href={state.url} target="_blank" rel="noreferrer" download={filename}
       className="btn btn--ghost btn--small">
-      📎 {filename ?? "Pobierz załącznik"}
+      <Icon name="paperclip" size={16} /> {filename ?? "Pobierz załącznik"}
     </a>
   );
 }
@@ -873,9 +980,11 @@ let sparkGradientSeq = 0;
  * bez raportu — patrz seriesUtils.withGaps). Linia jest wtedy przerywana
  * zamiast łączyć przez dziurę — brakujące dane nigdy nie są rysowane tak,
  * jakby były rzeczywistymi pomiarami. */
-export function Sparkline({ points, unit }: {
+export function Sparkline({ points, unit, label }: {
   points: { x: string; y: number | null }[];
   unit: string;
+  /** Dostępna nazwa wykresu (co przedstawia seria), np. "Masa ciała". */
+  label?: string;
 }) {
   const [gradientId] = useState(() => `spark-fill-${++sparkGradientSeq}`);
   const valid = points.filter((p): p is { x: string; y: number } => p.y !== null);
@@ -907,9 +1016,17 @@ export function Sparkline({ points, unit }: {
     seg.map((c, i) => `${i === 0 ? "M" : "L"}${c.cx.toFixed(1)},${c.cy.toFixed(1)}`).join(" ");
   const firstX = valid[0].x;
   const lastX = valid[valid.length - 1].x;
+  // Alternatywa tekstowa wykresu: zakres wartości, liczba pomiarów, ostatnia
+  // wartość — czytnik ekranu dostaje sedno trendu bez oglądania linii
+  // (liczone wyłącznie z rzeczywistych pomiarów, przerwy pominięte).
+  const chartDescription =
+    `${label ?? "Wykres"}: ${valid.length} pomiarów od ${firstX} ` +
+    `do ${lastX}, zakres ${min.toFixed(1)}–${max.toFixed(1)} ${unit}, ` +
+    `ostatnia wartość ${valid[valid.length - 1].y} ${unit}`;
   return (
     <div>
-      <svg className="spark" viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none">
+      <svg className="spark" viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none"
+        role="img" aria-label={chartDescription}>
         <defs>
           <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor="var(--accent)" stopOpacity="0.35" />
@@ -970,7 +1087,7 @@ export function StrengthChartsCard({ clientId }: { clientId: string }) {
   if (error) {
     return (
       <div className="card">
-        <h3>Siła w czasie</h3>
+        <h2>Siła w czasie</h2>
         <ErrorBox error={error} onRetry={() => setAttempt((a) => a + 1)} />
       </div>
     );
@@ -981,8 +1098,9 @@ export function StrengthChartsCard({ clientId }: { clientId: string }) {
   return (
     <div className="card">
       <div className="row row--between">
-        <h3>Siła w czasie</h3>
+        <h2>Siła w czasie</h2>
         <select value={row.exercise_name} style={{ width: "auto" }}
+          aria-label="Wybierz ćwiczenie do wykresów siły"
           onChange={(e) => setExercise(e.target.value)}>
           {series.map((s) => (
             <option key={s.exercise_name} value={s.exercise_name}>{s.exercise_name}</option>
@@ -1001,13 +1119,13 @@ export function StrengthChartsCard({ clientId }: { clientId: string }) {
             <b style={{ fontSize: "0.9rem" }}>Szacowany 1RM</b>
             <span className="badge">{row.points[row.points.length - 1].e1rm_kg} kg</span>
           </div>
-          <Sparkline unit="kg"
+          <Sparkline unit="kg" label={`Szacowany 1RM — ${row.exercise_name}`}
             points={row.points.map((p) => ({ x: plDate(p.date), y: p.e1rm_kg }))} />
           <div className="row row--between" style={{ marginTop: 10 }}>
             <b style={{ fontSize: "0.9rem" }}>Objętość treningu</b>
             <span className="badge">{row.points[row.points.length - 1].volume_kg} kg</span>
           </div>
-          <Sparkline unit="kg"
+          <Sparkline unit="kg" label={`Objętość treningu — ${row.exercise_name}`}
             points={row.points.map((p) => ({ x: plDate(p.date), y: p.volume_kg }))} />
           <small className="dim">
             1RM to szacunek (wzór Epleya) do obserwacji trendu — nie jest
@@ -1039,7 +1157,7 @@ export function PersonalRecordsCard({ clientId }: { clientId: string }) {
   if (error) {
     return (
       <div className="card">
-        <h3>🏆 Rekordy osobiste</h3>
+        <h2><Icon name="trophy" /> Rekordy osobiste</h2>
         <ErrorBox error={error} onRetry={() => setAttempt((a) => a + 1)} />
       </div>
     );
@@ -1048,7 +1166,7 @@ export function PersonalRecordsCard({ clientId }: { clientId: string }) {
 
   return (
     <div className="card">
-      <h3>🏆 Rekordy osobiste</h3>
+      <h2><Icon name="trophy" /> Rekordy osobiste</h2>
       <p className="dim" style={{ fontSize: "0.85rem", marginTop: -4 }}>
         Porównanie wyłącznie z własną historią — nie z innymi.
       </p>

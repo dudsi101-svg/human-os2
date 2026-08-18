@@ -51,29 +51,31 @@ export default function Admin() {
         użycie panelu jest audytowane.
       </p>
       <div className="card">
-        <h3>Konta ({users.length})</h3>
-        <table className="simple">
-          <thead><tr><th>Nazwa</th><th>E-mail</th><th>Role</th><th>Status</th><th>Ostatnie logowanie</th></tr></thead>
-          <tbody>
-            {users.map((u) => (
-              <tr key={u.id}>
-                <td>{u.display_name}</td>
-                <td>{u.email}</td>
-                <td>{u.roles.join(", ")}</td>
-                <td>{u.status}</td>
-                <td>{u.last_login_at ? plDateTime(u.last_login_at) : "—"}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <h2>Konta ({users.length})</h2>
+        <div className="table-wrap">
+          <table className="simple table--cards">
+            <thead><tr><th>Nazwa</th><th>E-mail</th><th>Role</th><th>Status</th><th>Ostatnie logowanie</th></tr></thead>
+            <tbody>
+              {users.map((u) => (
+                <tr key={u.id}>
+                  <td data-label="Nazwa">{u.display_name}</td>
+                  <td data-label="E-mail">{u.email}</td>
+                  <td data-label="Role">{u.roles.join(", ")}</td>
+                  <td data-label="Status">{u.status}</td>
+                  <td data-label="Ostatnie logowanie">{u.last_login_at ? plDateTime(u.last_login_at) : "—"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
       <div className="card">
         <div className="row row--between">
-          <h3>Łańcuch audytu Human OS</h3>
+          <h2>Łańcuch audytu Human OS</h2>
           <button className="btn btn--ghost btn--small" onClick={verify}>Zweryfikuj integralność</button>
         </div>
         {chain !== null && (
-          <p className={`alert ${chain ? "alert--info" : "alert--error"}`}>
+          <p role="status" className={`alert ${chain ? "alert--info" : "alert--error"}`}>
             {chain ? "✅ Łańcuch zdarzeń spójny (hash chain zweryfikowany)."
               : "❌ Naruszenie integralności łańcucha!"}
           </p>

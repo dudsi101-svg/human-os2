@@ -2,7 +2,7 @@ import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { api, getUser, handleSessionExpired, isCancel } from "../api";
 import { plDateTime } from "../dates";
-import { AuthAttachment, ErrorBox, Spinner, TopBar } from "../components";
+import { AuthAttachment, ErrorBox, Icon, Spinner, TopBar } from "../components";
 import { MessageRow } from "../types";
 import {
   FALLBACK_POLL_MS,
@@ -364,36 +364,40 @@ export default function Thread() {
       </div>
       <form onSubmit={send} className="card" style={{ position: "sticky", bottom: "calc(var(--nav-h) + 8px)" }}>
         <ErrorBox error={error} />
-        <textarea placeholder="Napisz wiadomość…" value={body}
+        <textarea placeholder="Napisz wiadomość…" aria-label="Treść wiadomości" value={body}
           onChange={(e) => setBody(e.target.value)} style={{ minHeight: 56 }} />
         {file && file.type.startsWith("audio/") && filePreviewUrl && (
           <div className="row row--between" style={{ marginTop: 8 }}>
-            <audio controls src={filePreviewUrl} style={{ maxWidth: 200 }} />
+            <audio controls src={filePreviewUrl} style={{ maxWidth: 200 }}
+              aria-label="Podgląd nagranej wiadomości głosowej" />
             <button type="button" className="btn btn--ghost btn--small"
               onClick={() => { setFile(null); startRecording(); }}
-              title="Nagraj od nowa">
+              title="Nagraj od nowa" aria-label="Nagraj od nowa">
               ↺ nagraj ponownie
             </button>
             <button type="button" className="btn btn--ghost btn--small" onClick={() => setFile(null)}>
-              ✕ usuń
+              <Icon name="close" size={14} /> usuń
             </button>
           </div>
         )}
         <div className="row" style={{ marginTop: 8 }}>
-          <input type="file" accept={UPLOAD_ACCEPT}
+          <input type="file" accept={UPLOAD_ACCEPT} aria-label="Załącz plik"
             onChange={(e) => setFile(e.target.files?.[0] ?? null)} className="grow" style={{ padding: 6 }} />
           {!recording ? (
             <button type="button" className="btn btn--ghost btn--small" onClick={startRecording}
-              title="Nagraj wiadomość głosową">🎤</button>
+              title="Nagraj wiadomość głosową" aria-label="Nagraj wiadomość głosową">
+              <Icon name="mic" size={18} />
+            </button>
           ) : (
             <>
-              <span className="dim" style={{ alignSelf: "center", fontVariantNumeric: "tabular-nums" }}>
+              <span className="dim" role="status" aria-live="polite"
+                style={{ alignSelf: "center", fontVariantNumeric: "tabular-nums" }}>
                 ● {Math.floor(recordSeconds / 60)}:{String(recordSeconds % 60).padStart(2, "0")} / {Math.floor(maxRecordS / 60)}:00
               </span>
               <button type="button" className="btn btn--ghost btn--small" onClick={cancelRecording}
-                title="Odrzuć nagranie">✕</button>
+                title="Odrzuć nagranie" aria-label="Odrzuć nagranie">✕</button>
               <button type="button" className="btn btn--danger btn--small" onClick={stopRecording}>
-                ⏹ Stop
+                <Icon name="stop" size={16} /> Stop
               </button>
             </>
           )}

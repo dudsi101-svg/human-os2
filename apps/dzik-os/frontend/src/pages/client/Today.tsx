@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api, getUser, money } from "../../api";
 import { plDate } from "../../dates";
-import { ErrorBox, Spinner, TopBar } from "../../components";
+import { ErrorBox, Icon, Spinner, TopBar } from "../../components";
 import { CATEGORY_LABELS, ConsultSlotRow, TodayData } from "../../types";
 
 export default function Today() {
@@ -85,7 +85,9 @@ export default function Today() {
       )}
       {nextConsult && (
         <Link to="/konsultacje" className="card" style={{ display: "block", marginBottom: 10 }}>
-          <b style={{ color: "var(--text)" }}>📅 Najbliższa konsultacja</b>
+          <b style={{ color: "var(--text)", display: "flex", alignItems: "center", gap: 8 }}>
+            <Icon name="calendar" size={18} /> Najbliższa konsultacja
+          </b>
           <p className="dim" style={{ margin: "4px 0 0", fontSize: "0.85rem" }}>
             {new Date(nextConsult.starts_at).toLocaleString("pl-PL", {
               weekday: "long", day: "numeric", month: "long",
@@ -97,7 +99,7 @@ export default function Today() {
       {data.workout ? (
         <div className="card card--accent">
           <div className="row row--between">
-            <h3>🏋️ {data.workout.day.name}</h3>
+            <h2><Icon name="plan" /> {data.workout.day.name}</h2>
             <span className="badge badge--accent">plan v{data.workout.version_no}</span>
           </div>
           <small>{data.workout.plan_title}</small>
@@ -129,14 +131,14 @@ export default function Today() {
         </div>
       ) : (
         <div className="card">
-          <h3>🛌 Dziś bez treningu</h3>
+          <h2><Icon name="moon" /> Dziś bez treningu</h2>
           <small>Regeneracja też jest częścią planu.</small>
         </div>
       )}
 
       {data.nutrition && (
         <div className="card">
-          <h3>🍽️ {data.nutrition.title}</h3>
+          <h2><Icon name="diet" /> {data.nutrition.title}</h2>
           <div className="stat-grid" style={{ marginTop: 8 }}>
             <div className="stat"><b>{data.nutrition.kcal ?? "—"}</b><span>kcal</span></div>
             <div className="stat"><b>{data.nutrition.protein_g ?? "—"} g</b><span>białko</span></div>
@@ -149,7 +151,7 @@ export default function Today() {
 
       {data.schedule.length > 0 && (
         <div className="card">
-          <h3>📋 Harmonogram na dziś</h3>
+          <h2><Icon name="clipboard" /> Harmonogram na dziś</h2>
           {data.schedule.map((s) => (
             <div className="exercise" key={s.id}>
               <div>
@@ -174,7 +176,7 @@ export default function Today() {
 
       {data.reminders.length > 0 && (
         <div className="card">
-          <h3>🔔 Przypomnienia</h3>
+          <h2><Icon name="bell" /> Przypomnienia</h2>
           {data.reminders.map((r) => (
             <div className="exercise" key={r.id}>
               <div>{r.text}</div>
@@ -187,7 +189,7 @@ export default function Today() {
       <div className="card">
         <div className="row row--between">
           <div>
-            <h3>📝 Raport tygodniowy</h3>
+            <h2><Icon name="report" /> Raport tygodniowy</h2>
             <small>
               {data.checkin_due
                 ? `Najbliższy termin: ${plDate(data.checkin_due)}`
@@ -202,7 +204,7 @@ export default function Today() {
         <div className="card">
           <div className="row row--between">
             <div>
-              <h3>💳 {data.next_payment.package_name ?? "Płatność"}</h3>
+              <h2><Icon name="card" /> {data.next_payment.package_name ?? "Płatność"}</h2>
               <small>
                 {money(data.next_payment.amount_cents, data.next_payment.currency)} · termin{" "}
                 {plDate(data.next_payment.due_date)}
@@ -218,7 +220,7 @@ export default function Today() {
 
       {data.last_coach_message && (
         <div className="card">
-          <h3>💬 Od trenera {data.last_coach_message.unread && <span className="badge badge--accent">nowa</span>}</h3>
+          <h2><Icon name="msg" /> Od trenera {data.last_coach_message.unread && <span className="badge badge--accent">nowa</span>}</h2>
           <p style={{ margin: "6px 0" }}>{data.last_coach_message.body}</p>
           <Link to={`/wiadomosci/${data.last_coach_message.thread_id}`}>Odpowiedz →</Link>
         </div>

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { api, getUser } from "../../api";
 import { plDate } from "../../dates";
-import { ErrorBox, FileDownloadButton, Spinner, TopBar } from "../../components";
+import { ErrorBox, FileDownloadButton, Icon, Spinner, TopBar } from "../../components";
 import { DocumentRow, ScheduleItem, CATEGORY_LABELS } from "../../types";
 import { WEEKDAYS } from "../../dates";
 
@@ -30,7 +30,7 @@ export default function Documents() {
     <div className="page">
       <TopBar title="Dokumenty i harmonogram" />
       <div className="card">
-        <h3>Dokumenty od trenera</h3>
+        <h2>Dokumenty od trenera</h2>
         {docs.length === 0 && <small>Brak dokumentów.</small>}
         {docs.map((d) => (
           <div className="exercise" key={d.id}>
@@ -44,14 +44,14 @@ export default function Documents() {
       </div>
 
       <div className="card">
-        <h3>Pełny harmonogram</h3>
+        <h2>Pełny harmonogram</h2>
         {schedule.length === 0 && <small>Brak elementów harmonogramu.</small>}
         {schedule.map((s) => (
           <div className="exercise" key={s.id}>
             <div>
               <b>{s.name}</b> <span className="badge">{CATEGORY_LABELS[s.category] ?? s.category}</span>
               {s.instruction && <div className="meta">{s.instruction}</div>}
-              {s.author_note && <div className="meta">ℹ️ {s.author_note}</div>}
+              {s.author_note && <div className="meta"><Icon name="info" size={14} label="autor zalecenia" /> {s.author_note}</div>}
               <div className="meta">
                 {s.days_of_week.split(",").map((d) => WEEKDAYS[Number(d) - 1]).join(", ")}
                 {s.time_of_day && ` · ${s.time_of_day}`}
