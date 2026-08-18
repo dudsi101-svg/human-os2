@@ -423,6 +423,11 @@ export interface DocumentRow {
   category: string;
   uploaded_by: string;
   created_at: string;
+  /** Tekst przepisany ze skanu (OCR) i ZATWIERDZONY przez człowieka —
+   * dzięki niemu dokument da się przeszukać. null = brak przepisania. */
+  ocr_text?: string | null;
+  ocr_engine?: string | null;
+  ocr_at?: string | null;
 }
 
 export interface ReceiptRow {

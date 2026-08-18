@@ -5,6 +5,12 @@ import {
   Tabs, TopBar,
 } from "../../components";
 import { EMPTY_FILTERS, ExerciseFilters, exerciseQuery } from "../../exerciseFilters";
+import OcrCapture from "../../OcrCapture";
+import {
+  OcrTask,
+  missingProductFields,
+  productFormFromProposal,
+} from "../../ocrUtils";
 import {
   FoodDisclaimer,
   FoodFilters,
@@ -636,10 +642,30 @@ function ProductsTab() {
   const [form, setForm] = useState(EMPTY_PRODUCT_FORM);
   const [busy, setBusy] = useState(false);
   const [importResult, setImportResult] = useState<FoodImportResult | null>(null);
+  // Zdjęcie etykiety: identyfikator zadania OCR, z którego pochodzi
+  // wstępnie wypełniony formularz. Zapis idzie wtedy ścieżką zatwierdzenia
+  // propozycji, żeby produkt niósł proweniencję (skąd wzięły się wartości).
+  const [ocrOpen, setOcrOpen] = useState(false);
+  const [ocrTaskId, setOcrTaskId] = useState<string | null>(null);
+  const [ocrMissing, setOcrMissing] = useState<string[]>([]);
 
   function startNew() {
     setForm(EMPTY_PRODUCT_FORM);
+    setOcrTaskId(null);
+    setOcrMissing([]);
     setEditing("new");
+  }
+
+  /** Zatwierdzona propozycja ze zdjęcia etykiety: wypełniamy formularz
+   * i oddajemy go trenerowi do poprawienia. Nic nie jest jeszcze zapisane. */
+  function fillFromOcr(task: OcrTask) {
+    const filled = productFormFromProposal(task.proposal);
+    setForm({ ...EMPTY_PRODUCT_FORM, ...filled });
+    setOcrMissing(missingProductFields(filled));
+    setOcrTaskId(task.id);
+    setEditing("new");
+    setOcrOpen(false);
+    return true;
   }
 
   function startEdit(item: FoodProductRow) {
@@ -653,6 +679,8 @@ function ProductsTab() {
       unit_grams: item.unit_grams != null ? String(item.unit_grams) : "",
       source: item.source ?? "", note: item.note ?? "",
     });
+    setOcrTaskId(null);
+    setOcrMissing([]);
     setEditing(item.id);
   }
 
@@ -672,7 +700,13 @@ function ProductsTab() {
         source: form.source.trim() || null,
         note: form.note.trim() || null,
       };
-      if (editing === "new") {
+      if (ocrTaskId) {
+        // Propozycja ze zdjęcia staje się produktem DOPIERO tutaj —
+        // z zapisaną proweniencją (plik źródłowy + użyty silnik).
+        await api.post(`/api/ocr/tasks/${ocrTaskId}/approve`, { product: payload });
+        setOcrTaskId(null);
+        setOcrMissing([]);
+      } else if (editing === "new") {
         await api.post("/api/coach/food-products", payload);
       } else {
         await api.put(`/api/coach/food-products/${editing}`, payload);
@@ -738,6 +772,14 @@ function ProductsTab() {
       {editing && (
         <form className="card card--accent" onSubmit={save}>
           <h2>{editing === "new" ? "Nowy produkt" : "Edytuj produkt"}</h2>
+          {ocrTaskId && (
+            <p className="alert alert--info" role="status" aria-live="polite">
+              Formularz wypełniono wstępnie ze zdjęcia etykiety. Sprawdź każdą
+              wartość — zapisuje się dopiero po Twoim zatwierdzeniu.
+              {ocrMissing.length > 0
+                && ` Nie udało się odczytać: ${ocrMissing.join(", ")} — uzupełnij ręcznie.`}
+            </p>
+          )}
           <div className="field-row">
             <div>
               <label htmlFor="fp-name">Nazwa</label>
@@ -850,9 +892,25 @@ function ProductsTab() {
 
       <FoodFilters catalog={catalog} idPrefix="coach-food" />
       {!editing && (
-        <div className="row" style={{ marginBottom: 10 }}>
+        <div className="row" style={{ marginBottom: 10, flexWrap: "wrap" }}>
           <button className="btn btn--small" onClick={startNew}>+ Nowy produkt</button>
+          <button className="btn btn--ghost btn--small" aria-expanded={ocrOpen}
+            onClick={() => setOcrOpen(!ocrOpen)}>
+            {ocrOpen ? "Zamknij przepisywanie" : "Przepisz ze zdjęcia (etykieta)"}
+          </button>
         </div>
+      )}
+      {ocrOpen && !editing && (
+        <OcrCapture
+          purpose="PRODUKT"
+          title="Etykieta produktu ze zdjęcia"
+          hint={"Zrób zdjęcie tabeli wartości odżywczych. Odczytane wartości "
+            + "trafią do formularza nowego produktu — sprawdzasz je i "
+            + "zatwierdzasz Ty. Czego nie da się odczytać, zostaje puste."}
+          approveLabel="Wypełnij formularz produktu"
+          onApprove={(task) => fillFromOcr(task)}
+          onClose={() => setOcrOpen(false)}
+        />
       )}
 
       {catalog.loading && catalog.items.length === 0 && <Spinner />}

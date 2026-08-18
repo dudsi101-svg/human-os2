@@ -235,6 +235,22 @@ Upload i podpinanie:
   soft delete (`deleted_at`) + usunięcie bajtów z dysku (pętla godzinna,
   zdarzenie ORPHAN_FILES_CLEANED).
 
+## Przepisywanie tekstu ze zdjęcia — OCR (`/api/ocr`, od 0.27.0)
+
+Pełny opis: `docs/OCR.md`. Reguły dostępu:
+
+| Operacja | Kto | Warunek |
+|---|---|---|
+| `POST /api/ocr/tasks` | właściciel pliku albo osoba, która go wgrała | plik istnieje, nie jest usunięty i jest zdjęciem (JPG/PNG/WEBP); **cudzy plik = 404**; zlecenie „w imieniu klienta" (`client_id`) przechodzi przez `resolve_client_access(write, collaboration)`; zły typ = 422, za duży = 413, limit dzienny = 429 |
+| `GET/DELETE /api/ocr/tasks/{id}` | `owner_user_id` albo `created_by` | **cudze zadanie = 404** (rozpoznany tekst bywa daną zdrowotną) |
+| `POST /api/ocr/tasks/{id}/approve` | jw. + rola/dostęp do celu zapisu | PRODUKT → rola COACH (produkt powstaje w bazie tego trenera); DOKUMENT → `resolve_client_access(write, nutrition_data\|collaboration)` wg kategorii dokumentu; ponowne zatwierdzenie = 409 |
+| `GET /api/ocr/status` | zalogowany | dla cudzego `client_id` — jak wyżej (`collaboration`) |
+
+Wysyłka do zewnętrznego dostawcy modelu (tryb rozszerzony) wymaga
+DODATKOWO aktywnej zgody `funkcje_ai` **podmiotu danych** — jedna reguła
+`authz.ai_features_consent_active` dla wszystkich funkcji AI. Bez zgody
+albo bez klucza działa silnik lokalny; to stan z jawnym powodem, nie błąd.
+
 ## Zgody (rejestr wersjonowany, od 0.11.0 granularny per kategoria)
 
 * **Kategorie zgód** (`consent_catalog.py` — pełny opis w

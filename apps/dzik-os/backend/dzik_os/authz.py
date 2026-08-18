@@ -17,7 +17,7 @@ from __future__ import annotations
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
-from .consent_catalog import category_for_domain
+from .consent_catalog import SYSTEM_GRANTEE, category_for_domain
 from .hos_bridge import ConsentService
 from .models import CoachClientRelationship, MessageThread, StoredFile, User
 from .security import active_roles
@@ -167,6 +167,22 @@ def require_attachable_file(
     if require_image and not stored.content_type.startswith("image/"):
         raise HTTPException(status_code=422, detail="Załącznik musi być zdjęciem")
     return stored
+
+
+def ai_features_consent_active(db: Session, subject_id: str) -> bool:
+    """Zgoda kategorii `funkcje_ai` podmiotu danych — bramka KAŻDEJ wysyłki
+    do zewnętrznego dostawcy modelu (onboarding, przepisywanie zdjęć).
+    Jedno miejsce dla wszystkich funkcji, żeby żadna nie miała własnej,
+    luźniejszej wersji tej reguły."""
+    return ConsentService.authorize(
+        db,
+        subject_id=subject_id,
+        grantee_id=SYSTEM_GRANTEE,
+        purpose="ai_features",
+        domain="checkin_summaries",
+        action="read",
+        sensitive=True,
+    )
 
 
 def require_client_self(db: Session, actor: User) -> str:

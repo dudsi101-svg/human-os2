@@ -32,6 +32,17 @@ def test_migration_19_adds_nullable_columns_to_existing_database(tmp_path):
             "INSERT INTO exercises(id, coach_id, name, muscle_group, how_to, status, "
             "created_by, created_at, updated_at) VALUES "
             "('EXC-1', 'C1', 'Stare ćwiczenie', 'NOGI', 'Opis', 'ACTIVE', 'C1', 'x', 'x')"))
+        # Stuby dla migracji nr 20 (tekst OCR przy dokumencie, proweniencja
+        # produktu) — migracje 1–18 są tu ostemplowane, więc tabele muszą
+        # powstać ręcznie.
+        conn.execute(text(
+            "CREATE TABLE documents (id VARCHAR(40) PRIMARY KEY, "
+            "client_id VARCHAR(40), file_id VARCHAR(40), title VARCHAR(300), "
+            "category VARCHAR(40), uploaded_by VARCHAR(40), "
+            "created_at VARCHAR(40), status VARCHAR(20))"))
+        conn.execute(text(
+            "CREATE TABLE food_products (id VARCHAR(40) PRIMARY KEY, "
+            "coach_id VARCHAR(40), name VARCHAR(300), kcal_100g FLOAT)"))
 
     applied = run_migrations(eng)
     assert 19 in applied

@@ -13,6 +13,15 @@ FROM python:3.12-slim AS runtime
 WORKDIR /app
 ENV PYTHONUNBUFFERED=1 PIP_NO_CACHE_DIR=1
 
+# Silnik lokalny przepisywania tekstu ze zdjęcia (OCR) + pakiety językowe
+# polski i angielski. Aplikacja działa też BEZ tych pakietów — zgłasza
+# wtedy jawny stan „silnik niedostępny" zamiast błędu (docs/OCR.md), więc
+# środowisko deweloperskie i testowe nie musi ich mieć.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        tesseract-ocr tesseract-ocr-pol tesseract-ocr-eng \
+    && rm -rf /var/lib/apt/lists/*
+
 # Human OS Core (hos_engine) + backend Dzik OS
 COPY pyproject.toml README.md LICENSE ./
 COPY hos_engine/ ./hos_engine/

@@ -36,6 +36,7 @@ from ..models import (
     NutritionPlan,
     NutritionPlanVersion,
     Observation,
+    OcrTask,
     OnboardingAnswer,
     OnboardingSession,
     OnboardingSummaryItem,
@@ -323,7 +324,7 @@ def _collect_export(db: Session, user: User) -> dict:
         onboarding_answers.extend(_rows(db, OnboardingAnswer, session_id=onb["id"]))
         onboarding_summary.extend(_rows(db, OnboardingSummaryItem, session_id=onb["id"]))
     return {
-        "export_version": "1.4",
+        "export_version": "1.5",
         "user": {
             "id": user.id, "email": user.email, "display_name": user.display_name,
             "identity_id": user.identity_id, "created_at": user.created_at,
@@ -360,6 +361,10 @@ def _collect_export(db: Session, user: User) -> dict:
         "onboarding_answers": onboarding_answers,
         "onboarding_summary_items": onboarding_summary,
         "ai_usage_counters": _rows(db, AIUsageCounter, user_id=client_id),
+        # Zadania przepisywania tekstu ze zdjęcia: rozpoznany tekst i
+        # propozycja pól to dane osobowe (bywa, że zdrowotne) — wchodzą do
+        # eksportu tak samo jak treść raportów (prawo do przenoszenia).
+        "ocr_tasks": _rows(db, OcrTask, owner_user_id=client_id),
         "audit_receipts": receipts,
         "challenge_participations": challenge_participations,
         "challenge_entries": challenge_entries,
@@ -497,6 +502,17 @@ def request_deletion(
     for doc in db.query(Document).filter(Document.client_id == client_id).all():
         doc.title = "[usunięto]"
         doc.status = "ARCHIVED"
+        # Tekst przepisany ze skanu bywa daną zdrowotną (np. wynik badań) —
+        # znika razem z resztą treści.
+        doc.ocr_text = None
+        doc.ocr_engine = None
+        doc.ocr_at = None
+    # Zadania przepisywania tekstu ze zdjęcia znikają w całości: niosą
+    # rozpoznaną treść, a nie tylko metadane (ślad operacji zostaje w
+    # niemutowalnym łańcuchu audytu, bez treści).
+    db.query(OcrTask).filter(
+        (OcrTask.owner_user_id == client_id) | (OcrTask.created_by == client_id)
+    ).delete()
     # Wyzwania: trwałe wycofanie wszystkich udziałów — wpisy wyników są
     # usuwane, pseudonimy anonimizowane, agregaty grup oznaczone jako
     # skorygowane; wyzwania indywidualne (organizowane przez klienta) są

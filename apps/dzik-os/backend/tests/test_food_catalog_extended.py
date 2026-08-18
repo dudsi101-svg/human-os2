@@ -43,6 +43,13 @@ def test_migration_18_adds_columns_to_old_database(tmp_path):
             "kcal_100g FLOAT, protein_100g FLOAT, fat_100g FLOAT, carbs_100g FLOAT, "
             "default_portion_g FLOAT, status VARCHAR(20), created_by VARCHAR(40), "
             "created_at VARCHAR(40), updated_at VARCHAR(40))"))
+        # Stub tabeli documents w kształcie sprzed migracji nr 20 (na
+        # świeżej bazie tworzy ją ORM w migracji nr 1).
+        conn.execute(text(
+            "CREATE TABLE documents (id VARCHAR(40) PRIMARY KEY, "
+            "client_id VARCHAR(40), file_id VARCHAR(40), title VARCHAR(300), "
+            "category VARCHAR(40), uploaded_by VARCHAR(40), "
+            "created_at VARCHAR(40), status VARCHAR(20))"))
         conn.execute(text(
             "INSERT INTO food_products(id, coach_id, name, category, kcal_100g, "
             "protein_100g, fat_100g, carbs_100g, status, created_by, created_at, "
