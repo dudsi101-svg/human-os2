@@ -40,6 +40,9 @@ export default function More() {
           <Link className="card card--nav" to="/trener/wyzwania">
             <Icon name="trophy" /><span>Wyzwania grupowe</span>
           </Link>
+          <Link className="card card--nav" to="/trener/podsumowanie">
+            <Icon name="clipboard" /><span>Podsumowanie tygodnia</span>
+          </Link>
           <Link className="card card--nav" to="/trener/rozliczenia">
             <Icon name="card" /><span>Pojednanie płatności</span>
           </Link>

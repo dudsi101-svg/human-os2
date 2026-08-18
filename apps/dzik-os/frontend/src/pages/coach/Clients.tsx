@@ -160,6 +160,11 @@ export default function Clients() {
             <div className="stat"><b>{dashboard.unread_messages_total}</b><span>nieprzeczytane wiadomości</span></div>
             <div className="stat"><b>{dashboard.flagged_observations_14d}</b><span>obserwacje (14 dni)</span></div>
           </div>
+          <div style={{ marginTop: 10 }}>
+            <Link className="btn btn--ghost btn--small" to="/trener/podsumowanie">
+              Podsumowanie tygodnia
+            </Link>
+          </div>
         </div>
       )}
       <div className="row" style={{ marginBottom: 10 }}>

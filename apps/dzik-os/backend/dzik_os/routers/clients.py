@@ -383,6 +383,111 @@ def list_clients(
     return {"clients": out}
 
 
+@router.get("/weekly-digest")
+def weekly_digest(
+    coach: User = Depends(require_role("COACH")),
+    db: Session = Depends(get_db),
+):
+    """Podsumowanie tygodnia trenera: co czeka i co się wydarzyło.
+
+    Metadane OPERACYJNE własnej pracy — kto już wysłał raport, kto zalega,
+    które płatności są przeterminowane, gdzie klient zgłosił coś
+    niepokojącego i jakie konsultacje są umówione. Liczone dokładnie tym
+    samym kodem co panel i karta klienta (aggregates.client_flags_bulk),
+    więc żaden ekran nie pokazuje innej prawdy.
+
+    Zasada Human OS: to NIE jest ranking podopiecznych. Lista jest
+    sortowana po tym, co wymaga uwagi trenera (i alfabetycznie w obrębie
+    grupy), nigdy po „wyniku" człowieka; nie ma punktów, ocen ani
+    porównań między klientami.
+    """
+    rels = (
+        db.query(CoachClientRelationship)
+        .filter(
+            CoachClientRelationship.coach_id == coach.id,
+            CoachClientRelationship.status == "ACTIVE",
+        )
+        .all()
+    )
+    today = local_today()
+    # Poniedziałek bieżącego tygodnia — granica „zaraportował w tym tygodniu".
+    week_start = (today - timedelta(days=today.isoweekday() - 1)).isoformat()
+    client_ids = [rel.client_id for rel in rels]
+    clients = aggregates.users_by_id(db, client_ids)
+    flags_by_client = aggregates.client_flags_bulk(db, coach.id, client_ids, today)
+
+    reported: list[dict] = []
+    awaiting: list[dict] = []
+    overdue: list[dict] = []
+    payments: list[dict] = []
+    flagged: list[dict] = []
+    for client_id in client_ids:
+        client = clients.get(client_id)
+        if client is None:
+            continue
+        flags = flags_by_client[client_id]
+        entry = {
+            "client_id": client_id,
+            "display_name": client.display_name,
+            "last_checkin_week": flags["last_checkin_week"],
+        }
+        if flags["last_checkin_week"] and flags["last_checkin_week"] >= week_start:
+            reported.append(entry)
+        if flags["awaiting_review"]:
+            awaiting.append(entry)
+        if flags["checkin_overdue"]:
+            overdue.append(entry)
+        if flags["payment_overdue"]:
+            payments.append(entry)
+        if flags["flagged_observations"] > 0 or flags["recent_pain_reports"] > 0:
+            flagged.append({
+                **entry,
+                "flagged_observations": flags["flagged_observations"],
+                "recent_pain_reports": flags["recent_pain_reports"],
+            })
+    for group in (reported, awaiting, overdue, payments, flagged):
+        group.sort(key=lambda row: row["display_name"].lower())
+
+    upcoming = (
+        db.query(ConsultSlot)
+        .filter(
+            ConsultSlot.coach_id == coach.id,
+            ConsultSlot.status == "BOOKED",
+            ConsultSlot.starts_at > local_now_minute(),
+        )
+        .order_by(ConsultSlot.starts_at)
+        .limit(10)
+        .all()
+    )
+    slot_clients = aggregates.users_by_id(
+        db, [s.client_id for s in upcoming if s.client_id]
+    )
+    consultations = [
+        {
+            "id": slot.id,
+            "starts_at": slot.starts_at,
+            "duration_min": slot.duration_min,
+            "client_name": (
+                slot_clients[slot.client_id].display_name
+                if slot.client_id and slot.client_id in slot_clients
+                else None
+            ),
+        }
+        for slot in upcoming
+    ]
+    return {
+        "week_start": week_start,
+        "generated_for": today.isoformat(),
+        "active_clients": len(client_ids),
+        "reported_this_week": reported,
+        "awaiting_review": awaiting,
+        "checkin_overdue": overdue,
+        "payment_overdue": payments,
+        "flagged": flagged,
+        "upcoming_consultations": consultations,
+    }
+
+
 @router.get("/dashboard")
 def coach_dashboard(
     coach: User = Depends(require_role("COACH")),

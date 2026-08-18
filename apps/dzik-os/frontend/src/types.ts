@@ -917,3 +917,34 @@ export interface ChallengeReportRow {
   created_at: string;
   resolved_at: string | null;
 }
+
+/** Wiersz grupy w podsumowaniu tygodnia trenera (metadane operacyjne —
+ *  nigdy ranking; brak punktacji i ocen z definicji). */
+export interface WeeklyDigestRow {
+  client_id: string;
+  display_name: string;
+  last_checkin_week: string | null;
+  /** Wyłącznie w grupie „flagged": liczniki z ostatnich 14 dni. */
+  flagged_observations?: number;
+  recent_pain_reports?: number;
+}
+
+export interface WeeklyDigestData {
+  week_start: string;
+  generated_for: string;
+  active_clients: number;
+  reported_this_week: WeeklyDigestRow[];
+  awaiting_review: WeeklyDigestRow[];
+  checkin_overdue: WeeklyDigestRow[];
+  payment_overdue: WeeklyDigestRow[];
+  flagged: (WeeklyDigestRow & {
+    flagged_observations: number;
+    recent_pain_reports: number;
+  })[];
+  upcoming_consultations: {
+    id: string;
+    starts_at: string;
+    duration_min: number;
+    client_name: string | null;
+  }[];
+}

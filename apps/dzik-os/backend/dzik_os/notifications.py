@@ -41,6 +41,7 @@ from .models import (
     NotificationSetting,
     PaymentRecord,
     Reminder,
+    RoleGrant,
     ScheduleCompletion,
     ScheduleItem,
     User,
@@ -57,6 +58,14 @@ CHANNELS = ("PUSH", "CENTER", "EMAIL")
 # Domyślne stany kanałów (brak wiersza preferencji): push i centrum
 # włączone, e-mail wyłączony (kanał awaryjny — świadomy opt-in).
 CHANNEL_DEFAULTS = {"PUSH": True, "CENTER": True, "EMAIL": False}
+# Wyjątki od domyślnych kanałów per kategoria. E-mail jest domyślnie
+# wyłączony wszędzie (kanał awaryjny), ale digest trenera bez e-maila nie
+# miałby racji bytu — przy NullNotificationProvider i tak nic nie wychodzi,
+# a trener może kanał wyłączyć w ustawieniach jak każdy inny.
+CATEGORY_CHANNEL_DEFAULTS: dict[tuple[str, str], bool] = {
+    ("PODSUMOWANIE", "EMAIL"): True,
+    ("PODSUMOWANIE", "PUSH"): False,
+}
 
 # Maksymalne spóźnienie doręczenia zaplanowanego przypomnienia (nadganianie
 # po restarcie/awarii). Starsze wiersze są tłumione jako "expired" —
@@ -91,6 +100,13 @@ CATEGORIES: dict[str, Category] = {
         Category("DOKUMENT", "Dokument lub zgoda", "Nowy dokument w aplikacji", "/dokumenty"),
         Category("ZMIANA_PLANU", "Ważna zmiana planu", "Zmiana Twojego planu", "/plan"),
         Category("KONSULTACJA", "Konsultacja", "Konsultacja", "/konsultacje"),
+        # Digest trenera: metadane operacyjne własnej pracy (nie dane
+        # zdrowotne podopiecznych) — jedyna kategoria z e-mailem włączonym
+        # domyślnie, bo poniedziałkowa wiadomość jest całym jej sensem.
+        Category(
+            "PODSUMOWANIE", "Podsumowanie tygodnia",
+            "Podsumowanie tygodnia", "/trener/podsumowanie",
+        ),
     ]
 }
 
@@ -131,6 +147,9 @@ def channel_enabled(db: Session, user_id: str, category: str, channel: str) -> b
     )
     if row is not None:
         return bool(row.enabled)
+    override = CATEGORY_CHANNEL_DEFAULTS.get((category, channel))
+    if override is not None:
+        return override
     return CHANNEL_DEFAULTS.get(channel, False)
 
 
@@ -564,6 +583,58 @@ def plan_day(db: Session, now_utc: datetime) -> int:
             # o zaległości ma własny klucz, a powtórka tego samego dnia
             # nadal jest odrzucana przez UNIQUE(user_id, dedup_key).
             dedup_key=f"payment-due:{rec.id}:{today_local}",
+            scheduled_at_utc=occurs_utc,
+            timezone=str(tz),
+        )
+        planned += created is not None
+    return planned
+
+
+# Digest trenera: poniedziałek rano czasu trenera.
+DIGEST_WEEKDAY = 1  # poniedziałek (isoweekday)
+DIGEST_HOUR = 7
+
+
+def plan_weekly_digest(db: Session, now_utc: datetime) -> int:
+    """Planuje poniedziałkowe „Podsumowanie tygodnia" dla każdego trenera.
+
+    Powiadomienie jest neutralnym wezwaniem do panelu — liczby i nazwiska
+    zostają na ekranie za logowaniem (ta sama zasada, co dla push:
+    wiadomość może wyświetlić się na ekranie blokady). Idempotentne po
+    kluczu tygodnia ISO, więc restart maszyny ani wielokrotny tick nie
+    tworzą duplikatu. Bez skonfigurowanego dostawcy e-mail wpis po prostu
+    trafia do centrum powiadomień w aplikacji — nic nie wychodzi na zewnątrz.
+    """
+    planned = 0
+    coach_ids = [
+        row[0]
+        for row in db.query(RoleGrant.user_id)
+        .filter(RoleGrant.role == "COACH", RoleGrant.revoked_at.is_(None))
+        .distinct()
+        .all()
+    ]
+    for coach_id in coach_ids:
+        coach = db.get(User, coach_id)
+        if coach is None or coach.status != "ACTIVE":
+            continue
+        tz = tz_for_user(coach)
+        local = now_utc.astimezone(tz)
+        if local.isoweekday() != DIGEST_WEEKDAY:
+            continue
+        occurs_local = local.replace(
+            hour=DIGEST_HOUR, minute=0, second=0, microsecond=0
+        )
+        occurs_utc = occurs_local.astimezone(UTC)
+        if now_utc - occurs_utc > LATE_SEND_MAX:
+            continue
+        created = schedule(
+            db,
+            user_id=coach_id,
+            category="PODSUMOWANIE",
+            title="Podsumowanie tygodnia",
+            body="Zestawienie pracy z minionego tygodnia czeka w panelu.",
+            url="/trener/podsumowanie",
+            dedup_key=f"digest:{coach_id}:{_week_key(local)}",
             scheduled_at_utc=occurs_utc,
             timezone=str(tz),
         )

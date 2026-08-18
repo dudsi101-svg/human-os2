@@ -1,5 +1,40 @@
 # Changelog — Dzik OS
 
+## 0.26.0 — 2026-08-18
+
+**Cotygodniowy digest trenera** (runda 6b.8 ze `SPEC_NASTEPNE_RUNDY.md`).
+Numer wpisu to kontynuacja bieżącej numeracji — polecenie mówiło o 0.10.0,
+ale ta wersja została wydana dawno temu i cofanie numeracji zaciemniłoby
+historię.
+
+* **Ekran „Podsumowanie tygodnia"** w panelu trenera (`/trener/podsumowanie`,
+  wejście z pulpitu i z „Więcej"): kto zaraportował w tym tygodniu, co czeka
+  na ocenę, kto zalega z raportem, gdzie zalegają płatności, gdzie zgłoszono
+  ból lub niepokojącą obserwację (14 dni) i jakie konsultacje są umówione.
+* `GET /api/coach/weekly-digest` liczy wszystko przez `aggregates.client_flags_bulk`
+  — dokładnie ten sam kod co pulpit i karta klienta, więc żaden ekran nie
+  pokazuje innej prawdy. Stała liczba zapytań niezależnie od liczby
+  podopiecznych.
+* **Digest to metadane operacyjne, nigdy ranking**: brak punktacji, ocen
+  i porównań między ludźmi; grupy sortowane alfabetycznie (kolejność nie
+  sugeruje „lepszego" podopiecznego). Egzekwowane testem, który odrzuca
+  pola typu score/rank i pilnuje sortowania.
+* **Poniedziałkowe powiadomienie 07:00** czasu trenera przez wspólny system
+  powiadomień (nowa kategoria `PODSUMOWANIE`): idempotentne po kluczu
+  tygodnia ISO — restart maszyny ani tick co minutę nie tworzą duplikatu.
+  E-mail jest dla tej jednej kategorii włączony domyślnie (bez niego digest
+  nie miałby sensu), push wyłączony; przy `NullNotificationProvider` wpis
+  trafia wyłącznie do centrum powiadomień w aplikacji i nic nie wychodzi
+  na zewnątrz.
+* Treść powiadomienia i e-maila jest neutralna — bez nazwisk, liczb i
+  danych zdrowotnych (może trafić na ekran blokady); szczegóły wyłącznie
+  po zalogowaniu. Potwierdzone testem skanującym wysłaną treść.
+* Testy: `tests/test_weekly_digest.py` (8) — zgodność z pulpitem i listą
+  klientów, brak sygnałów rankingowych, świeży raport przenosi klienta
+  między grupami, dostęp tylko dla trenera i tylko do swoich podopiecznych,
+  planowanie raz na tydzień, brak planowania w inne dni, neutralność treści
+  przy działającym dostawcy e-mail, milczenie przy dostawcy Null.
+
 ## 0.25.0 — 2026-08-18
 
 **Szkic pracujących mięśni w karcie ćwiczenia** + naprawa samoczynnego

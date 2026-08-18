@@ -30,6 +30,9 @@ def _tick(now_utc: datetime) -> int:
     """Jedno przejście pętli; zwraca liczbę doręczonych (dla testów)."""
     with db_session() as db:
         notifications.plan_day(db, now_utc)
+        # Digest trenera: raz w tygodniu, w poniedziałek rano czasu trenera
+        # (idempotentnie po kluczu tygodnia — tick co minutę nie mnoży).
+        notifications.plan_weekly_digest(db, now_utc)
         sent = notifications.dispatch_due(db, now_utc)
         payloads = [notifications.realtime_payload(n) for n in sent
                     if "center" in (n.channels or "")]

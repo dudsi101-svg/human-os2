@@ -14,7 +14,7 @@ Jeden wiersz = jedno logiczne powiadomienie do jednego odbiorcy.
 | Pole | Znaczenie |
 |---|---|
 | `user_id` | odbiorca |
-| `category` | `TRENING` / `SUPLEMENT` / `HARMONOGRAM` / `RAPORT` / `WIADOMOSC` / `PLATNOSC` / `DOKUMENT` / `ZMIANA_PLANU` / `KONSULTACJA` |
+| `category` | `TRENING` / `SUPLEMENT` / `HARMONOGRAM` / `RAPORT` / `WIADOMOSC` / `PLATNOSC` / `DOKUMENT` / `ZMIANA_PLANU` / `KONSULTACJA` / `PODSUMOWANIE` |
 | `title`, `body` | treść dla **centrum w aplikacji** (widoczna po zalogowaniu) |
 | `url` | ekran docelowy kliknięcia (push i centrum), zawsze wewnętrzna ścieżka |
 | `status` | `SCHEDULED` → `SENT` / `CANCELLED` / `SUPPRESSED` |
@@ -89,6 +89,27 @@ otwartej aplikacji odbiorcy — centrum aktualizuje się bez odświeżania.
 
 Ograniczenie wdrożeniowe: pętla i magistrala SSE żyją w jednym procesie
 (fly.toml `min_machines_running=1`) — jak w `docs/WIADOMOSCI.md`.
+
+### 2a. Cotygodniowy digest trenera (`PODSUMOWANIE`)
+
+`notifications.plan_weekly_digest` planuje jedno powiadomienie na trenera
+w **poniedziałek o 07:00 czasu trenera**, z kluczem idempotencji
+`digest:{coach_id}:{rok}-W{tydzień}` — tick co minutę i restart maszyny nie
+tworzą duplikatu, a nadganianie ma zwykłą granicę `LATE_SEND_MAX`.
+
+Domyślne kanały tej kategorii są wyjątkiem od reguły (`CATEGORY_CHANNEL_DEFAULTS`):
+e-mail **włączony**, push **wyłączony** — poniedziałkowa wiadomość na skrzynkę
+jest całym sensem digestu, a wibrujący telefon o 7:00 nie jest. Trener może
+oba kanały zmienić w ustawieniach powiadomień jak każdą inną kategorię.
+Bez skonfigurowanego dostawcy e-mail (`NullNotificationProvider`) wpis trafia
+wyłącznie do centrum powiadomień w aplikacji — nic nie wychodzi na zewnątrz.
+
+Treść jest neutralna jak w każdej innej kategorii: bez nazwisk, liczb i danych
+zdrowotnych. Zestawienie (kto zaraportował, co czeka na ocenę, kto zalega,
+zgłoszenia, konsultacje) żyje wyłącznie na ekranie `/trener/podsumowanie`
+za logowaniem i jest liczone tym samym kodem co pulpit
+(`aggregates.client_flags_bulk`). Digest to metadane operacyjne pracy trenera,
+nigdy ranking podopiecznych.
 
 ## 3. Zasady prywatności treści (Konstytucja Human OS / RODO)
 
