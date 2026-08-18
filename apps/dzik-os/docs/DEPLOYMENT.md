@@ -103,9 +103,11 @@ przed pierwszym prawdziwym wdrożeniem:
 * **przepisywanie tekstu ze zdjęcia (OCR)**: obraz produkcyjny zawiera
   `tesseract-ocr` + pakiety `pol`/`eng` (Dockerfile). Rozpoznanie zjada
   pamięć, więc kolejka jest **jednoslotowa**, a obraz zmniejszany do
-  1600 px przed OCR. Na `shared-cpu-1x/512mb` to działa dla jednego
-  trenera; **przy większym ruchu podbij maszynę do 1 GB**
-  (`flyctl scale memory 1024`) — inaczej zadania będą stać w kolejce.
+  1600 px przed OCR. Maszyna ma **1 GB RAM** (`fly.toml`, podbite z 512 MB
+  po pomiarze: aplikacja 124-129 MB, obróbka jednego zdjęcia ~75 MB
+  szczytowo — pojedyncza operacja mieściła się w 512 MB, ale nałożenie
+  uploadu zdjęć raportu na OCR już nie, a Fly nie ma swapa). Przy większym
+  ruchu **najpierw** kolejne podbicie pamięci, **potem** więcej slotów.
   Strojenie: `DZIK_OCR_MAX_PX`, `DZIK_OCR_TIMEOUT_S`,
   `DZIK_OCR_QUEUE_MAX`, `DZIK_OCR_MAX_INPUT_MB`,
   `DZIK_OCR_DAILY_TASKS_USER`, `DZIK_OCR_LANGS` (szczegóły:

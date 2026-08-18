@@ -1,6 +1,6 @@
 # Changelog — Dzik OS
 
-## 0.28.0 — 2026-08-18
+## 0.30.0 — 2026-08-18
 
 **Dowody tam, gdzie ich nie było.** Trzy bramki wynikające z audytu
 wykonawczego: testy E2E interfejsu, przebieg zestawu na PostgreSQL
@@ -55,6 +55,108 @@ i ograniczenie precache'u PWA.
 * **Macierz uprawnień objęła router OCR** (182 operacje API). Bramka
   pokrycia zadziałała zgodnie z projektem — nowe endpointy przerwały build,
   dopóki nie dostały zadeklarowanej klasy dostępu.
+## 0.29.0 — 2026-08-18
+
+**Maszyna produkcyjna: 512 MB → 1 GB RAM** (`fly.toml`, `[[vm]] memory`).
+
+Decyzja na podstawie pomiaru, nie przeczucia: aplikacja zajmuje 124 MB po
+starcie i 129 MB po typowym ruchu klienta, a obróbka jednego zdjęcia
+2560×1920 w Pillow kosztuje ~75 MB szczytowo (OCR na zmniejszonym obrazie
+tyle samo). Pojedyncza operacja mieściła się w 512 MB z zapasem — ryzykiem
+był zbieg zdarzeń: upload zdjęć raportu (każde przez Pillow) w tym samym
+momencie co rozpoznawanie tekstu, przy stale działającej pętli przypomnień
+i otwartych połączeniach wiadomości na żywo. Fly nie ma swapa, więc
+przekroczenie limitu to ubicie maszyny i przestój, a nie spowolnienie.
+Koszt zmiany: ok. 2-3 USD/mies.
+
+Limity OCR (kolejka jednoslotowa, zmniejszanie obrazu, timeout) zostają
+bez zmian — chronią czas odpowiedzi, nie tylko pamięć. Kolejność przy
+dalszym skalowaniu bez zmian: najpierw pamięć, potem więcej slotów.
+Zaktualizowane: `fly.toml`, `DEPLOYMENT.md` §4, `OCR.md` §2,
+`DEFERRED_FEATURES.md`.
+
+## 0.28.0 — 2026-08-18
+
+**Auto-uzupełnianie tabeli parametrów ćwiczenia z wklejonego opisu.**
+Trener wkleja jednolity opis ćwiczenia, klika „Uzupełnij z opisu” i
+dostaje gotową propozycję pól do zatwierdzenia — zamiast wpisywać
+kilkanaście pól ręcznie przy każdej ze 150 pozycji bazy. Pełny opis
+parsera, słownik synonimów, oba tryby, plan wycofania migracji nr 22 i
+znane ograniczenia: `docs/BAZA_CWICZEN.md` §10.
+
+* **Silnik lokalny działa zawsze, tryb rozszerzony włącza się sam.**
+  Domyślnie czyta deterministyczny parser polskiego tekstu
+  (`dzik_os/exercise_parser.py`) — bez klucza, bez internetu, bez bazy.
+  Gdy operator skonfiguruje dostawcę modelu, ten sam opis idzie trybem
+  rozszerzonym (dokładniejsza struktura, zwłaszcza z tekstu ciągłego bez
+  nagłówków). **Kod wywołujący nie ma przełącznika** — wybiera
+  `exercise_parser_ai.resolve_mode`, a widok tylko pokazuje tryb i powód.
+* **ZASADA NADRZĘDNA: nigdy nie zgadujemy.** Pole nierozpoznane zostaje
+  PUSTE i trafia na jawną listę „nie udało się odczytać”. Stąd świadome
+  ograniczenia: „barki” bez określenia aktonu nie są mapowane (trzy różne
+  klucze, żaden domyślny), „podstawowe ćwiczenie” to nie poziom
+  początkujący, a „2026” w notatce to nie tempo. Nazwa spoza słownika
+  partii mięśniowych jest ignorowana, nie mapowana na najbliższą.
+* **Co rozpoznaje parser lokalny:** mięśnie (słownik synonimów mapowany na
+  21 kluczy `MUSCLE_LABELS`, odporny na odmianę i polskie znaki przez
+  `muscles.fold()`), podział na główne/pomocnicze **po markerach w
+  tekście** („pracują głównie”, „wspomagająco”, „dodatkowo angażuje”),
+  sprzęt, poziom, wzorzec ruchu, kroki techniki (listy numerowane i
+  punktowane albo zdania sekcji „wykonanie/technika/przebieg”), błędy,
+  wskazówki, bezpieczeństwo, warianty łatwiejszy/trudniejszy, tempo,
+  oddech i efekt. **Brak markera podziału = wszystko do głównych + jawna
+  flaga „do potwierdzenia”** (dzielenie listy na oko byłoby zgadywaniem).
+* **Wynik to ZAWSZE propozycja.** `POST /api/coach/exercises/parse-description`
+  (rola COACH) nie zapisuje ani jednego ćwiczenia — zwraca propozycję
+  pól, użyty tryb, powód trybu oraz dwie **rozłączne** listy: pól
+  nierozpoznanych i pól wymagających potwierdzenia. Zapis następuje
+  wyłącznie istniejącym endpointem tworzenia/edycji, po zatwierdzeniu
+  przez trenera.
+* **Edytor bazy ćwiczeń: panel „Uzupełnij z opisu”** z podglądem
+  propozycji (co zostanie wstawione, czego nie rozpoznano, który tryb
+  zadziałał). **Domyślnie uzupełniamy wyłącznie PUSTE pola** — praca
+  trenera nie znika przez jedno kliknięcie; nadpisanie to osobny,
+  świadomy przełącznik. Dostępność jak w rundzie P10 (etykiety `for`/`id`,
+  `aria-live` na pojawienie się propozycji).
+* **Synergia z OCR bez drugiego mechanizmu OCR.** Przycisk „Przepisz ze
+  zdjęcia” otwiera istniejący komponent `OcrCapture`; zatwierdzony tekst
+  dokleja się na końcu pola opisu. Ścieżka: zdjęcie kartki lub strony z
+  książki → tekst → wypełniona tabela.
+* **RÓŻNICA W BRAMKOWANIU ZGÓD względem OCR (świadoma).** Opis ćwiczenia
+  to **własne know-how trenera**, nie dane zdrowotne klienta — klient w
+  tym przepływie w ogóle nie występuje. Bramką nie jest więc zgoda
+  `funkcje_ai` podmiotu danych (ta dotyczy danych klienta), tylko
+  dostępność dostawcy i jawna decyzja trenera (świadome kliknięcie).
+  Nowy cel przetwarzania w rejestrze czynności (poz. 14): trener jako
+  podmiot danych własnego tekstu, dostawca modelu jako procesor —
+  wyłącznie przy włączonym trybie rozszerzonym. Gdyby do tego przepływu
+  miał kiedyś trafić tekst opisujący konkretnego klienta, bramkowanie
+  MUSI wrócić do `authz.ai_features_consent_active`.
+* **Minimalizacja i twardy kontrakt wyjścia.** Do dostawcy jedzie
+  WYŁĄCZNIE wklejony tekst opisu — bez identyfikatorów, nazwisk i danych
+  klientów (funkcja przyjmuje jeden argument i nie ma jak przemycić nic
+  poza nim). Odpowiedź modelu przechodzi schemat `extra="forbid"`, w
+  którym dozwolone są tylko klucze ze słownika mięśni, poziomów i wzorców
+  — model **strukturalnie nie może wymyślić nowej wartości**; jedna
+  wartość spoza słownika odrzuca całą odpowiedź, potem jedno ponowienie i
+  zejście na silnik lokalny. Limity i liczniki jak w pozostałych funkcjach
+  (`ai_usage_counters`, cecha `exercise_parse`). Ani jeden znak opisu nie
+  trafia do logów i metryk.
+* **Migracja nr 22** (jedna krotka, wyłącznie addytywna, obie kolumny
+  NULLable): proweniencja ćwiczenia — `source_kind`
+  (MANUAL / TEXT_PARSED / AI_ASSISTED, **NULL = historyczne, nie wiemy**)
+  i `source_engine` (LOCAL/EXTENDED, nigdy nazwa dostawcy). Zwykła edycja
+  nie kasuje zapisanej wcześniej proweniencji. Numer 21 zarezerwowany dla
+  równoległej rundy — luka w numeracji jest świadoma.
+* **Testy:** `backend/tests/test_exercise_parser.py` (42 przypadki) —
+  opisy z nagłówkami i bez, synonimy i polskie znaki, podział po
+  markerach, brak markera → flaga do potwierdzenia, pola nierozpoznane
+  puste i wypisane, tekst bez sensu → pusta propozycja bez błędu, nieznana
+  partia ignorowana, tryb rozszerzony na atrapie dostawcy (poprawna
+  odpowiedź / wartość spoza słownika → odrzucenie i zejście na lokalny /
+  brak odpowiedzi), klient 403, brak zapisu, brak treści w logach i
+  metrykach, proweniencja przy zapisie, migracja nr 22 na starej bazie.
+  Frontend: `scripts/test-exercise-parser.mjs` (9 przypadków scalania).
 
 ## 0.27.0 — 2026-08-18
 

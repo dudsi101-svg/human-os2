@@ -77,8 +77,12 @@ testowany na atrapie silnika, a obecność binarki to osobny test oznaczony
 
 ## 2. Limity maszyny, kolejka i czas
 
-Produkcja to **Fly.io shared-cpu-1x z 512 MB RAM** (`fly.toml`). Stąd
-cztery twarde ograniczenia:
+Produkcja to **Fly.io shared-cpu-1x z 1 GB RAM** (`fly.toml`; podbite
+z 512 MB, gdy pomiar pokazał 124-129 MB dla samej aplikacji i ~75 MB
+szczytowo na obróbkę jednego zdjęcia — pojedyncze rozpoznanie mieściło
+się w 512 MB, ale zbieg uploadu zdjęć raportu z OCR-em już nie, a Fly nie
+ma swapa, więc przekroczenie limitu ubija maszynę). Ograniczenia poniżej
+zostają mimo większej pamięci — chronią czas odpowiedzi, nie tylko RAM:
 
 | Ograniczenie | Wartość domyślna | Zmienna |
 |---|---|---|
@@ -89,12 +93,12 @@ cztery twarde ograniczenia:
 | Limit rozmiaru wejścia | 8 MB | `DZIK_OCR_MAX_INPUT_MB` |
 | Limit dzienny zadań na konto | 50 | `DZIK_OCR_DAILY_TASKS_USER` |
 
-**Przy większym ruchu maszynę trzeba podbić do 1 GB RAM.** Jednoslotowa
+**Przy dalszym wzroście ruchu kolejny krok to znowu pamięć.** Jednoslotowa
 kolejka chroni maszynę przed OOM, ale przy kilku trenerach robiących
 zdjęcia jednocześnie zamieni się w kolejkę do sklepu: rozpoznanie trwa
 kilka sekund, więc dziesiąte zadanie czeka pół minuty. Kolejność działań
-przy skalowaniu: (1) `fly scale memory 1024`, (2) dopiero potem ewentualne
-zwiększenie liczby slotów — nigdy odwrotnie.
+przy skalowaniu: (1) pamięć (`fly scale memory …` albo `[[vm]]` w
+`fly.toml`), (2) dopiero potem zwiększenie liczby slotów — nigdy odwrotnie.
 
 Przebieg zadania: `POST /api/ocr/tasks` zapisuje wiersz `PENDING` i
 oddaje sterowanie (HTTP 202 + identyfikator). Wątek roboczy

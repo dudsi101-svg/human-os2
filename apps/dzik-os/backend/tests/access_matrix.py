@@ -162,6 +162,9 @@ MATRIX: dict[tuple[str, str], Access] = {
     ("POST", "/api/coach/diet-suggestion"): Access.COACH_ONLY,
     ("GET", "/api/coach/exercises"): Access.COACH_ONLY,
     ("POST", "/api/coach/exercises"): Access.COACH_ONLY,
+    # Wymaga roli COACH (require_role) i niczego nie zapisuje — zwraca
+    # wyłącznie propozycję pól edytora z wklejonego opisu.
+    ("POST", "/api/coach/exercises/parse-description"): Access.COACH_ONLY,
     ("GET", "/api/coach/exercises/{item_id}"): Access.COACH_ONLY,
     ("PUT", "/api/coach/exercises/{item_id}"): Access.COACH_ONLY,
     ("POST", "/api/coach/exercises/{item_id}/status"): Access.COACH_ONLY,

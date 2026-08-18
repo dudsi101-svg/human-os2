@@ -69,6 +69,19 @@ klientów wymagających uwagi.
   medyczna** — przy bólu lub urazie kieruj klienta do specjalisty.
   Zarchiwizowanie ćwiczenia nie psuje istniejących planów: nazwa i
   parametry w planie zostają, znika tylko link do karty.
+* **„Uzupełnij z opisu"** (panel w edytorze ćwiczenia) — wklej gotowy
+  opis ćwiczenia (własne notatki, fragment książki, tekst przepisany ze
+  zdjęcia) i kliknij przycisk. Aplikacja wyciągnie z niego, co się da:
+  mięśnie, sprzęt, poziom, wzorzec ruchu, kroki techniki, błędy,
+  wskazówki, bezpieczeństwo, warianty, tempo i oddech. Zobaczysz
+  **propozycję**: co zostanie wstawione, czego nie udało się odczytać i
+  co warto sprawdzić. **Czego nie da się odczytać, zostaje puste — nic
+  nie jest zgadywane.** Domyślnie uzupełniamy tylko puste pola, więc Twoja
+  praca nie znika; nadpisanie wypełnionych pól włączasz osobno.
+  Przycisk „Przepisz ze zdjęcia" w tym samym panelu pozwala zrobić
+  zdjęcie kartki albo strony z książki i wstawić przepisany tekst do pola
+  opisu. Nic nie zapisuje się samo — ćwiczenie powstaje dopiero, gdy
+  klikniesz „Zapisz".
 * **Dieta** — cele kcal/makro, zalecenia tekstowe, posiłki z zamiennikami;
   także wersjonowana z powodem zmiany.
 * **Harmonogram** — elementy z kategorią, porą i dniami tygodnia.

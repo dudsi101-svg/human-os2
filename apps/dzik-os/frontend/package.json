@@ -8,7 +8,7 @@
     "build": "tsc -b && vite build && node scripts/inject-precache.mjs",
     "preview": "vite preview",
     "typecheck": "tsc -b --noEmit",
-    "test:helpers": "node --test scripts/test-error-utils.mjs scripts/test-exercise-filters.mjs scripts/test-food-utils.mjs scripts/test-messaging.mjs scripts/test-notifications-utils.mjs scripts/test-ocr-utils.mjs scripts/test-onboarding-utils.mjs scripts/test-series-utils.mjs",
+    "test:helpers": "node --test scripts/test-error-utils.mjs scripts/test-exercise-filters.mjs scripts/test-exercise-parser.mjs scripts/test-food-utils.mjs scripts/test-messaging.mjs scripts/test-notifications-utils.mjs scripts/test-ocr-utils.mjs scripts/test-onboarding-utils.mjs scripts/test-series-utils.mjs",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui"
   },

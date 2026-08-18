@@ -766,6 +766,26 @@ MIGRATIONS: list[tuple[int, str, list[str]]] = [
         "ALTER TABLE food_products ADD COLUMN origin_file_id VARCHAR(40)",
         "ALTER TABLE food_products ADD COLUMN origin_engine VARCHAR(20)",
     ]),
+    # Numer 21 jest zarezerwowany dla równoległej rundy — luka w numeracji
+    # jest świadoma. `run_migrations` idzie po numerach z tej listy, więc
+    # dołożenie 21 przy scaleniu nic tu nie psuje.
+    # Numer 21 nigdy nie istniał — kolejna migracja dostała od razu 22.
+    # Luki w numeracji nie wolno zostawić otwartej: baza stosuje wyłącznie
+    # BRAKUJĄCE numery, więc gdyby ktoś później dopisał migrację 21, na
+    # bazach mających już 22 wykonałaby się PO niej, łamiąc kolejność.
+    # Zamknięcie luki pustym wpisem jest bezpieczne dla obu przypadków:
+    # istniejąca baza tylko stempluje wersję (zero instrukcji), a nowa
+    # dostaje schemat z metadanych ORM jak zawsze.
+    (21, "numer niewykorzystany (luka domknięta, brak zmian schematu)", []),
+    (22, "baza ćwiczeń: proweniencja wpisu (skąd wzięły się dane)", [
+        # Czysto addytywna: dwie nowe kolumny NULLable na istniejącej
+        # tabeli. NULL znaczy „ćwiczenie sprzed tej migracji, nie wiemy” —
+        # świadomie NIE robimy backfillu na MANUAL, bo to byłoby wpisanie
+        # do bazy faktu, którego nikt nie stwierdził.
+        # Plan wycofania: docs/BAZA_CWICZEN.md §migracja nr 22.
+        "ALTER TABLE exercises ADD COLUMN source_kind VARCHAR(20)",
+        "ALTER TABLE exercises ADD COLUMN source_engine VARCHAR(20)",
+    ]),
 ]
 
 
