@@ -3,6 +3,7 @@ import { api } from "../../api";
 import { plDate } from "../../dates";
 import { ErrorBox, SheetImportPanel, Spinner, TopBar } from "../../components";
 import { TrainingPlan } from "../../types";
+import BuiltinTemplates from "./BuiltinTemplates";
 import PlanEditor from "./PlanEditor";
 
 export default function Templates() {
@@ -56,6 +57,7 @@ export default function Templates() {
         <PlanEditor clientId={null} existingPlan={null} onSaved={load}
           onCancel={() => setCreating(false)} />
       )}
+      <BuiltinTemplates onImported={load} />
       {templates.map((t) => (
         <div className="card" key={t.id}>
           <div className="row row--between">

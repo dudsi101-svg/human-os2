@@ -1,6 +1,6 @@
 # Changelog — Dzik OS
 
-## 0.36.0 — 2026-08-18
+## 0.37.0 — 2026-08-18
 
 **Bramka jakości GO/NO-GO — wykonana, z dowodami i dwoma znalezionymi
 błędami.** Pełny protokół: `docs/BRAMKA_GO_NOGO.md`.
@@ -44,10 +44,134 @@ błędami.** Pełny protokół: `docs/BRAMKA_GO_NOGO.md`.
   cichu połykane (201, pole znika). Dziś bez skutku dla użytkownika, bo
   jedynym klientem API jest nasz frontend; `extra="forbid"` wymaga osobnej
   decyzji o zgodności ze starszą, zacache'owaną wersją PWA.
-* `tools/spojnosc.py` raportuje teraz wolne numery migracji w środku
-  numeracji (nie brać ich pod nowe migracje — mogą je trzymać niescalone
-  gałęzie). Usunięty mylący komentarz „numer 23 zarezerwowany".
+* `tools/spojnosc.py` traktuje lukę w numeracji migracji jako **błąd** i
+  podpowiada domknięcie jej pustym wpisem. Przy scalaniu z równoległą
+  rundą 0.36.0 przyjęto **ich** rozwiązanie luki nr 21 jako lepsze od
+  mojego: sama dokumentacja nie wystarcza, bo `run_migrations` stosuje
+  wyłącznie numery brakujące i migracja dopisana później wykonałaby się
+  po tych o wyższych numerach. Usunięty mylący komentarz „numer 23
+  zarezerwowany".
+* Bramka **powtórzona na stanie po scaleniu** z 0.36.0 — wyniki bez zmian
+  (732 testy backendu, 275 Core, 140 pomocniczych, mutacje 7/7 i 9/9).
+  `BRAMKA_GO_NOGO.md` §8 odnotowuje, co z tamtej rundy wzmacnia bramkę:
+  testy E2E w CI, macierz uprawnień z bramką pokrycia, PostgreSQL jako
+  bramka blokująca, egzekwowanie kluczy obcych i test wykrywania
+  manipulacji w łańcuchu audytu.
 
+## 0.36.0 — 2026-08-18
+
+**Gotowe schematy treningowe — 24 szablony z materiału trenera.** Pełny
+opis: `docs/SZABLONY_TRENINGOWE.md`.
+
+* **Katalog w panelu trenera.** 24 szablony (431 pozycji ćwiczeń)
+  przeniesione 1:1 z `DZIK_OS_Szablony_Treningowe_V2.xlsx`: od planu dla
+  początkującego po zaawansowaną hipertrofię, warianty domowe, powrót po
+  przerwie i plany priorytetowe. Trener ogląda podgląd z pełną receptą
+  (serie, powtórzenia, cel RIR, przerwa, tempo, zasada progresji) i dodaje
+  wybrany schemat do własnej biblioteki jednym kliknięciem.
+* **Aplikacja nadal niczego nie podnosi sama.** Zasada ze źródła („Brak
+  automatycznego wzrostu") jest tu wiążąca: reguła progresji to OPIS dla
+  człowieka, nie mechanizm. Szablon nie narzuca też ciężaru — pole zostaje
+  puste, bo ciężar ustala człowiek (pilnuje tego test).
+* **Szablon ≠ plan klienta.** Import tworzy niezależną kopię; ponowny import
+  daje kolejną, bo poprzednia mogła zostać już przerobiona pod klienta
+  i nie wolno tej pracy skasować. Dalej działa istniejąca ścieżka
+  kopiowania szablonu do klienta.
+* **Progresja per ćwiczenie, nie per plan.** Sześć modeli (`PRG-DOUBLE`,
+  `PRG-AUTO-DOUBLE`, `PRG-RIR`, `PRG-REPS`, `PRG-TIME`, `PRG-DISTANCE`);
+  każda pozycja wskazuje własny, zgodnie z zasadą ze źródła.
+* **Powiązanie z bazą ćwiczeń wyłącznie przy dopasowaniu dokładnym.**
+  Arkusz używa innego nazewnictwa niż biblioteka, a dopasowanie „po
+  podobieństwie" pokazałoby klientowi instrukcję innego ćwiczenia. Pozycje
+  bez karty działają normalnie (nazwa jest zapisana), a interfejs mówi
+  wprost, ile ich jest i gdzie je podpiąć.
+* Model ćwiczenia w planie zyskał `target_rir` i `progression` (pola
+  opcjonalne, w treści JSON — bez migracji).
+* Nowy helper odmiany liczebników (`plural.ts`) — komunikaty mówią
+  „2 jednostki", nie „2 jednostek".
+
+**Import własnej biblioteki ćwiczeń trenera (120 pozycji) do bazy
+ćwiczeń.** Trener przekazał swoją bibliotekę w arkuszu kalkulacyjnym;
+zamiast przepisywać 120 pozycji ręcznie, klika „Importuj bibliotekę
+ćwiczeń”, ogląda raport i zatwierdza. Pełny opis mapowania, uruchomienia
+na produkcji i wycofania: `docs/BAZA_CWICZEN.md` §11.
+
+* **Arkusz zamieniony na moduł danych, nie na binarny blob w repo.**
+  `backend/dzik_os/exercise_catalog_v2.py` (wzorzec `food_catalog_data.py`)
+  jest czytelną i diffowalną postacią pliku
+  `DZIK_OS_Biblioteka_Cwiczen_V2_PL_120.xlsx` przekazanego 2026-08-18.
+  Sam plik xlsx **nie jest commitowany**; nazwa i data przekazania są
+  zapisane jako proweniencja w nagłówku modułu.
+* **Powiedziane wprost, co w źródle jest szablonem.** Kolumny
+  faktograficzne (nazwy, kategoria, mięśnie, sprzęt, poziom, rodzaj,
+  wzorzec, tagi) są unikalne per ćwiczenie. Kolumny **opisowe są
+  szablonowe**: na 120 wierszy przypada **17 różnych opisów wykonania, 2
+  opisy oddychania i 5 zestawów błędów** — technika jest opisana ogólnie
+  dla wzorca ruchu, nie pod konkretne ćwiczenie. Dlatego szablony leżą w
+  module jako nazwane stałe (szablonowość widać w kodzie), a każda nowo
+  utworzona pozycja dostaje notatkę roboczą „opis ogólny”.
+* **Notatka „do dopracowania” jest informacją trenera, nie oceną dla
+  klienta.** `review_reason` widać w panelu trenera (karta ćwiczenia i
+  edytor, z przyciskiem „Zdejmij notatkę”). Klient **nie dostaje tego
+  pola w żadnej odpowiedzi API** — dla niego wyglądałoby jak ocena
+  jakości ćwiczenia wystawiona przez system, a system tu niczego nie
+  ocenia.
+* **ZASADA NADRZĘDNA ta sama co przy czytaniu opisu: nie zgadujemy.**
+  Nazwa mięśnia, której nie da się jednoznacznie zmapować, zostaje
+  **pusta** i trafia na jawną listę w raporcie. Nie mapujemy nazw
+  zbiorczych (`barki`, `obręcz barkowa`, `górne plecy`, `nogi` —
+  wskazują na kilka kluczy naraz) ani mięśni, dla których słownik nie ma
+  klucza (`mięsień ramienny`, `obły większy`, `zębaty przedni`,
+  `piszczelowy przedni`). W efekcie 8 pozycji trafia do bazy bez mięśni
+  głównych — i to jest poprawny wynik, nie brak.
+* **Wzorzec ruchu: 48 wariantów źródła → nasze 13, jawną tablicą.**
+  W tablicy są wyłącznie przypisania, które da się obronić. Wariant
+  nierozpoznany dostaje `IZOLACJA` **tylko wtedy**, gdy źródło samo
+  nazywa ćwiczenie izolowanym; w przeciwnym razie pole zostaje puste.
+  Stąd 12 pozycji bez wzorca (`antywyprost` to nie antyrotacja, `chwyt
+  izometryczny` to nie noszenie) — nie upychamy ich na siłę.
+* **Poziom podwójny → NIŻSZY z pary** (25 wierszy ma
+  „początkujący/średniozaawansowany”). Świadoma decyzja: zawyżony poziom
+  odsiewa ćwiczenie z wyszukiwarki komuś, kto spokojnie może je robić.
+* **Praca trenera jest nienaruszalna.** W ćwiczeniu, które już jest w
+  bazie, import **uzupełnia wyłącznie puste pola** — nigdy nie nadpisuje
+  opisu pisanego pod konkretne ćwiczenie. Import jest w pełni
+  **idempotentny**: drugi przebieg to 0 nowych, 0 zmian i nietknięte
+  `updated_at`.
+* **Dwie drogi uruchomienia, jedna logika.** Komenda
+  `python -m dzik_os.import_exercises [--coach <e-mail>] [--dry-run]`
+  (wzorzec `dzik_os.backup`; bez `--coach` odmawia wyboru, gdy trenerów
+  jest więcej niż jeden) oraz przycisk w panelu trenera z **podglądem
+  raportu przed zatwierdzeniem** (`dry_run` domyślnie **true**). Import
+  zawsze idzie do katalogu **zalogowanego** trenera — katalog innego
+  trenera nie zmienia się o ani jeden wiersz.
+* **Raport jak przy imporcie CSV produktów:** `{created, enriched,
+  skipped, unmapped_muscles, unmapped_patterns, errors}`, z liczbą
+  wystąpień i przykładami przy każdej nierozpoznanej wartości. Błąd
+  pojedynczej pozycji nie przerywa importu.
+* **Proweniencja zapisana w danych.** `source_kind` zyskał wartość
+  `IMPORTED`, a nowa kolumna `source_ref` niesie nazwę biblioteki i datę
+  przekazania — pozycje z importu da się odróżnić od pisanych ręcznie
+  jednym zapytaniem, co jest też podstawą planu wycofania.
+* **Migracja nr 24** (numer 23 zarezerwowany dla równoległej rundy):
+  cztery kolumny NULLable na `exercises` — `name_en`, `tags_json`,
+  `source_ref`, `review_reason`. Czysto addytywna, bez backfillu; plan
+  wycofania w `docs/BAZA_CWICZEN.md` §11.7.
+* **Nazwa angielska i tagi w wyszukiwarce i edytorze.** `q=bench press`
+  znajduje „Wyciskanie sztangi na ławce poziomej”; rodzaj ćwiczenia
+  (wielostawowe/izolowane/…) mieszka w tagach, bez rozbudowywania modelu
+  o kolejną kolumnę.
+* **Seed zasiewa pełny katalog** (155 pozycji startowych + 101 nowych z
+  biblioteki) tą samą funkcją, której używa produkcja — demo i produkcja
+  dostają dokładnie to samo.
+* **Testy:** nowy `backend/tests/test_exercise_import.py` (23 przypadki):
+  mapowanie form anatomicznych, odmowa mapowania nazw zbiorczych, poziom
+  podwójny → niższy, wzorzec nierozpoznany → puste + raport, import na
+  czystą bazę (120 nowych), import powtórzony (pełna idempotencja wraz z
+  `updated_at`), uzupełnianie wyłącznie pustych pól, izolacja trenerów,
+  `--dry-run` niczego nie zapisuje, klient nie widzi notatki roboczej,
+  odmowa wyboru trenera w komendzie. Do tego 6 testów czystej logiki
+  raportu po stronie frontendu (`npm run test:helpers`).
 ## 0.35.1 — 2026-08-18
 
 **Przegląd mutacyjny bramki spójności — i dwie luki, które znalazł.**

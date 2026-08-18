@@ -21,3 +21,12 @@ data/*.jsonl
 data/*.jsonl
 **/__pycache__/
 *.pyc
+.coverage
+
+# Playwright (testy E2E Dzik OS)
+apps/dzik-os/frontend/test-results/
+apps/dzik-os/frontend/playwright-report/
+apps/dzik-os/frontend/blob-report/
+
+# Lokalne dane uruchomieniowe backendu Dzik OS (baza, wgrane pliki)
+apps/dzik-os/backend/data/

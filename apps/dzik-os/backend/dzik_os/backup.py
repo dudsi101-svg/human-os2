@@ -84,7 +84,22 @@ def _dump_main_database(workdir: Path) -> dict:
         dump_path = workdir / "db" / "dzik.sql"
         dump_path.parent.mkdir(parents=True, exist_ok=True)
         result = subprocess.run(
-            ["pg_dump", "--no-owner", "--file", str(dump_path), _pg_url(settings.database_url)],
+            [
+                "pg_dump",
+                "--no-owner",
+                # Zrzut musi umieć wejść na bazę, w której obiekty JUŻ są —
+                # inaczej odtworzenie na działającej instancji przerywa się na
+                # pierwszym „relation already exists". `--clean --if-exists`
+                # sprawia, że zrzut sam usuwa obiekty przed odtworzeniem, i nie
+                # wywraca się, gdy któregoś nie ma (baza pusta po awarii).
+                # Odpowiednik nadpisania pliku, którym odtwarzanie SQLite
+                # załatwia to samo.
+                "--clean",
+                "--if-exists",
+                "--file",
+                str(dump_path),
+                _pg_url(settings.database_url),
+            ],
             capture_output=True,
             text=True,
             check=False,

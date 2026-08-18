@@ -3,6 +3,17 @@
 // --font-display: Unbounded 600/700/800, --font-body: Inter 400–800).
 // Dzięki temu CSP może zostać przy font-src 'self', a IP użytkowników
 // nie jest wysyłane do Google.
+//
+// Importowane są PEŁNE pliki wagi (a nie pojedyncze subsety), bo tylko one
+// niosą `unicode-range`. To on decyduje, że przeglądarka pobierze wyłącznie
+// subset potrzebny dla wyświetlanego tekstu — dla polszczyzny `latin`
+// i `latin-ext`, nigdy cyrylicę czy grekę. Importy per-subset (`latin-600.css`)
+// nie mają `unicode-range`, więc drugi @font-face tej samej wagi nadpisywałby
+// pierwszy i zostawałby tylko jeden subset.
+//
+// Nadmiarowe subsety były problemem WYŁĄCZNIE w precache service workera,
+// który instalował je na urządzenie bez pytania o zasięg znaków — i tam są
+// odfiltrowane (scripts/inject-precache.mjs).
 import "@fontsource/unbounded/600.css";
 import "@fontsource/unbounded/700.css";
 import "@fontsource/unbounded/800.css";

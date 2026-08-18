@@ -122,6 +122,10 @@ def create_schedule(
         created_by=coach.id,
     )
     db.add(schedule)
+    # Harmonogram przed pierwszą ratą: SQLAlchemy grupuje wstawienia per
+    # tabela, więc bez tego rata potrafi trafić do bazy przed harmonogramem,
+    # na który wskazuje (klucz obcy schedule_id).
+    db.flush()
     record = PaymentRecord(
         id=new_id("PAY"),
         schedule_id=schedule.id,

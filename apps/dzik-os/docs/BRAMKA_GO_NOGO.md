@@ -1,6 +1,7 @@
 # Bramka jakości — decyzja GO / NO-GO
 
-**Data:** 2026-08-18 · **Wersja badana:** 0.35.1 (commit `dbf44ff`)
+**Data:** 2026-08-18 · **Wersja badana:** 0.35.1 (commit `dbf44ff`),
+**potwierdzona ponownie** po scaleniu z równoległą rundą 0.36.0 — patrz §8
 **Wykonał:** ten sam agent, który pisał kod — **nie jest to niezależny
 przegląd**. Patrz §5, punkt 1: to samo w sobie jest blokerem.
 
@@ -199,5 +200,39 @@ python apps/dzik-os/tools/mutacje_bezpieczenstwa.py
 
 Sprawdzenia przez HTTP (izolacja, MFA, przepływy krytyczne, migracje,
 odtworzenie kopii) wykonane ręcznie na uruchomionej aplikacji — polecenia
-i wyniki w opisie rundy. **Do zautomatyzowania w kolejnej turze**, żeby
-bramka nie zależała od tego, czy ktoś pamięta.
+i wyniki w opisie rundy. **Do zautomatyzowania**, żeby bramka nie zależała
+od tego, czy ktoś pamięta; częściowo już zrobione przez równoległą rundę
+(§8) w postaci testów E2E Playwright.
+
+---
+
+## 8. Po scaleniu z równoległą rundą 0.36.0
+
+Bramkę wykonano na 0.35.1. Zanim ją zapisano, na `main` pojawiła się
+niezależna runda (szablony treningowe, audyt P0, PostgreSQL). Cała
+weryfikacja została **powtórzona na stanie po scaleniu** — wyniki bez
+zmian: 732 testy backendu + 1 pominięty, 275 Core, 140 pomocniczych
+frontendu, spójność czysta, oba przeglądy mutacyjne 7/7 i 9/9.
+
+Tamta runda **wzmacnia kilka punktów tej bramki** i trzeba to uczciwie
+odnotować:
+
+* **Testy E2E (Playwright) w repozytorium i w CI** — logowanie, raport,
+  szablony, wiadomości. Wcześniej przeklikanie było wyłącznie ręczne.
+* **Macierz uprawnień z bramką pokrycia** (`tests/access_matrix.py`) —
+  klasyfikacja endpointów, więc nowy endpoint nie przejdzie bez decyzji,
+  kto ma do niego dostęp. To odpowiada wprost na §5 punkt 1: część
+  „czy ktoś o tym pomyślał" przestaje zależeć od pamięci.
+* **PostgreSQL jako bramka blokująca w CI** — aplikacja przestaje być
+  sprawdzana wyłącznie na SQLite.
+* **Egzekwowanie kluczy obcych w SQLite** (7 realnych błędów naprawionych)
+  oraz **test wykazujący, że łańcuch audytu WYKRYWA manipulację**.
+
+Jedno rozstrzygnięcie przy scalaniu warto zapisać, bo ich rozwiązanie było
+**lepsze od mojego**: lukę w numeracji migracji (numer 21) proponowałem
+tylko udokumentować i omijać. Oni ją **domknęli pustą migracją**, z
+poprawnym uzasadnieniem: `run_migrations` stosuje wyłącznie numery
+BRAKUJĄCE w bazie, więc migracja dopisana później pod wolny numer
+wykonałaby się na istniejących bazach PO tych o numerach wyższych. Wzięto
+ich wersję, a kontrola spójności traktuje teraz lukę jako **błąd**, nie
+uwagę.

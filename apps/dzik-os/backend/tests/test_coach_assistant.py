@@ -171,14 +171,22 @@ def test_cudze_cwiczenie_jest_traktowane_jak_nieistniejace(seeded, coach_headers
     """Ćwiczenie innego trenera nie ma prawa wejść do planu (ten sam
     kontrakt co `_validate_exercise_refs`), więc nie ma prawa wejść też do
     propozycji asystenta."""
+    from conftest import create_user_with_role
+
     from dzik_os.db import db_session
     from dzik_os.models import Exercise, new_id
 
     ids = seed_library(seeded, coach_headers)
+    # Obcy trener musi ISTNIEĆ — `coach_id` to klucz obcy. Wcześniej wpisywano
+    # tu wartość fikcyjną („HOS-USR-OBCY"), co przechodziło tylko dlatego,
+    # że SQLite nie egzekwował kluczy obcych.
+    obcy_trener_id = create_user_with_role(
+        "obcy.asystent@example.com", "ObcyAsystent#2026!x", "Obcy Trener", "COACH"
+    )
     with db_session() as db:
         obcy = Exercise(
-            id=new_id("EXC"), coach_id="HOS-USR-OBCY", name="Cudze ćwiczenie",
-            muscle_group="NOGI", how_to="Opis", created_by="HOS-USR-OBCY",
+            id=new_id("EXC"), coach_id=obcy_trener_id, name="Cudze ćwiczenie",
+            muscle_group="NOGI", how_to="Opis", created_by=obcy_trener_id,
         )
         db.add(obcy)
         db.flush()
