@@ -1,5 +1,5 @@
 import { FormEvent, useState } from "react";
-import { api, clearSession, getUser, setSession, getToken } from "../api";
+import { changePassword, getUser, logout } from "../api";
 import { ErrorBox, Logo } from "../components";
 
 export default function ChangePassword() {
@@ -24,11 +24,9 @@ export default function ChangePassword() {
     setBusy(true);
     setError(null);
     try {
-      await api.post("/api/auth/change-password", {
-        current_password: current,
-        new_password: next,
-      });
-      if (user) setSession(getToken() ?? "", { ...user, must_change_password: false });
+      // Rotacja tokenu: serwer unieważnia wszystkie stare sesje i wydaje
+      // nowy token — changePassword podmienia go w bieżącej sesji.
+      await changePassword(current, next);
       const roles = user?.roles ?? [];
       location.assign(roles.includes("COACH") ? "/trener" : roles.includes("ADMIN") ? "/admin" : "/");
     } catch (err) {
@@ -77,10 +75,9 @@ export default function ChangePassword() {
           </p>
         )}
         <p style={{ textAlign: "center" }}>
-          <button className="btn btn--ghost btn--small" onClick={() => {
-            clearSession();
-            location.assign("/login");
-          }}>Wyloguj</button>
+          <button className="btn btn--ghost btn--small" onClick={() => logout()}>
+            Wyloguj
+          </button>
         </p>
       </div>
     </div>

@@ -85,3 +85,48 @@ nie dane klienta — inna oś uprawnień niż reszta dokumentu:
 `tests/test_isolation.py`, `tests/test_consents.py`,
 `tests/test_uploads.py`, `tests/test_payments.py` — łącznie 20+ asercji
 między kontami (klient↔klient, obcy trener, admin, brak logowania).
+
+## Sesje i tokeny (uwierzytelnianie)
+
+Model sesji (`auth_sessions`, `security.py`, `routers/auth.py`):
+
+* **Serwer przechowuje wyłącznie hash SHA-256 tokenu** (`token_hash`);
+  sam token zna tylko klient. Wyciek bazy nie pozwala przejąć sesji.
+* Token: `secrets.token_urlsafe(32)`, TTL `DZIK_SESSION_TTL_H` (domyślnie
+  72 h, `expires_at`). Unieważnienie = `revoked_at` (append-only — wiersz
+  sesji nigdy nie jest usuwany). `last_used_at` (rozdzielczość ~5 min)
+  zasila ekran aktywnych sesji.
+* Przekazywanie: nagłówek `Authorization: Bearer` (token w `sessionStorage`
+  frontendu, per karta) **oraz** równolegle ciasteczko httpOnly
+  `dzik_session` (SameSite=Lax, Secure w produkcji). `_extract_token`
+  preferuje nagłówek.
+* **Wylogowanie unieważnia sesję po stronie serwera** — frontend wysyła je
+  przez wspólnego klienta API (z nagłówkiem), a lokalny stan czyści zawsze,
+  także przy utracie połączenia.
+* **Zmiana hasła = operacja wrażliwa**: unieważnia WSZYSTKIE dotychczasowe
+  sesje użytkownika (z bieżącą włącznie) i wydaje nowy token (rotacja) —
+  żaden stary token nie pozostaje aktywny. Chroniona limitem prób
+  (`password_change_rate_limiter`, klucz: id użytkownika), jak logowanie
+  (`login_rate_limiter`, klucz: e-mail; jeden komunikat 401 nie ujawnia
+  istnienia konta).
+* Użytkownik widzi aktywne sesje (`GET /api/auth/sessions` — metadane bez
+  tokenów/hashy, bieżąca oznaczona) i może zakończyć wybraną
+  (`POST /api/auth/sessions/{id}/revoke`, tylko własną — cudza to 404) lub
+  wszystkie pozostałe (`POST /api/auth/sessions/revoke-others`). UI: sekcja
+  „Aktywne sesje" w Profilu klienta i w „Więcej" trenera/admina.
+* Zdarzenia audytu: `SESSION_LOGGED_OUT`, `SESSION_REVOKED`,
+  `SESSIONS_REVOKED`, `PASSWORD_CHANGED` (payload bez sekretów — testowane
+  w `tests/test_sessions.py`).
+
+**Świadoma decyzja: pozostajemy przy Bearer + sessionStorage** (zamiast
+pełnego przejścia na ciasteczka httpOnly). Powody: (a) zmiana dotyka
+wszystkich żądań API, wymaga ochrony CSRF (token synchronizacyjny lub
+podwójne ciasteczko) i przebudowy PWA/Service Workera — za duży zakres na
+jedną rundę zmian; (b) ciasteczko httpOnly już dziś jest wystawiane przy
+logowaniu, więc ścieżka migracji jest przygotowana. Plan ewentualnej
+migracji: (1) przełączyć `_extract_token` na preferencję ciasteczka,
+(2) dodać ochronę CSRF dla żądań mutujących, (3) usunąć token z odpowiedzi
+logowania i z `sessionStorage`, (4) wygasić tryb Bearer po okresie
+przejściowym. Ryzyko rezydualne do tego czasu: token w `sessionStorage`
+jest odczytywalny przez XSS (mitygacje: brak zewnętrznych skryptów,
+treści renderowane jako tekst przez React).

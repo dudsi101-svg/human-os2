@@ -1,7 +1,10 @@
 import { ReactNode, useEffect, useState } from "react";
 import { NavLink } from "react-router-dom";
-import { api, clearSession, fetchFileBlob, fetchFileUrl, getUser } from "./api";
-import { plDate } from "./dates";
+import {
+  api, AuthSessionRow, fetchFileBlob, fetchFileUrl, getUser, listSessions,
+  logout, revokeOtherSessions, revokeSession,
+} from "./api";
+import { plDate, plDateTime } from "./dates";
 import { applyUpdate, onUpdateAvailable } from "./pwa";
 import { KIND_LABELS, PersonalRecordsData, StrengthSeriesRow } from "./types";
 
@@ -124,20 +127,110 @@ export function SectionLabel({ n, title }: { n: number; title: string }) {
 }
 
 export function LogoutButton() {
+  // Wylogowanie przez wspólnego klienta API (z nagłówkiem Authorization) —
+  // serwer unieważnia sesję; lokalny stan czyszczony też bez sieci.
   return (
-    <button
-      className="btn btn--ghost btn--small"
-      onClick={async () => {
-        try {
-          await fetch("/api/auth/logout", { method: "POST" });
-        } finally {
-          clearSession();
-          location.assign("/login");
-        }
-      }}
-    >
+    <button className="btn btn--ghost btn--small" onClick={() => logout()}>
       Wyloguj
     </button>
+  );
+}
+
+/** Krótki, ludzki opis urządzenia na podstawie User-Agent (bez zewnętrznych
+ * bibliotek — tylko orientacyjna etykieta). */
+function deviceLabel(ua: string | null): string {
+  if (!ua) return "Nieznane urządzenie";
+  const browser = /Edg\//.test(ua) ? "Edge"
+    : /OPR\//.test(ua) ? "Opera"
+    : /Firefox\//.test(ua) ? "Firefox"
+    : /Chrome\//.test(ua) ? "Chrome"
+    : /Safari\//.test(ua) ? "Safari"
+    : "Przeglądarka";
+  const system = /iPhone|iPad/.test(ua) ? "iOS"
+    : /Android/.test(ua) ? "Android"
+    : /Windows/.test(ua) ? "Windows"
+    : /Mac OS X/.test(ua) ? "macOS"
+    : /Linux/.test(ua) ? "Linux"
+    : "";
+  return system ? `${browser} · ${system}` : browser;
+}
+
+/** Aktywne sesje (urządzenia) konta: kiedy utworzona, ostatnie użycie,
+ * przeglądarka; bieżąca oznaczona. Zakończenie wybranej sesji lub
+ * wszystkich pozostałych — unieważnienie następuje po stronie serwera. */
+export function SessionsCard() {
+  const [sessions, setSessions] = useState<AuthSessionRow[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const load = () => {
+    listSessions().then((d) => setSessions(d.sessions)).catch((e) => setError(e.message));
+  };
+  useEffect(() => { load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function endSession(id: string) {
+    setBusy(true);
+    setError(null);
+    try {
+      await revokeSession(id);
+      load();
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function endOthers() {
+    if (!confirm("Wylogować konto ze wszystkich pozostałych urządzeń?")) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await revokeOtherSessions();
+      load();
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const others = (sessions ?? []).filter((s) => !s.current);
+  return (
+    <div className="card">
+      <h3>Aktywne sesje</h3>
+      <p className="dim" style={{ fontSize: "0.85rem" }}>
+        Urządzenia zalogowane na Twoje konto. Jeśli widzisz sesję, której nie
+        rozpoznajesz — zakończ ją i zmień hasło.
+      </p>
+      <ErrorBox error={error} />
+      {!sessions && <Spinner />}
+      {sessions?.map((s) => (
+        <div className="exercise" key={s.id}>
+          <div>
+            <b>{deviceLabel(s.user_agent)}</b>
+            {s.current && <span className="badge badge--ok" style={{ marginLeft: 6 }}>to urządzenie</span>}
+            <div className="meta">
+              zalogowano {plDateTime(s.created_at)}
+              {s.last_used_at && ` · ostatnio ${plDateTime(s.last_used_at)}`}
+            </div>
+          </div>
+          {!s.current && (
+            <button className="btn btn--ghost btn--small" disabled={busy}
+              style={{ alignSelf: "center" }} onClick={() => endSession(s.id)}>
+              Zakończ
+            </button>
+          )}
+        </div>
+      ))}
+      {others.length > 0 && (
+        <div style={{ marginTop: 10 }}>
+          <button className="btn btn--danger btn--small" disabled={busy} onClick={endOthers}>
+            Wyloguj z pozostałych urządzeń ({others.length})
+          </button>
+        </div>
+      )}
+    </div>
   );
 }
 

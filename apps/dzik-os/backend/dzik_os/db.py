@@ -180,6 +180,9 @@ MIGRATIONS: list[tuple[int, str, list[str]]] = [
         """,
         "CREATE INDEX IF NOT EXISTS ix_consult_slots_coach ON consult_slots(coach_id)",
     ]),
+    (9, "session security: last used timestamp", [
+        "ALTER TABLE auth_sessions ADD COLUMN last_used_at VARCHAR(40)",
+    ]),
 ]
 
 

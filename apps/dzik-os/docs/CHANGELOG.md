@@ -1,5 +1,38 @@
 # Changelog — Dzik OS
 
+## 0.10.0 — 2026-08-18
+
+Runda bezpieczeństwa sesji: **serwerowe unieważnianie, rotacja tokenów,
+ekran aktywnych sesji** (audyt wylogowania bez nagłówka autoryzacji).
+
+* Naprawa audytowanej luki: wylogowanie szło gołym `fetch` bez nagłówka
+  `Authorization`, więc serwer unieważniał co najwyżej sesję z ciasteczka
+  (przy kilku kartach — potencjalnie cudzą kartę, nie bieżącą). Wszystkie
+  operacje uwierzytelniania przechodzą teraz przez wspólnego klienta API
+  (`api.ts`: `login`/`logout`/`changePassword`/`listSessions`/…); lokalne
+  czyszczenie sesji działa też przy utracie połączenia (`finally`).
+* Zmiana hasła = rotacja tokenu: serwer unieważnia WSZYSTKIE dotychczasowe
+  sesje (z bieżącą włącznie) i wydaje nowy token — zero aktywnych starych
+  tokenów; ponowne użycie unieważnionego tokenu to zawsze 401. Limit prób
+  zmiany hasła (`password_change_rate_limiter`) analogiczny do logowania.
+* Nowe endpointy: `GET /api/auth/sessions` (aktywne sesje: utworzona,
+  ostatnie użycie, urządzenie, bieżąca oznaczona — bez tokenów/hashy),
+  `POST /api/auth/sessions/{id}/revoke` (własna sesja; cudza = 404),
+  `POST /api/auth/sessions/revoke-others`. Zdarzenia audytowe:
+  SESSION_LOGGED_OUT, SESSION_REVOKED, SESSIONS_REVOKED, rozszerzone
+  PASSWORD_CHANGED (forced/sessions_revoked/token_rotated — bez sekretów).
+* `auth_sessions.last_used_at` (migracja nr 9, zapis z rozdzielczością
+  ~5 min); w bazie nadal wyłącznie hash SHA-256 tokenu (potwierdzone
+  testem i udokumentowane w PERMISSIONS.md, sekcja „Sesje i tokeny" —
+  wraz ze świadomą decyzją o pozostaniu przy Bearer + sessionStorage
+  i planem ewentualnej migracji na ciasteczka httpOnly z CSRF).
+* UI: karta „Aktywne sesje" w Profilu klienta i w „Więcej"
+  trenera/admina (zakończ wybraną / wyloguj z pozostałych urządzeń).
+* Testy: 113 → 127 (wylogowanie Bearer i cookie, ponowne użycie
+  unieważnionego tokenu, rotacja, wygaśnięcie, zakończenie sesji,
+  izolacja cudzych sesji, limit prób, żądania równoległe, brak sekretów
+  w audycie i bazie).
+
 ## 0.9.1 — 2026-08-18
 
 Naprawa obsługi dat i stref czasowych w całej aplikacji.

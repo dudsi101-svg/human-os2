@@ -27,6 +27,7 @@ def test_full_coach_and_client_journey(client):
     r = client.post("/api/auth/change-password", headers=hn, json={
         "current_password": "StartoweHaslo#1", "new_password": "WlasneNowe#123"})
     assert r.status_code == 200
+    hn = {"Authorization": f"Bearer {r.json()['token']}"}  # rotacja tokenu
     consents = client.get("/api/me/consents", headers=hn).json()["consents"]
     onboarding = next(c for c in consents if c["confirmed_at"] is None)
     r = client.post(f"/api/me/consents/{onboarding['id']}/confirm", headers=hn)

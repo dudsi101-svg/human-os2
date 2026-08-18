@@ -39,11 +39,14 @@ def test_forced_password_change_blocks_until_changed(seeded):
                     json={"current_password": "StartoweHaslo#1", "new_password": "krotkie"})
     assert r.status_code == 422
 
-    # Poprawna zmiana odblokowuje konto.
+    # Poprawna zmiana odblokowuje konto i ROTUJE token: stary jest
+    # unieważniony, dalsza praca wymaga nowego tokenu z odpowiedzi.
     r = seeded.post("/api/auth/change-password", headers=hn,
                     json={"current_password": "StartoweHaslo#1",
                           "new_password": "NoweWlasne#123"})
     assert r.status_code == 200
+    assert seeded.get("/api/me/today", headers=hn).status_code == 401
+    hn = {"Authorization": f"Bearer {r.json()['token']}"}
     assert seeded.get("/api/me/today", headers=hn).status_code in (200, 403)
     # (403 może dotyczyć tylko braku roli — sprawdź konkretnie brak blokady hasła)
     r = seeded.get("/api/me/consents", headers=hn)
@@ -55,15 +58,18 @@ def test_forced_password_change_blocks_until_changed(seeded):
         "email": creds["email"], "password": "NoweWlasne#123"}).status_code == 200
 
 
-def test_password_change_revokes_other_sessions(seeded):
+def test_password_change_revokes_all_old_sessions_and_rotates_token(seeded):
     h1 = login(seeded, CLIENT_A)
     h2 = login(seeded, CLIENT_A)  # druga sesja (drugie urządzenie)
     r = seeded.post("/api/auth/change-password", headers=h1,
                     json={"current_password": CLIENT_A["password"],
                           "new_password": "ZupelnieNowe#12"})
     assert r.status_code == 200
-    assert seeded.get("/api/auth/me", headers=h1).status_code == 200
+    # Zero aktywnych starych tokenów: bieżący też został zrotowany.
+    assert seeded.get("/api/auth/me", headers=h1).status_code == 401
     assert seeded.get("/api/auth/me", headers=h2).status_code == 401
+    hn = {"Authorization": f"Bearer {r.json()['token']}"}
+    assert seeded.get("/api/auth/me", headers=hn).status_code == 200
 
 
 def test_onboarding_consent_requires_subject_confirmation(seeded):
@@ -72,9 +78,10 @@ def test_onboarding_consent_requires_subject_confirmation(seeded):
     r = seeded.post("/api/auth/login", json={
         "email": "potwierdz@example.com", "password": "StartoweHaslo#1"})
     hn = {"Authorization": f"Bearer {r.json()['token']}"}
-    seeded.post("/api/auth/change-password", headers=hn,
-                json={"current_password": "StartoweHaslo#1",
-                      "new_password": "NoweWlasne#123"})
+    r = seeded.post("/api/auth/change-password", headers=hn,
+                    json={"current_password": "StartoweHaslo#1",
+                          "new_password": "NoweWlasne#123"})
+    hn = {"Authorization": f"Bearer {r.json()['token']}"}  # rotacja tokenu
 
     consents = seeded.get("/api/me/consents", headers=hn).json()["consents"]
     onboarding = next(c for c in consents if c["revoked_at"] is None)
@@ -135,12 +142,14 @@ def test_migrations_apply_to_existing_v1_database(tmp_path):
         conn.execute(text("CREATE TABLE schedule_items (id VARCHAR(40) PRIMARY KEY)"))
         conn.execute(text("CREATE TABLE weekly_checkins (id VARCHAR(40) PRIMARY KEY)"))
         conn.execute(text("CREATE TABLE workout_entries (id VARCHAR(40) PRIMARY KEY)"))
+        conn.execute(text("CREATE TABLE auth_sessions (id VARCHAR(40) PRIMARY KEY)"))
     applied = run_migrations(eng)
     assert applied == [v for v, _, _ in MIGRATIONS if v != 1]
     with eng.connect() as conn:
         cols_u = [r[1] for r in conn.exec_driver_sql("PRAGMA table_info(users)")]
         cols_c = [r[1] for r in conn.exec_driver_sql("PRAGMA table_info(consents)")]
         cols_w = [r[1] for r in conn.exec_driver_sql("PRAGMA table_info(weekly_checkins)")]
+        cols_s = [r[1] for r in conn.exec_driver_sql("PRAGMA table_info(auth_sessions)")]
         tables = {
             r[0] for r in conn.exec_driver_sql(
                 "SELECT name FROM sqlite_master WHERE type='table'"
@@ -149,5 +158,6 @@ def test_migrations_apply_to_existing_v1_database(tmp_path):
     assert "must_change_password" in cols_u
     assert "confirmed_at" in cols_c
     assert "rating" in cols_w
+    assert "last_used_at" in cols_s
     assert {"schedule_completions", "observations", "daily_nutrition_logs"} <= tables
     assert {"exercises", "food_products"} <= tables
