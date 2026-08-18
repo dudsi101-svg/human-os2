@@ -1,9 +1,14 @@
-# Koordynacja rund — jedna sesja naraz
+# Koordynacja rund — jedna sesja pisząca naraz
 
 ## ZASADA NADRZĘDNA (decyzja właściciela produktu, 2026-08-18)
 
-> **W jednym momencie pracuje JEDNA sesja.** Kończy rundę, scala do `main`,
-> dopiero potem uruchamiamy następną.
+> **W jednym momencie zapisuje JEDNA sesja.** Kończy rundę, scala do `main`,
+> dopiero potem uruchamiamy następnego agenta piszącego.
+
+Ograniczenie dotyczy **zapisu, nie obecności**. Pozostali agenci mogą w tym
+samym czasie czytać kod, analizować go, recenzować i uruchamiać testy —
+wyłącznie w trybie read-only: bez edycji plików, bez commitów, bez pusha.
+Równolegle wolno więc patrzeć; zapisuje zawsze tylko jeden.
 
 Ta reguła jest nadrzędna wobec całej reszty dokumentu. Powód jest prosty i
 sprawdzony na własnej skórze: **sesje nie mają ze sobą kanału**. Każda
@@ -50,8 +55,6 @@ gałęzi domyślnej na GitHubie. Inna baza PR-a jest błędem procesu.
 `docs/KARTA_WSPOLPRACY.md` (jak pracujemy — zasady i skąd się wzięły) oraz
 `docs/STAN_PRZEKAZANIA.md` (gdzie jesteśmy — co zrobione, co w toku, co
 następne).
-
----
 
 ---
 
@@ -187,9 +190,10 @@ a własny parser byłby kolejną rzeczą gnijącą po cichu.
 
 ## 2. Rezerwacja i przekazanie: zanim zaczniesz pracę
 
-Przy pracy jedna-sesja-naraz rezerwacja służy **przekazaniu**: następna
-sesja ma od razu wiedzieć, jakie numery są wolne i czego nie ruszać, bo
-jest w toku. Trzy zasoby są globalne i nie da się ich zająć dwa razy:
+Przy pracy jedna-sesja-pisząca-naraz rezerwacja służy **przekazaniu**:
+następna sesja pisząca ma od razu wiedzieć, jakie numery są wolne i czego
+nie ruszać, bo jest w toku. Trzy zasoby są globalne i nie da się ich zająć
+dwa razy:
 
 * **numer migracji** — kolejny wolny z `backend/dzik_os/db.py`;
 * **numer wersji** w `docs/CHANGELOG.md`;

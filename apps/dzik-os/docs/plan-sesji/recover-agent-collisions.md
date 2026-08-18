@@ -26,6 +26,19 @@ Brak migracji i brak nowej wersji. Rezerwowane są wyłącznie pliki
 wymienione w „Mój obszar”. Do zamknięcia tej rundy nie powstaje drugi PR
 piszący.
 
+## PR startowy: jednorazowy wyjątek
+
+PR #14 jest **jednorazowym PR-em startowym**, który dopiero wprowadza ten
+protokół. Nie mógł go więc spełnić: jego pierwszy commit zawiera plan
+razem z `AGENTS.md`, `CLAUDE.md`, `KOORDYNACJA.md` i
+`STAN_PRZEKAZANIA.md`, bo dokumenty opisujące regułę i sama reguła
+powstają w tym samym ruchu.
+
+Zasada „pierwszy commit zawiera wyłącznie plan sesji, dopiero widoczny
+draft PR `[WRITER]` odblokowuje kod i pliki integracyjne" obowiązuje
+**od następnej rundy**. Ta runda jest jedynym dopuszczalnym odstępstwem i
+nie tworzy precedensu: żaden kolejny PR nie może się na nie powołać.
+
 ## Rozstrzygnięcie rozbieżnej gałęzi
 
 PR #13 został scalony podczas audytu. Commit `94aaa39` ma obie historie,

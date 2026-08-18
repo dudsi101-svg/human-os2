@@ -62,7 +62,7 @@ nie uruchamiano, ponieważ runda nie zmienia kodu ani zasobów frontendu.
 
 | Rzecz | Stan | Gdzie |
 |---|---|---|
-| **Protokół jednego piszącego** | przygotowany na PR `[WRITER]`: `main` jako jedyna baza, pozostali agenci tylko recenzują/testują, konflikt oznacza STOP | `AGENTS.md`, `CLAUDE.md`, `KOORDYNACJA.md` |
+| **Protokół jednego piszącego** | przygotowany na PR `[WRITER]`: `main` jako jedyna baza, pozostali agenci tylko recenzują/testują read-only, konflikt oznacza STOP. **PR #14 jest jednorazowym PR-em startowym** — sam nie spełnia reguły „pierwszy commit to wyłącznie plan", bo ją dopiero wprowadza; reguła obowiązuje od następnej rundy i nie wolno się na ten wyjątek powoływać | `AGENTS.md`, `CLAUDE.md`, `KOORDYNACJA.md`, `plan-sesji/recover-agent-collisions.md` |
 | **Konfiguracja GitHuba** | gałąź domyślna nadal wskazuje długą linię `claude/...`; zmienić na `main` dopiero po osobnej zgodzie właściciela | ustawienia repozytorium |
 | **Niescalona runda bramkowa** | commity `81eb30a` (pamięć importu) i `861ed53` (SMTP + E2E) istnieją tylko na starej bazie; nie zaczynać tych zadań od nowa, ale przed scaleniem zaktualizować bazę i przejrzeć konflikty | `claude/ocena-projektu-dzik-os-76ercy` |
 | **Testy OCR** | dwa testy „bez Tesseracta” nie izolują założenia i czerwienią się, gdy binarka jest zainstalowana; poprawić w osobnym małym PR | `backend/tests/test_ocr.py` |
