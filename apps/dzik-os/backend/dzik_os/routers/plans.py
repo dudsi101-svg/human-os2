@@ -505,6 +505,7 @@ async def templates_import_file(
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     report.unknown_columns = unknown
     report.warnings = warnings + report.warnings
+    snapshot_id = sheet_import.store_snapshot(db, coach.id, report)
     if not dry_run:
         record_event(
             db, action="PLAN_TEMPLATES_IMPORTED", actor_id=coach.id,
@@ -519,4 +520,6 @@ async def templates_import_file(
                     f"{report.created} nowych, {report.updated} nowych wersji",
         )
         db.commit()
-    return report.as_dict()
+    out = report.as_dict()
+    out["snapshot_id"] = snapshot_id
+    return out

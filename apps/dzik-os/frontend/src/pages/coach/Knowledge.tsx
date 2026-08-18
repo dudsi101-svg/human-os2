@@ -628,6 +628,7 @@ function ExercisesTab() {
         <>
           <LibraryImport onImported={() => load(0)} />
           <SheetImportPanel
+            kind="EXERCISES"
             title="Importuj bazę ćwiczeń z pliku"
             description={
               <>

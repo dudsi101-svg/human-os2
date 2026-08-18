@@ -1,5 +1,50 @@
 # Changelog — Dzik OS
 
+## 0.33.0 — 2026-08-18
+
+**Nic nie ginie bezpowrotnie: punkt przywracania dla importu + sprawdzona
+procedura odtworzenia kopii zapasowej.** Pełny opis pięciu warstw
+odzyskiwania i uczciwa lista tego, czego odzyskać się nie da:
+`docs/ODZYSKIWANIE.md`.
+
+* **Zamknięta realna dziura.** Plany i diety mają niemutowalną historię
+  wersji, ale **ćwiczenia jej nie mają**. Import w trybie `ZASTAP`
+  (dodany w 0.32.0) nadpisywał opis techniki napisany przez trenera i nie
+  było jak go odzyskać — jeden zły plik kasował pracę na zawsze. Migawka
+  zdejmowana PRZED zapisem zamyka tę dziurę.
+* **„Cofnij ten import".** Nowa tabela `import_snapshots` (migracja nr 25,
+  czysto addytywna) trzyma stan sprzed importu wyłącznie tych pozycji,
+  których import dotknął. `POST /api/coach/imports/{id}/undo` przywraca:
+  pozycje zmienione wracają pole po polu, pozycje **utworzone** zostają
+  **zarchiwizowane, nigdy usunięte**, a szablon wraca przez **nową wersję**
+  z dawną treścią — historia, łącznie z samym importem i jego cofnięciem,
+  zostaje w całości.
+* **Cofnięcie jest jednorazowe i ograniczone do 20 ostatnich importów.**
+  Starsza migawka przywracałaby stan sprzed późniejszych, świadomych zmian
+  trenera, o których nic nie wie — to byłaby cicha strata, nie ratunek.
+* **Kontrakt pilnowany przez kod.** `_assert_snapshot_covers_import()`
+  wywraca import modułu, jeśli import zapisuje pole, którego migawka nie
+  obejmuje. Dołożenie kolumny nie może po cichu wyłączyć dla niej cofania.
+* **Interfejs mówi, co zrobi cofnięcie, PRZED kliknięciem** („3 pozycje
+  wrócą do wartości sprzed importu; 2 nowe zostaną zarchiwizowane — nie
+  usunięte; można to zrobić tylko raz"). Panel importu ma też listę
+  ostatnich importów z przyciskiem „Cofnij" i oznaczeniem już cofniętych.
+  Podgląd i import bez zmian **nie tworzą** punktu przywracania — przycisk
+  się wtedy nie pojawia, bo obiecywałby coś, czego nie ma.
+* **Procedura odtworzenia kopii zapasowej — przećwiczona, nie
+  zadeklarowana.** Na pełnej bazie (7 kont, 256 ćwiczeń, 4 plany, pliki
+  uploadów) skasowano bazę, audyt i uploady, po czym odtworzono je z
+  archiwum: komplet danych zgodny ze stanem sprzed skasowania, skasowany
+  plik uploadu z powrotem na dysku, `verify_chain() = True`.
+* **Nazwana słabość, której nie ukrywamy:** archiwa kopii zapasowych leżą
+  na tym samym wolumenie, który mają chronić. Przy utracie wolumenu zostaje
+  wyłącznie snapshot Fly, którego odtworzenia jeszcze nie ćwiczyliśmy.
+  Wyniesienie kopii poza Fly czeka na decyzję o dostawcy magazynu.
+* Audyt: `IMPORT_UNDONE` (identyfikator migawki, rodzaj, plik, tryb i
+  liczby — nigdy treść wierszy).
+* Testy: 10 nowych po stronie backendu i 5 nowych testów pomocniczych
+  frontendu, w tym jawny test odwracalności trybu `ZASTAP` pole po polu.
+
 ## 0.32.0 — 2026-08-18
 
 **Import własnej bazy danych z pliku — ćwiczenia i szablony treningowe.**

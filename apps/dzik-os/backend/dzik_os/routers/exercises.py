@@ -491,6 +491,7 @@ async def exercises_import_file(
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     report.unknown_columns = unknown
     report.warnings = warnings + report.warnings
+    snapshot_id = sheet_import.store_snapshot(db, coach.id, report)
     if not dry_run:
         record_event(
             db, action="EXERCISES_IMPORTED", actor_id=coach.id, subject_ids=[coach.id],
@@ -504,7 +505,9 @@ async def exercises_import_file(
         )
         metrics.inc("exercises_sheet_import")
         db.commit()
-    return report.as_dict()
+    out = report.as_dict()
+    out["snapshot_id"] = snapshot_id
+    return out
 
 
 @router.get("/coach/exercises/{item_id}")

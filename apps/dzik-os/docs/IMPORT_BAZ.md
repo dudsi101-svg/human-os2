@@ -261,10 +261,24 @@ Zapis (nie próba) zostawia zdarzenie w łańcuchu audytu:
 `PLAN_TEMPLATES_EXPORTED` przy eksporcie. Payload zawiera wyłącznie nazwę
 pliku, tryb i liczby — nigdy treści wierszy i nigdy danych klienta.
 
-## 7. Wycofanie
+## 7. Cofnięcie importu
 
-Import nie zmienia schematu bazy (żadnej migracji), więc nie ma czego
-cofać na poziomie struktury. Skutki danych cofa się normalnymi narzędziami
+Każdy import, który coś zmienił, tworzy **punkt przywracania**
+(`import_snapshots`, migracja nr 25). W panelu: „Cofnij ten import" w
+raporcie albo lista „Ostatnie importy". Endpointy:
+`GET /api/coach/imports`, `POST /api/coach/imports/{id}/undo`.
+
+Cofnięcie przywraca pozycje zmienione pole po polu, **archiwizuje** (nigdy
+nie kasuje) pozycje utworzone przez import, a szablon cofa przez **nową
+wersję** z dawną treścią. Działa **raz** i obejmuje **20 ostatnich**
+importów. Podgląd (`dry_run=true`) i import bez zmian nie tworzą punktu
+przywracania. Pełny obraz odzyskiwania danych: `docs/ODZYSKIWANIE.md`.
+
+## 8. Wycofanie
+
+Import dokłada jedną tabelę (`import_snapshots`, migracja nr 25);
+wycofanie to `DROP TABLE import_snapshots` — reszta importu działa bez
+niej, traci się wyłącznie możliwość cofania. Skutki danych cofa się normalnymi narzędziami
 panelu: ćwiczenie archiwizuje się (nie kasuje), a szablon wraca do
 poprzedniej wersji przez historię wersji — obie ścieżki zostawiają ślad w
 audycie.

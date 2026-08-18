@@ -24,6 +24,7 @@ const base = {
   rows_read: 0, created: 0, updated: 0, unchanged: 0, skipped: 0, linked: 0,
   errors: [], warnings: [], unknown_columns: [], unmapped_muscles: [],
   unlinked_exercises: [], created_names: [], updated_names: [],
+  snapshot_id: null,
 };
 
 test("odmiana rzeczownika idzie za liczbą", () => {
@@ -99,4 +100,48 @@ test("zły plik jest odrzucany przed wysyłką", () => {
   assert.ok(fileProblem({ name: "baza.csv", size: 5000 }, schema).includes("MB"));
   assert.equal(fileProblem({ name: "baza.csv", size: 0 }, schema), "Plik jest pusty.");
   assert.equal(fileProblem({ name: "BAZA.XLSX", size: 10 }, schema), null);
+});
+
+const { canUndo, undoExplanation, snapshotLabel } = await import(
+  pathToFileURL(join(outDir, "sheetImport.js")).href
+);
+
+test("przycisk cofania nie obiecuje czegoś, czego nie ma", () => {
+  assert.equal(canUndo({ ...base, dry_run: true, snapshot_id: "IMS-1" }), false,
+    "podgląd nie tworzy punktu przywracania");
+  assert.equal(canUndo({ ...base, dry_run: false, snapshot_id: null }), false,
+    "import bez zmian nie tworzy punktu przywracania");
+  assert.equal(canUndo({ ...base, dry_run: false, snapshot_id: "IMS-1" }), true);
+});
+
+test("cofnięcie jest wytłumaczone PRZED kliknięciem", () => {
+  const text = undoExplanation({ ...base, dry_run: false, created: 2, updated: 3 });
+  assert.ok(text.includes("3 pozycje wrócą do wartości sprzed importu"));
+  assert.ok(text.includes("zarchiwizowane"));
+  assert.ok(text.includes("nie usunięta") || text.includes("nie usunięte"),
+    "musi być powiedziane wprost, że nic nie znika");
+  assert.ok(text.includes("tylko raz"));
+});
+
+test("dla szablonów cofnięcie mówi o wersji, nie o nadpisaniu", () => {
+  const text = undoExplanation({ ...base, kind: "TEMPLATES", dry_run: false, updated: 1 });
+  assert.ok(text.includes("nowa wersja") || text.includes("historia zostaje"));
+});
+
+test("pusty raport nie proponuje cofania", () => {
+  assert.equal(undoExplanation({ ...base, dry_run: false }), "Nie ma czego cofać.");
+});
+
+test("wpis historii mówi, czego dotyczył i w jakim trybie", () => {
+  const row = {
+    id: "IMS-1", kind: "EXERCISES", source_ref: "baza.csv", mode: "ZASTAP",
+    rows: 12, created_at: "2026-08-18T10:00:00+00:00", restored_at: null,
+  };
+  const label = snapshotLabel(row);
+  assert.ok(label.includes("ćwiczenia"));
+  assert.ok(label.includes("baza.csv"));
+  assert.ok(label.includes("12 pozycji"));
+  assert.ok(label.includes("tryb: zastąp"), "tryb ZASTAP musi być widoczny — to on nadpisuje");
+  assert.ok(!snapshotLabel({ ...row, mode: "UZUPELNIJ" }).includes("tryb:"));
+  assert.ok(snapshotLabel({ ...row, kind: "TEMPLATES" }).includes("szablony"));
 });

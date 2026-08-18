@@ -628,7 +628,11 @@ def test_migracja_23_na_starej_bazie(tmp_path):
             "CREATE TABLE exercises (id VARCHAR(40) PRIMARY KEY, name VARCHAR(200))"))
 
     applied = run_migrations(eng)
-    assert applied == [23, 24]
+    # Stara baza domyka CAŁY zaległy ogon migracji, nie tylko nr 23 —
+    # asercja na dokładną listę psułaby ten test przy każdej kolejnej
+    # migracji, więc sprawdzamy to, o co tu naprawdę chodzi.
+    assert applied[0] == 23
+    assert applied == sorted(applied)
     with eng.connect() as conn:
         cols = {r[1]: r[3] for r in conn.exec_driver_sql("PRAGMA table_info(assistant_tasks)")}
         # Istniejące dane nietknięte.

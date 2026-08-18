@@ -813,6 +813,30 @@ MIGRATIONS: list[tuple[int, str, list[str]]] = [
         "ALTER TABLE exercises ADD COLUMN source_ref VARCHAR(200)",
         "ALTER TABLE exercises ADD COLUMN review_reason VARCHAR(300)",
     ]),
+    (25, "punkty przywracania importu z pliku (cofnij import)", [
+        # Wyłącznie addytywna: JEDNA nowa tabela, zero ALTER-ów na
+        # istniejących. Baza sprzed migracji działa bez backfillu (brak
+        # migawek = po prostu nie ma czego cofać), a wycofanie sprowadza
+        # się do `DROP TABLE import_snapshots`.
+        # Plan wycofania: docs/IMPORT_BAZ.md §8.
+        """
+        CREATE TABLE IF NOT EXISTS import_snapshots (
+            id VARCHAR(40) PRIMARY KEY,
+            coach_id VARCHAR(40) NOT NULL REFERENCES users(id),
+            kind VARCHAR(20) NOT NULL,
+            source_ref VARCHAR(200) NOT NULL,
+            mode VARCHAR(20) NOT NULL,
+            rows INTEGER NOT NULL DEFAULT 0,
+            payload_json TEXT NOT NULL,
+            created_at VARCHAR(40) NOT NULL,
+            restored_at VARCHAR(40)
+        )
+        """,
+        (
+            "CREATE INDEX IF NOT EXISTS ix_import_snapshots_coach "
+            "ON import_snapshots(coach_id)"
+        ),
+    ]),
 ]
 
 

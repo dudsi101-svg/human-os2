@@ -428,3 +428,184 @@ def test_unreadable_file_is_a_422_not_a_500(client, seeded):
     assert import_exercises(client, headers, "", filename="pusty.csv").status_code == 422
     assert upload(client, headers, "/api/coach/exercises/import-file", "cokolwiek",
                   filename="baza.pdf").status_code == 422
+
+
+# --- Cofnięcie importu: nic nie ginie bezpowrotnie ------------------------
+
+
+def test_replace_mode_is_reversible_field_by_field(client, seeded):
+    """Sedno sprawy: tryb ZASTAP nadpisuje opis techniki, a ćwiczenia NIE
+    mają historii wersji. Bez punktu przywracania byłaby to strata
+    bezpowrotna — ten test pilnuje, że nie jest."""
+    headers = login(client, COACH)
+    import_exercises(
+        client, headers,
+        EXERCISE_HEADER + "Cofane ćwiczenie,PLECY,Mój opis pisany ręcznie,"
+                          "POCZATKUJACY,,,Krok mój\n",
+        dry_run="false",
+    )
+    r = import_exercises(
+        client, headers,
+        EXERCISE_HEADER + "Cofane ćwiczenie,BARKI,Opis z pliku,ZAAWANSOWANY,"
+                          "WYPYCHANIE_PIONOWE,bark przedni,Krok z pliku\n",
+        mode=MODE_REPLACE, dry_run="false",
+    ).json()
+    assert r["updated"] == 1
+    snapshot_id = r["snapshot_id"]
+    assert snapshot_id
+
+    with db_session() as db:
+        item = db.query(Exercise).filter(Exercise.name == "Cofane ćwiczenie").one()
+        assert item.how_to == "Opis z pliku"
+
+    undo = client.post(f"/api/coach/imports/{snapshot_id}/undo", headers=headers)
+    assert undo.status_code == 200, undo.text
+    assert undo.json()["restored"] == 1
+
+    with db_session() as db:
+        item = db.query(Exercise).filter(Exercise.name == "Cofane ćwiczenie").one()
+        assert item.how_to == "Mój opis pisany ręcznie"
+        assert item.muscle_group == "PLECY"
+        assert item.level == "POCZATKUJACY"
+        assert item.pattern is None
+        assert item.muscles_primary is None
+        assert json.loads(item.steps_json) == ["Krok mój"]
+        assert item.status == "ACTIVE"  # istniejąca pozycja NIE jest archiwizowana
+
+
+def test_undo_archives_created_exercises_instead_of_deleting(client, seeded):
+    headers = login(client, COACH)
+    r = import_exercises(
+        client, headers, EXERCISE_HEADER + "Pomyłkowe ćwiczenie,NOGI,Opis,,,,\n",
+        dry_run="false",
+    ).json()
+    client.post(f"/api/coach/imports/{r['snapshot_id']}/undo", headers=headers)
+    with db_session() as db:
+        item = db.query(Exercise).filter(Exercise.name == "Pomyłkowe ćwiczenie").one()
+        # ARCHIWIZACJA, nie usunięcie — historia zostaje, trener może wrócić.
+        assert item.status == "ARCHIVED"
+
+
+def test_undo_of_template_import_creates_a_new_version_not_a_deletion(client, seeded):
+    headers = login(client, COACH)
+    import_templates(
+        client, headers,
+        TEMPLATE_HEADER + "Plan cofany,Dzień A,Przysiad,1,1,3,10\n", dry_run="false",
+    )
+    r = import_templates(
+        client, headers,
+        TEMPLATE_HEADER + "Plan cofany,Dzień A,Przysiad,1,1,9,1\n", dry_run="false",
+    ).json()
+    assert r["updated"] == 1
+    client.post(f"/api/coach/imports/{r['snapshot_id']}/undo", headers=headers)
+    with db_session() as db:
+        plan = db.query(TrainingPlan).filter(TrainingPlan.title == "Plan cofany").one()
+        assert plan.current_version_no == 3  # 1 import, 2 import, 3 cofnięcie
+        versions = db.query(TrainingPlanVersion).filter_by(plan_id=plan.id).all()
+        # Wszystkie trzy wersje istnieją — cofnięcie niczego nie skasowało.
+        assert {v.version_no for v in versions} == {1, 2, 3}
+        current = next(v for v in versions if v.version_no == 3)
+        assert json.loads(current.content_json)["days"][0]["exercises"][0]["sets"] == "3"
+        assert "Cofnięcie importu" in current.reason
+
+
+def test_undo_works_only_once(client, seeded):
+    headers = login(client, COACH)
+    r = import_exercises(
+        client, headers, EXERCISE_HEADER + "Jednorazowe cofnięcie,NOGI,Opis,,,,\n",
+        dry_run="false",
+    ).json()
+    url = f"/api/coach/imports/{r['snapshot_id']}/undo"
+    assert client.post(url, headers=headers).status_code == 200
+    second = client.post(url, headers=headers)
+    assert second.status_code == 422
+    assert "już cofnięty" in second.json()["detail"]
+
+
+def test_dry_run_leaves_no_restore_point(client, seeded):
+    """Próba niczego nie zmienia, więc nie ma czego cofać — punkt
+    przywracania po podglądzie byłby myląco pusty."""
+    headers = login(client, COACH)
+    r = import_exercises(
+        client, headers, EXERCISE_HEADER + "Tylko podgląd,NOGI,Opis,,,,\n",
+        dry_run="true",
+    ).json()
+    assert r["snapshot_id"] is None
+    assert client.get("/api/coach/imports", headers=headers).json()["imports"] == []
+
+
+def test_import_that_changes_nothing_leaves_no_restore_point(client, seeded):
+    headers = login(client, COACH)
+    body = EXERCISE_HEADER + "Bez zmian,NOGI,Opis,,,,\n"
+    import_exercises(client, headers, body, dry_run="false")
+    again = import_exercises(client, headers, body, dry_run="false").json()
+    assert (again["created"], again["updated"]) == (0, 0)
+    assert again["snapshot_id"] is None
+
+
+def test_history_lists_own_imports_only_and_marks_undone(client, seeded):
+    create_user_with_role(SECOND_COACH["email"], SECOND_COACH["password"],
+                          "Trener 2", "COACH")
+    first = login(client, COACH)
+    second = login(client, SECOND_COACH)
+    mine = import_exercises(
+        client, first, EXERCISE_HEADER + "Moje ćwiczenie,NOGI,Opis,,,,\n",
+        dry_run="false",
+    ).json()
+    import_exercises(
+        client, second, EXERCISE_HEADER + "Cudze ćwiczenie,NOGI,Opis,,,,\n",
+        dry_run="false",
+    )
+    history = client.get("/api/coach/imports", headers=first).json()["imports"]
+    assert [h["id"] for h in history] == [mine["snapshot_id"]]
+    assert history[0]["restored_at"] is None
+
+    # Cudzej migawki nie da się cofnąć ani nawet potwierdzić jej istnienia.
+    other = client.get("/api/coach/imports", headers=second).json()["imports"][0]
+    denied = client.post(f"/api/coach/imports/{other['id']}/undo", headers=first)
+    assert denied.status_code == 404
+    assert client.post("/api/coach/imports/HOS-IMS-NIEISTNIEJE/undo",
+                       headers=first).status_code == 404
+
+    client.post(f"/api/coach/imports/{mine['snapshot_id']}/undo", headers=first)
+    assert client.get("/api/coach/imports", headers=first).json()["imports"][0][
+        "restored_at"] is not None
+
+
+def test_client_cannot_see_or_undo_imports(client, seeded):
+    from conftest import CLIENT_A
+
+    headers = login(client, CLIENT_A)
+    assert client.get("/api/coach/imports", headers=headers).status_code == 403
+    assert client.post("/api/coach/imports/X/undo", headers=headers).status_code == 403
+
+
+def test_snapshot_covers_every_field_the_import_writes():
+    """Kontrakt pilnowany też przez `_assert_snapshot_covers_import()` przy
+    imporcie modułu — tutaj jako jawny test, żeby powód był widoczny."""
+    from dzik_os.sheet_import import (
+        _EXERCISE_LIST_FIELDS,
+        _EXERCISE_TEXT_FIELDS,
+        SNAPSHOT_FIELDS,
+    )
+
+    written = {"muscle_group", "how_to", "level", "pattern",
+               "muscles_primary", "muscles_secondary"}
+    written |= {attr for _, attr in _EXERCISE_TEXT_FIELDS}
+    written |= {attr for _, attr in _EXERCISE_LIST_FIELDS}
+    assert written <= set(SNAPSHOT_FIELDS)
+
+
+def test_old_restore_points_are_pruned(client, seeded):
+    """Trzymamy ograniczoną liczbę migawek — cofnięcie sprzed wielu operacji
+    przywracałoby stan sprzed późniejszych, świadomych zmian trenera."""
+    from dzik_os.sheet_import import SNAPSHOT_KEEP
+
+    headers = login(client, COACH)
+    for i in range(SNAPSHOT_KEEP + 3):
+        import_exercises(
+            client, headers, EXERCISE_HEADER + f"Seryjne {i},NOGI,Opis {i},,,,\n",
+            dry_run="false",
+        )
+    history = client.get("/api/coach/imports", headers=headers).json()["imports"]
+    assert len(history) == SNAPSHOT_KEEP

@@ -29,6 +29,7 @@ export default function Templates() {
           <button className="btn btn--small" style={{ marginBottom: 10 }}
             onClick={() => setCreating(true)}>+ Nowy szablon</button>
           <SheetImportPanel
+            kind="TEMPLATES"
             title="Importuj szablony z pliku"
             description={
               <>
