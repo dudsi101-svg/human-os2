@@ -14,6 +14,7 @@ import { plDate, plDateTime } from "./dates";
 import {
   EMPTY_FILTERS, EQUIPMENT_SUGGESTIONS, ExerciseFilters, hasActiveFilters,
 } from "./exerciseFilters";
+import { MuscleMap } from "./MuscleMap";
 import { applyUpdate, onUpdateAvailable } from "./pwa";
 import { withGaps } from "./seriesUtils";
 import {
@@ -1174,10 +1175,16 @@ export function ExerciseDetail({ item }: { item: ExerciseLibraryItem }) {
         </section>
       )}
 
-      {/* MIEJSCE NA RYSUNEK MIĘŚNI (kolejna runda) */}
       {(item.muscles_primary.length > 0 || item.muscles_secondary.length > 0) && (
         <section>
           <h3 className="exercise-detail__h">Pracujące mięśnie</h3>
+          {/* Szkic sylwetki: podświetla okolicę ciała, która pracuje.
+              Listy poniżej niosą tę samą informację słowami — rysunek jej
+              nie zastępuje (czytniki ekranu i wydruk czytają tekst). */}
+          <MuscleMap
+            primary={item.muscles_primary}
+            secondary={item.muscles_secondary}
+          />
           {item.muscles_primary.length > 0 && (
             <p><b>Główne:</b> {muscleLabels(item.muscles_primary)}</p>
           )}

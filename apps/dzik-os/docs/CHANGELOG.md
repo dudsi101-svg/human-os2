@@ -1,5 +1,30 @@
 # Changelog — Dzik OS
 
+## 0.25.0 — 2026-08-18
+
+**Szkic pracujących mięśni w karcie ćwiczenia** + naprawa samoczynnego
+przeładowania aplikacji przy pierwszej wizycie.
+
+* Nowy komponent `MuscleMap.tsx`: sylwetka przód i tył rysowana wektorowo
+  w aplikacji (zero zewnętrznych zasobów — działa offline i mieści się
+  w ścisłej CSP), z podświetleniem partii: mocno główne, słabiej
+  pomocnicze. Klucze pochodzą ze wspólnego słownika `MUSCLE_LABELS`
+  (kontrakt z `dzik_os/muscles.py`), więc rysunek podświetla się z danych
+  ćwiczenia — nic nie jest rysowane ręcznie per ćwiczenie. Klucz spoza
+  słownika jest pomijany, żeby rysunek nigdy nie wywrócił karty.
+* Rysunek jest DODATKIEM do opisu słownego, nie jego zamiennikiem: listy
+  „główne / pomocnicze" zostają pod spodem (czytniki ekranu, wydruk),
+  a przy szkicu stoi jawna informacja, że pokazuje okolicę ciała, a nie
+  dokładny przebieg mięśni. Widoczny wszędzie tam, gdzie karta ćwiczenia:
+  baza ćwiczeń klienta i trenera oraz podgląd techniki z planu.
+* **Naprawa (PWA)**: przy pierwszej wizycie świeżo zainstalowany service
+  worker przejmuje kontrolę sam (`clients.claim`), a `pwa.ts` traktował to
+  jak aktualizację i przeładowywał stronę. Efekt: formularz wypełniany
+  w tym momencie znikał — logowanie potrafiło „nie zadziałać" za pierwszym
+  razem. Od teraz przeładowanie następuje WYŁĄCZNIE po świadomym kliknięciu
+  w baner nowej wersji. Regresja zabezpieczona kontrolą w
+  `e2e/test_pwa_offline.mjs` (znacznik na `window` przeżywa pierwszą wizytę).
+
 ## 0.24.0 — 2026-08-18
 
 Znacząca rozbudowa **bazy ćwiczeń** wraz z pełnymi opisami oraz

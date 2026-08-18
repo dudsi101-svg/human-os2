@@ -122,9 +122,11 @@ try {
   // ————— 1. Pierwsze wejście online: rejestracja SW + precache —————
   console.log("1. Rejestracja service workera i precache");
   await page.goto(`${url}/`, { waitUntil: "load" });
-  // Pierwsza instalacja: clients.claim() → controllerchange → jednorazowe
-  // przeładowanie (istniejące zachowanie pwa.ts). Czekanie toleruje
-  // zniszczenie kontekstu przez tę nawigację.
+  // Regresja: przy PIERWSZEJ wizycie świeży worker przejmuje kontrolę sam
+  // (clients.claim). Aplikacja NIE MOŻE się wtedy przeładować — kasowałoby
+  // to wypełniany formularz (logowanie!). Znacznik na window przeżywa
+  // wyłącznie wtedy, gdy przeładowania nie było.
+  await page.evaluate(() => { window.__dzikNoReload = true; });
   const deadline = Date.now() + 20000;
   for (;;) {
     try {
@@ -143,9 +145,12 @@ try {
       await page.waitForLoadState("load");
     }
   }
-  // Pozwól dobiec jednorazowemu reloadowi po claim() i wykonaj świeżą,
-  // już kontrolowaną nawigację — od tego miejsca kontekst jest stabilny.
-  await page.waitForTimeout(1000);
+  await page.waitForTimeout(1500);
+  check(
+    "pierwsza wizyta nie przeładowuje aplikacji sama z siebie",
+    await page.evaluate(() => window.__dzikNoReload === true)
+  );
+  // Świeża, już kontrolowana nawigacja — od tego miejsca kontekst stabilny.
   await page.goto(`${url}/`, { waitUntil: "load" });
   const precache = await page.evaluate(async () => {
     const keys = await caches.keys();

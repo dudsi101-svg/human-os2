@@ -47,12 +47,21 @@ export function registerServiceWorker() {
 
   let reloading = false;
   navigator.serviceWorker.addEventListener("controllerchange", () => {
-    if (reloading) return;
+    // Przeładowujemy WYŁĄCZNIE po świadomym kliknięciu użytkownika
+    // w baner aktualizacji. Przy pierwszej wizycie świeżo zainstalowany
+    // worker przejmuje kontrolę sam (clients.claim) — przeładowanie w tym
+    // momencie kasowałoby wypełniony formularz (np. logowanie w trakcie),
+    // a użytkownik o żadną aktualizację nie prosił.
+    if (!updateRequested || reloading) return;
     reloading = true;
     window.location.reload();
   });
 }
 
+/** Czy użytkownik potwierdził odświeżenie do nowej wersji (baner). */
+let updateRequested = false;
+
 export function applyUpdate() {
+  updateRequested = true;
   waitingWorker?.postMessage({ type: "SKIP_WAITING" });
 }

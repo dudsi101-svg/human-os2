@@ -463,3 +463,24 @@ table.simple th { color: var(--text-dim); font-weight: 600; font-size: 0.78rem; 
 @media (min-width: 1200px) {
   .page--wide { max-width: 1160px; }
 }
+
+/* Szkic pracujących mięśni (MuscleMap.tsx) — dwa widoki sylwetki obok
+   siebie; na wąskich ekranach nadal mieszczą się w parze, bo rysunek
+   skaluje się wysokością. */
+.mmap { margin: 10px 0 4px; }
+.mmap__figs { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+.mmap__fig { margin: 0; text-align: center; }
+.mmap__svg { display: block; height: clamp(150px, 34vw, 200px); width: auto; }
+.mmap__cap { font-size: 0.78rem; color: var(--text-dim); margin-top: 2px; }
+/* Kontur sylwetki: sam obrys, żeby podświetlone partie były czytelne. */
+.mmap__body { fill: rgba(255, 255, 255, 0.05); stroke: var(--border-strong); stroke-width: 1; }
+/* Partia niepracująca: ledwie widoczna — mapa ma pokazywać, co pracuje. */
+.mmap__region { fill: rgba(255, 255, 255, 0.07); stroke: none; }
+.mmap__region--secondary { fill: rgba(179, 242, 62, 0.34); }
+.mmap__region--primary { fill: var(--accent); }
+.mmap__legend { display: flex; align-items: center; justify-content: center; gap: 6px;
+  font-size: 0.78rem; color: var(--text-dim); margin: 6px 0 0; flex-wrap: wrap; }
+.mmap__key { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+.mmap__key--primary { background: var(--accent); }
+.mmap__key--secondary { background: rgba(179, 242, 62, 0.34); }
+.mmap__note { font-size: 0.75rem; text-align: center; margin: 4px 0 0; }
