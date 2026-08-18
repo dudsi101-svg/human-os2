@@ -39,6 +39,26 @@ każdy z tych błędów i sprawdza, że kontrola się zapala, a `PROG_TRAS`
 wywraca kontrolę, gdy widzi podejrzanie mało tras. **Dokładając kontrolę,
 dołóż test, który ją psuje.**
 
+### Przegląd mutacyjny: czy te testy naprawdę pilnują
+
+```bash
+python apps/dzik-os/tools/mutacje.py     # z korzenia repozytorium
+```
+
+Narzędzie po kolei **psuje kontrolę** na siedem sposobów, po każdym
+uruchamia `tests/test_spojnosc.py` i na koniec przywraca oryginał.
+Mutacja, po której testy nadal są zielone, to luka — wypisana wprost.
+
+Pierwsze uruchomienie (2026-08-18) znalazło **dwie luki**:
+
+* usunięcie progu `PROG_TRAS` nie wywracało żadnego testu — zabezpieczenie
+  przed cichą śmiercią kontroli tras samo nie było zabezpieczone;
+* zamiana kontroli dokumentów w atrapę przechodziła bez śladu.
+
+Obie naprawione tego samego dnia; po naprawie **7 z 7 mutacji wykrytych**.
+Uruchamiaj po każdej zmianie w `spojnosc.py` i po dołożeniu kontroli — bez
+tego „mamy testy" jest deklaracją, nie faktem.
+
 ---
 
 ## 2. Rezerwacja: zanim zaczniesz pracę

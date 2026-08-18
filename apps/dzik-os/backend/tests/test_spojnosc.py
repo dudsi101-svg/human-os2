@@ -173,6 +173,56 @@ def test_wykrywa_trase_przeslonieta_przez_parametr(monkeypatch):
     assert wynik.bledy == [], wynik.bledy
 
 
+def test_wykrywa_martwy_odnosnik_do_dokumentu(kopia):
+    """Odnośnik `docs/COŚ.md` do nieistniejącego pliku — uwaga, nie błąd,
+    ale musi być zgłoszona. Bez tego testu kontrola mogła zostać atrapą i
+    nikt by nie zauważył (wyszło przy przeglądzie mutacyjnym)."""
+    modul = zaladuj(kopia)
+    # Kopia zawiera tylko część dokumentów, więc odnośników brakujących
+    # jest tam sporo z natury rzeczy — porównujemy PRZYROST, nie stan.
+    (kopia / "docs" / "PRZYKLAD.md").write_text("bez odnośników\n", encoding="utf-8")
+    przed = modul.Wynik()
+    modul.sprawdz_dokumenty(przed)
+    assert not any("NIE_MA_TAKIEGO" in u for u in przed.uwagi)
+
+    (kopia / "docs" / "PRZYKLAD.md").write_text(
+        "Patrz docs/NIE_MA_TAKIEGO.md po szczegóły.\n", encoding="utf-8")
+    po = modul.Wynik()
+    modul.sprawdz_dokumenty(po)
+    assert any("NIE_MA_TAKIEGO.md" in u for u in po.uwagi), po.uwagi
+    assert len(po.uwagi) == len(przed.uwagi) + 1
+
+
+def test_prog_tras_zapala_sie_gdy_kontrola_widzi_za_malo(monkeypatch):
+    """Zabezpieczenie przed cichą śmiercią kontroli — musi mieć własny test.
+
+    `PROG_TRAS` istnieje po to, żeby kontrola tras nie przeszła na zielono,
+    gdy z powodu zmiany w FastAPI przestanie widzieć trasy. Testy
+    wstrzykujące błąd tego NIE pilnowały: usunięcie progu nie wywracało
+    żadnego z nich (wyszło przy przeglądzie mutacyjnym 2026-08-18). Bez
+    tego testu zabezpieczenie mogło zniknąć niezauważone."""
+    from fastapi import FastAPI
+
+    modul = zaladuj(APP)
+    main_modul = importlib.import_module("dzik_os.main")
+    # Aplikacja z jedną trasą udaje sytuację „kontrola oślepła".
+    # Funkcja nazwana, nie `lambda`/`dict`: FastAPI czyta sygnaturę
+    # uchwytu, a wbudowany `dict` sygnatury nie ma.
+    def uchwyt() -> dict:  # pragma: no cover - trasa testowa
+        return {}
+
+    pusta = FastAPI()
+    pusta.get("/api/nic")(uchwyt)
+    monkeypatch.setattr(main_modul, "create_app", lambda: pusta)
+
+    wynik = modul.Wynik()
+    modul.sprawdz_trasy(wynik)
+    assert any("za mało" in b for b in wynik.bledy), (
+        "kontrola tras zobaczyła garść tras i nie zaprotestowała — "
+        f"próg PROG_TRAS nie działa: {wynik.bledy}"
+    )
+
+
 def test_kontrola_tras_nie_moze_przejsc_na_pusto():
     """Zabezpieczenie przed cichą śmiercią kontroli.
 
