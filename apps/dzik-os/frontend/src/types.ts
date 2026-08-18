@@ -413,6 +413,30 @@ export interface DietSuggestionItem {
   carbs_g: number;
 }
 
+export interface PersonalRecordRow {
+  exercise_name: string;
+  best_kg: number;
+  achieved_on: string;
+  previous_best_kg: number | null;
+  attempts: number;
+  is_new: boolean;
+}
+
+export interface SinceStartRow {
+  kind: string;
+  unit: string;
+  first_value: number;
+  first_date: string;
+  latest_value: number;
+  latest_date: string;
+  delta: number;
+}
+
+export interface PersonalRecordsData {
+  records: PersonalRecordRow[];
+  since_start: SinceStartRow[];
+}
+
 export interface DietSuggestionResult {
   target: { kcal: number; protein_g: number; fat_g: number; carbs_g: number };
   items: DietSuggestionItem[];

@@ -1,7 +1,15 @@
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { api, money, plDate, plDateTime, WEEKDAYS } from "../../api";
-import { AuthImage, ErrorBox, SectionLabel, Sparkline, Spinner, TopBar } from "../../components";
+import {
+  AuthImage,
+  ErrorBox,
+  PersonalRecordsCard,
+  SectionLabel,
+  Sparkline,
+  Spinner,
+  TopBar,
+} from "../../components";
 import {
   CATEGORY_LABELS,
   CheckinData,
@@ -822,6 +830,8 @@ function MonitoringTab({ clientId }: { clientId: string }) {
           {data.goal.target_date && <small>Termin: {plDate(data.goal.target_date)}</small>}
         </div>
       )}
+
+      <PersonalRecordsCard clientId={clientId} />
 
       {Object.keys(data.adherence).length > 0 && (
         <div className="card">

@@ -38,6 +38,9 @@ to ocena kompletności raportu, nie Ciebie.
 ## Pozostałe (zakładka „Więcej")
 
 * **Pomiary i postępy** — dodawaj pomiary, oglądaj wykresy i zdjęcia;
+  karta „🏆 Rekordy osobiste" pokazuje Twoje najlepsze wyniki i zmianę od
+  startu — porównanie zawsze wyłącznie z Twoją własną historią, nigdy z
+  innymi;
 * **Baza wiedzy** — artykuły trenera, know-how ćwiczeń (partia, technika,
   efekt) i baza produktów z makro — wpisz gramaturę porcji, żeby
   zobaczyć automatyczne przeliczenie kalorii;

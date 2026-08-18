@@ -1,6 +1,13 @@
 import { FormEvent, useEffect, useState } from "react";
 import { api, getUser, plDate, todayIso } from "../../api";
-import { AuthImage, ErrorBox, Sparkline, Spinner, TopBar } from "../../components";
+import {
+  AuthImage,
+  ErrorBox,
+  PersonalRecordsCard,
+  Sparkline,
+  Spinner,
+  TopBar,
+} from "../../components";
 import {
   CATEGORY_LABELS,
   KIND_LABELS,
@@ -61,6 +68,8 @@ export default function Progress() {
       <ErrorBox error={error} />
 
       {monitoring?.goal && <GoalCard goal={monitoring.goal} />}
+
+      <PersonalRecordsCard clientId={user.id} />
 
       <form className="card" onSubmit={addMeasurement}>
         <h3>Dodaj pomiar</h3>

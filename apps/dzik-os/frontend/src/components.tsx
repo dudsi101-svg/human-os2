@@ -1,7 +1,8 @@
 import { ReactNode, useEffect, useState } from "react";
 import { NavLink } from "react-router-dom";
-import { clearSession, fetchFileBlob, fetchFileUrl, getUser } from "./api";
+import { api, clearSession, fetchFileBlob, fetchFileUrl, getUser, plDate } from "./api";
 import { applyUpdate, onUpdateAvailable } from "./pwa";
+import { KIND_LABELS, PersonalRecordsData } from "./types";
 
 /** Głowa dzika — marka Dzik OS. */
 export function Logo({ size = 26 }: { size?: number }) {
@@ -233,6 +234,54 @@ export function Sparkline({ points, unit }: { points: { x: string; y: number }[]
         </small>
         <small>{points[points.length - 1].x}</small>
       </div>
+    </div>
+  );
+}
+
+/** Rekordy osobiste i postęp od startu — rywalizacja wyłącznie z własną
+ * historią (zasada Human OS: żadnych porównań między ludźmi ani
+ * rankingów; punktem odniesienia jest wcześniejsze „ja"). */
+export function PersonalRecordsCard({ clientId }: { clientId: string }) {
+  const [data, setData] = useState<PersonalRecordsData | null>(null);
+  useEffect(() => {
+    api.get<PersonalRecordsData>(`/api/clients/${clientId}/personal-records`)
+      .then(setData)
+      .catch(() => undefined);
+  }, [clientId]);
+
+  if (!data || (data.records.length === 0 && data.since_start.length === 0)) return null;
+
+  return (
+    <div className="card">
+      <h3>🏆 Rekordy osobiste</h3>
+      <p className="dim" style={{ fontSize: "0.85rem", marginTop: -4 }}>
+        Porównanie wyłącznie z własną historią — nie z innymi.
+      </p>
+      {data.since_start.length > 0 && (
+        <div className="row" style={{ flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
+          {data.since_start.map((s) => (
+            <span className="badge" key={s.kind}>
+              {KIND_LABELS[s.kind] ?? s.kind}: {s.delta > 0 ? "+" : ""}{s.delta} {s.unit} od startu
+            </span>
+          ))}
+        </div>
+      )}
+      {data.records.map((r) => (
+        <div className="exercise" key={r.exercise_name}>
+          <div>
+            <b>{r.exercise_name}</b>
+            {r.is_new && <span className="badge badge--accent" style={{ marginLeft: 6 }}>nowy rekord!</span>}
+            <div className="meta">
+              {plDate(r.achieved_on)}
+              {r.previous_best_kg !== null && ` · poprzednio ${r.previous_best_kg} kg`}
+              {` · ${r.attempts} zapisów`}
+            </div>
+          </div>
+          <span className="badge" style={{ alignSelf: "center", whiteSpace: "nowrap" }}>
+            {r.best_kg} kg
+          </span>
+        </div>
+      ))}
     </div>
   );
 }

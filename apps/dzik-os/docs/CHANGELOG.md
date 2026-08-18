@@ -1,5 +1,20 @@
 # Changelog — Dzik OS
 
+## 0.5.0 — 2026-08-18
+
+* **Nowość — Rekordy osobiste i postęp od startu** (rywalizacja wyłącznie
+  z własną historią, na życzenie użytkownika; zgodna z zasadą Human OS —
+  żadnych porównań między ludźmi ani rankingów):
+  `GET /api/clients/{id}/personal-records` liczy per ćwiczenie najlepszy
+  własny ciężar (deterministyczny regex po tekstowych wynikach treningów,
+  np. „3x8 @ 80kg"; wynik bez rozpoznawalnego ciężaru jest pomijany —
+  zero zgadywania) z plakietką „nowy rekord!" gdy poprawiony w ostatnich
+  14 dniach względem wcześniejszego własnego wyniku, oraz zmianę każdego
+  pomiaru względem pierwszego zapisu („−4,2 kg od startu"). Karta
+  „🏆 Rekordy osobiste" w Monitoringu klienta i w zakładce Monitoring
+  trenera. Seed: 3 treningi klienta A z progresją przysiadu.
+* Testy: 92 → 97.
+
 ## 0.4.1 — 2026-08-17
 
 * **Logo**: zastąpiono wygenerowaną wcześniej prostą ikonę dzika docelową

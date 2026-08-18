@@ -171,12 +171,13 @@ def seed() -> dict[str, str]:
         days_v2 = json.loads(json.dumps(days_v1))
         days_v2[1]["exercises"][0]["weight"] = "105 kg"
         days_v2[0]["exercises"][0]["comment"] = "Bark OK — pełny zakres"
-        db.add(TrainingPlanVersion(
+        plan_a_v2 = TrainingPlanVersion(
             id=new_id("PLV"), plan_id=plan_a.id, version_no=2,
             reason="Progresja przysiadu po raporcie z tygodnia 2; bark bez bólu",
             created_by=coach.id,
             content_json=json.dumps({"days": days_v2}, ensure_ascii=False),
-        ))
+        )
+        db.add(plan_a_v2)
         record_event(db, action="PLAN_VERSION_CREATED", actor_id=coach.id,
                      subject_ids=[client_a.id],
                      payload={"plan_id": plan_a.id, "version_no": 2,
@@ -282,7 +283,35 @@ def seed() -> dict[str, str]:
 
         # --- Adherencja harmonogramu klienta A (ostatnie 2 tygodnie) ---
         db.flush()
-        from .models import DailyNutritionLog, Observation, ScheduleCompletion
+        from .models import (
+            DailyNutritionLog,
+            Observation,
+            ScheduleCompletion,
+            WorkoutEntry,
+            WorkoutSession,
+        )
+
+        # --- Wykonane treningi klienta A (progresja przysiadu → rekord) ---
+        for offset, squat_result, bench_result in [
+            (16, "4x6 @ 95 kg", "4x8 @ 65 kg"),
+            (9, "4x6 @ 100 kg", "4x8 @ 67,5 kg"),
+            (2, "4x6 @ 105 kg", "4x8 @ 70 kg"),
+        ]:
+            session = WorkoutSession(
+                id=new_id("WKS"), client_id=client_a.id,
+                plan_version_id=plan_a_v2.id, day_index=1,
+                performed_on=(today - timedelta(days=offset)).isoformat(),
+                status="DONE", created_at=(today - timedelta(days=offset)).isoformat(),
+            )
+            db.add(session)
+            db.add(WorkoutEntry(
+                id=new_id("WKE"), session_id=session.id, exercise_index=0,
+                exercise_name="Przysiad ze sztangą", result=squat_result,
+            ))
+            db.add(WorkoutEntry(
+                id=new_id("WKE"), session_id=session.id, exercise_index=1,
+                exercise_name="Wyciskanie sztangi leżąc", result=bench_result,
+            ))
 
         kreatyna = schedule_by_name["Kreatyna 5 g"]
         trening = schedule_by_name["Trening siłowy"]
