@@ -328,15 +328,21 @@ try {
   const unlabeledCheckin = await page.evaluate(UNLABELED_JS);
   check("raport: wszystkie pola mają etykiety", unlabeledCheckin.length === 0,
     JSON.stringify(unlabeledCheckin));
-  const sliders = await page.evaluate(() =>
-    [...document.querySelectorAll('input[type="range"]')].map((el) => ({
-      labelled: !!(el.id && document.querySelector('label[for="' + CSS.escape(el.id) + '"]')),
-      valuetext: el.getAttribute("aria-valuetext"),
+  // Skale ocen to grupy przycisków (P11: bez wartości domyślnej — świadomy
+  // wybór 1–5 / Pomijam / Nie dotyczy), nie suwaki: każda grupa nazwana
+  // (role=group + aria-label), a stan przycisków wyrażony aria-pressed.
+  const scaleGroups = await page.evaluate(() =>
+    [...document.querySelectorAll('.scale-row [role="group"]')].map((el) => ({
+      label: el.getAttribute("aria-label") ?? "",
+      buttons: [...el.querySelectorAll("button")].filter(
+        (b) => b.hasAttribute("aria-pressed")
+      ).length,
     }))
   );
-  check("raport: 6 suwaków z etykietą i aria-valuetext",
-    sliders.length === 6 && sliders.every((s) => s.labelled && s.valuetext),
-    JSON.stringify(sliders));
+  check("raport: 6 skal jako nazwane grupy przycisków z aria-pressed",
+    scaleGroups.length === 6 &&
+      scaleGroups.every((g) => g.label.length > 2 && g.buttons >= 7),
+    JSON.stringify(scaleGroups));
   await runAxe(page, "raport");
 
   // ————— 6. Postępy: wykresy z alternatywą tekstową —————
