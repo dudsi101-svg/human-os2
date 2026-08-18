@@ -42,8 +42,15 @@ body {
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   font-variant-numeric: tabular-nums;
+  /* Siatka bezpieczeństwa: długie słowa/linki łamią się zamiast wypychać
+     układ poza ekran. */
+  overflow-wrap: break-word;
 }
 #root { min-height: 100dvh; }
+
+/* Media nigdy nie rozpychają układu: obraz/wideo skaluje się do kontenera
+   (naprawia m.in. porównywarkę zdjęć „przed/po" na wąskich ekranach). */
+img, video { max-width: 100%; height: auto; }
 
 a { color: var(--accent); text-decoration: none; }
 h1 {
@@ -52,7 +59,7 @@ h1 {
 }
 h2 {
   font-family: var(--font-display); font-weight: 600;
-  font-size: 1rem; margin: 20px 0 8px; color: var(--text);
+  font-size: 1rem; margin: 24px 0 10px; color: var(--text);
 }
 h3 { font-size: 0.95rem; font-weight: 700; margin: 0 0 6px; }
 small, .dim { color: var(--text-dim); }
@@ -91,17 +98,20 @@ small, .dim { color: var(--text-dim); }
 
 .topbar {
   display: flex; align-items: center; justify-content: space-between;
-  gap: 12px; margin-bottom: 14px;
+  gap: 12px; margin-bottom: 16px;
 }
-.brand { display: flex; align-items: center; gap: 10px; }
+/* min-width: 0 pozwala długiemu tytułowi (np. nazwisku klienta) zawijać
+   się zamiast wypychać przyciski po prawej poza ekran. */
+.brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.brand > div { min-width: 0; }
 .brand svg { flex-shrink: 0; }
 
 .card {
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 15px 17px;
-  margin-bottom: 12px;
+  padding: 16px 18px;
+  margin-bottom: 14px;
   animation: card-in 320ms var(--ease-out) both;
 }
 a.card, button.card {
@@ -121,7 +131,7 @@ a.card:active, button.card:active { transform: scale(0.995); }
 .card h2, .card h3 {
   font-family: var(--font-body);
   font-size: 0.95rem; font-weight: 700; letter-spacing: 0;
-  margin: 0 0 6px;
+  margin: 0 0 8px;
   display: flex; align-items: center; gap: 8px;
 }
 .card h2 svg, .card h3 svg { flex-shrink: 0; color: var(--accent); }
@@ -129,7 +139,7 @@ a.card:active, button.card:active { transform: scale(0.995); }
 a.card--nav { display: flex; align-items: center; gap: 12px; }
 a.card--nav svg { flex-shrink: 0; color: var(--accent); }
 
-.list { display: flex; flex-direction: column; gap: 10px; }
+.list { display: flex; flex-direction: column; gap: 12px; }
 
 .btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 8px;
@@ -148,7 +158,12 @@ a.card--nav svg { flex-shrink: 0; color: var(--accent); }
   border: 1px solid var(--border-strong);
 }
 .btn--ghost:not(:disabled):hover { background: var(--bg-hover); filter: none; }
-.btn--small { width: auto; padding: 8px 14px; font-size: 0.9rem; min-height: 38px; }
+.btn--small {
+  width: auto; padding: 8px 14px; font-size: 0.9rem; min-height: 38px;
+  /* Krótkie etykiety przycisków nie łamią się w wielolinijkowe „balony"
+     (np. chip „przerwa 2 min" przy ciasnej kolumnie). */
+  white-space: nowrap;
+}
 /* Na ekranach dotykowych każdy interaktywny element ma min. ~44 px. */
 @media (pointer: coarse) {
   .btn--small, .tabs button, .knowledge-card__toggle { min-height: 44px; }
@@ -158,6 +173,7 @@ a.card--nav svg { flex-shrink: 0; color: var(--accent); }
 
 input, textarea, select {
   width: 100%;
+  max-width: 100%;
   background: var(--bg-raised);
   color: var(--text);
   border: 1px solid var(--border-strong);
@@ -171,7 +187,7 @@ input:focus, textarea:focus, select:focus {
   outline: none; border-color: var(--accent);
   box-shadow: 0 0 0 3px var(--accent-soft);
 }
-label { display: block; font-size: 0.85rem; color: var(--text-dim); margin: 10px 0 4px; }
+label { display: block; font-size: 0.85rem; color: var(--text-dim); margin: 12px 0 5px; }
 textarea { min-height: 84px; resize: vertical; }
 /* Pola wyboru: większy, dotykalny rozmiar + kolor marki. */
 input[type="checkbox"], input[type="radio"] {
@@ -180,6 +196,9 @@ input[type="checkbox"], input[type="radio"] {
 
 .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .field-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+/* Kolumny mogą się kurczyć poniżej naturalnej szerokości zawartości —
+   bez tego szeroki element (np. zdjęcie) rozpycha siatkę poza ekran. */
+.field-row > *, .field-row-3 > * { min-width: 0; }
 /* Na bardzo wąskich ekranach pola formularzy schodzą do jednej kolumny;
    .field-row--keep zostaje obok siebie (naprawdę krótkie pary, np. kg × powt.). */
 @media (max-width: 459px) {
@@ -235,11 +254,20 @@ h3.section-label:first-of-type, .card h3.section-label:first-of-type {
 .nav a {
   flex: 1; display: flex; flex-direction: column; align-items: center;
   justify-content: center; gap: 2px;
+  position: relative;
   /* min. 12 px — etykiety nawigacji muszą być czytelne */
   color: var(--text-dim); font-size: 0.75rem; font-weight: 600;
   transition: color 140ms var(--ease-out);
 }
 .nav a.active { color: var(--accent); }
+/* Kreska-wskaźnik aktywnej sekcji: od razu widać, gdzie jesteś (kolor sam
+   bywa za słaby przy zerknięciu). Na dole ekranu kreska u góry linku. */
+.nav a.active::before {
+  content: ""; position: absolute; top: 0; left: 50%;
+  transform: translateX(-50%);
+  width: 30px; height: 3px; border-radius: 0 0 3px 3px;
+  background: var(--accent);
+}
 .nav svg { width: 22px; height: 22px; transition: transform 200ms var(--ease-out); }
 .nav a.active svg { transform: translateY(-1px); }
 
@@ -290,12 +318,17 @@ table.simple th { color: var(--text-dim); font-weight: 600; font-size: 0.78rem; 
   table.table--cards td:empty { display: none; }
 }
 
-.msg { max-width: 82%; padding: 10px 13px; border-radius: 16px; margin-bottom: 8px; }
+.msg { max-width: 82%; padding: 10px 13px; border-radius: 16px; margin-bottom: 8px; overflow-wrap: anywhere; }
 .msg--own { background: var(--accent); color: var(--accent-ink); margin-left: auto; border-bottom-right-radius: 4px; }
 .msg--other { background: var(--bg-card); border: 1px solid var(--border); border-bottom-left-radius: 4px; }
 .msg small { display: block; opacity: 0.85; font-size: 0.75rem; margin-top: 3px; color: inherit; }
 
-.tabs { display: flex; gap: 6px; overflow-x: auto; margin-bottom: 14px; padding-bottom: 2px; }
+.tabs { display: flex; gap: 8px; overflow-x: auto; margin-bottom: 16px; padding-bottom: 2px; }
+/* Od szerokości tabletu zakładki zawijają się do kolejnych wierszy —
+   wszystkie widoczne naraz zamiast uciętych za prawą krawędzią. */
+@media (min-width: 700px) {
+  .tabs { flex-wrap: wrap; overflow-x: visible; }
+}
 .tabs button {
   background: var(--bg-raised); color: var(--text-dim);
   border: 1px solid var(--border-strong); border-radius: 999px;
@@ -306,18 +339,23 @@ table.simple th { color: var(--text-dim); font-weight: 600; font-size: 0.78rem; 
 .tabs button.active { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
 
 .exercise {
-  display: grid; grid-template-columns: 1fr auto; gap: 4px 10px;
-  padding: 10px 0; border-bottom: 1px solid var(--border);
+  /* Prawa kolumna (parametry/data/przycisk) nie zabiera lewej więcej niż
+     ~45% szerokości karty — nazwa/treść ma zawsze pierwszeństwo, a długie
+     parametry zawijają się po swojej stronie zamiast ściskać tekst. */
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(auto, 45%);
+  gap: 4px 12px;
+  padding: 12px 0; border-bottom: 1px solid var(--border);
   /* start, nie stretch: plakietka/przycisk w prawej kolumnie nie rozciąga
      się na wysokość wielolinijkowego tekstu (balonowate pigułki). */
   align-items: start;
 }
-.exercise:last-child { border-bottom: none; }
+.exercise:last-child { border-bottom: none; padding-bottom: 4px; }
 .exercise .meta { color: var(--text-dim); font-size: 0.85rem; }
+.exercise > :last-child:not(:only-child) { justify-self: end; text-align: right; }
 
 .stat-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
-.stat { background: var(--bg-raised); border-radius: var(--radius-sm); padding: 10px 12px; }
-.stat b { display: block; font-family: var(--font-display); font-size: 1.2rem; font-weight: 600; }
+.stat { background: var(--bg-raised); border-radius: var(--radius-sm); padding: 12px 14px; min-width: 0; }
+.stat b { display: block; font-family: var(--font-display); font-size: 1.25rem; font-weight: 600; }
 .stat span { font-size: 0.75rem; color: var(--text-dim); }
 
 .photo-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
@@ -400,7 +438,12 @@ table.simple th { color: var(--text-dim); font-weight: 600; font-size: 0.78rem; 
 @media (min-width: 900px) {
   .nav { top: 0; bottom: auto; height: 58px; border-top: none; border-bottom: 1px solid var(--border); justify-content: center; gap: 8px; }
   .nav a { flex: 0 0 auto; flex-direction: row; gap: 8px; padding: 0 16px; font-size: 0.85rem; }
-  .page { padding-top: calc(58px + 20px); }
+  /* Przy nawigacji u góry wskaźnik aktywnej sekcji przy dolnej krawędzi. */
+  .nav a.active::before {
+    top: auto; bottom: 0; width: calc(100% - 24px);
+    border-radius: 3px 3px 0 0;
+  }
+  .page { padding-top: calc(58px + 24px); }
 }
 
 /* Szeroki desktop (≥1200 px): panel trenera/admina dostaje pełną szerokość. */
