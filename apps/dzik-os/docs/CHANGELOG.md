@@ -114,6 +114,31 @@ na produkcji i wycofania: `docs/BAZA_CWICZEN.md` §11.
   `--dry-run` niczego nie zapisuje, klient nie widzi notatki roboczej,
   odmowa wyboru trenera w komendzie. Do tego 6 testów czystej logiki
   raportu po stronie frontendu (`npm run test:helpers`).
+## 0.35.1 — 2026-08-18
+
+**Przegląd mutacyjny bramki spójności — i dwie luki, które znalazł.**
+
+Bramka z 0.35.0 miała testy wstrzykujące błąd. Pytanie, czy te testy
+faktycznie coś pilnują, wymaga odwrócenia próby: **zepsuć kontrolę i
+sprawdzić, czy testy się zaczerwienią**. `tools/mutacje.py` robi to
+automatycznie — psuje `spojnosc.py` na siedem sposobów, po każdym
+uruchamia testy i przywraca oryginał.
+
+* **Luka 1: próg `PROG_TRAS` nie był chroniony.** Usunięcie
+  zabezpieczenia, które ma nie dopuścić do cichej śmierci kontroli tras,
+  nie wywracało ani jednego testu. Dopisany
+  `test_prog_tras_zapala_sie_gdy_kontrola_widzi_za_malo`.
+* **Luka 2: kontrola dokumentów bez testu.** Zamiana jej w atrapę
+  przechodziła bez śladu. Dopisany
+  `test_wykrywa_martwy_odnosnik_do_dokumentu` (porównuje przyrost uwag, bo
+  kopia repozytorium z natury nie ma wszystkich dokumentów).
+* Po naprawie: **7 z 7 mutacji wykrytych**, 9 testów bramki.
+* `apps/dzik-os/tools` objęte lintem w CI — katalog był poza kontrolą
+  jakości, a leży w nim narzędzie pilnujące jakości.
+* `KOORDYNACJA.md` §1 opisuje przegląd mutacyjny i jego wynik. Zasada:
+  dokładając kontrolę, dołóż test, który ją psuje — i uruchom przegląd,
+  żeby sprawdzić, czy ten test cokolwiek znaczy.
+
 ## 0.35.0 — 2026-08-18
 
 **Porządki: bramka przeciw kolizjom między równoległymi rundami.**

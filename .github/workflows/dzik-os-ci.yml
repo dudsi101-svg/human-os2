@@ -26,7 +26,7 @@ jobs:
           pip install -e ".[dev]"
           pip install -e "apps/dzik-os/backend[dev]"
       - name: Lint (ruff)
-        run: ruff check apps/dzik-os/backend
+        run: ruff check apps/dzik-os/backend apps/dzik-os/tools
       - name: Kontrola spójności (kolizje między równoległymi rundami)
         # Wykrywa to, czego git nie widzi: powtórzony numer migracji lub
         # wersji, trasę przesłoniętą przez parametr, router bez
