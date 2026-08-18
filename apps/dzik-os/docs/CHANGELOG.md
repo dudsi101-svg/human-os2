@@ -1,5 +1,37 @@
 # Changelog — Dzik OS
 
+## 0.31.0 — 2026-08-18
+
+**Gotowe schematy treningowe — 24 szablony z materiału trenera.** Pełny
+opis: `docs/SZABLONY_TRENINGOWE.md`.
+
+* **Katalog w panelu trenera.** 24 szablony (431 pozycji ćwiczeń)
+  przeniesione 1:1 z `DZIK_OS_Szablony_Treningowe_V2.xlsx`: od planu dla
+  początkującego po zaawansowaną hipertrofię, warianty domowe, powrót po
+  przerwie i plany priorytetowe. Trener ogląda podgląd z pełną receptą
+  (serie, powtórzenia, cel RIR, przerwa, tempo, zasada progresji) i dodaje
+  wybrany schemat do własnej biblioteki jednym kliknięciem.
+* **Aplikacja nadal niczego nie podnosi sama.** Zasada ze źródła („Brak
+  automatycznego wzrostu") jest tu wiążąca: reguła progresji to OPIS dla
+  człowieka, nie mechanizm. Szablon nie narzuca też ciężaru — pole zostaje
+  puste, bo ciężar ustala człowiek (pilnuje tego test).
+* **Szablon ≠ plan klienta.** Import tworzy niezależną kopię; ponowny import
+  daje kolejną, bo poprzednia mogła zostać już przerobiona pod klienta
+  i nie wolno tej pracy skasować. Dalej działa istniejąca ścieżka
+  kopiowania szablonu do klienta.
+* **Progresja per ćwiczenie, nie per plan.** Sześć modeli (`PRG-DOUBLE`,
+  `PRG-AUTO-DOUBLE`, `PRG-RIR`, `PRG-REPS`, `PRG-TIME`, `PRG-DISTANCE`);
+  każda pozycja wskazuje własny, zgodnie z zasadą ze źródła.
+* **Powiązanie z bazą ćwiczeń wyłącznie przy dopasowaniu dokładnym.**
+  Arkusz używa innego nazewnictwa niż biblioteka, a dopasowanie „po
+  podobieństwie" pokazałoby klientowi instrukcję innego ćwiczenia. Pozycje
+  bez karty działają normalnie (nazwa jest zapisana), a interfejs mówi
+  wprost, ile ich jest i gdzie je podpiąć.
+* Model ćwiczenia w planie zyskał `target_rir` i `progression` (pola
+  opcjonalne, w treści JSON — bez migracji).
+* Nowy helper odmiany liczebników (`plural.ts`) — komunikaty mówią
+  „2 jednostki", nie „2 jednostek".
+
 ## 0.30.0 — 2026-08-18
 
 **Dowody tam, gdzie ich nie było.** Trzy bramki wynikające z audytu

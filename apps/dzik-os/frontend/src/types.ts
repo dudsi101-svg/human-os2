@@ -11,6 +11,39 @@ export interface Exercise {
   rest?: string | null;
   comment?: string | null;
   video_url?: string | null;
+  /** Docelowy zapas powtórzeń, np. „2–3". Zakres, nie liczba — tak podaje
+   * się to w praktyce treningowej. */
+  target_rir?: string | null;
+  /** Kod modelu progresji (np. „PRG-DOUBLE"). To OPIS dla człowieka —
+   * aplikacja nic na jego podstawie nie przelicza ani nie podnosi sama. */
+  progression?: string | null;
+}
+
+/** Model progresji z wbudowanego katalogu szablonów. */
+export interface ProgressionModel {
+  name: string;
+  when: string;
+  action: string;
+  hold: string;
+  regress: string;
+  note?: string | null;
+}
+
+/** Pozycja katalogu gotowych schematów treningowych. */
+export interface BuiltinPlanTemplate {
+  id: string;
+  name: string;
+  level: string;
+  goal: string;
+  days_per_week: number;
+  duration_min: string;
+  intensity: string;
+  target_rir: string;
+  split: string;
+  description: string;
+  deload: string;
+  days: number;
+  exercises: number;
 }
 
 export interface PlanDay {

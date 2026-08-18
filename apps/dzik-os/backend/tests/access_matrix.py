@@ -189,6 +189,12 @@ MATRIX: dict[tuple[str, str], Access] = {
     ("POST", "/api/coach/knowledge"): Access.COACH_ONLY,
     ("PUT", "/api/coach/knowledge/{item_id}"): Access.COACH_ONLY,
     ("POST", "/api/coach/knowledge/{item_id}/status"): Access.COACH_ONLY,
+    # Wbudowany katalog szablonów treningowych — materiał merytoryczny,
+    # zero danych osób. Import tworzy szablon TEGO trenera (identyfikator
+    # z sesji), więc nie ma tu zasobu cudzego właściciela.
+    ("GET", "/api/coach/plan-templates"): Access.COACH_ONLY,
+    ("GET", "/api/coach/plan-templates/{template_id}"): Access.COACH_ONLY,
+    ("POST", "/api/coach/plan-templates/{template_id}/import"): Access.COACH_ONLY,
     ("GET", "/api/coach/weekly-digest"): Access.COACH_ONLY,
     ("POST", "/api/consult-slots/{slot_id}/book"): Access.RESOURCE_SCOPED,
     ("POST", "/api/consult-slots/{slot_id}/unbook"): Access.RESOURCE_SCOPED,

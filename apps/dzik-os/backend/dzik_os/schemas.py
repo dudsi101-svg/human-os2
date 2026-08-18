@@ -81,6 +81,14 @@ class ExerciseIn(BaseModel):
     rest: str | None = Field(default=None, max_length=40)
     comment: str | None = Field(default=None, max_length=1000)
     video_url: str | None = Field(default=None, max_length=500)
+    #: Docelowy zapas powtórzeń (np. „2–3"). Zapis tekstowy, bo w praktyce
+    #: podaje się zakres, nie liczbę. Klient widzi to jako cel serii.
+    target_rir: str | None = Field(default=None, max_length=20)
+    #: Kod modelu progresji z `plan_templates_data.PROGRESSION_MODELS`
+    #: (np. „PRG-DOUBLE"). Reguła jest OPISEM dla człowieka — aplikacja
+    #: niczego na jej podstawie nie przelicza ani nie podnosi automatycznie.
+    #: Pole jest wolne: trener może wpisać własny kod albo zostawić puste.
+    progression: str | None = Field(default=None, max_length=40)
 
 
 class PlanDayIn(BaseModel):
