@@ -2,10 +2,10 @@ from __future__ import annotations
 
 import json
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, UploadFile
 from sqlalchemy.orm import Session
 
-from .. import aggregates, notifications, plan_templates
+from .. import aggregates, notifications, plan_templates, sheet_import
 from ..authz import (
     DOMAIN_TRAINING,
     deny,
@@ -259,84 +259,6 @@ def builtin_plan_templates(
     }
 
 
-@router.get("/coach/plan-templates/{template_id}")
-def builtin_plan_template(
-    template_id: str,
-    coach: User = Depends(require_role("COACH")),
-):
-    """Podgląd szablonu PRZED importem — trener widzi, co dostanie."""
-    tpl = plan_templates.get_template(template_id)
-    if tpl is None:
-        raise HTTPException(status_code=404, detail="Nie znaleziono szablonu")
-    return {**tpl, "days": plan_templates.build_days(template_id)}
-
-
-@router.post("/coach/plan-templates/{template_id}/import", status_code=201)
-def import_builtin_plan_template(
-    template_id: str,
-    coach: User = Depends(require_role("COACH")),
-    db: Session = Depends(get_db),
-):
-    """Tworzy KOPIĘ wbudowanego szablonu w bibliotece trenera.
-
-    Od tego momentu jest to zwykły szablon trenera: można go edytować
-    i skopiować klientowi istniejącą ścieżką `/plans/{id}/copy-to/{client}`.
-    Import wolno powtórzyć — powstaje kolejna, niezależna kopia, bo szablon
-    mógł zostać wcześniej przerobiony i nie nadpisujemy cudzej pracy.
-    """
-    tpl = plan_templates.get_template(template_id)
-    if tpl is None:
-        raise HTTPException(status_code=404, detail="Nie znaleziono szablonu")
-
-    dni = plan_templates.build_days(
-        template_id, plan_templates.exercise_ids_for_coach(db, coach.id)
-    )
-    plan = TrainingPlan(
-        id=new_id("PLN"),
-        client_id=None,
-        coach_id=coach.id,
-        title=str(tpl["name"]),
-        is_template=True,
-        current_version_no=1,
-    )
-    db.add(plan)
-    db.flush()  # plan przed wersją (klucz obcy plan_id)
-    version = TrainingPlanVersion(
-        id=new_id("PLV"),
-        plan_id=plan.id,
-        version_no=1,
-        reason=f"Import wbudowanego szablonu {template_id}",
-        content_json=json.dumps({"days": dni}, ensure_ascii=False),
-        created_by=coach.id,
-    )
-    db.add(version)
-    powiazane = sum(1 for d in dni for e in d["exercises"] if e.get("exercise_id"))
-    record_event(
-        db,
-        action="PLAN_CREATED",
-        actor_id=coach.id,
-        subject_ids=[coach.id],
-        payload={
-            "plan_id": plan.id, "title": plan.title, "version_no": 1,
-            "is_template": True, "source_template": template_id,
-            "linked_exercises": powiazane,
-            "reason": f"Import wbudowanego szablonu {template_id}",
-        },
-        summary=f"Import szablonu treningowego: {plan.title}",
-    )
-    db.commit()
-    return {
-        "id": plan.id,
-        "version_id": version.id,
-        "version_no": 1,
-        "days": len(dni),
-        "exercises": sum(len(d["exercises"]) for d in dni),
-        # Ile pozycji dostało link do karty ćwiczenia trenera. Reszta ma samą
-        # nazwę — plan działa, brakuje tylko instrukcji/filmu przy ćwiczeniu.
-        "linked_exercises": powiazane,
-    }
-
-
 @router.get("/plans/templates")
 def list_templates(
     coach: User = Depends(require_role("COACH")),
@@ -503,3 +425,203 @@ def list_workouts(
             }
         )
     return {"workouts": out}
+
+
+# --- Import / eksport szablonów z pliku (CSV / XLSX) -------------------
+
+@router.get("/coach/plan-templates/import-schema")
+def templates_import_schema(coach: User = Depends(require_role("COACH"))):
+    """Kontrakt pliku importu szablonów: kolumny, wymagalność, przykłady.
+    Interfejs buduje z tego instrukcję — opis w aplikacji nie może
+    rozjechać się z tym, co realnie przyjmuje import."""
+    return {
+        "columns": sheet_import.schema_dict(sheet_import.TEMPLATE_COLUMNS),
+        "max_rows": sheet_import.MAX_ROWS,
+        "max_bytes": sheet_import.MAX_BYTES,
+        "max_days": sheet_import.MAX_DAYS,
+        "max_items_per_day": sheet_import.MAX_ITEMS_PER_DAY,
+        "formats": [".csv", ".xlsx"],
+    }
+
+
+@router.get("/coach/plan-templates/import-example")
+def templates_import_example(coach: User = Depends(require_role("COACH"))):
+    """Wzór pliku do pobrania — nagłówek i jeden wiersz przykładowy."""
+    return Response(
+        content=sheet_import.example_csv(sheet_import.TEMPLATE_COLUMNS),
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": 'attachment; filename="dzik-os-szablony-wzor.csv"'},
+    )
+
+
+@router.get("/coach/plan-templates/export-file")
+def templates_export_file(
+    coach: User = Depends(require_role("COACH")), db: Session = Depends(get_db)
+):
+    """Eksport wszystkich szablonów trenera w formacie importu (bieżące
+    wersje). Prawo wyjścia i zarazem droga do masowej edycji w arkuszu."""
+    plans = (
+        db.query(TrainingPlan)
+        .filter(
+            TrainingPlan.coach_id == coach.id,
+            TrainingPlan.is_template.is_(True),
+            TrainingPlan.status == "ACTIVE",
+        )
+        .order_by(TrainingPlan.title)
+        .all()
+    )
+    pairs = []
+    for plan in plans:
+        version = (
+            db.query(TrainingPlanVersion)
+            .filter_by(plan_id=plan.id, version_no=plan.current_version_no)
+            .one_or_none()
+        )
+        if version is not None:
+            pairs.append((plan, version.content_json))
+    record_event(
+        db, action="PLAN_TEMPLATES_EXPORTED", actor_id=coach.id, subject_ids=[coach.id],
+        payload={"templates": len(pairs), "format": "csv"},
+        summary=f"Szablony treningowe: eksport {len(pairs)} szablonów do CSV",
+    )
+    db.commit()
+    return Response(
+        content=sheet_import.templates_csv(pairs),
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": 'attachment; filename="dzik-os-szablony.csv"'},
+    )
+
+
+@router.post("/coach/plan-templates/import-file")
+async def templates_import_file(
+    file: UploadFile,
+    dry_run: bool = Query(True),
+    coach: User = Depends(require_role("COACH")),
+    db: Session = Depends(get_db),
+):
+    """Import szablonów treningowych z pliku do zasobów ZALOGOWANEGO
+    trenera.
+
+    Domyślnie `dry_run=true` — pełny raport bez zapisu. Szablon o tej samej
+    nazwie nie jest nadpisywany: dostaje nową wersję z powodem wskazującym
+    plik, a poprzednie wersje pozostają dostępne (zasada Human OS: brak
+    cichego nadpisywania, pełna historia). Szablon o identycznej treści nie
+    dostaje pustej wersji „bo import”.
+
+    Szablony NIE są przypisane do żadnego klienta (`client_id = NULL`) —
+    import nie dotyka planów prowadzonych osób i nie wymaga ich zgód."""
+    raw = await file.read()
+    source_ref = (file.filename or "plik")[:200]
+    try:
+        rows, unknown, warnings = sheet_import.read_table(
+            file.filename or "", raw, sheet_import.TEMPLATE_COLUMNS
+        )
+        report = sheet_import.import_templates_sheet(
+            db, coach.id, rows, dry_run=dry_run, source_ref=source_ref,
+        )
+    except sheet_import.SheetError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    report.unknown_columns = unknown
+    report.warnings = warnings + report.warnings
+    if not dry_run:
+        record_event(
+            db, action="PLAN_TEMPLATES_IMPORTED", actor_id=coach.id,
+            subject_ids=[coach.id],
+            payload={
+                "source": source_ref, "rows": report.rows_read,
+                "created": report.created, "updated": report.updated,
+                "skipped": report.skipped, "linked": report.linked,
+                "unlinked": len(report.unlinked_exercises),
+            },
+            summary=f"Szablony treningowe: import z pliku „{source_ref}” — "
+                    f"{report.created} nowych, {report.updated} nowych wersji",
+        )
+        db.commit()
+    return report.as_dict()
+
+
+# --- Trasy z parametrem NA KOŃCU pliku -------------------------------
+#
+# Kolejność rejestracji decyduje o dopasowaniu: `/coach/plan-templates/
+# {template_id}` pasuje także do `/coach/plan-templates/import-schema`,
+# `/import-example` i `/export-file`. Gdy trasa z parametrem stała wyżej,
+# przechwytywała te trzy i zwracała „Nie znaleziono szablonu" — import
+# własnej bazy z pliku przestawał działać, mimo że jego kod był poprawny.
+# Dlatego trasy statyczne muszą być rejestrowane PRZED parametrycznymi.
+
+@router.get("/coach/plan-templates/{template_id}")
+def builtin_plan_template(
+    template_id: str,
+    coach: User = Depends(require_role("COACH")),
+):
+    """Podgląd szablonu PRZED importem — trener widzi, co dostanie."""
+    tpl = plan_templates.get_template(template_id)
+    if tpl is None:
+        raise HTTPException(status_code=404, detail="Nie znaleziono szablonu")
+    return {**tpl, "days": plan_templates.build_days(template_id)}
+
+
+@router.post("/coach/plan-templates/{template_id}/import", status_code=201)
+def import_builtin_plan_template(
+    template_id: str,
+    coach: User = Depends(require_role("COACH")),
+    db: Session = Depends(get_db),
+):
+    """Tworzy KOPIĘ wbudowanego szablonu w bibliotece trenera.
+
+    Od tego momentu jest to zwykły szablon trenera: można go edytować
+    i skopiować klientowi istniejącą ścieżką `/plans/{id}/copy-to/{client}`.
+    Import wolno powtórzyć — powstaje kolejna, niezależna kopia, bo szablon
+    mógł zostać wcześniej przerobiony i nie nadpisujemy cudzej pracy.
+    """
+    tpl = plan_templates.get_template(template_id)
+    if tpl is None:
+        raise HTTPException(status_code=404, detail="Nie znaleziono szablonu")
+
+    dni = plan_templates.build_days(
+        template_id, plan_templates.exercise_ids_for_coach(db, coach.id)
+    )
+    plan = TrainingPlan(
+        id=new_id("PLN"),
+        client_id=None,
+        coach_id=coach.id,
+        title=str(tpl["name"]),
+        is_template=True,
+        current_version_no=1,
+    )
+    db.add(plan)
+    db.flush()  # plan przed wersją (klucz obcy plan_id)
+    version = TrainingPlanVersion(
+        id=new_id("PLV"),
+        plan_id=plan.id,
+        version_no=1,
+        reason=f"Import wbudowanego szablonu {template_id}",
+        content_json=json.dumps({"days": dni}, ensure_ascii=False),
+        created_by=coach.id,
+    )
+    db.add(version)
+    powiazane = sum(1 for d in dni for e in d["exercises"] if e.get("exercise_id"))
+    record_event(
+        db,
+        action="PLAN_CREATED",
+        actor_id=coach.id,
+        subject_ids=[coach.id],
+        payload={
+            "plan_id": plan.id, "title": plan.title, "version_no": 1,
+            "is_template": True, "source_template": template_id,
+            "linked_exercises": powiazane,
+            "reason": f"Import wbudowanego szablonu {template_id}",
+        },
+        summary=f"Import szablonu treningowego: {plan.title}",
+    )
+    db.commit()
+    return {
+        "id": plan.id,
+        "version_id": version.id,
+        "version_no": 1,
+        "days": len(dni),
+        "exercises": sum(len(d["exercises"]) for d in dni),
+        # Ile pozycji dostało link do karty ćwiczenia trenera. Reszta ma samą
+        # nazwę — plan działa, brakuje tylko instrukcji/filmu przy ćwiczeniu.
+        "linked_exercises": powiazane,
+    }

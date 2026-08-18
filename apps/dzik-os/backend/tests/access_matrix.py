@@ -177,7 +177,14 @@ MATRIX: dict[tuple[str, str], Access] = {
     # Ostatnio używane ćwiczenia TEGO trenera (identyfikator z sesji).
     # Import biblioteki do katalogu ZALOGOWANEGO trenera (identyfikator
     # z sesji, nie ze ścieżki) — domyślnie w trybie próby (dry_run).
+    # Import/eksport WŁASNEJ bazy trenera z pliku — wszystko na koncie
+    # zalogowanego (identyfikator z sesji), plus dwa endpointy czysto
+    # informacyjne (schemat i przykład pliku, bez danych osób).
+    ("GET", "/api/coach/exercises/export-file"): Access.COACH_ONLY,
+    ("POST", "/api/coach/exercises/import-file"): Access.COACH_ONLY,
+    ("GET", "/api/coach/exercises/import-example"): Access.COACH_ONLY,
     ("POST", "/api/coach/exercises/import-library"): Access.COACH_ONLY,
+    ("GET", "/api/coach/exercises/import-schema"): Access.COACH_ONLY,
     ("GET", "/api/coach/exercises/recent"): Access.COACH_ONLY,
     ("GET", "/api/coach/exercises/{item_id}"): Access.COACH_ONLY,
     ("PUT", "/api/coach/exercises/{item_id}"): Access.COACH_ONLY,
@@ -196,6 +203,10 @@ MATRIX: dict[tuple[str, str], Access] = {
     # zero danych osób. Import tworzy szablon TEGO trenera (identyfikator
     # z sesji), więc nie ma tu zasobu cudzego właściciela.
     ("GET", "/api/coach/plan-templates"): Access.COACH_ONLY,
+    ("GET", "/api/coach/plan-templates/export-file"): Access.COACH_ONLY,
+    ("POST", "/api/coach/plan-templates/import-file"): Access.COACH_ONLY,
+    ("GET", "/api/coach/plan-templates/import-example"): Access.COACH_ONLY,
+    ("GET", "/api/coach/plan-templates/import-schema"): Access.COACH_ONLY,
     ("GET", "/api/coach/plan-templates/{template_id}"): Access.COACH_ONLY,
     ("POST", "/api/coach/plan-templates/{template_id}/import"): Access.COACH_ONLY,
     ("GET", "/api/coach/weekly-digest"): Access.COACH_ONLY,

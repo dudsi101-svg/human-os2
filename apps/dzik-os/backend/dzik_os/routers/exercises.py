@@ -12,10 +12,10 @@ from __future__ import annotations
 
 import json
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, UploadFile
 from sqlalchemy.orm import Session
 
-from .. import exercise_parser, exercise_parser_ai
+from .. import exercise_parser, exercise_parser_ai, sheet_import
 from ..authz import require_owned_resource
 from ..db import get_db
 from ..exercise_catalog_v2 import LIBRARY_REF
@@ -401,6 +401,110 @@ def recent_exercises(
     # Zarchiwizowane i cudze wypadają; kolejność zostaje „od najświeższych”.
     items = [_out(rows[i]) for i in ordered if i in rows][:RECENT_LIMIT]
     return {"items": items}
+
+
+# Trasy poniżej muszą stać PRZED `/coach/exercises/{item_id}` — inaczej
+# parametryzowana ścieżka złapałaby „import-schema” jako identyfikator
+# ćwiczenia i endpointy importu byłyby nieosiągalne.
+# --- Import / eksport bazy z pliku (CSV / XLSX) ------------------------
+
+@router.get("/coach/exercises/import-schema")
+def exercises_import_schema(coach: User = Depends(require_role("COACH"))):
+    """Kontrakt pliku importu: kolumny, wymagalność, przykłady i zamknięte
+    słowniki. Interfejs buduje z tego instrukcję, więc opis w aplikacji nie
+    może rozjechać się z tym, co realnie przyjmuje import."""
+    return {
+        "columns": sheet_import.schema_dict(sheet_import.EXERCISE_COLUMNS),
+        "dictionaries": sheet_import.dictionaries(),
+        "modes": list(sheet_import.MODES),
+        "list_separator": sheet_import.LIST_SEPARATOR,
+        "muscle_separator": sheet_import.MUSCLE_SEPARATOR,
+        "max_rows": sheet_import.MAX_ROWS,
+        "max_bytes": sheet_import.MAX_BYTES,
+        "formats": [".csv", ".xlsx"],
+    }
+
+
+@router.get("/coach/exercises/import-example")
+def exercises_import_example(coach: User = Depends(require_role("COACH"))):
+    """Wzór pliku do pobrania — nagłówek i jeden wiersz przykładowy."""
+    return Response(
+        content=sheet_import.example_csv(sheet_import.EXERCISE_COLUMNS),
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": 'attachment; filename="dzik-os-cwiczenia-wzor.csv"'},
+    )
+
+
+@router.get("/coach/exercises/export-file")
+def exercises_export_file(
+    coach: User = Depends(require_role("COACH")), db: Session = Depends(get_db)
+):
+    """Eksport całej bazy ćwiczeń trenera w formacie importu.
+
+    Prawo wyjścia (portability): trener zabiera swoją bazę ze sobą, bez
+    pytania kogokolwiek o zgodę. Ten sam plik wraca importem, więc masowa
+    poprawka w arkuszu jest jednym cyklem pobierz–popraw–wgraj."""
+    rows = (
+        db.query(Exercise)
+        .filter(Exercise.coach_id == coach.id)
+        .order_by(Exercise.muscle_group, Exercise.name)
+        .all()
+    )
+    record_event(
+        db, action="EXERCISES_EXPORTED", actor_id=coach.id, subject_ids=[coach.id],
+        payload={"rows": len(rows), "format": "csv"},
+        summary=f"Baza ćwiczeń: eksport {len(rows)} pozycji do CSV",
+    )
+    db.commit()
+    return Response(
+        content=sheet_import.exercises_csv(rows),
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": 'attachment; filename="dzik-os-cwiczenia.csv"'},
+    )
+
+
+@router.post("/coach/exercises/import-file")
+async def exercises_import_file(
+    file: UploadFile,
+    dry_run: bool = Query(True),
+    mode: str = Query(sheet_import.MODE_FILL),
+    coach: User = Depends(require_role("COACH")),
+    db: Session = Depends(get_db),
+):
+    """Import bazy ćwiczeń z pliku do katalogu ZALOGOWANEGO trenera.
+
+    Domyślnie `dry_run=true`, czyli PRÓBA: pełny raport bez zapisu choćby
+    jednego wiersza — ten sam układ „propozycja przed zapisem”, co przy
+    czytaniu opisu, OCR i imporcie gotowej biblioteki. Tryb `UZUPELNIJ`
+    (domyślny) wypełnia w istniejących pozycjach wyłącznie puste pola;
+    `ZASTAP` nadpisuje, ale pusta komórka nigdy nie kasuje danych."""
+    raw = await file.read()
+    source_ref = (file.filename or "plik")[:200]
+    try:
+        rows, unknown, warnings = sheet_import.read_table(
+            file.filename or "", raw, sheet_import.EXERCISE_COLUMNS
+        )
+        report = sheet_import.import_exercises_sheet(
+            db, coach.id, rows, mode=mode, dry_run=dry_run, source_ref=source_ref,
+        )
+    except sheet_import.SheetError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    report.unknown_columns = unknown
+    report.warnings = warnings + report.warnings
+    if not dry_run:
+        record_event(
+            db, action="EXERCISES_IMPORTED", actor_id=coach.id, subject_ids=[coach.id],
+            payload={
+                "source": source_ref, "mode": mode, "rows": report.rows_read,
+                "created": report.created, "updated": report.updated,
+                "skipped": report.skipped,
+            },
+            summary=f"Baza ćwiczeń: import z pliku „{source_ref}” — "
+                    f"{report.created} nowych, {report.updated} zaktualizowanych",
+        )
+        metrics.inc("exercises_sheet_import")
+        db.commit()
+    return report.as_dict()
 
 
 @router.get("/coach/exercises/{item_id}")

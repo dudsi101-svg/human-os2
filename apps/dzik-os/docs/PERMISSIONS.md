@@ -291,6 +291,36 @@ To pole wychodzi **wyłącznie na widoki trenera** (`GET/POST/PUT
 w ogóle go nie zawierają — dla klienta byłoby to ocena jakości
 ćwiczenia wystawiona przez system, a system tu niczego nie ocenia.
 
+## Import bazy z pliku — ćwiczenia i szablony (od 0.32.0)
+
+Pełna specyfikacja formatu: `docs/IMPORT_BAZ.md`.
+
+| Operacja | Kto | Warunek |
+|---|---|---|
+| `POST /api/coach/exercises/import-file?dry_run=true` | rola **COACH** | klient = **403**; **niczego nie zapisuje** — sam raport |
+| `POST /api/coach/exercises/import-file?dry_run=false&mode=UZUPELNIJ\|ZASTAP` | rola **COACH** | klient = **403**; zapis **wyłącznie do bazy zalogowanego trenera** |
+| `POST /api/coach/plan-templates/import-file?dry_run=` | rola **COACH** | klient = **403**; szablony mają `client_id = NULL`, więc import **nie dotyka planów klientów** |
+| `GET /api/coach/exercises/export-file`, `GET /api/coach/plan-templates/export-file` | rola **COACH** | klient = **403**; eksport obejmuje wyłącznie własne zasoby trenera |
+| `GET .../import-schema`, `GET .../import-example` | rola **COACH** | klient = **403**; zwracają sam kontrakt kolumn i wzór pliku — zero danych |
+
+`dry_run` domyślnie **true** — wywołanie bez parametru nic nie zmienia.
+`coach_id` bierze się z sesji, nigdy z żądania ani z pliku, więc izolacja
+trenerów jest strukturalna, a nie regułą do sprawdzenia: plik nie ma jak
+wskazać cudzej bazy.
+
+**Czego w tych przepływach nie ma.** Import i eksport dotyczą know-how
+trenera (ćwiczenia, szablony), a nie danych klientów — żaden z tych
+endpointów nie czyta ani nie zapisuje danych zdrowotnych, więc nie
+przechodzi przez `resolve_client_access` i nie wymaga niczyjej zgody.
+Zdarzenia audytowe (`EXERCISES_IMPORTED`, `PLAN_TEMPLATES_IMPORTED`,
+`EXERCISES_EXPORTED`, `PLAN_TEMPLATES_EXPORTED`) niosą nazwę pliku, tryb i
+liczby — **nigdy treści wierszy**.
+
+**Historia szablonu.** Import na istniejącym szablonie nie nadpisuje wersji,
+tylko dokłada nową (`current_version_no + 1`) z powodem wskazującym plik.
+Nie istnieje ścieżka, którą plik mógłby skasować albo podmienić wersję już
+zapisaną.
+
 ## Zgody (rejestr wersjonowany, od 0.11.0 granularny per kategoria)
 
 * **Kategorie zgód** (`consent_catalog.py` — pełny opis w

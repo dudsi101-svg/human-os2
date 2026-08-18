@@ -1,8 +1,8 @@
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import { api, saveBlobAs } from "../../api";
 import {
-  ErrorBox, ExerciseDetail, ExerciseFilterBar, LogoutButton, Spinner, TabPanel,
-  Tabs, TopBar,
+  ErrorBox, ExerciseDetail, ExerciseFilterBar, LogoutButton, SheetImportPanel,
+  Spinner, TabPanel, Tabs, TopBar,
 } from "../../components";
 import { EMPTY_FILTERS, ExerciseFilters, exerciseQuery } from "../../exerciseFilters";
 import {
@@ -627,6 +627,26 @@ function ExercisesTab() {
       {!editing && (
         <>
           <LibraryImport onImported={() => load(0)} />
+          <SheetImportPanel
+            title="Importuj bazę ćwiczeń z pliku"
+            description={
+              <>
+                Masz swoją bazę w arkuszu? Wgraj ją jako <b>CSV lub XLSX</b> —
+                zamiast przepisywać pozycje ręcznie. Najpierw zobaczysz raport:
+                co powstanie, co się zmieni i które wiersze odpadły oraz
+                dlaczego. Zapis jest osobnym kliknięciem. Wartości spoza
+                słownika (partie mięśniowe, poziom, wzorzec ruchu) nie są
+                zgadywane — pole zostaje puste, a informacja trafia do raportu.
+              </>
+            }
+            schemaUrl="/api/coach/exercises/import-schema"
+            importUrl="/api/coach/exercises/import-file"
+            exampleUrl="/api/coach/exercises/import-example"
+            exportUrl="/api/coach/exercises/export-file"
+            exampleFileName="dzik-os-cwiczenia-wzor.csv"
+            exportFileName="dzik-os-cwiczenia.csv"
+            onImported={() => load(0)}
+          />
           <div className="row" style={{ marginBottom: 10 }}>
             <button className="btn btn--small" onClick={startNew}>+ Nowe ćwiczenie</button>
             <button className="btn btn--ghost btn--small" aria-pressed={showArchived}
