@@ -1,6 +1,6 @@
 # Stan przekazania — przeczytaj przed rozpoczęciem rundy
 
-**Aktualizacja:** 2026-08-18 · **Wersja w `main`:** 0.39.0
+**Aktualizacja:** 2026-08-18 · **Wersja w `main`:** 0.40.0
 **Tryb pracy:** jedna sesja naraz (`KOORDYNACJA.md`, zasada nadrzędna).
 
 **Zanim cokolwiek dotkniesz: `docs/KARTA_WSPOLPRACY.md`** — dziesięć
@@ -28,9 +28,13 @@ sesji zostaje jedna linia:
 jednym prawdziwym klientem, **NO-GO na szerszą produkcję** — siedem
 blokerów wypisanych w §5 tamtego dokumentu.
 
+**Ostatnia runda (0.40.0):** ekran Szablony scalony do jednej karty
+„Dodaj szablon" (wzorzec z Ćwiczeń 0.34.0) — punkt 2 dawnej kolejki
+wykonany.
+
 **Liczby:** ok. 745 testów backendu, 275 testów Core Human OS (nietykalne),
 140 testów pomocniczych frontendu, testy E2E (Playwright) w CI,
-8 kontroli spójności, dwa przeglądy mutacyjne (7/7 i 9/9).
+9 kontroli spójności, dwa przeglądy mutacyjne (7/7 i 9/9).
 
 ---
 
@@ -53,13 +57,13 @@ Kolejność jest propozycją; właściciel może ją zmienić w dowolnym momenci
    funkcje naraz** (OCR, odczyt opisu ćwiczenia, onboarding, asystent)
    zamiast dokładania piątej. Szczegóły:
    `docs/plan-sesji/dzik-os-personal-trainer-app.md` §4.
-2. **Scalenie dwóch wejść na ekranie Szablony** — „Importuj z pliku"
-   (własny arkusz) i „Gotowe schematy" (24 z materiału trenera) stoją
-   obok siebie. Ten sam zabieg, co zrobiony już w Ćwiczeniach (0.34.0).
-3. **Dwa katalogi testów E2E** — `apps/dzik-os/e2e/` (dostępność, offline
+   **Uwaga:** otwarte pytanie w `KONSULTACJE.md` — jeśli druga sesja
+   napisze „bierzemy", ten punkt wypada z kolejki.
+2. **Dwa katalogi testów E2E** — `apps/dzik-os/e2e/` (dostępność, offline
    PWA) i `frontend/e2e/` (Playwright w CI). Zejść do jednego; zostaje
-   `frontend/e2e/`, bo jest w CI.
-4. **Przygotowanie pilotażu** — usunięcie `DZIK_SEED_DEMO` z `fly.toml`
+   `frontend/e2e/`, bo jest w CI. Też czeka na odpowiedź w
+   `KONSULTACJE.md` (to obszar drugiej sesji).
+3. **Przygotowanie pilotażu** — usunięcie `DZIK_SEED_DEMO` z `fly.toml`
    (zasiewa konta ze znanymi hasłami), zmiana haseł, jedno odtworzenie
    kopii **na produkcji**.
 
@@ -81,7 +85,7 @@ Kolejność jest propozycją; właściciel może ją zmienić w dowolnym momenci
 python -m ruff check apps/dzik-os/backend apps/dzik-os/tools
 python -m pytest apps/dzik-os/backend/tests -q
 python -m pytest tests/ -q                     # Core: 275 zielonych
-python apps/dzik-os/tools/spojnosc.py          # 7 kontroli
+python apps/dzik-os/tools/spojnosc.py          # 9 kontroli
 python apps/dzik-os/tools/mutacje.py           # 7/7
 python apps/dzik-os/tools/mutacje_bezpieczenstwa.py   # 9/9
 cd apps/dzik-os/frontend && npx tsc --noEmit && npm run build && npm run test:helpers

@@ -26,38 +26,12 @@ export default function Templates() {
     <div className="page page--wide">
       <TopBar title="Szablony planów" />
       {!creating && (
-        <>
-          <button className="btn btn--small" style={{ marginBottom: 10 }}
-            onClick={() => setCreating(true)}>+ Nowy szablon</button>
-          <SheetImportPanel
-            kind="TEMPLATES"
-            title="Importuj szablony z pliku"
-            description={
-              <>
-                Wgraj gotowe szablony jako <b>CSV lub XLSX</b>: jeden wiersz to
-                jedno ćwiczenie w jednym dniu jednego szablonu. Nazwy ćwiczeń
-                dopasujemy do Twojej bazy — pozycja bez odpowiednika i tak
-                wejdzie do szablonu, tylko bez karty ćwiczenia. Szablon o tej
-                samej nazwie <b>nie jest nadpisywany</b>: dostaje nową wersję,
-                a poprzednia zostaje w historii. Najpierw raport, zapis to
-                osobne kliknięcie.
-              </>
-            }
-            schemaUrl="/api/coach/plan-templates/import-schema"
-            importUrl="/api/coach/plan-templates/import-file"
-            exampleUrl="/api/coach/plan-templates/import-example"
-            exportUrl="/api/coach/plan-templates/export-file"
-            exampleFileName="dzik-os-szablony-wzor.csv"
-            exportFileName="dzik-os-szablony.csv"
-            onImported={load}
-          />
-        </>
+        <AddTemplate onManual={() => setCreating(true)} onImported={load} />
       )}
       {creating && (
         <PlanEditor clientId={null} existingPlan={null} onSaved={load}
           onCancel={() => setCreating(false)} />
       )}
-      <BuiltinTemplates onImported={load} />
       {templates.map((t) => (
         <div className="card" key={t.id}>
           <div className="row row--between">
@@ -81,6 +55,91 @@ export default function Templates() {
           </small>
         </div>
       ))}
+    </div>
+  );
+}
+
+/** Jedno miejsce „Dodaj szablon" zamiast trzech osobnych wejść.
+ *
+ * Wcześniej ekran otwierał się przyciskiem „Nowy szablon", kartą importu
+ * z pliku i osobną kartą „Gotowe schematy" — trzy niezależne drogi obok
+ * siebie, każda z własnym nagłówkiem. Ten sam gąszcz, który zakładka
+ * Ćwiczenia miała do 0.34.0, i to samo lekarstwo: jedno pytanie, które
+ * trener naprawdę ma w głowie — **skąd biorę ten szablon?** Widoczna jest
+ * wyłącznie wybrana droga. Żadna nie została usunięta ani zmieniona.
+ */
+// Bez pola „hint": podpowiedź i tak pokazywałaby się dopiero PO wyborze
+// drogi, a obie drogi z panelem opisują się same — dubel tekst w tekst
+// (sprawdzone na ekranie, nie w wyobraźni).
+const ADD_WAYS = [
+  { key: "MANUAL", label: "Ułożę sam" },
+  { key: "FILE", label: "Mam plik z szablonami" },
+  { key: "BUILTIN", label: "Weź gotowy schemat" },
+] as const;
+
+type AddWay = (typeof ADD_WAYS)[number]["key"];
+
+function AddTemplate({ onManual, onImported }: {
+  onManual: () => void;
+  onImported: () => void;
+}) {
+  const [way, setWay] = useState<AddWay | null>(null);
+
+  function choose(next: AddWay) {
+    // „Ułożę sam" prowadzi wprost do edytora — wybór od razu go otwiera,
+    // zamiast pokazywać kolejny przycisk „no to teraz kliknij tutaj".
+    if (next === "MANUAL") { setWay(null); onManual(); return; }
+    setWay(way === next ? null : next);
+  }
+
+  return (
+    <div className="card" style={{ marginBottom: 12 }}>
+      <b>Dodaj szablon</b>
+      <p className="dim" style={{ margin: "4px 0 8px" }}>
+        Skąd bierzesz ten szablon?
+      </p>
+      <div className="row" role="group" aria-label="Sposób dodania szablonu"
+        style={{ flexWrap: "wrap", gap: 6 }}>
+        {ADD_WAYS.map((w) => (
+          <button key={w.key} type="button" aria-pressed={way === w.key}
+            className={`btn btn--small ${way === w.key ? "" : "btn--ghost"}`}
+            onClick={() => choose(w.key)}>
+            {w.label}
+          </button>
+        ))}
+      </div>
+      {way && (
+        <>
+          {way === "FILE" && (
+            <SheetImportPanel
+              kind="TEMPLATES"
+              embedded
+              title="Importuj szablony z pliku"
+              description={
+                <>
+                  Wgraj gotowe szablony jako <b>CSV lub XLSX</b>: jeden wiersz to
+                  jedno ćwiczenie w jednym dniu jednego szablonu. Nazwy ćwiczeń
+                  dopasujemy do Twojej bazy — pozycja bez odpowiednika i tak
+                  wejdzie do szablonu, tylko bez karty ćwiczenia. Szablon o tej
+                  samej nazwie <b>nie jest nadpisywany</b>: dostaje nową wersję,
+                  a poprzednia zostaje w historii. Najpierw raport, zapis to
+                  osobne kliknięcie.
+                </>
+              }
+              schemaUrl="/api/coach/plan-templates/import-schema"
+              importUrl="/api/coach/plan-templates/import-file"
+              exampleUrl="/api/coach/plan-templates/import-example"
+              exportUrl="/api/coach/plan-templates/export-file"
+              exampleFileName="dzik-os-szablony-wzor.csv"
+              exportFileName="dzik-os-szablony.csv"
+              onImported={onImported}
+            />
+          )}
+          {way === "BUILTIN" && (
+            <BuiltinTemplates embedded onImported={onImported} />
+          )}
+        </>
+      )}
     </div>
   );
 }

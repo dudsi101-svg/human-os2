@@ -1,5 +1,30 @@
 # Changelog — Dzik OS
 
+## 0.40.0 — 2026-08-18
+
+**Jedno „Dodaj szablon" zamiast trzech wejść — to samo lekarstwo,
+które dostały Ćwiczenia w 0.34.0.**
+
+* **Ekran Szablony przestał otwierać się trzema drogami naraz**: przycisk
+  „Nowy szablon", karta importu z pliku i osobna karta „Gotowe schematy"
+  stały jedna pod drugą, każda z własnym nagłówkiem. Teraz jest jedna
+  karta z jednym pytaniem, które trener naprawdę ma w głowie: **„skąd
+  bierzesz ten szablon?"** — *Ułożę sam · Mam plik z szablonami · Weź
+  gotowy schemat*. Widoczna jest wyłącznie wybrana droga; „Ułożę sam"
+  otwiera edytor od razu, bez pośredniego kliknięcia.
+* **Nic nie zostało usunięte ani zmienione funkcjonalnie.** Import
+  z pliku (raport → osobny zapis → cofnięcie), katalog gotowych schematów
+  (podgląd, progresje, import jako kopia) i edytor działają jak dotąd.
+  `BuiltinTemplates` dostał tryb `embedded` (bez własnej ramki
+  i nagłówka), tak jak `SheetImportPanel` i `LibraryImport` w 0.34.0.
+* **Bez podpowiedzi-dubla.** Pierwsza wersja pokazywała po wyborze drogi
+  akapit podpowiedzi — obejrzenie ekranu na żywo (zasada uruchomienia)
+  wykazało, że powtarzał on niemal słowo w słowo opis, który panel niesie
+  w sobie. Usunięty; opis jest jeden.
+* Test E2E `szablony.spec.ts` idzie teraz nową drogą (klik „Weź gotowy
+  schemat") i dalej sprawdza pełny cykl katalog → podgląd → import →
+  obecność szablonu po przeładowaniu.
+
 ## 0.39.0 — 2026-08-18
 
 **Karta współpracy sesji — dziesięć zasad, każda z podpiętym zdarzeniem.**

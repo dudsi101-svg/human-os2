@@ -13,8 +13,12 @@ test("trener przegląda katalog i dodaje schemat do swoich szablonów", async ({
   await zaloguj(page, KONTA.trener);
   await page.goto("/trener/szablony");
 
-  const katalog = page.locator(".card", { hasText: "Gotowe schematy" });
-  await expect(katalog.getByRole("heading", { name: "Gotowe schematy" })).toBeVisible();
+  // Od 0.40.0 katalog nie stoi osobno: mieszka w karcie „Dodaj szablon"
+  // i pokazuje się po wybraniu drogi „Weź gotowy schemat".
+  const katalog = page.locator(".card", { hasText: "Dodaj szablon" });
+  await expect(katalog).toContainText("Skąd bierzesz ten szablon?");
+  await katalog.getByRole("button", { name: "Weź gotowy schemat" }).click();
+  await expect(katalog).toContainText(/sprawdzonych planów/, { timeout: 15_000 });
 
   // Podgląd pokazuje receptę: serie/powtórzenia, cel RIR i zasadę progresji.
   await katalog.getByRole("button", { name: "Podgląd" }).first().click();

@@ -19,7 +19,11 @@ type Katalog = {
 
 type Podglad = BuiltinPlanTemplate & { days: PlanDay[] };
 
-export default function BuiltinTemplates({ onImported }: { onImported: () => void }) {
+export default function BuiltinTemplates({ onImported, embedded = false }: {
+  onImported: () => void;
+  /** Osadzony w karcie „Dodaj szablon": bez własnej ramki i nagłówka. */
+  embedded?: boolean;
+}) {
   const [katalog, setKatalog] = useState<Katalog | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [otwarty, setOtwarty] = useState<Podglad | null>(null);
@@ -70,10 +74,9 @@ export default function BuiltinTemplates({ onImported }: { onImported: () => voi
   if (error) return <ErrorBox error={error} onRetry={load} />;
   if (!katalog) return <Spinner />;
 
-  return (
-    <div className="card">
-      <h2 style={{ marginTop: 0 }}>Gotowe schematy</h2>
-      <p className="dim" style={{ fontSize: "0.88rem", marginTop: 0 }}>
+  const body = (
+    <>
+      <p className="dim" style={{ fontSize: "0.88rem", marginTop: embedded ? 8 : 0 }}>
         {katalog.templates.length} sprawdzonych planów treningowych. Import robi
         z wybranego schematu <b>Twój</b> szablon — możesz go dowolnie zmieniać,
         a katalog zostaje nietknięty. Każde ćwiczenie ma własną zasadę
@@ -142,6 +145,14 @@ export default function BuiltinTemplates({ onImported }: { onImported: () => voi
           )}
         </div>
       ))}
+    </>
+  );
+
+  if (embedded) return body;
+  return (
+    <div className="card">
+      <h2 style={{ marginTop: 0 }}>Gotowe schematy</h2>
+      {body}
     </div>
   );
 }
