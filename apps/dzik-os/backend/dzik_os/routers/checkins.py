@@ -5,7 +5,7 @@ import json
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from .. import push_service
+from .. import notifications
 from ..ai_provider import provider as ai_provider
 from ..authz import require_attachable_file, require_client_self, resolve_client_access
 from ..config import settings
@@ -257,18 +257,25 @@ def submit_checkin(
                  "photos_expected": checkin.photos_expected},
         summary=f"Raport tygodniowy {body.week_start} (rewizja {checkin.revision})",
     )
-    # Push do trenera prowadzącego (bez treści raportu).
+    # Powiadomienie trenera prowadzącego (bez treści raportu) — dedup po
+    # (raport, rewizja): retry żądania nie dubluje powiadomienia.
     rels = (
         db.query(CoachClientRelationship)
         .filter_by(client_id=client_id, status="ACTIVE")
         .all()
     )
-    for rel in rels:
-        push_service.send_to_user(
-            db, rel.coach_id, "Nowy raport tygodniowy",
-            f"{user.display_name} wysłał(a) raport do oceny.",
-            f"/trener/klient/{client_id}",
+    coach_notifications = [
+        notifications.notify_now(
+            db,
+            user_id=rel.coach_id,
+            category="RAPORT",
+            title="Nowy raport tygodniowy",
+            body=f"{user.display_name} wysłał(a) raport do oceny.",
+            url=f"/trener/klient/{client_id}",
+            dedup_key=f"checkin:{checkin.id}:rev{checkin.revision}:{rel.coach_id}",
         )
+        for rel in rels
+    ]
     response = {
         "id": checkin.id,
         "revision": checkin.revision,
@@ -282,6 +289,8 @@ def submit_checkin(
             key=body.idempotency_key, fingerprint=fingerprint, response=response,
         )
     db.commit()
+    for n in coach_notifications:
+        notifications.publish_realtime(n)
     return response
 
 
@@ -412,11 +421,17 @@ def review_checkin(
         summary=f"Odpowiedź trenera na raport {checkin.week_start}"
         + (f" (ocena {body.rating}/5)" if body.rating else ""),
     )
-    push_service.send_to_user(
-        db, checkin.client_id, "Trener odpowiedział na Twój raport",
-        "Zajrzyj do aplikacji, żeby przeczytać odpowiedź.", "/raport",
+    notification = notifications.notify_now(
+        db,
+        user_id=checkin.client_id,
+        category="RAPORT",
+        title="Trener odpowiedział na Twój raport",
+        body="Zajrzyj do aplikacji, żeby przeczytać odpowiedź.",
+        url="/raport",
+        dedup_key=f"checkin-review:{checkin.id}:{checkin.reviewed_at}",
     )
     db.commit()
+    notifications.publish_realtime(notification)
     return {"ok": True}
 
 

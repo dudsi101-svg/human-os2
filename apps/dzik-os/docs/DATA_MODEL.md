@@ -129,11 +129,14 @@ zmienia diety autonomicznie.
 | `challenge_blocks` | blokada między uczestnikami (obustronna niewidoczność wyników/aliasów; agregat grupy bez zmian). |
 | `challenge_reports` | zgłoszenie do organizatora: reason (widzi tylko organizator), status OPEN/RESOLVED, resolution REMOVED/ALIAS_RESET/NOTES_CLEARED/DISMISSED. |
 
-## Powiadomienia push
+## Powiadomienia (wspólny system — migracja 14, `POWIADOMIENIA.md`)
 
 | Tabela | Uwagi |
 |---|---|
-| `push_subscriptions` | subskrypcja Web Push (endpoint unique, klucze p256dh/auth, user_id). **Opt-in**: powstaje wyłącznie po jawnej zgodzie w UI (zdarzenie PUSH_SUBSCRIBED), usuwana jednym przyciskiem (PUSH_UNSUBSCRIBED) lub automatycznie po 404/410 od dostawcy. Treść powiadomień nigdy nie zawiera danych zdrowotnych ani treści wiadomości — wyłącznie neutralne wezwanie (push_service.py). Klucz VAPID generowany automatycznie, trwały na wolumenie danych (poza repo). Przypomnienia harmonogramu wysyła pętla w procesie (reminder_loop.py, strefa DZIK_TZ). |
+| `push_subscriptions` | subskrypcja Web Push (endpoint unique, klucze p256dh/auth, user_id). **Opt-in**: powstaje wyłącznie po jawnej zgodzie w UI (zdarzenie PUSH_SUBSCRIBED), usuwana jednym przyciskiem (PUSH_UNSUBSCRIBED) lub automatycznie po 404/410 od dostawcy. Treść powiadomień nigdy nie zawiera danych zdrowotnych ani treści wiadomości — wyłącznie neutralne wezwanie (push_service.py). Klucz VAPID generowany automatycznie, trwały na wolumenie danych (poza repo). |
+| `notifications` | wspólny model powiadomienia (migracja 14): kategoria, odbiorca, title/body dla CENTRUM (pełna treść po zalogowaniu; push/e-mail dostają wyłącznie neutralne wezwanie), url kliknięcia per kategoria, status SCHEDULED/SENT/CANCELLED/SUPPRESSED (+powód), kanały faktycznego doręczenia (CSV), **dedup_key unique(user_id, dedup_key)** — idempotencja przez restart, source (anulowanie po zmianie/odwołaniu terminu), timezone+scheduled_at (termin UTC wyliczony w strefie odbiorcy), read_at (centrum). Harmonogram: reminder_loop → notifications.plan_day/dispatch_due. |
+| `notification_preferences` | preferencja kategoria × kanał (PUSH/CENTER/EMAIL) per użytkownik; brak wiersza = domyślne (push+centrum on, e-mail off). |
+| `notification_settings` | ciche godziny (czas lokalny, zakres może przechodzić przez północ; wyciszają push/e-mail — centrum zawsze dostaje wpis), dni aktywne przypomnień, częstotliwość przypomnienia o raporcie (DAILY/WEEKLY). Strefa czasowa użytkownika: kolumna `users.timezone` (IANA; NULL = DZIK_TZ), czytana przez `dates.tz_for_user()`. |
 
 ## Komunikacja i płatności
 

@@ -1,13 +1,23 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { getUser } from "../api";
+import { getUser, listNotifications } from "../api";
 import {
   Icon, LogoutButton, MfaCard, PushNotificationsCard, SecurityEventsCard,
   SessionsCard, TopBar,
 } from "../components";
+import { unreadBadge } from "../notificationsUtils";
 
 export default function More() {
   const user = getUser()!;
   const isClient = user.roles.includes("CLIENT");
+  const [unread, setUnread] = useState(0);
+  useEffect(() => {
+    // Plakietka nieprzeczytanych — podpowiedź, nie krytyczna ścieżka:
+    // błąd pobrania po prostu nie pokazuje licznika.
+    listNotifications({ unread_only: true })
+      .then((d) => setUnread(d.unread))
+      .catch(() => undefined);
+  }, []);
   return (
     <div className="page">
       <TopBar title="Więcej" right={<LogoutButton />} />
@@ -36,6 +46,13 @@ export default function More() {
         </div>
       )}
       <div className="list">
+        <Link className="card card--nav" to="/powiadomienia">
+          <Icon name="bell" />
+          <span>Powiadomienia i przypomnienia</span>
+          {unread > 0 && (
+            <span className="badge badge--accent">{unreadBadge(unread)}</span>
+          )}
+        </Link>
         {isClient && (
           <>
             <Link className="card card--nav" to="/postepy">

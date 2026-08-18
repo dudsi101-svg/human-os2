@@ -5,7 +5,7 @@ import json
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from .. import push_service
+from .. import notifications
 from ..authz import (
     DOMAIN_TRAINING,
     deny,
@@ -141,12 +141,19 @@ def create_plan_version(
         payload={"plan_id": plan.id, "version_no": next_no, "reason": body.reason},
         summary=f"Plan '{plan.title}': nowa wersja v{next_no} — {body.reason}",
     )
+    notification = None
     if plan.client_id is not None:
-        push_service.send_to_user(
-            db, plan.client_id, "Nowa wersja planu treningowego",
-            "Trener zaktualizował Twój plan — sprawdź, co się zmieniło.", "/plan",
+        notification = notifications.notify_now(
+            db,
+            user_id=plan.client_id,
+            category="ZMIANA_PLANU",
+            title="Nowa wersja planu treningowego",
+            body="Trener zaktualizował Twój plan — sprawdź, co się zmieniło.",
+            url="/plan",
+            dedup_key=f"plan-version:{version.id}",
         )
     db.commit()
+    notifications.publish_realtime(notification)
     return {"version_id": version.id, "version_no": next_no}
 
 

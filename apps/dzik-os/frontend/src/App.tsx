@@ -23,6 +23,7 @@ import ClientChallenges from "./pages/client/Challenges";
 import CoachConsultations from "./pages/coach/Consultations";
 import CoachChallenges from "./pages/coach/Challenges";
 import More from "./pages/More";
+import Notifications from "./pages/Notifications";
 import Messages from "./pages/Messages";
 import Thread from "./pages/Thread";
 import Clients from "./pages/coach/Clients";
@@ -115,6 +116,7 @@ export default function App() {
           <>
             <Route path="/wiadomosci" element={<Messages />} />
             <Route path="/wiadomosci/:threadId" element={<Thread />} />
+            <Route path="/powiadomienia" element={<Notifications />} />
             <Route path="/wiecej" element={<More />} />
           </>
         )}

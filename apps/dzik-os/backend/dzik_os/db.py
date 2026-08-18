@@ -312,6 +312,75 @@ MIGRATIONS: list[tuple[int, str, list[str]]] = [
         ),
     ]),
     # Nr 14 zarezerwowany dla równoległej rundy.
+    (14, "unified notifications: model, preferences, settings, user timezone", [
+        # Strefa czasowa per użytkownik (IANA); NULL = strefa aplikacji
+        # (DZIK_TZ) — czytana przez dates.tz_for_user().
+        "ALTER TABLE users ADD COLUMN timezone VARCHAR(64)",
+        # Wspólny model powiadomienia (wszystkie kanały). Klucz idempotencji
+        # dedup_key w bazie zastępuje dedup `_sent` w pamięci procesu —
+        # restart maszyny nie duplikuje ani nie gubi przypomnień.
+        # Model i plan wycofania: docs/POWIADOMIENIA.md.
+        """
+        CREATE TABLE IF NOT EXISTS notifications (
+            id VARCHAR(40) PRIMARY KEY,
+            user_id VARCHAR(40) NOT NULL REFERENCES users(id),
+            category VARCHAR(20) NOT NULL,
+            title VARCHAR(200) NOT NULL,
+            body TEXT NOT NULL DEFAULT '',
+            url VARCHAR(300) NOT NULL DEFAULT '/',
+            status VARCHAR(20) NOT NULL DEFAULT 'SCHEDULED',
+            suppressed_reason VARCHAR(40),
+            channels VARCHAR(60),
+            dedup_key VARCHAR(120) NOT NULL,
+            source VARCHAR(120),
+            timezone VARCHAR(64),
+            scheduled_at VARCHAR(40),
+            created_at VARCHAR(40) NOT NULL,
+            sent_at VARCHAR(40),
+            read_at VARCHAR(40),
+            UNIQUE(user_id, dedup_key)
+        )
+        """,
+        "CREATE INDEX IF NOT EXISTS ix_notifications_user_id ON notifications(user_id)",
+        (
+            "CREATE INDEX IF NOT EXISTS ix_notifications_user_status "
+            "ON notifications(user_id, status)"
+        ),
+        (
+            "CREATE INDEX IF NOT EXISTS ix_notifications_status_scheduled "
+            "ON notifications(status, scheduled_at)"
+        ),
+        "CREATE INDEX IF NOT EXISTS ix_notifications_source ON notifications(source)",
+        # Preferencje per kategoria × kanał; brak wiersza = domyślne
+        # (PUSH/CENTER włączone, EMAIL wyłączony).
+        """
+        CREATE TABLE IF NOT EXISTS notification_preferences (
+            id VARCHAR(40) PRIMARY KEY,
+            user_id VARCHAR(40) NOT NULL REFERENCES users(id),
+            category VARCHAR(20) NOT NULL,
+            channel VARCHAR(10) NOT NULL,
+            enabled BOOLEAN NOT NULL DEFAULT 1,
+            updated_at VARCHAR(40) NOT NULL,
+            UNIQUE(user_id, category, channel)
+        )
+        """,
+        (
+            "CREATE INDEX IF NOT EXISTS ix_notification_preferences_user_id "
+            "ON notification_preferences(user_id)"
+        ),
+        # Ciche godziny, dni aktywne, częstotliwość raportu.
+        """
+        CREATE TABLE IF NOT EXISTS notification_settings (
+            id VARCHAR(40) PRIMARY KEY,
+            user_id VARCHAR(40) NOT NULL UNIQUE REFERENCES users(id),
+            quiet_hours_start VARCHAR(5),
+            quiet_hours_end VARCHAR(5),
+            active_days VARCHAR(30) NOT NULL DEFAULT '1,2,3,4,5,6,7',
+            raport_frequency VARCHAR(10) NOT NULL DEFAULT 'DAILY',
+            updated_at VARCHAR(40) NOT NULL
+        )
+        """,
+    ]),
     (15, "płatności: transakcje, korekty, historia statusów, zdarzenia operatora", [
         # Kto oznaczył było (marked_by), od teraz też KIEDY (marked_at).
         # Istniejące wiersze: moment oznaczenia = paid_at (jedyny znany).
@@ -391,9 +460,6 @@ MIGRATIONS: list[tuple[int, str, list[str]]] = [
             "ON payment_provider_events(record_id)"
         ),
     ]),
-    # UWAGA: numer 14 jest ZAREZERWOWANY dla równoległej rundy —
-    # nie zajmować. Migracje wykonują się w kolejności numerów, brakujące
-    # numery są po prostu pomijane do czasu scalenia.
     (16, "challenges: wspólne wyzwania (prywatne, tylko-zaproszeni)", [
         # Model i zasady prywatności: docs/WYZWANIA.md (w tym plan
         # wycofania tej migracji). Wyłącznie NOWE tabele — zero ALTER-ów

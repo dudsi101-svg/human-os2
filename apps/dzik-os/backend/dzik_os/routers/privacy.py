@@ -29,6 +29,9 @@ from ..models import (
     Measurement,
     Message,
     MessageThread,
+    Notification,
+    NotificationPreference,
+    NotificationSetting,
     NutritionPlan,
     NutritionPlanVersion,
     Observation,
@@ -338,6 +341,9 @@ def _collect_export(db: Session, user: User) -> dict:
         "daily_nutrition_logs": _rows(db, DailyNutritionLog, client_id=client_id),
         "consult_slots": consult_slots,
         "push_subscriptions": push_subs,
+        "notifications": _rows(db, Notification, user_id=client_id),
+        "notification_preferences": _rows(db, NotificationPreference, user_id=client_id),
+        "notification_settings": _rows(db, NotificationSetting, user_id=client_id),
         "audit_receipts": receipts,
         "challenge_participations": challenge_participations,
         "challenge_entries": challenge_entries,
@@ -508,6 +514,15 @@ def request_deletion(
     ).delete()
     # Subskrypcje push znikają w całości (kanał doręczeń przestaje istnieć).
     db.query(PushSubscription).filter(PushSubscription.user_id == client_id).delete()
+    # Powiadomienia (treść centrum może zawierać nazwy z harmonogramu itp.),
+    # preferencje i ustawienia doręczeń znikają razem z kontem.
+    db.query(Notification).filter(Notification.user_id == client_id).delete()
+    db.query(NotificationPreference).filter(
+        NotificationPreference.user_id == client_id
+    ).delete()
+    db.query(NotificationSetting).filter(
+        NotificationSetting.user_id == client_id
+    ).delete()
     # Klucze idempotencji (metadane operacyjne z identyfikatorami zapisów)
     # znikają razem z kontem.
     db.query(IdempotencyKey).filter(IdempotencyKey.user_id == client_id).delete()

@@ -199,6 +199,20 @@ def test_migrations_apply_to_existing_v1_database(tmp_path):
         }
     assert {"delivered_at", "client_msg_id"} <= set(cols_m)
     assert "ux_messages_thread_author_client_msg" in indexes
+    # Migracja 14: wspólny model powiadomień + strefa czasowa użytkownika.
+    with eng.connect() as conn:
+        cols_u2 = [r[1] for r in conn.exec_driver_sql("PRAGMA table_info(users)")]
+        tables2 = {
+            r[0] for r in conn.exec_driver_sql(
+                "SELECT name FROM sqlite_master WHERE type='table'"
+            )
+        }
+        cols_n = [r[1] for r in conn.exec_driver_sql("PRAGMA table_info(notifications)")]
+    assert "timezone" in cols_u2
+    assert {
+        "notifications", "notification_preferences", "notification_settings",
+    } <= tables2
+    assert {"dedup_key", "scheduled_at", "status", "channels", "read_at"} <= set(cols_n)
     # Migracja 16: wspólne wyzwania (nowe tabele, zero ALTER-ów).
     assert {
         "challenges", "challenge_participants", "challenge_entries",

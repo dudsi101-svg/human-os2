@@ -842,6 +842,72 @@ export function PushNotificationsCard() {
   );
 }
 
+/** Kontekstowa zachęta do włączenia push (P13, punkt 5): zamiast prosić
+ * o zgodę od razu po wejściu, pytamy tam, gdzie korzyść jest oczywista
+ * (ekran Dzisiaj — przypomnienia z harmonogramu; Wiadomości — odpowiedzi
+ * trenera), z wyjaśnieniem PO CO. Systemowy dialog przeglądarki pojawia
+ * się dopiero po świadomym kliknięciu „Włącz". „Nie teraz" zapamiętywane
+ * per kontekst (localStorage) — nie nękamy. */
+export function PushContextPrompt({ context, benefit }: {
+  context: string;
+  benefit: string;
+}) {
+  const storageKey = `dzik_push_prompt_${context}`;
+  const [visible, setVisible] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (localStorage.getItem(storageKey) === "dismissed") return;
+    import("./push").then(async (push) => {
+      if (!push.pushSupported()) return;
+      if (Notification.permission === "denied") return;
+      const sub = await push.currentSubscription();
+      if (!sub) setVisible(true);
+    }).catch(() => undefined);
+  }, [storageKey]);
+
+  if (!visible) return null;
+  return (
+    <div className="card">
+      <div className="row" style={{ gap: 8, alignItems: "flex-start" }}>
+        <Icon name="bell" />
+        <div style={{ flex: 1 }}>
+          <b>Włączyć powiadomienia?</b>
+          <p className="dim" style={{ fontSize: "0.85rem", margin: "4px 0 8px" }}>
+            {benefit} Treść powiadomień jest zawsze neutralna — bez danych
+            zdrowotnych. Wyłączysz je jednym przyciskiem w Profilu.
+          </p>
+          <ErrorBox error={error} />
+          <div className="row" style={{ gap: 8 }}>
+            <button className="btn btn--small" disabled={busy} onClick={async () => {
+              setBusy(true);
+              setError(null);
+              try {
+                const push = await import("./push");
+                await push.enablePush();
+                setVisible(false);
+              } catch (e) {
+                setError((e as Error).message);
+              } finally {
+                setBusy(false);
+              }
+            }}>
+              {busy ? "…" : "Włącz"}
+            </button>
+            <button className="btn btn--small btn--ghost" onClick={() => {
+              localStorage.setItem(storageKey, "dismissed");
+              setVisible(false);
+            }}>
+              Nie teraz
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export interface ProgressPhotoRow {
   id: string;
   file_id: string;

@@ -39,12 +39,16 @@ from .config import settings
 def tz_for_user(user: object | None = None) -> ZoneInfo:
     """Strefa czasowa użytkownika.
 
-    Punkt rozszerzenia: gdy model `User` dostanie w przyszłości pole
-    `timezone`, zostanie ono odczytane tutaj — dziś każdy użytkownik
-    działa w strefie aplikacji (DZIK_TZ, domyślnie Europe/Warsaw).
+    Od migracji nr 14 model `User` ma pole `timezone` (IANA, ustawiane w
+    ustawieniach powiadomień); NULL lub brak obiektu = strefa aplikacji
+    (DZIK_TZ, domyślnie Europe/Warsaw). Nieznana nazwa strefy w bazie nie
+    może wywrócić żądania — fallback do strefy aplikacji.
     """
     tz_name = getattr(user, "timezone", None) or settings.timezone
-    return ZoneInfo(tz_name)
+    try:
+        return ZoneInfo(tz_name)
+    except Exception:  # noqa: BLE001 - uszkodzona wartość nie psuje aplikacji
+        return ZoneInfo(settings.timezone)
 
 
 def local_now(user: object | None = None, *, now: datetime | None = None) -> datetime:

@@ -15,9 +15,11 @@ Aby podłączyć prawdziwe powiadomienia e-mail:
    (np. DZIK_EMAIL_API_KEY) — nigdy w repozytorium.
 4. Podmień `provider` poniżej na instancję nowej klasy.
 
-Push (natywne powiadomienia w przeglądarce) wymagają dodatkowo kluczy
-VAPID i subskrypcji service workera — poza zakresem tego MVP
-(patrz docs/DEFERRED_FEATURES.md).
+Od migracji nr 14 e-mail jest opcjonalnym kanałem AWARYJNYM wspólnego
+systemu powiadomień (dzik_os.notifications): domyślnie wyłączony per
+kategoria, treść zawsze neutralna (nigdy dane zdrowotne ani kwoty) —
+patrz docs/POWIADOMIENIA.md. Push (Web Push/VAPID) obsługuje osobno
+push_service.py.
 """
 
 from __future__ import annotations

@@ -53,6 +53,9 @@ from .routers import (
     telemetry,
     today,
 )
+from .routers import (
+    notifications as notifications_router,
+)
 
 
 @asynccontextmanager
@@ -124,7 +127,7 @@ def create_app() -> FastAPI:
         payments.router, privacy.router, today.router, admin.router,
         monitoring.router, knowledge.router, exercises.router, food_catalog.router,
         records.router, push.router, consultations.router, telemetry.router,
-        challenges.router,
+        challenges.router, notifications_router.router,
     ):
         app.include_router(router)
 
