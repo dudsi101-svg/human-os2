@@ -785,6 +785,12 @@ class Exercise(Base):
     harder: Mapped[str | None] = mapped_column(Text, nullable=True)
     tempo_hint: Mapped[str | None] = mapped_column(String(200), nullable=True)
     breathing: Mapped[str | None] = mapped_column(String(400), nullable=True)
+    # --- Proweniencja wpisu (migracja nr 22; NULL = ćwiczenie sprzed tej
+    # migracji, o którym po prostu nie wiemy — nigdy nie udajemy MANUAL). ---
+    # MANUAL / TEXT_PARSED / AI_ASSISTED, patrz exercise_parser.SOURCE_KINDS.
+    source_kind: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    # Nazwa użytego silnika (LOCAL/EXTENDED) — nigdy nazwa dostawcy modelu.
+    source_engine: Mapped[str | None] = mapped_column(String(20), nullable=True)
     status: Mapped[str] = mapped_column(String(20), default="ACTIVE")  # ACTIVE/ARCHIVED
     created_by: Mapped[str] = mapped_column(String(40))
     created_at: Mapped[str] = mapped_column(String(40), default=now_iso)

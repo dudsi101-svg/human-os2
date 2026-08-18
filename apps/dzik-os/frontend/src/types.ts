@@ -616,6 +616,10 @@ export interface ExerciseLibraryItem {
   harder: string | null;
   tempo_hint: string | null;
   breathing: string | null;
+  /** Proweniencja wpisu (migracja nr 22). `null` = ćwiczenie sprzed tej
+   * migracji, o którym po prostu nie wiemy — nigdy nie udajemy MANUAL. */
+  source_kind: string | null;
+  source_engine: string | null;
   created_at: string;
   updated_at: string;
 }

@@ -2,6 +2,9 @@ from __future__ import annotations
 
 from pydantic import BaseModel, EmailStr, Field, model_validator
 
+from .exercise_parser import ENGINES as PARSER_ENGINES
+from .exercise_parser import MAX_INPUT_CHARS as PARSER_MAX_INPUT_CHARS
+from .exercise_parser import SOURCE_KINDS
 from .muscles import EXERCISE_LEVELS, MOVEMENT_PATTERNS, validate_muscle_keys
 
 
@@ -509,6 +512,10 @@ class ExerciseLibraryItemIn(BaseModel):
     harder: str | None = Field(default=None, max_length=1000)
     tempo_hint: str | None = Field(default=None, max_length=200)
     breathing: str | None = Field(default=None, max_length=400)
+    # Proweniencja (migracja nr 22). Pominięte = NULL, czyli „nie wiemy” —
+    # nie podstawiamy MANUAL za trenera, który nic nie zadeklarował.
+    source_kind: str | None = None
+    source_engine: str | None = None
 
     @model_validator(mode="after")
     def _check_dictionaries(self):
@@ -523,6 +530,14 @@ class ExerciseLibraryItemIn(BaseModel):
             raise ValueError(f"Nieznany poziom: {self.level}")
         if self.pattern is not None and self.pattern not in MOVEMENT_PATTERNS:
             raise ValueError(f"Nieznany wzorzec ruchu: {self.pattern}")
+        if self.source_kind is not None and self.source_kind not in SOURCE_KINDS:
+            raise ValueError(f"Nieznane źródło wpisu: {self.source_kind}")
+        if self.source_engine is not None and self.source_engine not in PARSER_ENGINES:
+            raise ValueError(f"Nieznany silnik: {self.source_engine}")
+        if self.source_engine is not None and self.source_kind in (None, "MANUAL"):
+            # Silnik bez źródła (albo przy wpisie ręcznym) byłby
+            # proweniencją, która nie trzyma się kupy.
+            raise ValueError("Silnik można podać wyłącznie dla wpisu z opisu")
         for label, values, limit in (
             ("kroków techniki", self.steps, 600),
             ("błędów", self.mistakes, 400),
@@ -534,6 +549,15 @@ class ExerciseLibraryItemIn(BaseModel):
                 if len(value) > limit:
                     raise ValueError(f"Za długa pozycja na liście {label}")
         return self
+
+
+class ExerciseDescriptionIn(BaseModel):
+    """Wklejony opis ćwiczenia do przeczytania („Uzupełnij z opisu”).
+
+    Endpoint niczego nie zapisuje — zwraca propozycję pól, którą trener
+    ogląda, poprawia i dopiero potem zapisuje zwykłym zapisem ćwiczenia."""
+
+    description: str = Field(min_length=1, max_length=PARSER_MAX_INPUT_CHARS)
 
 
 class FoodProductIn(BaseModel):

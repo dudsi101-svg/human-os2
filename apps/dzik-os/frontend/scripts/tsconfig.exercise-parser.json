@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    "module": "es2020",
+    "target": "es2020",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "types": [],
+    "skipLibCheck": true,
+    "lib": ["es2020"],
+    "outDir": "../node_modules/.cache/exercise-parser-test"
+  },
+  "files": ["../src/exerciseParser.ts"]
+}

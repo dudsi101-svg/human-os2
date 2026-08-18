@@ -58,6 +58,13 @@ Human OS, egzekwowana w kodzie audytu).
 | 11 | Ewidencja rozliczeń | klienci | pakiet, kwoty, terminy, statusy | rozliczenia i obowiązki podatkowe | 6(1)(b), 6(1)(c) | trener, księgowość trenera | okres wymagany przepisami podatkowymi (5 lat od końca roku) |
 | 12 | Dziennik zdarzeń (audyt) | wszyscy | identyfikatory operacji, typy zdarzeń, hashe (bez treści zdrowotnych) | bezpieczeństwo, rozliczalność | 6(1)(f) | admin (weryfikacja łańcucha) | trwale (łańcuch niemutowalny) |
 | 13 | Przepisywanie tekstu ze zdjęcia (OCR) | klienci, trener | zdjęcie (etykieta, kartka z planem, skan dokumentu) i rozpoznany z niego tekst — **może zawierać dane art. 9** (np. skan wyniku badań) | zamiana zdjęcia w tekst do zatwierdzenia przez człowieka (wpis produktu, tekst planu/diety, tekst przeszukiwalny przy dokumencie) | 6(1)(b) — wykonanie umowy; **9(2)(a)** dla zdjęć niosących dane zdrowotne (ta sama zgoda co dla kategorii danych, której dotyczy zdjęcie); wysyłka do dostawcy modelu wyłącznie przy zgodzie `funkcje_ai` | trener/klient (wg właściciela danych), hosting; dostawca modelu **tylko w trybie rozszerzonym** (obecnie brak — Null) | do zatwierdzenia albo odrzucenia propozycji; nie dłużej niż do usunięcia konta (brak automatycznego TTL — DECYZJA ADMINISTRATORA DANYCH) |
+| 14 | Czytanie opisu ćwiczenia (auto-uzupełnianie tabeli parametrów) | **trener** (podmiotem danych jest tu autor tekstu, nie klient) | wklejony przez trenera opis ćwiczenia — **know-how trenerskie, bez danych klienta i bez danych art. 9** | zamiana opisu w propozycję pól tabeli ćwiczenia do zatwierdzenia przez człowieka | 6(1)(b) — wykonanie umowy (narzędzie pracy trenera); wysyłka do dostawcy modelu **na podstawie jawnej decyzji trenera** (kliknięcie „Uzupełnij z opisu”), NIE na podstawie zgody `funkcje_ai` klienta — ta dotyczy danych klienta, których w tym przepływie nie ma | hosting; dostawca modelu jako **procesor danych trenera** — wyłącznie w trybie rozszerzonym (obecnie brak — Null) | propozycja nie jest zapisywana: żyje wyłącznie w odpowiedzi HTTP, do momentu zatwierdzenia albo odrzucenia przez trenera |
+
+> **Granica poz. 14.** Gdyby do tego przepływu miał kiedykolwiek trafić
+> tekst opisujący konkretnego klienta (a nie samo ćwiczenie), pozycja
+> przestaje obowiązywać: wysyłka wymaga wtedy zgody `funkcje_ai`
+> podmiotu danych, dokładnie jak w poz. 9 i 13. Uzasadnienie i miejsce
+> egzekwowania: `docs/BAZA_CWICZEN.md` §10.5.
 
 ## 4. Retencja
 

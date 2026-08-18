@@ -248,8 +248,26 @@ Pełny opis: `docs/OCR.md`. Reguły dostępu:
 
 Wysyłka do zewnętrznego dostawcy modelu (tryb rozszerzony) wymaga
 DODATKOWO aktywnej zgody `funkcje_ai` **podmiotu danych** — jedna reguła
-`authz.ai_features_consent_active` dla wszystkich funkcji AI. Bez zgody
+`authz.ai_features_consent_active` dla wszystkich funkcji AI operujących
+na **danych klienta** (jedyny wyjątek — czytanie własnego opisu ćwiczenia
+przez trenera — jest opisany w kolejnej sekcji). Bez zgody
 albo bez klucza działa silnik lokalny; to stan z jawnym powodem, nie błąd.
+
+## Czytanie opisu ćwiczenia (`/api/coach/exercises/parse-description`, od 0.28.0)
+
+Pełny opis: `docs/BAZA_CWICZEN.md` §10.
+
+| Operacja | Kto | Warunek |
+|---|---|---|
+| `POST /api/coach/exercises/parse-description` | rola **COACH** | klient = **403**; opis > 20 000 znaków = 422; endpoint **niczego nie zapisuje** (jedyny efekt w bazie to licznik zużycia modelu w trybie rozszerzonym) |
+
+**Uwaga na różnicę względem OCR:** tryb rozszerzony **nie** przechodzi
+przez `authz.ai_features_consent_active`. Przetwarzany jest opis
+ćwiczenia, czyli know-how trenera — klient w tym przepływie nie
+występuje, więc nie ma czyjej zgody pytać. Bramką jest dostępność
+dostawcy plus jawna decyzja trenera (kliknięcie). Gdyby do tego
+przepływu miał trafić tekst opisujący konkretnego klienta, bramkowanie
+MUSI wrócić do reguły `funkcje_ai` — patrz rejestr czynności poz. 14.
 
 ## Zgody (rejestr wersjonowany, od 0.11.0 granularny per kategoria)
 
