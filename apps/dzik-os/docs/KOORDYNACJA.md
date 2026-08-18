@@ -1,12 +1,32 @@
-# Koordynacja równoległych rund — jak nie wchodzić sobie w drogę
+# Koordynacja rund — jedna sesja naraz
 
-Rundy bywają rozwijane równolegle, w osobnych kopiach repozytorium. Każda
-praca widzi kod sprzed swojego startu i **nie wie, co robią pozostałe**.
-Git wykrywa kolizje TEKSTU. Kolizje ZNACZENIA przechodzą przez scalenie
-bez jednego konfliktu i wychodzą dopiero na produkcji.
+## ZASADA NADRZĘDNA (decyzja właściciela produktu, 2026-08-18)
 
-Ten dokument opisuje dwa mechanizmy: **rezerwację** (przed pracą) i
-**bramkę** (przed scaleniem). Pierwszy zależy od dyscypliny, drugi nie.
+> **W jednym momencie pracuje JEDNA sesja.** Kończy rundę, scala do `main`,
+> dopiero potem uruchamiamy następną.
+
+Ta reguła jest nadrzędna wobec całej reszty dokumentu. Powód jest prosty i
+sprawdzony na własnej skórze: **sesje nie mają ze sobą kanału**. Każda
+widzi kod sprzed swojego startu i nie wie, co robią pozostałe. Git wykrywa
+kolizje TEKSTU; kolizje ZNACZENIA przechodzą przez scalenie bez jednego
+konfliktu i wychodzą dopiero na produkcji.
+
+Przez jeden dzień pracy trzech równoległych sesji zdarzyło się:
+ten sam numer wersji przydzielony dwa razy (0.29.0, potem 0.36.0), kolizja
+numerów migracji, przypomnienia o zaległych płatnościach **po cichu
+wyłączone** przez mechaniczne scalenie sprzecznych zmian, dwa katalogi
+testów E2E, dwa wejścia do tego samego ekranu i bramka jakości, o której
+przez pół dnia raportowano „chodzi w tle", choć nie istniała.
+
+Mechanizmy niżej (rezerwacja, bramka, plany sesji) **zostają** — ale w
+nowej roli: nie jako sposób na równoległość, tylko jako **przekazanie
+pałeczki** między kolejnymi sesjami. Jeśli kiedyś świadomie wrócimy do
+równoległości, są gotowe; dopóki nie wrócimy, są tanie i nic nie kosztują.
+
+**Przed rozpoczęciem rundy przeczytaj `docs/STAN_PRZEKAZANIA.md`** — tam
+jest, co zrobione, co w toku i co następne.
+
+---
 
 ---
 
@@ -95,10 +115,11 @@ je dopiero przy ósmym scaleniu.
 Zasada, która przez pierwsze sześć godzin dała zero konfliktów:
 **jedna rzecz → PR → merge → następna rzecz.**
 
-## 2. Rezerwacja: zanim zaczniesz pracę
+## 2. Rezerwacja i przekazanie: zanim zaczniesz pracę
 
-Trzy zasoby są **globalne** i nie da się ich zająć dwa razy. Rezerwuj je
-w tabeli niżej **przed** rozpoczęciem pracy, w jednym commicie na `main`:
+Przy pracy jedna-sesja-naraz rezerwacja służy **przekazaniu**: następna
+sesja ma od razu wiedzieć, jakie numery są wolne i czego nie ruszać, bo
+jest w toku. Trzy zasoby są globalne i nie da się ich zająć dwa razy:
 
 * **numer migracji** — kolejny wolny z `backend/dzik_os/db.py`;
 * **numer wersji** w `docs/CHANGELOG.md`;

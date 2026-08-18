@@ -2,9 +2,11 @@
 
 **Autor:** sesja produktowa (ta, która buduje funkcje panelu trenera).
 **Data:** 2026-08-18 · **Horyzont:** najbliższe ~5 godzin.
-**Status: PROPOZYCJA DO UZGODNIENIA** — nie zaczynam, dopóki właściciel
-produktu nie zestawi tego z planem drugiej sesji i nie rozstrzygnie
-podziału. Wszystko poniżej jest do zakwestionowania w całości.
+**Status: ZATWIERDZONY W ZMIENIONYM KSZTAŁCIE.** Właściciel produktu
+rozstrzygnął podział: **pracuje jedna sesja naraz** (`KOORDYNACJA.md`,
+zasada nadrzędna). Podział na obszary (§1–2) i pytania do drugiej sesji
+(§9) tracą sens — zostają jako zapis tego, jak wyglądała sytuacja.
+Obowiązuje kolejka z `docs/STAN_PRZEKAZANIA.md` §3.
 
 ---
 
@@ -44,10 +46,15 @@ zmieniać po cichu**.
 
 ---
 
-## 3. Blok 0 — sprzątnięcie styków (ok. 45 min, PIERWSZE)
+## 3. Blok 0 — sprzątnięcie styków (WYKONANE 2026-08-18)
 
-Robię to przed czymkolwiek innym, bo dopóki styki są otwarte, każda
-kolejna zmiana je pogłębia.
+Zrobione od razu po decyzji, bo dopóki styki były otwarte, każda kolejna
+zmiana je pogłębiała. Obie niescalone gałęzie ściągnięte do `main`:
+kontrola higieny gałęzi (druga sesja) i czytelność UI (trzecia sesja).
+Przy konflikcie w `styles.css` wzięto **ich** wersję — mniejsza ikona
+robi miejsce na kreskę-wskaźnik aktywnej sekcji, więc moja zostawiłaby
+wskaźnik bez miejsca. Zostały dwa styki, przeniesione do kolejki
+(`STAN_PRZEKAZANIA.md` §3, punkty 2 i 3).
 
 | Styk | Co robię | Uwaga |
 |---|---|---|
