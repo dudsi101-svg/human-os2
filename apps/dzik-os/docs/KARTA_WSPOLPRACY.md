@@ -22,6 +22,18 @@ uzgodnienia w czasie rzeczywistym, jest tu martwa z definicji.
 Każda zasada niżej ma podpięte **zdarzenie, z którego się wzięła**. Nie ma
 tu haseł — jest lista rzeczy, które już poszły źle, i to, co je zamyka.
 
+**Policzone, nie oszacowane.** Jedenaście kolizji z 18.08 przypisano do
+przedmiotu, którego naprawdę dotyczyły: **6 × zasób współdzielony**
+(numery wersji 0.29.0 / 0.36.0 / 0.38.0, migracje 21 i 24, wiersz
+rezerwacji), **5 × różnica założeń** (przesłonięta trasa, dwa katalogi E2E,
+nazwa zmiennej, duplikat testu, dwa wejścia ekranu), **0 × spór o to, czym
+ma być produkt**.
+
+Zero na jedenaście. To rozstrzyga dobór środków: *z opisu „konflikt" wynika
+rozjemca, z opisu „interferencja" wynika mechanizm* — i potrzebny jest ten
+drugi. Dwie ręce sięgające po tę samą klamkę nie potrzebują mediacji,
+tylko zamka.
+
 ---
 
 ## Artykuł 0. Zadanie nadrzędne
@@ -40,6 +52,10 @@ tu haseł — jest lista rzeczy, które już poszły źle, i to, co je zamyka.
 
 Każda zasada niżej służy któremuś z tych trzech punktów. Jeśli kiedyś
 zasada zacznie im szkodzić — zmieniamy zasadę, nie punkt.
+
+**Sprawdzian dla każdej rundy:** *który z siedmiu blokerów bramki GO/NO-GO
+ta praca obniża?* Jeśli żadnego i nie zamyka też drogi do cichej utraty
+pracy — warto zapytać, czy jest teraz potrzebna.
 
 ---
 
@@ -127,6 +143,29 @@ kosztuje to rundę. Szybkość, która wypuszcza cichy błąd, jest ujemna.
 ostemplowaną, wyłączone przypomnienia o zaległych płatnościach i nieodwracalne
 nadpisywanie opisów trenera.
 
+### XI. Pytanie zadaje się tam, gdzie bramka je zobaczy
+
+Pytania, uprzedzenia o zmianach dotykających cudzego obszaru i wyjaśnienia
+„dlaczego tak" idą do **`KONSULTACJE.md`**, w ustalonym formacie.
+`tools/spojnosc.py` czyta ten plik i wypisuje otwarte wpisy z ich wiekiem
+przy każdym uruchomieniu — lokalnie i w CI.
+
+*Skąd:* cztery pytania jednej sesji czekały w jej pliku planu; odpowiedź
+padła wyłącznie dlatego, że druga strona **przypadkiem** tam zajrzała.
+Cztery dokumenty koordynacyjne już wtedy istniały — problemem nie był brak
+miejsca do pisania, tylko to, że żaden nie miał właściwości upominania się.
+*Zamknięcie:* kontrola `konsultacje`. Otwarty wpis to uwaga, nigdy błąd
+(blokowanie builda nauczyłoby wszystkich obchodzić bramkę); wpis
+`Blokuje: tak` starszy niż 4 h dostaje głośniejszą uwagę; zepsuty format
+wpisu to błąd, bo wpis nieczytelny dla bramki jest gorszy niż jego brak.
+
+### XII. Poprawka do własnego wcześniejszego twierdzenia jest obowiązkowa
+
+*Skąd:* padło zdanie „nie zginął żaden plik" — a kilka godzin później
+`mutacje.py` skasowało półtorej godziny pracy. Bez sprostowania zapis
+przestaje być zapisem, a §0.3 („nic nie udaje, że działa") przestaje
+obowiązywać wstecz.
+
 ### X. Propose-only wobec właściciela
 
 Decyzje o kierunku produktu, o ryzyku i o tym, co jest „wystarczająco
@@ -155,6 +194,23 @@ właściciel poda następną rundę.
 
 ---
 
+## Gdy zdania są różne
+
+Do 18.08 nie zdarzyło się to ani razu (patrz „0 × spór o produkt" wyżej),
+ale odpowiedź musi istnieć wcześniej niż potrzeba:
+
+1. **Rozstrzyga mechanizm** — kto rezerwował pierwszy, co mówi bramka, co
+   pokazuje pomiar. Sprawa zamknięta.
+2. **Różnica techniczna bez mechanizmu** — wygrywa strona z odtwarzalnym
+   dowodem. Brak dowodu po obu stronach znaczy, że trzeba go **zdobyć**,
+   a nie przekonywać.
+3. **Różnica co do kierunku produktu** — decyduje właściciel (zasada X).
+
+I w drugą stronę: **żadna sesja nie eskaluje do właściciela tego, co
+zamyka punkt 1 albo 2.** Rozjemca nie jest tu potrzebny.
+
+---
+
 ## Co jest poza dyskusją
 
 1. **Core Human OS** (`hos_engine/`, `tests/` w korzeniu) — 275 testów
@@ -177,13 +233,15 @@ całości egzekwowalna. Stan na dziś, policzony, nie oszacowany:
 | Zasada | Wsparcie maszynowe |
 |---|---|
 | II — cudza praca nietykalna | **pełne**: suma kontrolna w `mutacje.py` + test |
-| VI — test psujący kontrolę | **pełne**: dwa przeglądy mutacyjne, 7/7 i 9/9 |
+| VI — test psujący kontrolę | **pełne**: dwa przeglądy mutacyjne, 17/17 i 9/9 |
 | VII — przekazanie | **pełne**: kontrola `przekazanie` w `spojnosc.py` |
+| XI — pytanie tam, gdzie bramka je zobaczy | **pełne**: kontrola `konsultacje` |
+| I — nic nie ginie po cichu (§0.1) | **pełne**: kontrola `pliki poza gitem` |
 | I — repozytorium jedynym kanałem | częściowe: kontrola martwych odnośników |
 | IX — wątpliwość przed tempem | częściowe: kontrola higieny gałęzi |
-| III, IV, V, VIII, X | **brak** — zależą od uczciwości |
+| III, IV, V, VIII, X, XII | **brak** — zależą od uczciwości |
 
-Trzy pełne, dwie częściowe, pięć na słowo. Kierunek jest jasny: **zasada,
+Pięć pełnych, dwie częściowe, sześć na słowo (stan po scaleniu obu rund). Kierunek jest jasny: **zasada,
 którą da się sprawdzić maszyną, ma być sprawdzana maszyną** — kontrola
 `przekazanie` powstała właśnie przy pisaniu tej karty, bo pierwsza wersja
 tego akapitu twierdziła „sześć z dziesięciu" i przy liczeniu okazało się,

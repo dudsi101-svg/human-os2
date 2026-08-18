@@ -19,8 +19,8 @@ rm -rf "$WORKDIR"
 mkdir -p "$WORKDIR/pliki"
 
 export DZIK_DATABASE_URL="sqlite:///$WORKDIR/dzik.db"
-export DZIK_EVENT_STORE="$WORKDIR/audit.db"
-export DZIK_FILES_DIR="$WORKDIR/pliki"
+export DZIK_AUDIT_DB="$WORKDIR/audit.db"
+export DZIK_UPLOAD_DIR="$WORKDIR/pliki"
 export DZIK_FRONTEND_DIST="$FRONTEND/dist"
 export DZIK_SECRET_KEY="e2e-tylko-do-testow-nie-uzywac-nigdzie-indziej"
 

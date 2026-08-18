@@ -22,7 +22,7 @@ def _make_engine(url: str):
         # wiersze wskazujące na nieistniejące rekordy, a błąd ujawnia się
         # dopiero na PostgreSQL, czyli przy wdrożeniu produkcyjnym
         # (audyt 18.08.2026: zakładanie konta klienta przez trenera
-        # wywracało się na PG, przechodząc na SQLite — patrz R-17).
+        # wywracało się na PG, przechodząc na SQLite — patrz R-18).
         @event.listens_for(eng, "connect")
         def _wymus_klucze_obce(dbapi_connection, _record):
             cur = dbapi_connection.cursor()
@@ -773,6 +773,9 @@ MIGRATIONS: list[tuple[int, str, list[str]]] = [
     # Zamknięcie luki pustym wpisem jest bezpieczne dla obu przypadków:
     # istniejąca baza tylko stempluje wersję (zero instrukcji), a nowa
     # dostaje schemat z metadanych ORM jak zawsze.
+    #
+    # Stąd zasada na przyszłość: NOWĄ migrację bierz zawsze od największego
+    # istniejącego numeru, nigdy z luki w środku numeracji.
     (21, "numer niewykorzystany (luka domknięta, brak zmian schematu)", []),
     (22, "baza ćwiczeń: proweniencja wpisu (skąd wzięły się dane)", [
         # Czysto addytywna: dwie nowe kolumny NULLable na istniejącej

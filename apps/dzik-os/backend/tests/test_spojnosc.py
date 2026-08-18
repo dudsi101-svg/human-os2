@@ -347,6 +347,206 @@ def test_brak_origin_main_nie_wywraca_kontroli(kopia):
     assert w.uwagi == [] and w.bledy == []
 
 
+# --- 8. Pliki poza gitem -----------------------------------------------
+#
+# Ta kontrola też pyta gita, ale o stan PLIKÓW, nie gałęzi — atrapa `_git`
+# by tu nic nie dowiodła, bo cała wartość leży w tym, że reguły ignorowania
+# rozstrzyga prawdziwy git (`.gitignore` składa się z kilku plików i ma
+# wykluczenia w rodzaju `!data/.gitkeep`). Dlatego zakładamy maleńkie,
+# prawdziwe repozytorium w katalogu tymczasowym.
+
+
+def _repo(root: Path, *, gitignore: str = "") -> None:
+    """Zakłada prawdziwe repozytorium git w `root` i commituje, co jest."""
+    import subprocess
+
+    def g(*args: str) -> None:
+        subprocess.run(["git", *args], cwd=root, check=True,
+                       capture_output=True, text=True)
+
+    g("init", "-q", "-b", "glowna")
+    (root / ".gitignore").write_text(gitignore, encoding="utf-8")
+    g("add", "-A")
+    g("-c", "user.email=t@t", "-c", "user.name=T", "commit", "-qm", "start")
+
+
+def _pliki(modul):
+    w = modul.Wynik()
+    modul.sprawdz_pliki_poza_gitem(w)
+    return w
+
+
+def test_zacommitowane_pliki_zrodlowe_sa_czyste(kopia):
+    _repo(kopia)
+    w = _pliki(zaladuj(kopia))
+    assert w.bledy == [] and w.uwagi == []
+
+
+def test_plik_zrodlowy_ignorowany_przez_gitignore_jest_bledem(kopia):
+    """Najgorszy przypadek: pliku nie widać ani w `git status`, ani
+    w przeglądzie — `git add -A` przechodzi obok niego bez słowa."""
+    _repo(kopia, gitignore="backend/dzik_os/utracony.py\n")
+    (kopia / "backend" / "dzik_os" / "utracony.py").write_text("X = 1\n")
+    w = _pliki(zaladuj(kopia))
+    assert any("utracony.py" in b and "ignorowany" in b for b in w.bledy), w.bledy
+
+
+def test_plik_nieslledzony_jest_uwaga_a_nie_bledem(kopia):
+    """W trakcie pracy nowy, jeszcze niedodany plik to stan normalny —
+    blokowanie builda z tego powodu nauczyłoby wszystkich obchodzić bramkę."""
+    _repo(kopia)
+    (kopia / "backend" / "dzik_os" / "swiezy.py").write_text("X = 1\n")
+    w = _pliki(zaladuj(kopia))
+    assert w.bledy == [], w.bledy
+    assert any("swiezy.py" in u and "zniknie" in u for u in w.uwagi), w.uwagi
+
+
+def test_katalogi_wytworcze_nie_sa_zglaszane(kopia):
+    """`node_modules`, `dist`, `.pytest_cache` MAJĄ być ignorowane —
+    kontrola, która krzyczy na nie, jest bezużyteczna od pierwszego dnia."""
+    _repo(kopia, gitignore="node_modules/\ndist/\n.pytest_cache/\n")
+    for katalog, plik in (("node_modules", "paczka.ts"), ("dist", "wynik.mjs"),
+                          (".pytest_cache", "README.md")):
+        (kopia / katalog).mkdir(exist_ok=True)
+        (kopia / katalog / plik).write_text("x\n")
+    w = _pliki(zaladuj(kopia))
+    assert w.bledy == [] and w.uwagi == []
+
+
+def test_pliki_ktore_maja_prawo_byc_poza_gitem_sa_pomijane(kopia):
+    """`.env`, klucze i bazy danych nie są kodem — lista rozszerzeń jest
+    wąska celowo, żeby ta kontrola nie zaczęła wymuszać commitowania sekretów."""
+    _repo(kopia, gitignore=".env\n*.db\n")
+    (kopia / ".env").write_text("DZIK_FILE_KEY=tajne\n")
+    (kopia / "dane.db").write_text("x\n")
+    w = _pliki(zaladuj(kopia))
+    assert w.bledy == [] and w.uwagi == []
+
+
+def test_kontrola_plikow_nie_moze_przejsc_na_pusto(kopia):
+    """Gdyby lista rozszerzeń albo wykluczeń zjadła wszystko, kontrola
+    przechodziłaby zawsze — tak samo jak kontrola tras przed PROG_TRAS."""
+    m = zaladuj(kopia)
+    _repo(kopia)
+    m.ROZSZERZENIA_ZRODEL = (".nieistniejace",)
+    w = _pliki(m)
+    assert any("przestała cokolwiek widzieć" in b for b in w.bledy), w.bledy
+
+
+def test_brak_repozytorium_nie_wywraca_kontroli(kopia):
+    """Rozpakowane źródła bez `.git` (archiwum, sandbox) to nie awaria."""
+    w = _pliki(zaladuj(kopia))
+    assert w.bledy == [] and w.uwagi == []
+
+
+# --- 9. Konsultacje między sesjami -------------------------------------
+#
+# Kontrola czyta dziennik pytań. Testy opisują REGUŁĘ (co jest błędem
+# mechanizmu, a co tylko uwagą), nie bieżącą treść dziennika.
+
+
+def _dziennik(kopia: Path, tresc: str):
+    (kopia / "docs").mkdir(exist_ok=True)
+    (kopia / "docs" / "KONSULTACJE.md").write_text(tresc, encoding="utf-8")
+    m = zaladuj(kopia)
+    w = m.Wynik()
+    m.sprawdz_konsultacje(w)
+    return w
+
+
+def _wpis(numer="K-001", stempel="2026-08-18 10:00", od="bramki",
+          do="produktowa", status="OTWARTE", blokuje="nie"):
+    return (f"### {numer} · {stempel}Z · od: {od} · do: {do} · STATUS: {status}\n\n"
+            f"**Blokuje:** {blokuje}\n\ntreść pytania\n")
+
+
+def test_otwarte_pytanie_jest_widoczne(kopia):
+    """Sedno tej kontroli: otwarte pytanie ma się UPOMINAĆ samo.
+    Cztery pytania z 18.08 czekały w pliku planu i nic o nich nie mówiło."""
+    w = _dziennik(kopia, _wpis(status="OTWARTE"))
+    assert w.bledy == []
+    assert any("K-001" in u for u in w.uwagi), w.uwagi
+
+
+def test_odpowiedziane_pytanie_nie_halasuje(kopia):
+    """Inaczej dziennik po tygodniu wypisywałby setkę uwag i wszyscy
+    nauczyliby się ignorować całą bramkę."""
+    w = _dziennik(kopia, _wpis(status="ODPOWIEDZIANE"))
+    assert w.bledy == [] and w.uwagi == []
+
+
+def test_otwarte_pytanie_nigdy_nie_blokuje_builda(kopia):
+    """Otwarte pytanie to stan normalny — zatrzymanie CI z tego powodu
+    nauczyłoby wszystkich obchodzić bramkę."""
+    w = _dziennik(kopia, _wpis(status="OTWARTE", blokuje="tak", stempel="2026-01-01 00:00"))
+    assert w.bledy == []
+    assert any("BLOKUJE" in u for u in w.uwagi), w.uwagi
+
+
+def test_stara_blokada_dostaje_glosniejsza_uwage(kopia):
+    """Wpis, przy którym ktoś NAPRAWDĘ stoi, musi się wyróżniać."""
+    stary = _dziennik(kopia, _wpis(blokuje="tak", stempel="2026-01-01 00:00"))
+    assert any("stoi" in u for u in stary.uwagi), stary.uwagi
+
+
+def test_zly_ksztalt_naglowka_jest_bledem(kopia):
+    """Wpis, którego kontrola nie umie odczytać, jest gorszy niż jego brak
+    — ta sama zasada co PROG_TRAS przy trasach."""
+    w = _dziennik(kopia, "### K-001 pytanie bez formatu\n\n**Blokuje:** nie\n")
+    assert any("zly ksztalt" in b for b in w.bledy), w.bledy
+
+
+def test_powtorzony_numer_jest_bledem(kopia):
+    """Ten sam kształt kolizji co numer wersji i numer migracji."""
+    w = _dziennik(kopia, _wpis(numer="K-001") + "\n" + _wpis(numer="K-001"))
+    assert any("dwa razy" in b for b in w.bledy), w.bledy
+
+
+def test_nieznana_strona_jest_bledem(kopia):
+    """`do: wszyscy` znaczy `do: nikt` — adresat musi być rozstrzygalny."""
+    w = _dziennik(kopia, _wpis(do="wszyscy"))
+    assert any("nieznana strona" in b for b in w.bledy), w.bledy
+
+
+def test_brak_pola_blokuje_jest_bledem(kopia):
+    """Bez tego pola nie da się odróżnić pytania od zatrzymanej pracy."""
+    w = _dziennik(kopia, "### K-001 · 2026-08-18 10:00Z · od: bramki · "
+                         "do: produktowa · STATUS: OTWARTE\n\ntreść\n")
+    assert any("Blokuje" in b for b in w.bledy), w.bledy
+
+
+def test_pomija_przyklady_w_bloku_kodu(kopia):
+    """Instrukcja pisania wpisów zawiera PRZYKŁADOWY nagłówek. Pierwsza
+    wersja kontroli zgłaszała błąd na własnej dokumentacji."""
+    tresc = ("## Jak pisać\n\n```\n"
+             "### K-007 · 2026-08-18 15:54Z · od: bramki · do: produktowa · STATUS: OTWARTE\n"
+             "```\n\n## Wpisy\n\n" + _wpis())
+    w = _dziennik(kopia, tresc)
+    assert w.bledy == [], w.bledy
+    assert not any("K-007" in u for u in w.uwagi), w.uwagi
+
+
+def test_pusty_dziennik_wywraca_kontrole(kopia):
+    """Gdyby ktoś wyczyścił plik, kontrola przechodziłaby zawsze —
+    ten sam bezpiecznik co PROG_TRAS i pusta lista plików źródłowych."""
+    w = _dziennik(kopia, "# Konsultacje\n\nnic tu nie ma\n")
+    assert any("przestala cokolwiek widziec" in b for b in w.bledy), w.bledy
+
+
+def test_brak_dziennika_nie_jest_awaria(kopia):
+    """Dziennik jest nieobowiązkowy — jego brak to nie awaria bramki."""
+    m = zaladuj(kopia)
+    w = m.Wynik()
+    m.sprawdz_konsultacje(w)
+    assert w.bledy == [] and w.uwagi == []
+
+
+def test_data_z_przyszlosci_jest_bledem(kopia):
+    """Ujemny wiek wpisu znaczy literówkę albo rozjechany zegar. Pierwsza
+    wersja kontroli wypisywała „otwarte od -0.2 h" i szła dalej."""
+    w = _dziennik(kopia, _wpis(stempel="2099-01-01 00:00"))
+    assert any("z przyszlosci" in b for b in w.bledy), w.bledy
+
 # --- Narzędzie mutacyjne nie może niszczyć repozytorium ----------------
 
 

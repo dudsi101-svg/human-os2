@@ -90,6 +90,13 @@ def sprawdz_migracje(w: Wynik) -> None:
         w.blad("migracje", f"numery nie są rosnące: {numery}")
     if numery[0] != 1:
         w.blad("migracje", f"numeracja zaczyna się od {numery[0]}, nie od 1")
+    # Luki są dozwolone (numer bywa zarezerwowany przez równoległą rundę i
+    # nieużyty), ale muszą być WIDOCZNE — inaczej ktoś weźmie wolny numer
+    # pod nową migrację i zderzy się ze starą, niescaloną gałęzią.
+    luki = [i for i in range(numery[0], numery[-1]) if i not in numery]
+    if luki:
+        w.uwaga("migracje", f"wolne numery w środku numeracji: {luki} — NIE bierz ich "
+                            "pod nową migrację, prowadź numerację od największego")
 
 
 # --- 2. CHANGELOG ------------------------------------------------------
@@ -334,7 +341,205 @@ def sprawdz_galaz(w: Wynik) -> None:
         )
 
 
-# --- 8. Przekazanie: czy STAN_PRZEKAZANIA mówi prawdę ------------------
+# --- 8. Pliki poza gitem -----------------------------------------------
+
+#: Rozszerzenia, których plik NALEŻY do repozytorium. Celowo wąska lista —
+#: `.env`, klucze, dane i archiwa mają prawo być poza gitem i nie mogą tu
+#: trafić przez przypadek.
+ROZSZERZENIA_ZRODEL = (".py", ".ts", ".tsx", ".css", ".mjs", ".sh", ".md", ".sql")
+
+#: Katalogi wytwarzane przez narzędzia — ich zawartość ma być ignorowana.
+KATALOGI_WYTWORCZE = (
+    "node_modules", "dist", "build", ".venv", "venv", "__pycache__",
+    ".pytest_cache", ".mypy_cache", ".ruff_cache", "htmlcov",
+    "test-results", "playwright-report", "blob-report", ".git",
+)
+
+
+def _pliki_zrodlowe() -> list[Path]:
+    out = []
+    for sciezka in APP.rglob("*"):
+        if not sciezka.is_file():
+            continue
+        if sciezka.suffix not in ROZSZERZENIA_ZRODEL:
+            continue
+        if any(czesc in KATALOGI_WYTWORCZE for czesc in sciezka.parts):
+            continue
+        out.append(sciezka)
+    return sorted(out)
+
+
+def sprawdz_pliki_poza_gitem(w: Wynik) -> None:
+    """Plik źródłowy, który leży na dysku, ale nie jest w repozytorium.
+
+    Dwa różne sposoby, na które praca po cichu znika:
+
+    * **ignorowany przez `.gitignore`** — plik nigdy nie da się dodać bez
+      `-f`, `git status` go nie pokaże, a `git add -A` przejdzie obok. To
+      BŁĄD: taki plik jest niewidzialny na stałe, także dla przeglądu.
+    * **nieśledzony** — plik jest widoczny w `git status`, ale nikt go nie
+      dodał. Zniknie przy przełączeniu gałęzi, `git clean` albo wraz
+      z kontenerem. To UWAGA, bo w trakcie pracy to stan normalny.
+
+    Kontrola pyta git o KAŻDY plik źródłowy jednym wywołaniem, zamiast
+    czytać `.gitignore` samodzielnie — reguły ignorowania składają się
+    z kilku plików i wzorców z wykluczeniami (`!data/.gitkeep`), a własny
+    parser tych reguł byłby kolejną rzeczą, która może zgnić po cichu.
+    """
+    pliki = _pliki_zrodlowe()
+    if not pliki:
+        w.blad("pliki", "nie znaleziono żadnego pliku źródłowego — "
+                        "kontrola przestała cokolwiek widzieć")
+        return
+
+    import subprocess
+
+    wzgledne = [str(p.relative_to(APP)) for p in pliki]
+    wejscie = "\n".join(wzgledne)
+
+    def _git_lista(*args: str) -> set[str] | None:
+        try:
+            out = subprocess.run(
+                ["git", *args], cwd=APP, input=wejscie, capture_output=True,
+                text=True, timeout=30, check=False,
+            )
+        except (OSError, subprocess.SubprocessError):
+            return None
+        # check-ignore: 0 = coś pasuje, 1 = nic nie pasuje (oba poprawne)
+        if out.returncode > 1:
+            return None
+        return {linia for linia in out.stdout.splitlines() if linia}
+
+    ignorowane = _git_lista("check-ignore", "--stdin")
+    if ignorowane is None:
+        return  # brak gita (np. archiwum źródeł) — nie ma czego sprawdzać
+
+    for sciezka in sorted(ignorowane):
+        w.blad("pliki", f"{sciezka} jest ignorowany przez .gitignore, a wygląda "
+                        "na plik źródłowy — nigdy nie trafi do repozytorium")
+
+    sledzone = _git_lista("ls-files", "--cached", "-z", "--", *wzgledne)
+    if sledzone is None:
+        return
+    # `-z` daje jeden ciąg rozdzielony \0 — rozbijamy ręcznie
+    sledzone = {n for wiersz in sledzone for n in wiersz.split("\0") if n}
+    brakujace = [s for s in wzgledne if s not in sledzone and s not in ignorowane]
+    for sciezka in sorted(brakujace):
+        w.uwaga("pliki", f"{sciezka} nie jest dodany do repozytorium — "
+                         "zniknie przy zmianie gałęzi lub wraz z kontenerem")
+
+
+
+# --- 9. Konsultacje miedzy sesjami -------------------------------------
+
+#: Ile godzin otwarty wpis BLOKUJACY moze czekac, zanim bramka o nim krzyknie.
+PROG_KONSULTACJI_H = 4.0
+
+_NAGLOWEK_KONSULTACJI = re.compile(
+    r"^### (K-\d{3}) \u00b7 (\d{4}-\d{2}-\d{2} \d{2}:\d{2})Z \u00b7 "
+    r"od: (\w+) \u00b7 do: (\w+) \u00b7 STATUS: (OTWARTE|ODPOWIEDZIANE|ZAMKNIETE)$"
+)
+_STRONY = {"bramki", "produktowa", "wlasciciel"}
+
+
+def sprawdz_konsultacje(w: Wynik) -> None:
+    """Otwarte pytania miedzy sesjami — zeby nikt ich nie przeoczyl.
+
+    POWOD ISTNIENIA. 18.08.2026 sesja produktowa zadala cztery pytania
+    w swoim pliku planu. Odpowiedz padla wylacznie dlatego, ze druga strona
+    PRZYPADKIEM tam zajrzala — nic o nich nie powiadamialo. Cztery dokumenty
+    koordynacyjne istnialy i zaden nie mial wlasciwosci upominania sie.
+
+    Ta kontrola nie ocenia tresci. Pilnuje, zeby otwarty wpis byl WIDOCZNY
+    przy kazdym uruchomieniu bramki — lokalnie i w CI.
+
+    BLAD (blokuje) wylacznie wtedy, gdy zepsuty jest sam MECHANIZM: zly
+    ksztalt naglowka, powtorzony numer, nieznana strona, brak pola
+    `Blokuje`, pusty dziennik. Wpis, ktorego kontrola nie umie odczytac,
+    jest gorszy niz jego brak — ta sama zasada co PROG_TRAS.
+
+    UWAGA (nie blokuje) dla samych otwartych pytan. Otwarte pytanie to stan
+    normalny; zatrzymywanie builda z tego powodu nauczyloby wszystkich
+    obchodzic bramke. Wpisy `Blokuje: tak` starsze niz PROG_KONSULTACJI_H
+    dostaja glosniejsza uwage — tam ktos naprawde stoi.
+    """
+    plik = DOCS / "KONSULTACJE.md"
+    if not plik.exists():
+        return  # dziennik nieobowiazkowy — jego brak to nie awaria
+
+    linie = plik.read_text(encoding="utf-8").splitlines()
+    # Naglowki WEWNATRZ bloku kodu to przyklady z instrukcji, nie wpisy.
+    # Bez tego kontrola zglaszala blad na wlasnej dokumentacji — zlapane
+    # przy pierwszym uruchomieniu, patrz test_pomija_przyklady_w_bloku_kodu.
+    naglowki: list[tuple[int, str]] = []
+    w_bloku = False
+    for i, linia in enumerate(linie):
+        if linia.startswith("```"):
+            w_bloku = not w_bloku
+            continue
+        if not w_bloku and linia.startswith("### "):
+            naglowki.append((i, linia))
+
+    if not naglowki:
+        w.blad("konsultacje", "KONSULTACJE.md nie zawiera ani jednego wpisu — "
+                              "kontrola przestala cokolwiek widziec")
+        return
+
+    import time
+    from datetime import datetime
+
+    numery: set[str] = set()
+    otwarte: list[tuple[str, str, float, bool]] = []
+    for nr_linii, linia in naglowki:
+        dopasowanie = _NAGLOWEK_KONSULTACJI.match(linia)
+        if dopasowanie is None:
+            w.blad("konsultacje", f"wpis w linii {nr_linii + 1} ma zly ksztalt "
+                                  f"naglowka — bramka nie umie go odczytac: {linia[:70]!r}")
+            continue
+        numer, stempel, od, do, status = dopasowanie.groups()
+        if numer in numery:
+            w.blad("konsultacje", f"numer {numer} uzyty dwa razy")
+        numery.add(numer)
+        for strona, etykieta in ((od, "od"), (do, "do")):
+            if strona not in _STRONY:
+                w.blad("konsultacje", f"{numer}: nieznana strona w polu "
+                                      f"`{etykieta}: {strona}` "
+                                      f"(dozwolone: {', '.join(sorted(_STRONY))})")
+        koniec = next((i for i, _ in naglowki if i > nr_linii), len(linie))
+        cialo = "\n".join(linie[nr_linii:koniec])
+        blokuje_dop = re.search(r"^\*\*Blokuje:\*\* (tak|nie)$", cialo, re.MULTILINE)
+        if blokuje_dop is None:
+            w.blad("konsultacje", f"{numer}: brak pola `**Blokuje:** tak|nie`")
+            continue
+        if status != "OTWARTE":
+            continue
+        try:
+            kiedy = datetime.strptime(stempel + "+0000", "%Y-%m-%d %H:%M%z")
+        except ValueError:
+            w.blad("konsultacje", f"{numer}: nieczytelna data {stempel!r}")
+            continue
+        wiek = (time.time() - kiedy.timestamp()) / 3600
+        # Data z przyszlosci = literowka albo rozjechany zegar. Bez tego
+        # kontrola wypisywala "otwarte od -0.2 h" i szla dalej — zlapane
+        # przy zakladaniu wpisu K-004.
+        if wiek < -0.05:
+            w.blad("konsultacje", f"{numer}: data {stempel}Z jest z przyszlosci "
+                                  f"({-wiek:.1f} h do przodu) — literowka albo zly zegar")
+            continue
+        otwarte.append((numer, do, max(wiek, 0.0), blokuje_dop.group(1) == "tak"))
+
+    for numer, do, wiek, blokuje in sorted(otwarte, key=lambda x: -x[2]):
+        if blokuje and wiek > PROG_KONSULTACJI_H:
+            w.uwaga("konsultacje",
+                    f"{numer} BLOKUJE prace i czeka {wiek:.1f} h "
+                    f"(prog {PROG_KONSULTACJI_H} h) — adresat: {do}. "
+                    "Ktos po drugiej stronie stoi.")
+        else:
+            w.uwaga("konsultacje",
+                    f"{numer} otwarte od {wiek:.1f} h, adresat: {do}"
+                    + (" [BLOKUJE]" if blokuje else ""))
+
+# --- 10. Przekazanie: czy STAN_PRZEKAZANIA mówi prawdę ------------------
 
 def sprawdz_przekazanie(w: Wynik) -> None:
     """`STAN_PRZEKAZANIA.md` musi wskazywać AKTUALNĄ wersję z CHANGELOG-a.
@@ -374,6 +579,9 @@ KONTROLE = (
     ("testy frontendu", sprawdz_testy_frontendu),
     ("dokumenty", sprawdz_dokumenty),
     ("higiena gałęzi", sprawdz_galaz),
+    ("pliki poza gitem", sprawdz_pliki_poza_gitem),
+    ("konsultacje", sprawdz_konsultacje),
+
     ("przekazanie", sprawdz_przekazanie),
 )
 
