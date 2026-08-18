@@ -344,3 +344,95 @@ def test_brak_origin_main_nie_wywraca_kontroli(kopia):
     w = m.Wynik()
     m.sprawdz_galaz(w)
     assert w.uwagi == [] and w.bledy == []
+
+
+# --- 8. Pliki poza gitem -----------------------------------------------
+#
+# Ta kontrola też pyta gita, ale o stan PLIKÓW, nie gałęzi — atrapa `_git`
+# by tu nic nie dowiodła, bo cała wartość leży w tym, że reguły ignorowania
+# rozstrzyga prawdziwy git (`.gitignore` składa się z kilku plików i ma
+# wykluczenia w rodzaju `!data/.gitkeep`). Dlatego zakładamy maleńkie,
+# prawdziwe repozytorium w katalogu tymczasowym.
+
+
+def _repo(root: Path, *, gitignore: str = "") -> None:
+    """Zakłada prawdziwe repozytorium git w `root` i commituje, co jest."""
+    import subprocess
+
+    def g(*args: str) -> None:
+        subprocess.run(["git", *args], cwd=root, check=True,
+                       capture_output=True, text=True)
+
+    g("init", "-q", "-b", "glowna")
+    (root / ".gitignore").write_text(gitignore, encoding="utf-8")
+    g("add", "-A")
+    g("-c", "user.email=t@t", "-c", "user.name=T", "commit", "-qm", "start")
+
+
+def _pliki(modul):
+    w = modul.Wynik()
+    modul.sprawdz_pliki_poza_gitem(w)
+    return w
+
+
+def test_zacommitowane_pliki_zrodlowe_sa_czyste(kopia):
+    _repo(kopia)
+    w = _pliki(zaladuj(kopia))
+    assert w.bledy == [] and w.uwagi == []
+
+
+def test_plik_zrodlowy_ignorowany_przez_gitignore_jest_bledem(kopia):
+    """Najgorszy przypadek: pliku nie widać ani w `git status`, ani
+    w przeglądzie — `git add -A` przechodzi obok niego bez słowa."""
+    _repo(kopia, gitignore="backend/dzik_os/utracony.py\n")
+    (kopia / "backend" / "dzik_os" / "utracony.py").write_text("X = 1\n")
+    w = _pliki(zaladuj(kopia))
+    assert any("utracony.py" in b and "ignorowany" in b for b in w.bledy), w.bledy
+
+
+def test_plik_nieslledzony_jest_uwaga_a_nie_bledem(kopia):
+    """W trakcie pracy nowy, jeszcze niedodany plik to stan normalny —
+    blokowanie builda z tego powodu nauczyłoby wszystkich obchodzić bramkę."""
+    _repo(kopia)
+    (kopia / "backend" / "dzik_os" / "swiezy.py").write_text("X = 1\n")
+    w = _pliki(zaladuj(kopia))
+    assert w.bledy == [], w.bledy
+    assert any("swiezy.py" in u and "zniknie" in u for u in w.uwagi), w.uwagi
+
+
+def test_katalogi_wytworcze_nie_sa_zglaszane(kopia):
+    """`node_modules`, `dist`, `.pytest_cache` MAJĄ być ignorowane —
+    kontrola, która krzyczy na nie, jest bezużyteczna od pierwszego dnia."""
+    _repo(kopia, gitignore="node_modules/\ndist/\n.pytest_cache/\n")
+    for katalog, plik in (("node_modules", "paczka.ts"), ("dist", "wynik.mjs"),
+                          (".pytest_cache", "README.md")):
+        (kopia / katalog).mkdir(exist_ok=True)
+        (kopia / katalog / plik).write_text("x\n")
+    w = _pliki(zaladuj(kopia))
+    assert w.bledy == [] and w.uwagi == []
+
+
+def test_pliki_ktore_maja_prawo_byc_poza_gitem_sa_pomijane(kopia):
+    """`.env`, klucze i bazy danych nie są kodem — lista rozszerzeń jest
+    wąska celowo, żeby ta kontrola nie zaczęła wymuszać commitowania sekretów."""
+    _repo(kopia, gitignore=".env\n*.db\n")
+    (kopia / ".env").write_text("DZIK_FILE_KEY=tajne\n")
+    (kopia / "dane.db").write_text("x\n")
+    w = _pliki(zaladuj(kopia))
+    assert w.bledy == [] and w.uwagi == []
+
+
+def test_kontrola_plikow_nie_moze_przejsc_na_pusto(kopia):
+    """Gdyby lista rozszerzeń albo wykluczeń zjadła wszystko, kontrola
+    przechodziłaby zawsze — tak samo jak kontrola tras przed PROG_TRAS."""
+    m = zaladuj(kopia)
+    _repo(kopia)
+    m.ROZSZERZENIA_ZRODEL = (".nieistniejace",)
+    w = _pliki(m)
+    assert any("przestała cokolwiek widzieć" in b for b in w.bledy), w.bledy
+
+
+def test_brak_repozytorium_nie_wywraca_kontroli(kopia):
+    """Rozpakowane źródła bez `.git` (archiwum, sandbox) to nie awaria."""
+    w = _pliki(zaladuj(kopia))
+    assert w.bledy == [] and w.uwagi == []

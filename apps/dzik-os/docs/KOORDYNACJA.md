@@ -17,7 +17,7 @@ python apps/dzik-os/tools/spojnosc.py     # 0 = czysto, 1 = są kolizje
 ```
 
 Uruchamiana w CI (`dzik-os-ci.yml`) i lokalnie przed każdym scaleniem.
-Siedem kontroli, każda wzięta z błędu, który **naprawdę się zdarzył**:
+Osiem kontroli, każda wzięta z błędu, który **naprawdę się zdarzył**:
 
 | Kontrola | Co łapie | Kiedy się zdarzyło |
 |---|---|---|
@@ -28,6 +28,7 @@ Siedem kontroli, każda wzięta z błędu, który **naprawdę się zdarzył**:
 | `testy frontendu` | `scripts/test-*.mjs` spoza `test:helpers`, czyli test-widmo | przy dokładaniu testów pomocniczych |
 | `dokumenty` | martwy odnośnik `docs/COŚ.md` (uwaga, nie błąd) | przy przenoszeniu dokumentacji |
 | `higiena gałęzi` | objawy gałęzi żyjącej za długo jak na tempo main (uwagi, nigdy błąd) | PR #11: 6,5 h życia, 8 scaleń nadążających |
+| `pliki poza gitem` | plik źródłowy ignorowany przez `.gitignore` (błąd) albo nigdy niedodany (uwaga) | `.coverage` dodany przez `git add -A`, potem gitignore — pytanie „czy nie giną nam pliki" |
 
 Kontrola **niczego nie naprawia** — od tego jest człowiek albo agent,
 który zna zamiar. Ma wyłącznie nie pozwolić kolizji przejść niezauważenie.
@@ -46,7 +47,7 @@ dołóż test, który ją psuje.**
 python apps/dzik-os/tools/mutacje.py     # z korzenia repozytorium
 ```
 
-Narzędzie po kolei **psuje kontrolę** na siedem sposobów, po każdym
+Narzędzie po kolei **psuje kontrolę** na dziesięć sposobów, po każdym
 uruchamia `tests/test_spojnosc.py` i na koniec przywraca oryginał.
 Mutacja, po której testy nadal są zielone, to luka — wypisana wprost.
 
@@ -56,7 +57,8 @@ Pierwsze uruchomienie (2026-08-18) znalazło **dwie luki**:
   przed cichą śmiercią kontroli tras samo nie było zabezpieczone;
 * zamiana kontroli dokumentów w atrapę przechodziła bez śladu.
 
-Obie naprawione tego samego dnia; po naprawie **7 z 7 mutacji wykrytych**.
+Obie naprawione tego samego dnia; po naprawie **10 z 10 mutacji wykrytych**
+(siedem pierwotnych plus trzy dla kontroli plików poza gitem).
 Uruchamiaj po każdej zmianie w `spojnosc.py` i po dołożeniu kontroli — bez
 tego „mamy testy" jest deklaracją, nie faktem.
 
@@ -64,8 +66,8 @@ tego „mamy testy" jest deklaracją, nie faktem.
 
 ### 1a. Higiena gałęzi — jedyna kontrola patrząca na SPOSÓB pracy
 
-Sześć pierwszych kontroli patrzy na kod. Siódma patrzy na to, **jak
-pracujemy** — bo 18.08.2026 to sposób pracy, a nie treść zmian, wygenerował
+Sześć pierwszych kontroli patrzy na kod. Siódma i ósma patrzą na to,
+**jak pracujemy** — bo 18.08.2026 to sposób pracy, a nie treść zmian, wygenerował
 większość kolizji.
 
 Fakty z tego dnia, z których wzięły się progi:
@@ -95,6 +97,38 @@ je dopiero przy ósmym scaleniu.
 Zasada, która przez pierwsze sześć godzin dała zero konfliktów:
 **jedna rzecz → PR → merge → następna rzecz.**
 
+Ta sama zasada tłumaczy PR #10 (praca nad czytelnością UI, 60 linii CSS).
+Nie był sporny ani duży — wisiał 8 godzin, bo jego **bazą była inna gałąź
+robocza zamiast `main`**. Po scaleniu tamtej gałęzi PR stracił punkt
+odniesienia i przestał się dać przejrzeć: GitHub nie miał czego z czym
+porównać. **Gałąź odgałęzia się od `main` i wraca do `main`** — baza inna
+niż `main` to nie skrót, tylko sposób na PR, którego nikt nie zamknie.
+
+---
+
+### 1b. Pliki poza gitem — druga kontrola patrząca na sposób pracy
+
+Ósma kontrola odpowiada na pytanie „czy nie giną nam pliki". Odpowiedź
+brzmi: dotąd nie zginął żaden, ale dwie drogi do tego stały otworem.
+
+* **Ignorowany przez `.gitignore`** — BŁĄD. Tak zginąłby plik naprawdę:
+  `git status` go nie pokaże, `git add -A` przejdzie obok, w przeglądzie
+  nie będzie go widać. Zdarzyło się blisko: `.coverage` wpadł do repo
+  przez `git add -A` i został dopisany do `.gitignore` — gdyby ktoś nazwał
+  tak plik źródłowy, zniknąłby bez śladu.
+* **Nieśledzony** — UWAGA. Plik widać w `git status`, ale nikt go nie
+  dodał; zniknie przy zmianie gałęzi, `git clean` albo wraz z kontenerem.
+  W trakcie pracy to stan normalny, więc nie blokuje.
+
+Lista rozszerzeń (`ROZSZERZENIA_ZRODEL`) jest **celowo wąska**: `.env`,
+klucze i bazy danych mają prawo być poza gitem, a kontrola, która zaczęłaby
+wymuszać ich commitowanie, byłaby gorsza od braku kontroli. Reguły
+ignorowania rozstrzyga prawdziwy `git check-ignore`, nie własny parser —
+`.gitignore` składa się z kilku plików i ma wykluczenia (`!data/.gitkeep`),
+a własny parser byłby kolejną rzeczą gnijącą po cichu.
+
+---
+
 ## 2. Rezerwacja: zanim zaczniesz pracę
 
 Trzy zasoby są **globalne** i nie da się ich zająć dwa razy. Rezerwuj je
@@ -110,7 +144,7 @@ w tabeli niżej **przed** rozpoczęciem pracy, w jednym commicie na `main`:
 
 | Runda | Migracja | Wersja | Główne pliki | Status |
 |---|---|---|---|---|
-| _(wolne)_ | następna: **26** | następna: **0.38.0** | — | — |
+| _(wolne)_ | następna: **26** | następna: **0.39.0** | — | — |
 
 > Po zakończeniu rundy usuń wiersz i podnieś „następne" numery.
 

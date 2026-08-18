@@ -1,5 +1,44 @@
 # Changelog — Dzik OS
 
+## 0.38.0 — 2026-08-18
+
+**Ósma kontrola bramki: pliki poza gitem. Plus uratowane dwie wiszące
+gałęzie.** Runda o stabilności — nic nowego dla użytkownika, mniej sposobów
+na cichą utratę pracy.
+
+* **Odpowiedź na pytanie „czy nie giną nam pliki": dotąd żaden nie zginął,
+  ale dwie drogi stały otworem.** Changelog jest kompletny (wpisy 1–36 bez
+  dziury), historia gita nie zawiera usunięcia pliku źródłowego bez
+  zastąpienia. Otwarte były dwie furtki i obie są teraz pilnowane:
+  plik źródłowy **ignorowany przez `.gitignore`** (BŁĄD — `git status` go
+  nie pokaże, `git add -A` przejdzie obok, w przeglądzie nie będzie go
+  widać) i plik **nieśledzony** (UWAGA — zniknie przy zmianie gałęzi albo
+  wraz z kontenerem). Zdarzyło się blisko: `.coverage` wpadł do repo przez
+  `git add -A` i został dopisany do `.gitignore`.
+* **Lista rozszerzeń celowo wąska** (`.py .ts .tsx .css .mjs .sh .md .sql`).
+  `.env`, klucze i bazy danych mają prawo być poza gitem — kontrola, która
+  zaczęłaby wymuszać commitowanie sekretów, byłaby gorsza od jej braku.
+  Reguły ignorowania rozstrzyga prawdziwy `git check-ignore`, nie własny
+  parser `.gitignore`.
+* **Siedem testów kontroli i trzy nowe mutacje.** `tools/mutacje.py`
+  sprawdza teraz **10 z 10** sposobów zepsucia bramki — w tym degradację
+  błędu do uwagi i usunięcie bezpiecznika pustej listy plików (ten sam
+  wzorzec co `PROG_TRAS`: kontrola, która nic nie widzi, ma się wywrócić,
+  a nie przejść na zielono).
+* **Uratowana praca z rundy równoległej** (bramka GO/NO-GO, przegląd
+  mutacyjny obron, test pustej-lecz-zmigrowanej bazy) — wisiała
+  niescalona. Dwa konflikty rozstrzygnięte faktami: luka migracji 21
+  zostaje domknięta (żadna gałąź jej nie trzyma, wpis jest już w main
+  i wdrożony), a kolizja wersji 0.36.0 rozwiązana przez przesunięcie
+  tamtej pracy na 0.37.0.
+* **Uratowany PR #10** (czytelność i responsywność UI, 60 linii CSS).
+  Wisiał 8 godzin nie dlatego, że był sporny — jego **bazą była inna
+  gałąź robocza zamiast `main`**, więc po scaleniu tamtej stracił punkt
+  odniesienia i nie dało się go przejrzeć. Zasada dopisana do
+  `KOORDYNACJA.md`: gałąź odgałęzia się od `main` i wraca do `main`.
+  Jeden konflikt: ikony nawigacji zostają w nowszym rozmiarze 26 px,
+  wskaźnik aktywnej sekcji z tamtej pracy dochodzi obok.
+
 ## 0.37.0 — 2026-08-18
 
 **Bramka jakości GO/NO-GO — wykonana, z dowodami i dwoma znalezionymi

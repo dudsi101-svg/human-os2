@@ -341,6 +341,94 @@ def sprawdz_galaz(w: Wynik) -> None:
         )
 
 
+# --- 8. Pliki poza gitem -----------------------------------------------
+
+#: Rozszerzenia, których plik NALEŻY do repozytorium. Celowo wąska lista —
+#: `.env`, klucze, dane i archiwa mają prawo być poza gitem i nie mogą tu
+#: trafić przez przypadek.
+ROZSZERZENIA_ZRODEL = (".py", ".ts", ".tsx", ".css", ".mjs", ".sh", ".md", ".sql")
+
+#: Katalogi wytwarzane przez narzędzia — ich zawartość ma być ignorowana.
+KATALOGI_WYTWORCZE = (
+    "node_modules", "dist", "build", ".venv", "venv", "__pycache__",
+    ".pytest_cache", ".mypy_cache", ".ruff_cache", "htmlcov",
+    "test-results", "playwright-report", "blob-report", ".git",
+)
+
+
+def _pliki_zrodlowe() -> list[Path]:
+    out = []
+    for sciezka in APP.rglob("*"):
+        if not sciezka.is_file():
+            continue
+        if sciezka.suffix not in ROZSZERZENIA_ZRODEL:
+            continue
+        if any(czesc in KATALOGI_WYTWORCZE for czesc in sciezka.parts):
+            continue
+        out.append(sciezka)
+    return sorted(out)
+
+
+def sprawdz_pliki_poza_gitem(w: Wynik) -> None:
+    """Plik źródłowy, który leży na dysku, ale nie jest w repozytorium.
+
+    Dwa różne sposoby, na które praca po cichu znika:
+
+    * **ignorowany przez `.gitignore`** — plik nigdy nie da się dodać bez
+      `-f`, `git status` go nie pokaże, a `git add -A` przejdzie obok. To
+      BŁĄD: taki plik jest niewidzialny na stałe, także dla przeglądu.
+    * **nieśledzony** — plik jest widoczny w `git status`, ale nikt go nie
+      dodał. Zniknie przy przełączeniu gałęzi, `git clean` albo wraz
+      z kontenerem. To UWAGA, bo w trakcie pracy to stan normalny.
+
+    Kontrola pyta git o KAŻDY plik źródłowy jednym wywołaniem, zamiast
+    czytać `.gitignore` samodzielnie — reguły ignorowania składają się
+    z kilku plików i wzorców z wykluczeniami (`!data/.gitkeep`), a własny
+    parser tych reguł byłby kolejną rzeczą, która może zgnić po cichu.
+    """
+    pliki = _pliki_zrodlowe()
+    if not pliki:
+        w.blad("pliki", "nie znaleziono żadnego pliku źródłowego — "
+                        "kontrola przestała cokolwiek widzieć")
+        return
+
+    import subprocess
+
+    wzgledne = [str(p.relative_to(APP)) for p in pliki]
+    wejscie = "\n".join(wzgledne)
+
+    def _git_lista(*args: str) -> set[str] | None:
+        try:
+            out = subprocess.run(
+                ["git", *args], cwd=APP, input=wejscie, capture_output=True,
+                text=True, timeout=30, check=False,
+            )
+        except (OSError, subprocess.SubprocessError):
+            return None
+        # check-ignore: 0 = coś pasuje, 1 = nic nie pasuje (oba poprawne)
+        if out.returncode > 1:
+            return None
+        return {linia for linia in out.stdout.splitlines() if linia}
+
+    ignorowane = _git_lista("check-ignore", "--stdin")
+    if ignorowane is None:
+        return  # brak gita (np. archiwum źródeł) — nie ma czego sprawdzać
+
+    for sciezka in sorted(ignorowane):
+        w.blad("pliki", f"{sciezka} jest ignorowany przez .gitignore, a wygląda "
+                        "na plik źródłowy — nigdy nie trafi do repozytorium")
+
+    sledzone = _git_lista("ls-files", "--cached", "-z", "--", *wzgledne)
+    if sledzone is None:
+        return
+    # `-z` daje jeden ciąg rozdzielony \0 — rozbijamy ręcznie
+    sledzone = {n for wiersz in sledzone for n in wiersz.split("\0") if n}
+    brakujace = [s for s in wzgledne if s not in sledzone and s not in ignorowane]
+    for sciezka in sorted(brakujace):
+        w.uwaga("pliki", f"{sciezka} nie jest dodany do repozytorium — "
+                         "zniknie przy zmianie gałęzi lub wraz z kontenerem")
+
+
 KONTROLE = (
     ("migracje", sprawdz_migracje),
     ("changelog", sprawdz_changelog),
@@ -349,6 +437,7 @@ KONTROLE = (
     ("testy frontendu", sprawdz_testy_frontendu),
     ("dokumenty", sprawdz_dokumenty),
     ("higiena gałęzi", sprawdz_galaz),
+    ("pliki poza gitem", sprawdz_pliki_poza_gitem),
 )
 
 

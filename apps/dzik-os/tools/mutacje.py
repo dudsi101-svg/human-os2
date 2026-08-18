@@ -66,6 +66,18 @@ MUTACJE = [
     ("testy frontendu: kontrola zamieniona w atrapę",
      '    paczka = json.loads((FRONTEND / "package.json").read_text(encoding="utf-8"))',
      '    return\n    paczka = json.loads((FRONTEND / "package.json").read_text(encoding="utf-8"))'),
+
+    ("pliki poza gitem: kontrola zamieniona w atrapę",
+     '    pliki = _pliki_zrodlowe()',
+     '    return\n    pliki = _pliki_zrodlowe()'),
+
+    ("pliki poza gitem: plik ignorowany zdegradowany do uwagi",
+     '        w.blad("pliki", f"{sciezka} jest ignorowany',
+     '        w.uwaga("pliki", f"{sciezka} jest ignorowany'),
+
+    ("pliki poza gitem: usunięty bezpiecznik pustej listy",
+     '    if not pliki:',
+     '    if False:'),
 ]
 
 
