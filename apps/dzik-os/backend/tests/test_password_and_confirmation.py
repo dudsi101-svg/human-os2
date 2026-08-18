@@ -161,6 +161,13 @@ def test_migrations_apply_to_existing_v1_database(tmp_path):
             "CREATE TABLE exercises (id VARCHAR(40) PRIMARY KEY, "
             "coach_id VARCHAR(40), name VARCHAR(300), muscle_group VARCHAR(30), "
             "how_to TEXT)"))
+        # Stub dla migracji nr 20 (ALTER-y tekstu OCR przy dokumencie) —
+        # na świeżej bazie tabelę tworzy ORM w migracji nr 1.
+        conn.execute(text(
+            "CREATE TABLE documents (id VARCHAR(40) PRIMARY KEY, "
+            "client_id VARCHAR(40), file_id VARCHAR(40), title VARCHAR(300), "
+            "category VARCHAR(40), uploaded_by VARCHAR(40), "
+            "created_at VARCHAR(40), status VARCHAR(20))"))
     applied = run_migrations(eng)
     assert applied == [v for v, _, _ in MIGRATIONS if v != 1]
     with eng.connect() as conn:

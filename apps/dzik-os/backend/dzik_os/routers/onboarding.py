@@ -32,13 +32,13 @@ from ..authz import (
     DOMAIN_HEALTH,
     DOMAIN_NUTRITION,
     active_relationship,
+    ai_features_consent_active,
     coach_can_access_client,
     deny,
     resolve_client_access,
 )
-from ..consent_catalog import SYSTEM_GRANTEE
 from ..db import get_db
-from ..hos_bridge import ConsentService, record_event
+from ..hos_bridge import record_event
 from ..models import (
     CoachClientRelationship,
     Goal,
@@ -118,16 +118,9 @@ def allowed_domains(db: Session, client_id: str) -> set[str]:
 
 
 def ai_consent_active(db: Session, client_id: str) -> bool:
-    """Zgoda kategorii `funkcje_ai` — bramka KAŻDEJ wysyłki do dostawcy."""
-    return ConsentService.authorize(
-        db,
-        subject_id=client_id,
-        grantee_id=SYSTEM_GRANTEE,
-        purpose="ai_features",
-        domain="checkin_summaries",
-        action="read",
-        sensitive=True,
-    )
+    """Zgoda kategorii `funkcje_ai` — bramka KAŻDEJ wysyłki do dostawcy.
+    Reguła mieszka w authz (jedno miejsce dla wszystkich funkcji AI)."""
+    return ai_features_consent_active(db, client_id)
 
 
 def _require_client_self(user: User, client_id: str) -> None:

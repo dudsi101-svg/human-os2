@@ -82,6 +82,25 @@ class AIProvider(Protocol):
         albo None, gdy dostawca nie odpowiedział."""
         ...
 
+    def propose_json_from_image(
+        self,
+        *,
+        system_prompt: str,
+        image: bytes,
+        media_type: str,
+        task_hint: str,
+        schema_hint: str,
+        timeout_s: int,
+    ) -> AIJsonResponse | None:
+        """Jedno wywołanie modelu widzenia (tryb rozszerzony OCR).
+
+        Do dostawcy jedzie WYŁĄCZNIE samo zdjęcie i rodzaj zadania
+        (`task_hint`, np. „etykieta produktu”) — bez identyfikatorów,
+        e-maili, imion i nazwisk (minimalizacja, patrz ocr_ai.py).
+        Bramką każdego takiego wywołania jest zgoda kategorii `funkcje_ai`
+        podmiotu danych; sprawdza ją wołający, nie dostawca."""
+        ...
+
 
 class NullAIProvider:
     """Nie wywołuje żadnego modelu — bezpieczny domyślny provider."""
@@ -99,6 +118,18 @@ class NullAIProvider:
         *,
         system_prompt: str,
         data_section: str,
+        schema_hint: str,
+        timeout_s: int,
+    ) -> AIJsonResponse | None:
+        return None
+
+    def propose_json_from_image(
+        self,
+        *,
+        system_prompt: str,
+        image: bytes,
+        media_type: str,
+        task_hint: str,
         schema_hint: str,
         timeout_s: int,
     ) -> AIJsonResponse | None:

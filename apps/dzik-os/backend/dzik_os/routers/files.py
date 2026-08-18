@@ -225,6 +225,10 @@ def list_documents(
                 "id": d.id, "file_id": d.file_id, "title": d.title,
                 "category": d.category, "uploaded_by": d.uploaded_by,
                 "created_at": d.created_at,
+                # Tekst przepisany ze skanu (OCR) — zatwierdzony przez
+                # człowieka; dzięki niemu dokument da się przeszukać.
+                # NULL = dokument bez przepisanego tekstu.
+                "ocr_text": d.ocr_text, "ocr_engine": d.ocr_engine, "ocr_at": d.ocr_at,
             }
             for d in rows
         ]

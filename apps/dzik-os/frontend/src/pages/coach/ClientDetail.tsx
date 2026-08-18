@@ -54,6 +54,8 @@ import {
   summaryModeNote,
 } from "../../onboardingUtils";
 import PlanEditor from "./PlanEditor";
+import OcrCapture from "../../OcrCapture";
+import { appendText } from "../../ocrUtils";
 
 type Tab = "profil" | "rozmowa" | "plan" | "dieta" | "harmonogram" | "raporty"
   | "pomiary" | "monitoring" | "platnosci" | "historia";
@@ -590,6 +592,8 @@ function NutritionTab({ clientId }: { clientId: string }) {
   const [form, setForm] = useState({ title: "", reason: "", kcal: "", protein_g: "", fat_g: "", carbs_g: "", zasady: "", meals: "" });
   const [supplements, setSupplements] = useState<SupplementEntry[]>([]);
   const [allergies, setAllergies] = useState<string | null>(null);
+  const [ocrOpen, setOcrOpen] = useState(false);
+  const [ocrNote, setOcrNote] = useState<string | null>(null);
 
   const plan = plans?.[0] ?? null;
   const load = useCallback(() => {
@@ -704,6 +708,36 @@ function NutritionTab({ clientId }: { clientId: string }) {
           </div>
           <label htmlFor="nt-zasady">Zalecenia tekstowe</label>
           <textarea id="nt-zasady" value={form.zasady} onChange={(e) => setForm({ ...form, zasady: e.target.value })} />
+          <div className="row" style={{ marginTop: 6, flexWrap: "wrap" }}>
+            <button type="button" className="btn btn--ghost btn--small"
+              aria-expanded={ocrOpen} onClick={() => setOcrOpen(!ocrOpen)}>
+              {ocrOpen ? "Zamknij przepisywanie" : "Przepisz ze zdjęcia (kartka z dietą)"}
+            </button>
+          </div>
+          <p className="dim" role="status" aria-live="polite" style={{ marginTop: 4 }}>
+            {ocrNote ?? ""}
+          </p>
+          {ocrOpen && (
+            <OcrCapture
+              purpose="PLAN"
+              clientId={clientId}
+              title="Dieta z kartki"
+              hint={"Zrób zdjęcie kartki z dietą. Rozpoznany tekst dopiszemy do "
+                + "pola z zaleceniami — poprawisz go tam i zapiszesz jako nową "
+                + "wersję planu żywieniowego."}
+              approveLabel="Wstaw do zaleceń"
+              onApprove={(_task, text) => {
+                setForm((f) => ({ ...f, zasady: appendText(f.zasady, text) }));
+                setOcrNote(
+                  "Tekst ze zdjęcia dopisano do zaleceń. Popraw go i zapisz "
+                  + "nową wersję — samo przepisanie niczego nie zapisało."
+                );
+                setOcrOpen(false);
+                return true;
+              }}
+              onClose={() => setOcrOpen(false)}
+            />
+          )}
           <label htmlFor="nt-meals">Posiłki (jeden na linię: „Nazwa: opis")</label>
           <textarea id="nt-meals" value={form.meals} onChange={(e) => setForm({ ...form, meals: e.target.value })} />
 

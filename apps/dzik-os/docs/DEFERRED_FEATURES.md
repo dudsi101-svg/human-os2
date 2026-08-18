@@ -58,6 +58,12 @@ Zgodnie z zakresem MVP (sekcja 13 briefu). Architektura ich nie blokuje.
   `payments_provider.py`);
 * własne mierniki trenera w UI (API `metric_definitions` istnieje);
 * edycja/archiwizacja dokumentów przez trenera w UI (API istnieje);
+* automatyczne czyszczenie starych zadań przepisywania tekstu ze zdjęcia
+  (`ocr_tasks`) — dziś wiersz żyje do zatwierdzenia, odrzucenia albo
+  usunięcia konta; TTL (np. 30 dni) to DECYZJA ADMINISTRATORA DANYCH,
+  patrz `OCR.md` §6;
+* OCR plików PDF (dziś wyłącznie zdjęcia JPG/PNG/WEBP — renderowanie stron
+  PDF nie mieści się w 512 MB RAM maszyny produkcyjnej, `OCR.md` §7);
 * paginacja długich list (limity 200 rekordów w API);
 * konto klienta u wielu trenerów naraz (model danych to dopuszcza,
   UI zakłada jednego trenera).

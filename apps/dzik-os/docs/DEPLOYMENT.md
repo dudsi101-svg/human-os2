@@ -81,7 +81,17 @@ wpis SQLite z `[env]` w fly.toml.
 * przed startem z prawdziwymi klientami zamknij ryzyko R-01 (przegląd
   prawny) i domknij resztę R-02 (szyfrowanie samej bazy — dysk
   szyfrowany / pgcrypto);
-* **nie publikuj kont demo na produkcji** (nie uruchamiaj seeda).
+* **nie publikuj kont demo na produkcji** (nie uruchamiaj seeda);
+* **przepisywanie tekstu ze zdjęcia (OCR)**: obraz produkcyjny zawiera
+  `tesseract-ocr` + pakiety `pol`/`eng` (Dockerfile). Rozpoznanie zjada
+  pamięć, więc kolejka jest **jednoslotowa**, a obraz zmniejszany do
+  1600 px przed OCR. Na `shared-cpu-1x/512mb` to działa dla jednego
+  trenera; **przy większym ruchu podbij maszynę do 1 GB**
+  (`flyctl scale memory 1024`) — inaczej zadania będą stać w kolejce.
+  Strojenie: `DZIK_OCR_MAX_PX`, `DZIK_OCR_TIMEOUT_S`,
+  `DZIK_OCR_QUEUE_MAX`, `DZIK_OCR_MAX_INPUT_MB`,
+  `DZIK_OCR_DAILY_TASKS_USER`, `DZIK_OCR_LANGS` (szczegóły:
+  `docs/OCR.md` §2).
 
 ## 4a. Kopie zapasowe (R-12)
 

@@ -3,6 +3,9 @@ import { api, getUser, isCancel, uploadFileWithProgress } from "../../api";
 import { mondayOfWeek, plDate } from "../../dates";
 import { ErrorBox, SectionLabel, Spinner, TopBar } from "../../components";
 import { CheckinData, POSE_LABELS, ScaleAnswerState } from "../../types";
+// Kompresja zdjęć jest wspólna z „Przepisz ze zdjęcia" (src/imageCompress.ts)
+// — jedna ścieżka dla wszystkich zdjęć wysyłanych z przeglądarki.
+import { compressImage } from "../../imageCompress";
 
 // Skale subiektywne z jawnym znaczeniem krańców — użytkownik widzi, co
 // oznacza 1, a co 5, zanim cokolwiek wybierze.
@@ -44,38 +47,6 @@ interface SubmitResult {
 }
 
 const MAX_PHOTOS = 8; // ten sam limit egzekwuje backend (422)
-
-/** Kompresja po stronie klienta PRZED wysłaniem: obrót zgodny z
- * orientacją EXIF (imageOrientation: "from-image"), maks. 2048 px dłuższego
- * boku, JPEG ~0.85. Przejście przez canvas naturalnie USUWA wszystkie
- * metadane EXIF (w tym GPS) — backendowy strip z P4 zostaje jako druga
- * warstwa (i jedyna, gdy kompresja się nie powiedzie i leci oryginał). */
-async function compressImage(file: File): Promise<File> {
-  try {
-    const bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
-    const MAX_PX = 2048;
-    const scale = Math.min(1, MAX_PX / Math.max(bitmap.width, bitmap.height));
-    const w = Math.max(1, Math.round(bitmap.width * scale));
-    const h = Math.max(1, Math.round(bitmap.height * scale));
-    const canvas = document.createElement("canvas");
-    canvas.width = w;
-    canvas.height = h;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return file;
-    ctx.drawImage(bitmap, 0, 0, w, h);
-    bitmap.close();
-    const blob = await new Promise<Blob | null>((resolve) =>
-      canvas.toBlob(resolve, "image/jpeg", 0.85)
-    );
-    if (!blob) return file;
-    const base = file.name.replace(/\.[^.]+$/, "") || "zdjecie";
-    return new File([blob], `${base}.jpg`, { type: "image/jpeg" });
-  } catch {
-    // Świadomie: stara przeglądarka / uszkodzony plik — wysyłamy oryginał,
-    // EXIF/GPS i rozdzielczość utnie backend (file_safety.process_image).
-    return file;
-  }
-}
 
 function newIdemKey(): string {
   try {

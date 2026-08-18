@@ -26,7 +26,7 @@
 | Fly.io, Inc. | hosting aplikacji, bazy i plików | wszystkie dane aplikacji (w spoczynku na wolumenie) | Frankfurt (UE); siedziba dostawcy: USA | DECYZJA ADMINISTRATORA DANYCH: zawrzeć/zweryfikować DPA Fly.io + mechanizm transferu (SCC/DPF) |
 | Dostawca poczty | powiadomienia e-mail | adres e-mail, neutralna treść (bez danych zdrowotnych) | zależny od wyboru | **Obecnie: `NullNotificationProvider` — nic nie jest wysyłane.** Aktywacja (Resend/SendGrid/Mailgun/SMTP) = DECYZJA ADMINISTRATORA DANYCH + wpis tutaj i w polityce prywatności |
 | Dostawca push | doręczanie Web Push | techniczny endpoint subskrypcji; treść szyfrowana E2E, bez danych zdrowotnych | zależny od przeglądarki użytkownika (Mozilla/Google/Apple) | wynika z opt-in użytkownika w przeglądarce; za zgodą kategorii `przypomnienia` |
-| Dostawca AI | podsumowania raportów (propose-only) | treść raportu tygodniowego (dane zdrowotne!) | zależny od wyboru | **Obecnie: `NullAIProvider` — nic nie jest wysyłane.** Aktywacja = DECYZJA ADMINISTRATORA DANYCH + DPIA (patrz RODO_DPIA.md) + zgoda klienta kategorii `funkcje_ai` |
+| Dostawca AI | podsumowania raportów i rozmowy startowej oraz **tryb rozszerzony przepisywania tekstu ze zdjęcia** (propose-only) | treść raportu tygodniowego i odpowiedzi z rozmowy startowej (dane zdrowotne!); **zdjęcie przekazane do przepisania + rodzaj zadania — bez identyfikatorów, e-maili i nazwisk** | zależny od wyboru | **Obecnie: `NullAIProvider` — nic nie jest wysyłane.** Aktywacja = DECYZJA ADMINISTRATORA DANYCH + DPIA (patrz RODO_DPIA.md) + zgoda klienta kategorii `funkcje_ai` |
 | Operator płatności | — | — | — | **Brak.** Aplikacja prowadzi wyłącznie ewidencję statusów płatności; nie przetwarza danych kart ani nie inicjuje płatności online |
 
 **Zasoby zewnętrzne:** czcionki (@fontsource, self-hosting) i wszystkie
@@ -57,6 +57,7 @@ Human OS, egzekwowana w kodzie audytu).
 | 10 | Marketing trenera | klienci ze zgodą | e-mail, imię | informacje o usługach | 6(1)(a) | trener | do wycofania zgody |
 | 11 | Ewidencja rozliczeń | klienci | pakiet, kwoty, terminy, statusy | rozliczenia i obowiązki podatkowe | 6(1)(b), 6(1)(c) | trener, księgowość trenera | okres wymagany przepisami podatkowymi (5 lat od końca roku) |
 | 12 | Dziennik zdarzeń (audyt) | wszyscy | identyfikatory operacji, typy zdarzeń, hashe (bez treści zdrowotnych) | bezpieczeństwo, rozliczalność | 6(1)(f) | admin (weryfikacja łańcucha) | trwale (łańcuch niemutowalny) |
+| 13 | Przepisywanie tekstu ze zdjęcia (OCR) | klienci, trener | zdjęcie (etykieta, kartka z planem, skan dokumentu) i rozpoznany z niego tekst — **może zawierać dane art. 9** (np. skan wyniku badań) | zamiana zdjęcia w tekst do zatwierdzenia przez człowieka (wpis produktu, tekst planu/diety, tekst przeszukiwalny przy dokumencie) | 6(1)(b) — wykonanie umowy; **9(2)(a)** dla zdjęć niosących dane zdrowotne (ta sama zgoda co dla kategorii danych, której dotyczy zdjęcie); wysyłka do dostawcy modelu wyłącznie przy zgodzie `funkcje_ai` | trener/klient (wg właściciela danych), hosting; dostawca modelu **tylko w trybie rozszerzonym** (obecnie brak — Null) | do zatwierdzenia albo odrzucenia propozycji; nie dłużej niż do usunięcia konta (brak automatycznego TTL — DECYZJA ADMINISTRATORA DANYCH) |
 
 ## 4. Retencja
 

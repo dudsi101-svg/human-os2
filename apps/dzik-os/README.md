@@ -78,6 +78,7 @@ ruff check apps/dzik-os/backend
 | [docs/RISK_REGISTER.md](docs/RISK_REGISTER.md) | Rejestr ryzyk |
 | [docs/DEFERRED_FEATURES.md](docs/DEFERRED_FEATURES.md) | Świadomie odłożone funkcje |
 | [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) | Uruchomienie, staging, produkcja |
+| [docs/OCR.md](docs/OCR.md) | Przepisywanie tekstu ze zdjęcia: dwa tryby, kolejka, limity, prywatność |
 | [docs/INSTRUKCJA_TRENERA.md](docs/INSTRUKCJA_TRENERA.md) | Instrukcja dla trenera |
 | [docs/INSTRUKCJA_KLIENTA.md](docs/INSTRUKCJA_KLIENTA.md) | Instrukcja dla podopiecznego |
 | [docs/CHANGELOG.md](docs/CHANGELOG.md) | Historia zmian aplikacji |

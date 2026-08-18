@@ -3,6 +3,8 @@ import { api, getUser } from "../../api";
 import { plDate } from "../../dates";
 import { ErrorBox, FileDownloadButton, Icon, Spinner, TopBar } from "../../components";
 import { DocumentRow, ScheduleItem, CATEGORY_LABELS } from "../../types";
+import OcrCapture from "../../OcrCapture";
+import { documentMatches } from "../../ocrUtils";
 import { WEEKDAYS } from "../../dates";
 
 export default function Documents() {
@@ -10,6 +12,11 @@ export default function Documents() {
   const [docs, setDocs] = useState<DocumentRow[] | null>(null);
   const [schedule, setSchedule] = useState<ScheduleItem[]>([]);
   const [error, setError] = useState<string | null>(null);
+  // Wyszukiwanie obejmuje tytuł ORAZ tekst przepisany ze skanu — po to on jest.
+  const [query, setQuery] = useState("");
+  // Który dokument właśnie przepisujemy (skan -> tekst przeszukiwalny).
+  const [ocrDoc, setOcrDoc] = useState<DocumentRow | null>(null);
+  const [ocrNote, setOcrNote] = useState<string | null>(null);
 
   const load = () => {
     setError(null);
@@ -31,14 +38,63 @@ export default function Documents() {
       <TopBar title="Dokumenty i harmonogram" />
       <div className="card">
         <h2>Dokumenty od trenera</h2>
+        <label htmlFor="doc-search">Szukaj w dokumentach</label>
+        <input id="doc-search" type="search" value={query}
+          placeholder="tytuł albo słowo z przepisanego skanu"
+          onChange={(e) => setQuery(e.target.value)} />
+        <p className="dim" role="status" aria-live="polite" style={{ marginTop: 4 }}>
+          {ocrNote
+            ?? (query
+              ? `Pasujących dokumentów: ${docs.filter((d) => documentMatches(d, query)).length}.`
+              : "")}
+        </p>
         {docs.length === 0 && <small>Brak dokumentów.</small>}
-        {docs.map((d) => (
-          <div className="exercise" key={d.id}>
-            <div>
-              <b>{d.title}</b>
-              <div className="meta">{plDate(d.created_at)}</div>
+        {docs.filter((d) => documentMatches(d, query)).map((d) => (
+          <div className="exercise" key={d.id} style={{ display: "block" }}>
+            <div className="row row--between">
+              <div>
+                <b>{d.title}</b>
+                <div className="meta">
+                  {plDate(d.created_at)}
+                  {d.ocr_text ? " · tekst przepisany ze zdjęcia" : ""}
+                </div>
+              </div>
+              <FileDownloadButton fileId={d.file_id} openInTab label="Otwórz" />
             </div>
-            <FileDownloadButton fileId={d.file_id} openInTab label="Otwórz" />
+            {d.ocr_text && (
+              <details style={{ marginTop: 6 }}>
+                <summary>Przepisany tekst (do wyszukiwania)</summary>
+                <p className="dim" style={{ whiteSpace: "pre-wrap" }}>{d.ocr_text}</p>
+              </details>
+            )}
+            <div className="row" style={{ marginTop: 6 }}>
+              <button type="button" className="btn btn--ghost btn--small"
+                aria-expanded={ocrDoc?.id === d.id}
+                onClick={() => setOcrDoc(ocrDoc?.id === d.id ? null : d)}>
+                {d.ocr_text ? "Przepisz ponownie ze zdjęcia" : "Przepisz ze zdjęcia"}
+              </button>
+            </div>
+            {ocrDoc?.id === d.id && (
+              <OcrCapture
+                purpose="DOKUMENT"
+                documentId={d.id}
+                existingFileId={d.file_id}
+                existingFileLabel="Przepisz skan, który już jest w aplikacji"
+                title={`Skan: ${d.title}`}
+                hint={"Zrób zdjęcie dokumentu. Rozpoznany tekst zapiszemy przy "
+                  + "dokumencie dopiero po Twoim zatwierdzeniu — oryginał pliku "
+                  + "zostaje bez zmian."}
+                approveLabel="Zapisz przepisany tekst"
+                onApprove={async (task, text) => {
+                  await api.post(`/api/ocr/tasks/${task.id}/approve`, { text });
+                  setOcrNote("Zapisano przepisany tekst — dokument da się teraz wyszukać.");
+                  setOcrDoc(null);
+                  load();
+                  return true;
+                }}
+                onClose={() => setOcrDoc(null)}
+              />
+            )}
           </div>
         ))}
       </div>

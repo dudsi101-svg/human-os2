@@ -188,6 +188,20 @@ class Metrics:
                 "onboarding_ai_tokens_in": counters.get("onboarding_ai_tokens_in", 0),
                 "onboarding_ai_tokens_out": counters.get("onboarding_ai_tokens_out", 0),
                 "onboarding_safety_flags": counters.get("onboarding_safety_flags", 0),
+                # Przepisywanie tekstu ze zdjęcia (OCR): przebieg i koszty —
+                # wyłącznie liczby i czasy, NIGDY rozpoznany tekst ani
+                # zawartość zdjęcia (docs/OCR.md §prywatność).
+                "ocr_tasks_requested": counters.get("ocr_tasks_requested", 0),
+                "ocr_tasks_started": counters.get("ocr_tasks_started", 0),
+                "ocr_tasks_done": counters.get("ocr_tasks_done", 0),
+                "ocr_tasks_failed": counters.get("ocr_tasks_failed", 0),
+                "ocr_engine_unavailable": counters.get("ocr_engine_unavailable", 0),
+                "ocr_proposals_approved": counters.get("ocr_proposals_approved", 0),
+                "ocr_ai_calls": counters.get("ocr_ai_calls", 0),
+                "ocr_ai_rejected": counters.get("ocr_ai_rejected", 0),
+                "ocr_ai_fallback": counters.get("ocr_ai_fallback", 0),
+                "ocr_ai_tokens_in": counters.get("ocr_ai_tokens_in", 0),
+                "ocr_ai_tokens_out": counters.get("ocr_ai_tokens_out", 0),
                 "frontend_error_reports": counters.get("frontend_error_reports", 0),
                 "frontend_error_reports_dropped": counters.get(
                     "frontend_error_reports_dropped", 0

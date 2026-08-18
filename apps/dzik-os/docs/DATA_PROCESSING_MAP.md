@@ -63,14 +63,21 @@ przegląd prawny (patrz RISK_REGISTER R-01).
 
 * **AI**: domyślnie żaden dostawca nie jest skonfigurowany
   (`ai_provider.NullAIProvider` — nic nie wysyła, zawsze zwraca „wymaga
-  konfiguracji"). Dwa podpięte, propose-only use case'y, oba bramkowane
-  zgodą klienta `funkcje_ai`:
+  konfiguracji"). Trzy podpięte, propose-only use case'y, wszystkie
+  bramkowane zgodą klienta `funkcje_ai`:
   1. **podsumowanie raportu tygodniowego** + szkic odpowiedzi dla trenera
      — wynik nigdy nie trafia do klienta bez edycji/zatwierdzenia przez
      trenera;
   2. **wersja robocza podsumowania rozmowy startowej** (onboarding) —
      zatwierdza ją najpierw klient, potem trener; model nie prowadzi
-     rozmowy, nie diagnozuje i nie publikuje planu ani diety.
+     rozmowy, nie diagnozuje i nie publikuje planu ani diety;
+  3. **tryb rozszerzony przepisywania tekstu ze zdjęcia** (OCR) — do
+     dostawcy jedzie WYŁĄCZNIE zdjęcie i rodzaj zadania („etykieta
+     produktu" / „kartka z planem lub dietą" / „skan dokumentu"), bez
+     identyfikatorów, e-maili i nazwisk. Bez zgody albo bez klucza
+     przepisuje silnik lokalny na naszym serwerze i nic nie opuszcza
+     aplikacji; wynik zawsze jest propozycją do zatwierdzenia przez
+     człowieka (`docs/OCR.md`).
 
   Zakres wysyłany w (2) jest zminimalizowany do listy
   `{pole, zagadnienie, pytanie, odpowiedź}` — bez identyfikatorów,

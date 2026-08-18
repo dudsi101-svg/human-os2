@@ -294,6 +294,13 @@ def _deliver_event(user_id: str, event: dict) -> dict | None:
     doręczenia do nadawcy. Zwraca payload do wysłania albo None (odrzut —
     treść nie płynie do strony bez dostępu)."""
     event_kind = str(event.get("type", ""))
+    if event_kind == "ocr.task":
+        # Postęp przepisywania tekstu ze zdjęcia: adresowane wprost do
+        # właściciela danych i zlecającego (bus.publish per user_id), a
+        # payload to sam STATUS — bez rozpoznanego tekstu. Treść pobiera
+        # dopiero GET /api/ocr/tasks/{id}, czyli za bramką dostępu.
+        data = {k: v for k, v in event.items() if k != "type"}
+        return {"event": event_kind, "data": data, "id": data.get("task_id")}
     if event_kind.startswith("notification."):
         # Zdarzenia centrum powiadomień: adresowane wprost do użytkownika
         # (bus.publish per user_id), bez bramki wątku — nie zawierają danych

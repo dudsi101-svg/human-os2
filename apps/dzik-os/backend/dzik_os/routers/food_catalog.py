@@ -89,6 +89,11 @@ def _out(item: FoodProduct) -> dict:
         "default_portion_g": item.default_portion_g,
         "unit_name": item.unit_name, "unit_grams": item.unit_grams,
         "source": item.source, "note": item.note,
+        # Proweniencja (migracja nr 20): NULL = wpis ręczny albo z CSV,
+        # "OCR" = wstępnie wypełniony ze zdjęcia etykiety i zatwierdzony
+        # przez trenera (z odniesieniem do pliku źródłowego i silnika).
+        "origin_kind": item.origin_kind, "origin_file_id": item.origin_file_id,
+        "origin_engine": item.origin_engine,
         "status": item.status, "created_at": item.created_at, "updated_at": item.updated_at,
     }
 

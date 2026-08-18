@@ -3,6 +3,8 @@ import { api } from "../../api";
 import { WEEKDAYS } from "../../dates";
 import { ErrorBox, ExerciseFilterBar, Spinner } from "../../components";
 import { EMPTY_FILTERS, ExerciseFilters, exerciseQuery } from "../../exerciseFilters";
+import OcrCapture from "../../OcrCapture";
+import { linesToExerciseNames } from "../../ocrUtils";
 import {
   EXERCISE_LEVEL_LABELS,
   Exercise,
@@ -123,6 +125,8 @@ export default function PlanEditor({
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [pickerDay, setPickerDay] = useState<number | null>(null);
+  const [ocrOpen, setOcrOpen] = useState(false);
+  const [ocrNote, setOcrNote] = useState<string | null>(null);
 
   const setDay = (i: number, day: PlanDay) =>
     setDays(days.map((d, j) => (i === j ? day : d)));
@@ -160,6 +164,30 @@ export default function PlanEditor({
     setDay(dayIndex, { ...day, exercises });
   }
 
+  /** Tekst z kartki -> nowy dzień do ręcznej obróbki.
+   *
+   * ŚWIADOMIE nie zgadujemy serii, powtórzeń ani ciężarów: jedna linia to
+   * jedna nazwa ćwiczenia do poprawienia. Plan zapisuje dopiero trener
+   * przyciskiem „Zapisz" — samo przepisanie niczego nie utrwala. */
+  function insertFromPhoto(text: string) {
+    const names = linesToExerciseNames(text);
+    if (!names.length) return false;
+    setDays([
+      ...days,
+      {
+        name: "Z kartki (do uporządkowania)",
+        weekday: null,
+        exercises: names.map((name) => ({ ...emptyExercise(), name })),
+      },
+    ]);
+    setOcrNote(
+      `Dodano dzień z ${names.length} pozycjami przepisanymi ze zdjęcia. `
+      + "Popraw nazwy, serie i powtórzenia — nic nie zostało jeszcze zapisane."
+    );
+    setOcrOpen(false);
+    return true;
+  }
+
   async function save(e: FormEvent) {
     e.preventDefault();
     setBusy(true);
@@ -195,6 +223,28 @@ export default function PlanEditor({
       <label htmlFor="pe-reason">Powód {existingPlan ? "zmiany" : "utworzenia"} (obowiązkowy — trafia do historii)</label>
       <input id="pe-reason" required value={reason} onChange={(e) => setReason(e.target.value)}
         placeholder="np. progresja po raporcie z tygodnia 3" />
+      <div className="row" style={{ marginTop: 10, flexWrap: "wrap" }}>
+        <button type="button" className="btn btn--ghost btn--small"
+          aria-expanded={ocrOpen} onClick={() => setOcrOpen(!ocrOpen)}>
+          {ocrOpen ? "Zamknij przepisywanie" : "Przepisz ze zdjęcia (kartka z planem)"}
+        </button>
+      </div>
+      <p className="dim" role="status" aria-live="polite" style={{ marginTop: 4 }}>
+        {ocrNote ?? ""}
+      </p>
+      {ocrOpen && (
+        <OcrCapture
+          purpose="PLAN"
+          clientId={clientId ?? undefined}
+          title="Plan z kartki"
+          hint={"Zrób zdjęcie kartki z planem. Rozpoznany tekst wstawimy jako "
+            + "nowy dzień treningowy — każda linia jako osobna pozycja do "
+            + "poprawienia. Zapisujesz go dopiero przyciskiem na dole."}
+          approveLabel="Wstaw do edytora planu"
+          onApprove={(_task, text) => insertFromPhoto(text)}
+          onClose={() => setOcrOpen(false)}
+        />
+      )}
       {days.map((day, di) => (
         <div key={di} className="card" style={{ marginTop: 10 }}>
           <div className="field-row">

@@ -214,6 +214,8 @@ export const api = {
     request<T>("PUT", path, body, undefined, opts),
   patch: <T>(path: string, body?: unknown, opts?: RequestOpts) =>
     request<T>("PATCH", path, body, undefined, opts),
+  del: <T>(path: string, opts?: RequestOpts) =>
+    request<T>("DELETE", path, undefined, undefined, opts),
   upload: <T>(path: string, file: File, opts?: RequestOpts) => {
     const form = new FormData();
     form.append("file", file);
