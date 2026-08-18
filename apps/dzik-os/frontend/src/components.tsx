@@ -93,6 +93,61 @@ export function UpdateBanner() {
   );
 }
 
+/** Dedykowany ekran offline — pełnoekranowa nakładka nad aplikacją.
+ *
+ * Dzik OS celowo NIE cache'uje żadnych danych z /api (dane zdrowotne nigdy
+ * nie trafiają do Cache Storage), więc bez sieci nie ma czego pokazać —
+ * zamiast wiecznego spinnera albo starych danych udających aktualne,
+ * użytkownik dostaje jasny komunikat. Nakładka NIE odmontowuje widoków
+ * pod spodem (drzewo React zostaje zamontowane), dzięki czemu wypełniany
+ * formularz przeżywa chwilową utratę połączenia. */
+export function OfflineScreen() {
+  const [online, setOnline] = useState(() => navigator.onLine);
+  const [checking, setChecking] = useState(false);
+  useEffect(() => {
+    const goOnline = () => setOnline(true);
+    const goOffline = () => setOnline(false);
+    window.addEventListener("online", goOnline);
+    window.addEventListener("offline", goOffline);
+    return () => {
+      window.removeEventListener("online", goOnline);
+      window.removeEventListener("offline", goOffline);
+    };
+  }, []);
+  if (online) return null;
+  const check = async () => {
+    setChecking(true);
+    try {
+      // Prawdziwy test łącza (navigator.onLine bywa zbyt optymistyczny):
+      // /api/health jest network-only, więc odpowiedź = realne połączenie.
+      const resp = await fetch("/api/health", { cache: "no-store" });
+      if (resp.ok) setOnline(true);
+    } catch {
+      /* nadal offline */
+    } finally {
+      setChecking(false);
+    }
+  };
+  return (
+    <div className="offline-screen" role="alert" data-testid="offline-screen">
+      <Logo size={52} />
+      <h1>Brak połączenia z internetem</h1>
+      <p>
+        Twoje dane zdrowotne nie są przechowywane na tym urządzeniu, dlatego
+        plan dnia, dieta, raporty, postępy, wiadomości, dokumenty i płatności
+        wymagają połączenia z siecią.
+      </p>
+      <p className="dim">
+        Gdy połączenie wróci, ekran zniknie automatycznie i zobaczysz aktualne
+        dane. Formularz wypełniany przed utratą sieci pozostaje zachowany.
+      </p>
+      <button className="btn" onClick={check} disabled={checking}>
+        {checking ? "Sprawdzanie…" : "Sprawdź połączenie"}
+      </button>
+    </div>
+  );
+}
+
 export function TopBar({ title, right }: { title: string; right?: ReactNode }) {
   return (
     <div className="topbar">

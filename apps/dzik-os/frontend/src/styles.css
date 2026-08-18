@@ -247,6 +247,20 @@ table.simple th { color: var(--text-dim); font-weight: 600; font-size: 0.78rem; 
 }
 .update-banner .btn { width: auto; padding: 6px 14px; background: var(--accent-ink); color: var(--accent); }
 
+/* Ekran offline — nakładka NAD aplikacją (widoki pod spodem zostają
+   zamontowane: formularze przeżywają chwilowy brak sieci), pełne krycie:
+   stare dane zdrowotne nie mogą prześwitywać jako "aktualne". */
+.offline-screen {
+  position: fixed; inset: 0; z-index: 200;
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; gap: 14px; text-align: center;
+  padding: 32px 24px;
+  background: var(--bg);
+}
+.offline-screen h1 { font-family: var(--font-display); font-size: 1.15rem; }
+.offline-screen p { max-width: 420px; font-size: 0.92rem; }
+.offline-screen .btn { width: auto; padding: 10px 22px; margin-top: 6px; }
+
 .login-wrap {
   min-height: 100dvh; display: flex; flex-direction: column;
   align-items: center; justify-content: center; padding: 24px;

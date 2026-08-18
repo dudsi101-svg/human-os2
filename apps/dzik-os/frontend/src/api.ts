@@ -40,6 +40,20 @@ export class ApiError extends Error {
   }
 }
 
+export const OFFLINE_MESSAGE =
+  "Brak połączenia z internetem. Dane wczytają się po odzyskaniu sieci.";
+
+/** fetch() odrzucony bez odpowiedzi HTTP = brak sieci. Zamiast surowego
+ * "Failed to fetch" widoki dostają po polsku status offline (status 0) —
+ * istniejące stany błędów pokazują go zamiast wiecznego spinnera. */
+async function fetchOrOffline(input: string, init: RequestInit): Promise<Response> {
+  try {
+    return await fetch(input, init);
+  } catch {
+    throw new ApiError(0, OFFLINE_MESSAGE);
+  }
+}
+
 async function request<T>(
   method: string,
   path: string,
@@ -50,7 +64,7 @@ async function request<T>(
   const token = getToken();
   if (token) headers["Authorization"] = `Bearer ${token}`;
   if (body !== undefined) headers["Content-Type"] = "application/json";
-  const resp = await fetch(path, {
+  const resp = await fetchOrOffline(path, {
     method,
     headers,
     body: form ?? (body !== undefined ? JSON.stringify(body) : undefined),
@@ -182,7 +196,7 @@ export async function fetchFile(fileId: string): Promise<FetchedFile> {
   const headers: Record<string, string> = {};
   const token = getToken();
   if (token) headers["Authorization"] = `Bearer ${token}`;
-  const resp = await fetch(`/api/files/${encodeURIComponent(fileId)}`, {
+  const resp = await fetchOrOffline(`/api/files/${encodeURIComponent(fileId)}`, {
     headers,
     credentials: "same-origin",
   });

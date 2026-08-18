@@ -1,18 +1,48 @@
 /* Dzik OS — service worker (PWA).
-   Strategia: nawigacje network-first (świeża aplikacja przy każdym
-   otwarciu; cache tylko jako fallback offline), statyki cache-first,
-   network-only dla /api (dane zdrowotne nigdy nie są cachowane). */
-const CACHE = "dzik-os-v2";
-const APP_SHELL = [
-  "/", "/manifest.webmanifest",
-  "/icons/favicon-64.png", "/icons/boar-mark.png", "/icons/logo-full.png",
-];
+
+   Strategie (patrz też docs w repo aplikacji):
+   - /api/*           → network-only. Dane zdrowotne NIGDY nie trafiają do
+                        Cache Storage — fetch handler w ogóle nie przejmuje
+                        tych żądań, a activate() wymiata ewentualne stare
+                        wpisy z poprzednich wersji cache.
+   - nawigacje        → network-first (świeża aplikacja przy każdym
+                        otwarciu); offline: precache'owany shell
+                        (/index.html) z bieżącego builda.
+   - statyki wersji   → cache-first z precache generowanego przy buildzie
+                        (scripts/inject-precache.mjs wstrzykuje do dist/sw.js
+                        pełną listę zahaszowanych plików + wersję builda).
+   - brakujący asset  → błąd sieci, NIGDY index.html (żaden skrypt/styl/
+                        obrazek nie dostanie HTML — to dawało błąd MIME
+                        i pusty ekran).
+   - cross-origin (np. Google Fonts) → nieprzejmowane; offline działa
+                        fallback systemowych fontów.
+
+   Aktualizacje: celowo BEZ auto-skipWaiting przy instalacji — nowa wersja
+   czeka, aż użytkownik świadomie potwierdzi odświeżenie (src/pwa.ts +
+   UpdateBanner). Przeładowanie następuje TYLKO po kliknięciu użytkownika. */
+
+// Wstrzykiwane przez scripts/inject-precache.mjs na początku dist/sw.js:
+//   self.__BUILD_VERSION  — hash zawartości builda (wersjonowanie cache),
+//   self.__PRECACHE_MANIFEST — pełna lista plików tej wersji.
+// Fallback poniżej działa tylko poza buildem produkcyjnym (dev/test).
+const VERSION = self.__BUILD_VERSION || "dev";
+const PRECACHE_URLS = Array.isArray(self.__PRECACHE_MANIFEST)
+  ? self.__PRECACHE_MANIFEST
+  : ["/index.html", "/manifest.webmanifest"];
+const PRECACHE = `dzik-os-precache-${VERSION}`;
+const SHELL_URL = "/index.html";
 
 self.addEventListener("install", (event) => {
-  // Celowo BEZ self.skipWaiting() — nowa wersja czeka, aż użytkownik
-  // świadomie potwierdzi odświeżenie (patrz src/pwa.ts + UpdateBanner),
-  // zamiast cicho podmieniać kod aplikacji pod ręką w trakcie sesji.
-  event.waitUntil(caches.open(CACHE).then((c) => c.addAll(APP_SHELL)));
+  // Celowo BEZ auto-skipWaiting — patrz komentarz na górze pliku.
+  event.waitUntil(
+    caches.open(PRECACHE).then((cache) =>
+      cache.addAll(
+        // cache: "reload" — omija HTTP cache przeglądarki, żeby precache
+        // zawierał dokładnie bajty tej wersji z serwera.
+        PRECACHE_URLS.map((url) => new Request(url, { cache: "reload" }))
+      )
+    )
+  );
 });
 
 self.addEventListener("message", (event) => {
@@ -56,48 +86,54 @@ self.addEventListener("notificationclick", (event) => {
 
 self.addEventListener("activate", (event) => {
   event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)))
-    )
+    (async () => {
+      // 1) Wersjonowanie: usuń wszystkie cache poprzednich buildów
+      //    (w tym stare "dzik-os-v*" sprzed precache'u per build).
+      const keys = await caches.keys();
+      await Promise.all(
+        keys.filter((k) => k !== PRECACHE).map((k) => caches.delete(k))
+      );
+      // 2) Higiena danych: defensywnie wymieć z bieżącego cache wszystko,
+      //    co wygląda na /api (nie powinno się nigdy pojawić — fetch
+      //    handler nie dotyka /api — ale dane zdrowotne uzasadniają pas
+      //    i szelki).
+      const cache = await caches.open(PRECACHE);
+      for (const req of await cache.keys()) {
+        if (new URL(req.url).pathname.startsWith("/api")) {
+          await cache.delete(req);
+        }
+      }
+      await self.clients.claim();
+    })()
   );
-  self.clients.claim();
 });
 
 self.addEventListener("fetch", (event) => {
   const url = new URL(event.request.url);
-  if (event.request.method !== "GET" || url.pathname.startsWith("/api")) {
-    return; // API zawsze z sieci — bez cache
+  if (event.request.method !== "GET") return; // mutacje zawsze do sieci
+  if (url.origin !== self.location.origin) return; // np. Google Fonts
+  if (url.pathname.startsWith("/api")) {
+    return; // API network-only — dane zdrowotne/pliki prywatne bez cache
   }
   if (event.request.mode === "navigate") {
-    // Network-first: otwarcie/odświeżenie aplikacji zawsze próbuje
-    // pobrać świeżą wersję (to naturalny moment aktualizacji — nie jest
-    // to cicha podmiana kodu w trakcie sesji); cache tylko offline.
+    // Network-first: otwarcie/odświeżenie aplikacji zawsze próbuje pobrać
+    // świeżą wersję (naturalny moment aktualizacji — nie jest to cicha
+    // podmiana kodu w trakcie sesji). Offline: shell z precache tej
+    // wersji, którego assety też są w precache — spójny zestaw.
     event.respondWith(
-      fetch(event.request)
-        .then((resp) => {
-          if (resp.ok) {
-            const clone = resp.clone();
-            caches.open(CACHE).then((c) => c.put("/", clone));
-          }
-          return resp;
-        })
-        .catch(() => caches.match("/"))
+      fetch(event.request).catch(() =>
+        caches.open(PRECACHE).then((cache) => cache.match(SHELL_URL))
+      )
     );
     return;
   }
+  // Statyki: cache-first z precache; brak w cache → sieć. Gdy i sieć
+  // zawiedzie, odpowiedzią jest błąd sieci — NIGDY fallback do HTML
+  // (HTML zamiast JS/CSS = błąd MIME i pusty ekran).
   event.respondWith(
-    caches.match(event.request).then(
-      (cached) =>
-        cached ||
-        fetch(event.request)
-          .then((resp) => {
-            if (resp.ok && url.origin === self.location.origin) {
-              const clone = resp.clone();
-              caches.open(CACHE).then((c) => c.put(event.request, clone));
-            }
-            return resp;
-          })
-          .catch(() => caches.match("/"))
-    )
+    caches
+      .open(PRECACHE)
+      .then((cache) => cache.match(event.request))
+      .then((cached) => cached || fetch(event.request))
   );
 });
