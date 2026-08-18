@@ -186,7 +186,13 @@ export interface MessageRow {
   body: string;
   file_id: string | null;
   created_at: string;
+  /** Urządzenie odbiorcy odebrało wiadomość (SSE lub otwarcie wątku). */
+  delivered_at: string | null;
   read_at: string | null;
+  /** Identyfikator nadany przez urządzenie nadawcy (deduplikacja ponowień). */
+  client_msg_id?: string | null;
+  /** Lokalnie: wiadomość w drodze (optymistyczna, czeka na potwierdzenie). */
+  pending?: boolean;
 }
 
 export interface TodayData {

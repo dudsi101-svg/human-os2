@@ -99,6 +99,11 @@ class Settings:
     )
     # Strefa czasowa przypomnień harmonogramu (czas lokalny użytkowników).
     timezone: str = field(default_factory=lambda: _env("DZIK_TZ", "Europe/Warsaw"))
+    # Kanał czasu rzeczywistego (SSE, /api/threads/events): co ile sekund
+    # wysyłany jest keepalive (komentarz SSE) i sprawdzana ważność sesji.
+    sse_keepalive_s: int = field(
+        default_factory=lambda: int(_env("DZIK_SSE_KEEPALIVE_S", "25"))
+    )
 
     ALLOWED_UPLOAD_TYPES: ClassVar[dict[str, str]] = {
         "image/jpeg": ".jpg",

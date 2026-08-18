@@ -151,6 +151,11 @@ class MetricDefinitionIn(BaseModel):
 class MessageIn(BaseModel):
     body: str = Field(min_length=1, max_length=10000)
     file_id: str | None = None
+    # Identyfikator nadany przez urządzenie nadawcy (np. UUID) — ponowienie
+    # tego samego żądania po utracie sieci nie tworzy duplikatu wiadomości.
+    client_msg_id: str | None = Field(
+        default=None, min_length=8, max_length=64, pattern=r"^[A-Za-z0-9_-]+$"
+    )
 
 
 class PaymentScheduleIn(BaseModel):

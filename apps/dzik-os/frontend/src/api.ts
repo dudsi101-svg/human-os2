@@ -132,6 +132,13 @@ function redirectToLogin(message: string) {
   if (!location.pathname.startsWith("/login")) location.assign("/login");
 }
 
+/** Czytelny powrót do logowania po wygaśnięciu sesji — dla warstw poza
+ * request() (np. kanał SSE w realtime.ts, który sam dostaje 401 albo
+ * zdarzenie session_expired). */
+export function handleSessionExpired(): void {
+  redirectToLogin(SESSION_EXPIRED_MESSAGE);
+}
+
 /** Jednorazowy komunikat dla ekranu logowania (np. „sesja wygasła"). */
 export function consumeLoginNotice(): string | null {
   const value = sessionStorage.getItem(LOGIN_NOTICE_KEY);

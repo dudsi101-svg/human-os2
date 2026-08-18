@@ -145,6 +145,11 @@ def test_migrations_apply_to_existing_v1_database(tmp_path):
         conn.execute(text("CREATE TABLE weekly_checkins (id VARCHAR(40) PRIMARY KEY)"))
         conn.execute(text("CREATE TABLE workout_entries (id VARCHAR(40) PRIMARY KEY)"))
         conn.execute(text("CREATE TABLE auth_sessions (id VARCHAR(40) PRIMARY KEY)"))
+        # Stub dla migracji nr 13 (ALTER-y + indeksy na messages); kolumny
+        # z indeksów muszą istnieć w stubie.
+        conn.execute(text(
+            "CREATE TABLE messages (id VARCHAR(40) PRIMARY KEY, "
+            "thread_id VARCHAR(40), author_id VARCHAR(40), created_at VARCHAR(40))"))
     applied = run_migrations(eng)
     assert applied == [v for v, _, _ in MIGRATIONS if v != 1]
     with eng.connect() as conn:
@@ -172,3 +177,13 @@ def test_migrations_apply_to_existing_v1_database(tmp_path):
         "client_invitations", "password_reset_tokens",
         "mfa_recovery_codes", "mfa_challenges",
     } <= tables
+    # Migracja 13: statusy doręczenia i deduplikacja wiadomości.
+    with eng.connect() as conn:
+        cols_m = [r[1] for r in conn.exec_driver_sql("PRAGMA table_info(messages)")]
+        indexes = {
+            r[0] for r in conn.exec_driver_sql(
+                "SELECT name FROM sqlite_master WHERE type='index'"
+            )
+        }
+    assert {"delivered_at", "client_msg_id"} <= set(cols_m)
+    assert "ux_messages_thread_author_client_msg" in indexes

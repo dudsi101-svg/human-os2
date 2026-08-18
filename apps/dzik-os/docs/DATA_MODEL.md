@@ -108,7 +108,7 @@ zmienia diety autonomicznie.
 | Tabela | Uwagi |
 |---|---|
 | `message_threads` | unique(coach, client) |
-| `messages` | body, file_id, read_at |
+| `messages` | body, file_id, statusy: delivered_at/read_at (migracja 13), client_msg_id (deduplikacja ponowień, unikalny per wątek+autor); porządek (created_at, id) — patrz `WIADOMOSCI.md` |
 | `payment_schedules` | pakiet, kwota (grosze), okres, external_link |
 | `payment_records` | due_date, status PENDING/PAID/OVERDUE/CANCELLED, paid_at, marked_by |
 
