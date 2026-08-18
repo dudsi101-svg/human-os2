@@ -332,6 +332,49 @@ table.simple th { color: var(--text-dim); font-weight: 600; font-size: 0.78rem; 
   color: var(--text); font-size: 1rem; text-align: left; cursor: pointer;
 }
 
+/* --- Baza ćwiczeń: filtry, karta opisu, wyszukiwarka w edytorze planu --- */
+.exercise-filters {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 10px; margin-bottom: 8px;
+}
+.exercise-filters label { display: block; }
+
+.exercise-detail section { margin-bottom: 12px; }
+.exercise-detail p { margin: 4px 0; }
+.exercise-detail__h {
+  margin: 0 0 4px; font-size: 0.86rem; text-transform: uppercase;
+  letter-spacing: 0.04em; color: var(--text-dim);
+}
+.exercise-detail__list { margin: 4px 0 0; padding-left: 20px; }
+.exercise-detail__list li { margin-bottom: 4px; }
+
+.list-editor, .muscle-picker {
+  border: 1px solid var(--border); border-radius: 10px;
+  padding: 10px 12px; margin: 10px 0;
+}
+.list-editor legend, .muscle-picker legend {
+  padding: 0 6px; font-size: 0.85rem; color: var(--text-dim);
+}
+.muscle-picker__grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 4px;
+}
+.muscle-picker__item {
+  display: flex; align-items: center; gap: 6px; margin: 0; font-size: 0.9rem;
+}
+.muscle-picker__item input { width: auto; margin: 0; }
+
+.exercise-picker__results { list-style: none; margin: 6px 0; padding: 0; }
+.exercise-picker__hit {
+  display: block; width: 100%; text-align: left; cursor: pointer;
+  background: var(--bg-raised); color: var(--text);
+  border: 1px solid var(--border); border-radius: 10px;
+  padding: 8px 10px; margin-bottom: 6px;
+}
+.exercise-picker__hit:hover, .exercise-picker__hit:focus-visible {
+  border-color: var(--accent);
+}
+.exercise-picker__hit .meta { display: block; margin-top: 2px; }
+
 .update-banner {
   position: fixed; top: 0; left: 0; right: 0; z-index: 100;
   display: flex; align-items: center; justify-content: space-between;

@@ -8,10 +8,16 @@ def test_client_sees_seeded_exercises_grouped_by_muscle(seeded):
     ha = login(seeded, CLIENT_A)
     r = seeded.get("/api/me/exercises", headers=ha)
     assert r.status_code == 200
-    items = r.json()["items"]
+    body = r.json()
+    items = body["items"]
     assert len(items) >= 10
-    assert any(i["muscle_group"] == "NOGI" for i in items)
+    # Po rozbudowie bazy (>150 pozycji) lista jest PAGINOWANA, więc o
+    # konkretną partię pytamy wprost zamiast zakładać, że zmieści się na
+    # pierwszej stronie wyników.
+    assert body["total"] >= 150
     assert all(i["how_to"] for i in items)
+    legs = seeded.get("/api/me/exercises?muscle_group=NOGI", headers=ha).json()["items"]
+    assert legs and all(i["muscle_group"] == "NOGI" for i in legs)
 
 
 def test_coach_creates_edits_and_archives_exercise(seeded):

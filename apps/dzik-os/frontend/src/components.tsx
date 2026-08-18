@@ -11,9 +11,15 @@ import {
   saveBlobAs, SecurityEventRow, setSession,
 } from "./api";
 import { plDate, plDateTime } from "./dates";
+import {
+  EMPTY_FILTERS, EQUIPMENT_SUGGESTIONS, ExerciseFilters, hasActiveFilters,
+} from "./exerciseFilters";
 import { applyUpdate, onUpdateAvailable } from "./pwa";
 import { withGaps } from "./seriesUtils";
-import { KIND_LABELS, PersonalRecordsData, SeriesPoint, StrengthSeriesRow } from "./types";
+import {
+  EXERCISE_LEVEL_LABELS, ExerciseLibraryItem, KIND_LABELS, MOVEMENT_PATTERN_LABELS,
+  MUSCLE_LABELS, muscleLabels, PersonalRecordsData, SeriesPoint, StrengthSeriesRow,
+} from "./types";
 
 /** Głowa dzika — marka Dzik OS. */
 export function Logo({ size = 26 }: { size?: number }) {
@@ -1019,6 +1025,238 @@ export function AuthAttachment({ fileId, filename }: { fileId: string; filename?
       className="btn btn--ghost btn--small">
       <Icon name="paperclip" size={16} /> {filename ?? "Pobierz załącznik"}
     </a>
+  );
+}
+
+/** Pasek filtrów bazy ćwiczeń — ten sam u klienta i u trenera (oba
+ * widoki pytają API dokładnie tymi samymi parametrami). Dostępność:
+ * każde pole ma etykietę powiązaną przez for/id. */
+export function ExerciseFilterBar({ idPrefix, value, onChange }: {
+  idPrefix: string;
+  value: ExerciseFilters;
+  onChange: (next: ExerciseFilters) => void;
+}) {
+  const set = (patch: Partial<ExerciseFilters>) => onChange({ ...value, ...patch });
+  return (
+    <div className="exercise-filters">
+      <div>
+        <label htmlFor={`${idPrefix}-ex-q`}>Szukaj ćwiczenia</label>
+        <input id={`${idPrefix}-ex-q`} type="search" value={value.q}
+          placeholder="np. przysiad, wioslowanie"
+          onChange={(e) => set({ q: e.target.value })} />
+      </div>
+      <div>
+        <label htmlFor={`${idPrefix}-ex-muscle`}>Partia mięśniowa</label>
+        <select id={`${idPrefix}-ex-muscle`} value={value.muscle}
+          onChange={(e) => set({ muscle: e.target.value })}>
+          <option value="">— wszystkie —</option>
+          {Object.entries(MUSCLE_LABELS).map(([k, v]) => (
+            <option key={k} value={k}>{v}</option>
+          ))}
+        </select>
+      </div>
+      <div>
+        <label htmlFor={`${idPrefix}-ex-equipment`}>Sprzęt</label>
+        <input id={`${idPrefix}-ex-equipment`} value={value.equipment}
+          list={`${idPrefix}-ex-equipment-list`} placeholder="np. hantle"
+          onChange={(e) => set({ equipment: e.target.value })} />
+        <datalist id={`${idPrefix}-ex-equipment-list`}>
+          {EQUIPMENT_SUGGESTIONS.map((s) => <option key={s} value={s} />)}
+        </datalist>
+      </div>
+      <div>
+        <label htmlFor={`${idPrefix}-ex-level`}>Poziom</label>
+        <select id={`${idPrefix}-ex-level`} value={value.level}
+          onChange={(e) => set({ level: e.target.value })}>
+          <option value="">— każdy —</option>
+          {Object.entries(EXERCISE_LEVEL_LABELS).map(([k, v]) => (
+            <option key={k} value={k}>{v}</option>
+          ))}
+        </select>
+      </div>
+      <div>
+        <label htmlFor={`${idPrefix}-ex-pattern`}>Wzorzec ruchu</label>
+        <select id={`${idPrefix}-ex-pattern`} value={value.pattern}
+          onChange={(e) => set({ pattern: e.target.value })}>
+          <option value="">— każdy —</option>
+          {Object.entries(MOVEMENT_PATTERN_LABELS).map(([k, v]) => (
+            <option key={k} value={k}>{v}</option>
+          ))}
+        </select>
+      </div>
+      {hasActiveFilters(value) && (
+        <div style={{ alignSelf: "end" }}>
+          <button type="button" className="btn btn--ghost btn--small"
+            onClick={() => onChange(EMPTY_FILTERS)}>
+            Wyczyść filtry
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Pełny opis ćwiczenia z bazy trenera — te same sekcje u klienta i u
+ * trenera. Ćwiczenia sprzed rozbudowy bazy (bez kroków techniki) nadal
+ * wyświetlają się poprawnie: pokazujemy wtedy pole `how_to`. */
+export function ExerciseDetail({ item }: { item: ExerciseLibraryItem }) {
+  const badges = [
+    item.equipment,
+    item.level ? EXERCISE_LEVEL_LABELS[item.level] ?? item.level : null,
+    item.pattern ? MOVEMENT_PATTERN_LABELS[item.pattern] ?? item.pattern : null,
+  ].filter(Boolean) as string[];
+
+  return (
+    <div className="exercise-detail">
+      {badges.length > 0 && (
+        <div className="row" style={{ flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
+          {badges.map((b) => <span className="badge" key={b}>{b}</span>)}
+        </div>
+      )}
+
+      {item.steps.length > 0 ? (
+        <section>
+          <h3 className="exercise-detail__h">Technika — krok po kroku</h3>
+          <ol className="exercise-detail__list">
+            {item.steps.map((s, i) => <li key={i}>{s}</li>)}
+          </ol>
+        </section>
+      ) : (
+        <section>
+          <h3 className="exercise-detail__h">Jak wykonać</h3>
+          <p>{item.how_to}</p>
+        </section>
+      )}
+
+      {item.mistakes.length > 0 && (
+        <section>
+          <h3 className="exercise-detail__h">Najczęstsze błędy</h3>
+          <ul className="exercise-detail__list">
+            {item.mistakes.map((s, i) => <li key={i}>{s}</li>)}
+          </ul>
+        </section>
+      )}
+
+      {item.cues.length > 0 && (
+        <section>
+          <h3 className="exercise-detail__h">Wskazówki trenera</h3>
+          <ul className="exercise-detail__list">
+            {item.cues.map((s, i) => <li key={i}>{s}</li>)}
+          </ul>
+        </section>
+      )}
+
+      {(item.tempo_hint || item.breathing) && (
+        <section>
+          <h3 className="exercise-detail__h">Tempo i oddech</h3>
+          {item.tempo_hint && <p><b>Tempo:</b> {item.tempo_hint}</p>}
+          {item.breathing && <p><b>Oddech:</b> {item.breathing}</p>}
+        </section>
+      )}
+
+      {(item.easier || item.harder) && (
+        <section>
+          <h3 className="exercise-detail__h">Warianty</h3>
+          {item.easier && <p><b>Łatwiej:</b> {item.easier}</p>}
+          {item.harder && <p><b>Trudniej:</b> {item.harder}</p>}
+        </section>
+      )}
+
+      {item.safety && (
+        <section>
+          <h3 className="exercise-detail__h">Bezpieczeństwo</h3>
+          <p>{item.safety}</p>
+          <p className="dim" style={{ fontSize: "0.82rem" }}>
+            To opis wykonania ćwiczenia od trenera, nie porada medyczna.
+            Przy bólu, urazie lub wątpliwościach zdrowotnych skonsultuj się
+            ze specjalistą.
+          </p>
+        </section>
+      )}
+
+      {/* MIEJSCE NA RYSUNEK MIĘŚNI (kolejna runda) */}
+      {(item.muscles_primary.length > 0 || item.muscles_secondary.length > 0) && (
+        <section>
+          <h3 className="exercise-detail__h">Pracujące mięśnie</h3>
+          {item.muscles_primary.length > 0 && (
+            <p><b>Główne:</b> {muscleLabels(item.muscles_primary)}</p>
+          )}
+          {item.muscles_secondary.length > 0 && (
+            <p><b>Pomocnicze:</b> {muscleLabels(item.muscles_secondary)}</p>
+          )}
+        </section>
+      )}
+
+      {item.benefit && (
+        <section>
+          <h3 className="exercise-detail__h">Co to daje</h3>
+          <p>{item.benefit}</p>
+        </section>
+      )}
+
+      {item.video_url && (
+        <p>
+          <a href={item.video_url} target="_blank" rel="noreferrer"
+            style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+            <Icon name="film" size={16} /> Wideo z techniką
+          </a>
+        </p>
+      )}
+    </div>
+  );
+}
+
+/** Rozwijana karta techniki przy pozycji planu (klient). Ćwiczenie
+ * zarchiwizowane lub usunięte z bazy = po prostu brak karty; plan
+ * wyświetla się normalnie. Widoczność rządzi się zwykłą zasadą
+ * broadcastu (aktywna relacja z trenerem) — API zwraca 404 w innym
+ * przypadku. */
+export function ExerciseTechniqueLink({ exerciseId, name }: {
+  exerciseId: string; name: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const [item, setItem] = useState<ExerciseLibraryItem | null>(null);
+  const [missing, setMissing] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  function toggle() {
+    const next = !open;
+    setOpen(next);
+    if (next && !item && !missing && !loading) {
+      setLoading(true);
+      api.get<ExerciseLibraryItem>(`/api/me/exercises/${exerciseId}`)
+        .then(setItem)
+        .catch(() => setMissing(true))
+        .finally(() => setLoading(false));
+    }
+  }
+
+  if (missing && !open) return null;
+  return (
+    <div style={{ marginTop: 6 }}>
+      <button type="button" className="btn btn--ghost btn--small" aria-expanded={open}
+        onClick={toggle}>
+        <Icon name={open ? "chevron-up" : "chevron-down"} size={16} />{" "}
+        {open ? "Ukryj technikę" : "Technika z bazy"}
+      </button>
+      {open && (
+        <div className="card" style={{ marginTop: 6 }}>
+          {loading && <Spinner />}
+          {missing && (
+            <p className="dim" style={{ margin: 0 }}>
+              To ćwiczenie nie jest już dostępne w bazie trenera. Twój plan
+              pozostaje bez zmian — zapytaj trenera, jeśli potrzebujesz opisu.
+            </p>
+          )}
+          {item && (
+            <>
+              <b>{name}</b>
+              <ExerciseDetail item={item} />
+            </>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
 

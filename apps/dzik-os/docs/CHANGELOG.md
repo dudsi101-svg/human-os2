@@ -1,5 +1,86 @@
 # Changelog — Dzik OS
 
+## 0.22.0 — 2026-08-18
+
+Znacząca rozbudowa **bazy ćwiczeń** wraz z pełnymi opisami oraz
+**układanie planu treningowego z ćwiczeń już dodanych do aplikacji**
+(zamiast wpisywania nazw z pamięci). Pełny opis modelu, słownika
+mięśni jako kontraktu dla rysunku sylwetki, zasad opisów, API filtrów i
+planu wycofania migracji nr 19: `docs/BAZA_CWICZEN.md`.
+
+* **Rozszerzony model ćwiczenia** (migracja nr 19, wyłącznie addytywne
+  `ALTER TABLE`, **wszystkie nowe kolumny NULLable**): mięśnie główne i
+  pomocnicze (klucze słownikowe), poziom
+  (POCZATKUJACY/SREDNIOZAAWANSOWANY/ZAAWANSOWANY), wzorzec ruchu
+  (13 wartości: przysiad, zawias biodrowy, wypychanie/przyciąganie
+  poziome i pionowe, wykrok, noszenie, rotacja, antyrotacja, izolacja,
+  cardio, mobilność), kroki techniki, najczęstsze błędy, wskazówki
+  („cue”), uwagi bezpieczeństwa, wariant łatwiejszy i trudniejszy,
+  tempo i oddech. `how_to`/`benefit` **zostają polami zgodności
+  wstecznej** — ćwiczenia sprzed rozbudowy zapisują się i wyświetlają
+  bez zmian (test).
+* **Słownik partii mięśniowych jako KONTRAKT** (21 kluczy, m.in.
+  `KLATKA_PIERSIOWA`, `NAJSZERSZY_GRZBIETU`, `CZWOROGLOWY_UDA`,
+  `ZGINACZE_BIODRA`) — jedno źródło w backendzie (`dzik_os/muscles.py`),
+  lustro w `frontend/src/types.ts::MUSCLE_LABELS` i nowy endpoint
+  `GET /api/exercise-dictionaries`. Walidacja serwerowa: nieznany klucz,
+  poziom albo wzorzec = **422**. To ten sam słownik, którego użyje
+  rysunek sylwetki z kolejnej rundy — w karcie ćwiczenia zostawiono
+  oznaczony komentarzem punkt wstawienia komponentu.
+* **Katalog startowy: 155 ćwiczeń** (`dzik_os/exercise_catalog.py`), każde
+  z pełnym opisem (3–6 kroków techniki, 2–4 błędy, 1–3 wskazówki,
+  bezpieczeństwo, warianty, sprzęt, poziom, wzorzec, mięśnie). Pokrycie:
+  sztanga, hantle, kettlebell, maszyny i wyciągi, masa własna ciała,
+  gumy oporowe, dom bez sprzętu, core, mobilność i rozgrzewka, cardio.
+  Nowa grupa listy `CARDIO` obok dotychczasowych.
+* **Granica roli utrzymana**: baza to know-how trenera, nie porada
+  medyczna. Żaden opis nie twierdzi, że ćwiczenie coś leczy czy
+  „naprawia”; uwagi bezpieczeństwa kierują do konsultacji ze
+  specjalistą przy bólu lub urazie, a aplikacja **niczego nie dobiera
+  automatycznie** — ćwiczenia wybiera trener.
+* **Wyszukiwanie i filtry po stronie API** (obie listy, klienta i
+  trenera): szukanie po nazwie i sprzęcie **odporne na polskie znaki**
+  (`wioslowanie` = `wiosłowanie`), filtry partii mięśniowej, sprzętu,
+  poziomu i wzorca ruchu, paginacja z `total`/`has_more` i przyciskiem
+  „pokaż więcej”. Widok szczegółu (klient i trener) pokazuje pełny opis
+  w czytelnych sekcjach.
+* **Edytor trenera** obsługuje cały nowy model: listy kroków/błędów/
+  wskazówek z dodawaniem i usuwaniem pozycji, wybór mięśni z listy
+  słownikowej, poziom i wzorzec z list. Dostępność jak w P10 (etykiety
+  `for`/`id`, `fieldset`/`legend`, opisane przyciski, `aria-live` na
+  liczbie wyników).
+* **Nowość — plan układany z bazy**: w edytorze planu przy każdym dniu
+  wyszukiwarka ćwiczeń (te same filtry co w bazie); jedno kliknięcie
+  dodaje pozycję i **nie zamyka wyszukiwarki**, więc można dodać kilka
+  ćwiczeń pod rząd. Puste pola pomocnicze uzupełniają się z bazy
+  (tempo, wskazówka jako komentarz, link do wideo) — **nigdy nie
+  nadpisujemy wartości wpisanych przez trenera**. Ręczne wpisanie nazwy
+  zostaje pełnoprawną ścieżką: aplikacja nie zamyka trenera w katalogu.
+* **Powiązanie pozycji planu z ćwiczeniem** (`exercise_id` w treści
+  wersji planu — **bez migracji**, ten sam wzorzec co suplementacja w
+  diecie). Walidacja serwerowa: identyfikator musi wskazywać **aktywne
+  ćwiczenie tego trenera**, inaczej 422 (nie da się wstawić cudzego).
+  Odniesienie jest **miękkie**: archiwizacja ćwiczenia nie psuje
+  istniejących planów — nazwa i parametry są w planie, znika tylko link
+  do karty. Stare wersje planów bez `exercise_id` działają bez zmian.
+* **Klient widzi technikę wprost z planu** i z ekranu „Dzisiaj”:
+  rozwijana karta ćwiczenia (kroki, błędy, wskazówki, bezpieczeństwo,
+  mięśnie). Widoczność rządzi się dotychczasową zasadą broadcastu —
+  tylko przy aktywnej relacji z trenerem i tylko dla ćwiczeń ACTIVE.
+* Seed ładuje pełny katalog **przed** planami, a każda pozycja planów i
+  szablonów demo jest podpięta przez `exercise_id` — demo pokazuje
+  docelowy przepływ, nie luźne nazwy.
+* Testy: backend 413 → 442 (nowy `test_exercises_extended.py`: migracja
+  19 na starej bazie, seed ≥150 bez duplikatów, walidacja słownika,
+  filtry, wyszukiwanie z polskimi znakami, paginacja, zgodność wsteczna,
+  izolacja trenerów, widoczność przy relacji, kontrakt `exercise_id` i
+  zachowanie planu po archiwizacji); frontend helpers 42 → 49
+  (`exerciseFilters`); Core 275 bez zmian. **Zaktualizowany świadomie**:
+  `test_exercises.py::test_client_sees_seeded_exercises_grouped_by_muscle`
+  zakładał, że wszystkie ćwiczenia zmieszczą się na jednej stronie —
+  po wprowadzeniu paginacji pyta wprost o partię `NOGI` i sprawdza
+  `total ≥ 150`.
+
 ## 0.21.0 — 2026-08-18
 
 Powiadomienia i prawdziwe przypomnienia (P13): jeden spójny system dla

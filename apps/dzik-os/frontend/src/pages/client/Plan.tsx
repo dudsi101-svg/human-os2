@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { api, getUser } from "../../api";
 import { WEEKDAYS, localToday, plDate } from "../../dates";
-import { ErrorBox, Icon, Spinner, TopBar } from "../../components";
+import { ErrorBox, ExerciseTechniqueLink, Icon, Spinner, TopBar } from "../../components";
 import { PlanVersion, TrainingPlan, WorkoutRow } from "../../types";
 
 /** Wiersze serii (ciężar × powtórzenia) wpisywane jako tekst — puste są
@@ -218,6 +218,9 @@ export default function Plan() {
                       {ex.comment && <div className="meta">{ex.comment}</div>}
                       {ex.video_url && (
                         <a href={ex.video_url} target="_blank" rel="noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Icon name="film" size={16} /> technika</a>
+                      )}
+                      {ex.exercise_id && (
+                        <ExerciseTechniqueLink exerciseId={ex.exercise_id} name={ex.name} />
                       )}
                       {restSeconds !== null && (
                         <div style={{ marginTop: 6 }}><RestTimer seconds={restSeconds} /></div>

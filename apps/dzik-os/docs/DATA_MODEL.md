@@ -31,7 +31,7 @@ Migracje: `db.py` — rejestr `schema_migrations`, wersja 1 = schemat MVP.
 | Tabela | Uwagi |
 |---|---|
 | `training_plans` | client_id NULL ⇒ szablon trenera; current_version_no |
-| `training_plan_versions` | **niemutowalne**; unique(plan_id, version_no); reason obowiązkowy; content_json = {days:[{name, weekday, exercises:[{name, sets, reps, weight, tempo, rest, comment, video_url}]}]} |
+| `training_plan_versions` | **niemutowalne**; unique(plan_id, version_no); reason obowiązkowy; content_json = {days:[{name, weekday, exercises:[{name, exercise_id?, sets, reps, weight, tempo, rest, comment, video_url}]}]}; `exercise_id` = MIĘKKIE odniesienie do `exercises` (walidowane serwerowo przy zapisie: aktywne ćwiczenie tego trenera; archiwizacja nie psuje planu — patrz `docs/BAZA_CWICZEN.md`) |
 | `workout_sessions` | wykonanie dnia planu: performed_on, status, comment, pain_flag, pain_note |
 | `workout_entries` | wynik per ćwiczenie: result, comment, file_id (film) |
 
@@ -100,7 +100,7 @@ osobnym magazynem danych, tylko odczytem z istniejących tabel.
 | Tabela | Uwagi |
 |---|---|
 | `knowledge_items` | materiał trenera (artykuł/link/plik): title, category, body, external_url, file_id, pinned, status ACTIVE/ARCHIVED. **Broadcast**, nie per-klient — widoczny dla wszystkich aktywnie prowadzonych klientów danego trenera (`coach_id`), nie przechodzi przez `resolve_client_access` bo to własność trenera, nie dane klienta. |
-| `exercises` | know-how ćwiczeń: name, muscle_group (NOGI/PLECY/KLATKA/BARKI/RECE/BRZUCH/CALE_CIALO/MOBILNOSC/INNE), how_to, benefit, equipment, video_url, status. **Broadcast**, ten sam wzorzec co `knowledge_items`. |
+| `exercises` | know-how ćwiczeń: name, muscle_group (NOGI/PLECY/KLATKA/BARKI/RECE/BRZUCH/CALE_CIALO/MOBILNOSC/CARDIO/INNE), how_to, benefit, equipment, video_url, status + rozszerzony opis (migracja 19): muscles_primary/muscles_secondary (CSV kluczy SŁOWNIKA partii mięśniowych), level, pattern, steps_json/mistakes_json/cues_json (listy jako JSON), safety, easier, harder, tempo_hint, breathing — wszystkie NULLable, `how_to`/`benefit` pozostają polami zgodności wstecznej. **Broadcast**, ten sam wzorzec co `knowledge_items`. Kontrakt słownika i zasady opisów: `docs/BAZA_CWICZEN.md`. |
 | `food_products` | baza produktów: name, category, kcal_100g/protein_100g/fat_100g/carbs_100g, default_portion_g, status. **Broadcast**, ten sam wzorzec co `knowledge_items`. Przeliczenie na porcję (kcal/makro × gramatura/100) jest czystą arytmetyką po stronie frontendu — nie osobnym magazynem danych. |
 
 **Kompozytor diety** (`POST /api/coach/diet-suggestion`, trener-only, nic

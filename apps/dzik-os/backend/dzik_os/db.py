@@ -580,6 +580,24 @@ MIGRATIONS: list[tuple[int, str, list[str]]] = [
             "ON challenge_reports(challenge_id)"
         ),
     ]),
+    # Numery 17 i 18 są zajęte przez równoległe rundy (inne moduły).
+    (19, "baza ćwiczeń: rozszerzony opis techniki i mapa mięśni", [
+        # Wyłącznie ALTER-y addytywne, wszystkie kolumny NULLable —
+        # ćwiczenia sprzed rozbudowy działają bez żadnego backfillu
+        # (how_to/benefit pozostają polami zgodności wstecznej).
+        "ALTER TABLE exercises ADD COLUMN muscles_primary TEXT",
+        "ALTER TABLE exercises ADD COLUMN muscles_secondary TEXT",
+        "ALTER TABLE exercises ADD COLUMN level VARCHAR(30)",
+        "ALTER TABLE exercises ADD COLUMN pattern VARCHAR(30)",
+        "ALTER TABLE exercises ADD COLUMN steps_json TEXT",
+        "ALTER TABLE exercises ADD COLUMN mistakes_json TEXT",
+        "ALTER TABLE exercises ADD COLUMN cues_json TEXT",
+        "ALTER TABLE exercises ADD COLUMN safety TEXT",
+        "ALTER TABLE exercises ADD COLUMN easier TEXT",
+        "ALTER TABLE exercises ADD COLUMN harder TEXT",
+        "ALTER TABLE exercises ADD COLUMN tempo_hint VARCHAR(200)",
+        "ALTER TABLE exercises ADD COLUMN breathing VARCHAR(400)",
+    ]),
 ]
 
 

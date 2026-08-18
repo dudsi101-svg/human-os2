@@ -2,7 +2,9 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api, getUser, money } from "../../api";
 import { plDate } from "../../dates";
-import { ErrorBox, Icon, PushContextPrompt, Spinner, TopBar } from "../../components";
+import {
+  ErrorBox, ExerciseTechniqueLink, Icon, PushContextPrompt, Spinner, TopBar,
+} from "../../components";
 import { CATEGORY_LABELS, ConsultSlotRow, TodayData } from "../../types";
 
 export default function Today() {
@@ -114,6 +116,9 @@ export default function Today() {
                 <div>
                   <b>{ex.name}</b>
                   {ex.comment && <div className="meta">{ex.comment}</div>}
+                  {ex.exercise_id && (
+                    <ExerciseTechniqueLink exerciseId={ex.exercise_id} name={ex.name} />
+                  )}
                 </div>
                 <div className="meta">
                   {[ex.sets && `${ex.sets}×${ex.reps ?? "?"}`, ex.weight, ex.rest]

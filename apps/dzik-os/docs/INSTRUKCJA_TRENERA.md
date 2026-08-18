@@ -43,7 +43,22 @@ klientów wymagających uwagi.
   **Każda zmiana wymaga podania powodu** i tworzy nową wersję — stare
   wersje zostają w historii i są widoczne dla klienta. Dla ćwiczeń możesz
   podać serie, powtórzenia, ciężar, tempo, przerwy, komentarz i link do
-  filmu.
+  filmu. **Ćwiczenia dodawaj z bazy** — przycisk „Wybierz z bazy ćwiczeń"
+  przy dniu otwiera wyszukiwarkę (nazwa odporna na polskie znaki, filtry
+  partii, sprzętu i poziomu); jedno kliknięcie dodaje pozycję i nie
+  zamyka wyszukiwarki, więc dodasz kilka pod rząd. Puste pola pomocnicze
+  uzupełnią się z karty ćwiczenia, ale **nic wpisanego przez Ciebie nie
+  zostanie nadpisane**. Ćwiczenie spoza bazy nadal wpiszesz ręcznie —
+  przycisk „+ ćwiczenie (wpisz ręcznie)". Pozycja dodana z bazy daje
+  klientowi rozwijaną kartę techniki wprost w planie.
+* **Baza ćwiczeń** (zakładka „Baza wiedzy" → „Ćwiczenia") — Twoje
+  know-how: kroki techniki, najczęstsze błędy, wskazówki, uwagi
+  bezpieczeństwa, warianty łatwiejszy i trudniejszy, pracujące mięśnie,
+  poziom i wzorzec ruchu. Startowy katalog ma ponad 150 ćwiczeń, które
+  możesz edytować i uzupełniać. To materiał treningowy, **nie porada
+  medyczna** — przy bólu lub urazie kieruj klienta do specjalisty.
+  Zarchiwizowanie ćwiczenia nie psuje istniejących planów: nazwa i
+  parametry w planie zostają, znika tylko link do karty.
 * **Dieta** — cele kcal/makro, zalecenia tekstowe, posiłki z zamiennikami;
   także wersjonowana z powodem zmiany.
 * **Harmonogram** — elementy z kategorią, porą i dniami tygodnia.

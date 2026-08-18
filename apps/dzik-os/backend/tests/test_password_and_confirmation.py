@@ -155,6 +155,12 @@ def test_migrations_apply_to_existing_v1_database(tmp_path):
         conn.execute(text(
             "CREATE TABLE payment_records (id VARCHAR(40) PRIMARY KEY, "
             "paid_at VARCHAR(40))"))
+        # Stub dla migracji nr 19 (ALTER-y rozszerzonego opisu ćwiczeń);
+        # kolumna z indeksu migracji nr 5 musi istnieć w stubie.
+        conn.execute(text(
+            "CREATE TABLE exercises (id VARCHAR(40) PRIMARY KEY, "
+            "coach_id VARCHAR(40), name VARCHAR(300), muscle_group VARCHAR(30), "
+            "how_to TEXT)"))
     applied = run_migrations(eng)
     assert applied == [v for v, _, _ in MIGRATIONS if v != 1]
     with eng.connect() as conn:
