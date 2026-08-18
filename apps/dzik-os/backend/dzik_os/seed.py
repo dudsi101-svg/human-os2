@@ -27,6 +27,7 @@ from .db import db_session, run_migrations
 from .exercise_catalog import CATALOG as EXERCISE_CATALOG
 from .food_catalog_data import FOOD_ROWS, FOOD_SOURCE
 from .hos_bridge import ConsentService, record_event
+from .import_exercises import import_library
 from .models import (
     CoachClientRelationship,
     Document,
@@ -227,6 +228,13 @@ def seed() -> dict[str, str]:
             )
             db.add(item)
             exercise_ids[row["name"]] = item.id
+
+        # Biblioteka ćwiczeń trenera V2 (import) — świeża baza ma pokazywać
+        # pełny katalog, a nie sam katalog startowy. Ta sama funkcja co
+        # komenda i przycisk w panelu, więc demo i produkcja dostają
+        # dokładnie to samo (docs/BAZA_CWICZEN.md §11).
+        db.flush()
+        import_library(db, coach.id)
 
         def ex_ref(name: str, **fields: object) -> dict:
             """Pozycja planu podpięta do bazy ćwiczeń (miękkie odniesienie:

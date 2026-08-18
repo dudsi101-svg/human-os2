@@ -563,3 +563,287 @@ oraz ścieżka v1 → wszystkie migracje w
   odpowiedzialność merytoryczna zostaje po stronie trenera (§1).
 * **Jeden opis = jedno ćwiczenie.** Wklejenie całego rozdziału z pięcioma
   ćwiczeniami da jedną, pomieszaną propozycję.
+
+## 11. Import gotowej biblioteki ćwiczeń trenera (od 0.31.0)
+
+### 11.1 Skąd pochodzi biblioteka
+
+Trener przekazał **2026-08-18** własną bibliotekę w arkuszu kalkulacyjnym
+`DZIK_OS_Biblioteka_Cwiczen_V2_PL_120.xlsx` (arkusz „Ćwiczenia V2 PL”,
+120 wierszy, 19 kolumn). Plik jest binarny i **nie jest commitowany** —
+w repo leży jego czytelna, diffowalna postać:
+`backend/dzik_os/exercise_catalog_v2.py` (ten sam wzorzec, co
+`food_catalog_data.py` dla katalogu produktów). Proweniencja — nazwa
+pliku i data przekazania — jest zapisana w nagłówku modułu i w stałej
+`LIBRARY_REF`, a każda zaimportowana pozycja niesie ją w kolumnie
+`source_ref`.
+
+### 11.2 Co w źródle jest wartościowe, a co szablonowe — i co z tego wynika
+
+To jest najważniejsza rzecz do zrozumienia przed czytaniem reszty
+rozdziału. Zawartość kolumn sprawdziliśmy przed napisaniem importu:
+
+* **Kolumny faktograficzne są unikalne dla każdego ćwiczenia** i mają
+  realną wartość: nazwa polska i angielska, kategoria, mięśnie główne i
+  pomocnicze, sprzęt, poziom, rodzaj ćwiczenia, wzorzec ruchowy, tagi.
+* **Kolumny opisowe są szablonowe.** Na 120 wierszy przypada:
+
+  | kolumna | liczba różnych wartości |
+  | --- | --- |
+  | Wykonanie krok po kroku | **17** |
+  | Oddychanie | **2** |
+  | Najczęstsze błędy | **5** |
+  | Największy wpływ / zastosowanie | 12 (po jednym na kategorię) |
+  | Łatwiejszy wariant / regresja | 8 |
+  | Trudniejszy wariant / progresja | 4 |
+
+  Innymi słowy: opis techniki w źródle jest **ogólny dla wzorca ruchu**,
+  a nie napisany pod konkretne ćwiczenie.
+
+Stąd trzy decyzje projektowe:
+
+1. Szablony leżą w module danych jako **nazwane stałe**, do których
+   wiersze odwołują się kluczem — szablonowość ma być widoczna w kodzie,
+   a nie ukryta w 120 powtórzeniach tego samego akapitu.
+2. **Każda nowo utworzona pozycja dostaje notatkę roboczą**
+   `review_reason` („opis techniki pochodzi z szablonu biblioteki — warto
+   opisać to ćwiczenie własnymi słowami”). To informacja dla trenera, co
+   jeszcze warto dopisać, **a nie ocena jakości ćwiczenia** — dlatego
+   klient nie dostaje tego pola w żadnej odpowiedzi API
+   (`routers/exercises.py::_out`, test
+   `test_exercise_import.py::test_client_never_sees_the_working_note`).
+   Trener zdejmuje notatkę jednym kliknięciem w edytorze.
+3. Import **nigdy nie nadpisuje opisu istniejącego ćwiczenia**. W bazie
+   jest już 155 pozycji z opisami pisanymi pod konkretne ćwiczenie; 19
+   nazw pokrywa się z biblioteką, 101 pozycji jest nowych. Szablon jest
+   gorszy od tekstu trenera, a po nadpisaniu nie dałoby się już odróżnić
+   jednego od drugiego.
+
+### 11.3 Mapowanie — jawne tablice, zero zgadywania
+
+Całe mapowanie mieszka w `backend/dzik_os/import_exercises.py`.
+
+**Kategoria → `muscle_group`** (`CATEGORY_TO_GROUP`):
+
+| kategoria w źródle | nasza grupa |
+| --- | --- |
+| Klatka piersiowa | `KLATKA` |
+| Plecy — najszerszy grzbietu | `PLECY` |
+| Plecy — środek i góra | `PLECY` |
+| Barki | `BARKI` |
+| Biceps | `RECE` |
+| Triceps | `RECE` |
+| Przedramiona i chwyt | `RECE` |
+| Mięśnie czworogłowe uda | `NOGI` |
+| Tylna część uda | `NOGI` |
+| Pośladki | `NOGI` |
+| Łydki i podudzie | `NOGI` |
+| Brzuch i mięśnie głębokie | `BRZUCH` |
+
+Rozróżnienie biceps/triceps/przedramiona nie ginie — zostaje w mięśniach
+głównych i w tagach.
+
+**Mięśnie** (tekst anatomiczny rozdzielony średnikami → klucze
+`MUSCLE_LABELS`): używamy **tego samego słownika synonimów co parser
+opisu** (`exercise_parser.MUSCLE_SYNONYMS`), rozszerzonego o formy
+anatomiczne z tego pliku — `przednia/tylna/boczna część mięśnia
+naramiennego`, `przedni/tylny/boczny bark`, `ramienno-promieniowy`,
+`zginacze/prostowniki nadgarstka i palców`, `mięśnie chwytu`, `mięśnie
+międzyłopatkowe`, `skośne brzucha`. Wejściem jest jedna nazwa, nie zdanie
+— robi to `exercise_parser.map_muscle_phrase()`.
+
+Czego **nie mapujemy** (pole zostaje puste, wartość trafia do raportu):
+
+* nazwy wskazujące na kilka kluczy naraz, bez wyraźnego domyślnego —
+  `barki`, `obręcz barkowa`, `mięsień naramienny` (bez aktonu), `górne
+  plecy`, `nogi`, `mięśnie łopatki`. To ta sama reguła, co „barki bez
+  aktonu” z §10.1, wyrażona listą `AMBIGUOUS_MUSCLE_PHRASES`;
+* mięśnie, dla których **po prostu nie mamy klucza** w słowniku:
+  `mięsień ramienny` (14 wystąpień), `obły większy` (9), `zębaty
+  przedni`, `mięsień piszczelowy przedni`, `dźwigacz łopatki`, `mięśnie
+  stożka rotatorów`, `kciuk`. Podpięcie ich pod „najbliższy” klucz byłoby
+  wpisaniem do bazy nieprawdy, której po zapisie nie da się odróżnić od
+  wiedzy trenera.
+
+W efekcie 8 pozycji trafia do bazy **bez mięśni głównych** (np.
+wyciskania nad głowę, gdzie źródło podaje zbiorcze „obręcz barkowa”).
+Raport wypisuje to wprost.
+
+**Poziom trudności**: 25 wierszy podaje parę („początkujący/
+średniozaawansowany”). **Świadoma decyzja: bierzemy NIŻSZY z pary.**
+Zawyżony poziom odsiewa ćwiczenie z wyszukiwarki komuś, kto spokojnie
+może je robić; zaniżony najwyżej pokaże je o jeden filtr za wcześnie, a
+wybór i tak należy do trenera.
+
+**Wzorzec ruchowy**: źródło ma 48 wariantów tekstowych, my mamy 13
+wzorców. Tablica `PATTERN_MAP` zawiera **wyłącznie przypisania, które da
+się obronić**:
+
+| wzorzec w źródle | nasz wzorzec |
+| --- | --- |
+| przysiad; przysiad/wypychanie nóg | `PRZYSIAD` |
+| wykrok; wykrok/przysiad jednonóż; wykrok/praca jednonóż; wejście/praca jednonóż | `WYKROK` |
+| zawias biodrowy; zawias biodrowy jednonóż; wyprost biodra; zgięcie kolana/wyprost biodra | `ZAWIAS_BIODROWY` |
+| wypychanie poziome; wypychanie skośne | `WYPYCHANIE_POZIOME` |
+| wypychanie pionowe | `WYPYCHANIE_PIONOWE` |
+| przyciąganie poziome; przyciąganie poziome/rotacja zewnętrzna | `PRZYCIAGANIE_POZIOME` |
+| przyciąganie pionowe | `PRZYCIAGANIE_PIONOWE` |
+| antyrotacja | `ANTYROTACJA` |
+| przenoszenie ciężaru; antyzgięcie boczne/chód | `NOSZENIE` |
+
+Reszta (28 wariantów) **celowo nie jest w tablicy**. Obowiązuje wtedy
+jedna reguła: jeśli źródło samo nazywa ćwiczenie **„izolowanym”**,
+wpisujemy `IZOLACJA`; w każdym innym przypadku pole zostaje **puste** i
+wartość idzie do raportu. Dzięki temu `zgięcie łokcia`, `zgięcie
+podeszwowe stopy` czy `pronacja/supinacja` dostają `IZOLACJA`, a
+`antywyprost` (deska, kółko — to nie antyrotacja, a osobnego wzorca nie
+mamy), `chwyt izometryczny` (zwis to nie noszenie) i warianty łączone
+typu `wyprost łokcia/wypychanie` zostają puste. **12 pozycji ze 120 nie
+ma wzorca ruchu** i to jest poprawny wynik, a nie brak.
+
+**Rodzaj ćwiczenia i nazwa angielska**: rodzaj (`wielostawowe /
+izolowane / stabilizacyjne / izometryczne`) **nie dostaje osobnej
+kolumny** — źródło i tak powtarza go w tagach, więc pilnujemy tylko, żeby
+tam był. Nazwa angielska ma własne pole `name_en` (jest realnie użyteczna
+przy wyszukiwaniu: `q=bench press`).
+
+### 11.4 Reguły importu
+
+| sytuacja | co robi import |
+| --- | --- |
+| ćwiczenia nie ma w bazie trenera | **tworzy** je z kompletem zmapowanych pól, `source_kind=IMPORTED`, `source_ref=<biblioteka + data>` i notatką `review_reason` |
+| ćwiczenie już jest (dopasowanie po znormalizowanej nazwie: bez wielkości liter i polskich znaków) | **uzupełnia wyłącznie puste pola**; wypełnione zostają nietknięte, `review_reason` nie jest dopisywane, `source_kind` nie jest zmieniany, a `source_ref` dostaje wariant „— uzupełnienie pustych pól” |
+| ćwiczenie jest i ma komplet pól | **nic** (`skipped`) |
+| błąd pojedynczej pozycji | trafia do `errors`, import leci dalej |
+
+Pola, których import **nigdy nie dotyka**, bo źródło ich nie zawiera:
+wskazówki (`cues`), uwagi bezpieczeństwa (`safety`), tempo
+(`tempo_hint`), link do wideo. Dlatego pozycje z importu mają puste
+`cues`/`safety` — pilnuje tego test
+`test_exercises_extended.py::test_seed_loads_full_catalog_without_duplicate_names`,
+który wymaga kompletu opisu tylko od katalogu startowego.
+
+**Idempotencja**: drugi przebieg na tej samej bazie daje `created=0`,
+`enriched=0`, `skipped=120` i **nie rusza `updated_at`**.
+
+**Izolacja trenerów**: import zawsze idzie do katalogu jednego,
+wskazanego trenera — nigdy „do wszystkich”. Katalog innego trenera nie
+zmienia się o ani jeden wiersz.
+
+Raport (identyczny dla próby i dla zapisu):
+
+```json
+{"created": 101, "enriched": 19, "skipped": 0,
+ "unmapped_muscles": [{"value": "mięsień ramienny", "count": 14, "examples": ["…"]}],
+ "unmapped_patterns": [{"value": "antywyprost", "count": 3, "examples": ["…"]}],
+ "errors": [], "dry_run": false, "library": "…", "total_rows": 120}
+```
+
+### 11.5 Jak uruchomić import na produkcji
+
+Produkcyjna baza jest już zasiana, więc **sam seed niczego tam nie
+doda** — trzeba uruchomić import. Są dwie drogi, obie wołają tę samą
+funkcję `import_exercises.import_library()`:
+
+**A. Panel trenera (zalecane).** Baza wiedzy → zakładka „Ćwiczenia” →
+„Importuj bibliotekę ćwiczeń” → „Pokaż, co się zmieni”. Trener widzi
+raport (ile powstanie, ile zostanie uzupełnionych, czego nie
+rozpoznano) i dopiero wtedy klika „Zaimportuj do mojej bazy”. Import
+idzie **do katalogu zalogowanego trenera**.
+
+**B. Komenda** (wzorzec `dzik_os.backup`), na maszynie z dostępem do
+bazy:
+
+```bash
+python -m dzik_os.import_exercises --dry-run                  # próba, nic nie zapisuje
+python -m dzik_os.import_exercises --coach dzik@example.com   # import
+```
+
+Bez `--coach` komenda wykona import tylko wtedy, gdy w bazie jest
+**dokładnie jeden** trener; przy większej liczbie **odmawia** zamiast
+wybierać za człowieka. Zawsze najpierw `--dry-run` i kopia zapasowa
+(`python -m dzik_os.backup`).
+
+**Świeża baza (demo/staging)**: `python -m dzik_os.seed` uruchamia ten
+sam import po zasianiu katalogu startowego, więc demo pokazuje pełny
+katalog (155 pozycji startowych + 101 nowych z biblioteki).
+
+Endpoint: `POST /api/coach/exercises/import-library?dry_run=true|false`
+(rola `COACH`; klient dostaje 403). `dry_run` domyślnie **true** —
+przypadkowe wywołanie niczego nie zapisze.
+
+### 11.6 Jak cofnąć import
+
+1. **Pozycje utworzone przez import** rozpoznasz po
+   `source_kind = 'IMPORTED'`. Najbezpieczniejsze cofnięcie to
+   **archiwizacja** (`status='ARCHIVED'`) — pozycje znikają klientom, a
+   nic nie ginie:
+
+   ```sql
+   UPDATE exercises SET status = 'ARCHIVED'
+   WHERE coach_id = :coach AND source_kind = 'IMPORTED';
+   ```
+
+   Twarde usunięcie (`DELETE … WHERE source_kind='IMPORTED'`) jest
+   możliwe, ale usuwa też poprawki, które trener zdążył w nich zrobić —
+   robimy je tylko na wyraźne życzenie i po kopii zapasowej. Plany
+   treningowe odwołują się do ćwiczeń **miękko** (nazwa zostaje w
+   planie), więc usunięcie nie psuje istniejących planów.
+2. **Pozycje uzupełnione** (`source_ref LIKE '%uzupełnienie pustych pól%'`)
+   mają dopisane wyłącznie pola, które wcześniej były puste — nie ma tu
+   czego „przywracać”, bo nic nie zostało nadpisane. Jeśli trener chce je
+   wyczyścić, robi to zwykłą edycją.
+3. **Schemat** — patrz §11.7.
+
+### 11.7 Migracja nr 24 i plan wycofania
+
+Czysto addytywna: cztery kolumny NULLable na istniejącej tabeli
+`exercises`, bez backfillu.
+
+| pole | typ | znaczenie |
+| --- | --- | --- |
+| `name_en` | `VARCHAR(300)` | nazwa angielska (wyszukiwanie) |
+| `tags_json` | `TEXT` (JSON) | tagi + rodzaj ćwiczenia; API: `tags: string[]` |
+| `source_ref` | `VARCHAR(200)` | z jakiej biblioteki i z jakiej daty |
+| `review_reason` | `VARCHAR(300)` | notatka robocza trenera; **nie wychodzi na widoki klienta** |
+
+`source_kind` zyskał czwartą wartość: `IMPORTED` (obok `MANUAL`,
+`TEXT_PARSED`, `AI_ASSISTED`). `source_engine` wolno podać **wyłącznie**
+przy `TEXT_PARSED`/`AI_ASSISTED` — import niczego nie „czyta”, tylko
+przepisuje, więc silnik zostaje `NULL`.
+
+> **Numeracja:** numer 23 jest zarezerwowany dla równoległej rundy —
+> luka w `MIGRATIONS` jest świadoma (ten sam powód, co przy 21).
+
+**Plan wycofania (rollback):**
+
+1. **Kod bez danych.** Starsza wersja aplikacji nie zna tych kolumn i po
+   prostu ich nie czyta — wycofanie wydania jest bezpieczne bez ruszania
+   bazy.
+2. **Dane pozostają.** Rekomendowane wycofanie to zostawienie kolumn —
+   są NULLable i nic nie kosztują.
+3. **Twarde cofnięcie schematu** (awaryjnie): najpierw usuń zaimportowane
+   pozycje albo je zarchiwizuj (§11.6), potem usuń wiersz `version = 24`
+   z `schema_migrations`, a dopiero na końcu kolumny
+   (`ALTER TABLE exercises DROP COLUMN …`; w SQLite wymagane przepisanie
+   tabeli). Traci się wtedy nazwy angielskie, tagi, ślad po bibliotece i
+   notatki robocze — **opisy ćwiczeń pozostają nietknięte**.
+
+### 11.8 Znane ograniczenia
+
+* **22 nazwy mięśni ze źródła nie są mapowane** (§11.3) — częściowo
+  dlatego, że nasz słownik nie ma dla nich klucza (`mięsień ramienny`,
+  `obły większy`), częściowo dlatego, że są zbiorcze. Rozszerzenie
+  `MUSCLE_LABELS` to zmiana kontraktu wspólnego z rysunkiem sylwetki i
+  frontendem — świadomie nie robimy jej „przy okazji” importu.
+* **12 pozycji nie ma wzorca ruchu.** Nasze 13 wzorców nie obejmuje
+  antywyprostu ani izometrycznego chwytu. Nie upychamy ich na siłę.
+* **Opisy pozycji z importu są szablonowe** — to nie jest wada importu,
+  tylko właściwość źródła (§11.2). Notatka `review_reason` istnieje
+  dokładnie po to, żeby trener wiedział, gdzie warto dopisać swoje.
+* **Brak wideo i zdjęć.** Kolumny „Film instruktażowy” i „Zdjęcie / GIF”
+  są w źródle puste we wszystkich 120 wierszach.
+* **Import nie rozpoznaje synonimów nazw ćwiczeń.** „Wyciskanie sztangi
+  leżąc” i „Wyciskanie sztangi na ławce poziomej” to dla dopasowania dwie
+  różne pozycje. Sklejanie ich wymagałoby zgadywania; scalenie
+  duplikatów zostaje decyzją trenera.

@@ -516,6 +516,12 @@ class ExerciseLibraryItemIn(BaseModel):
     # nie podstawiamy MANUAL za trenera, który nic nie zadeklarował.
     source_kind: str | None = None
     source_engine: str | None = None
+    # Import biblioteki (migracja nr 24). `review_reason` jest edytowalne,
+    # bo trener musi móc je zdjąć, gdy opisze ćwiczenie po swojemu.
+    name_en: str | None = Field(default=None, max_length=300)
+    tags: list[str] = Field(default_factory=list, max_length=12)
+    source_ref: str | None = Field(default=None, max_length=200)
+    review_reason: str | None = Field(default=None, max_length=300)
 
     @model_validator(mode="after")
     def _check_dictionaries(self):
@@ -534,14 +540,18 @@ class ExerciseLibraryItemIn(BaseModel):
             raise ValueError(f"Nieznane źródło wpisu: {self.source_kind}")
         if self.source_engine is not None and self.source_engine not in PARSER_ENGINES:
             raise ValueError(f"Nieznany silnik: {self.source_engine}")
-        if self.source_engine is not None and self.source_kind in (None, "MANUAL"):
-            # Silnik bez źródła (albo przy wpisie ręcznym) byłby
-            # proweniencją, która nie trzyma się kupy.
+        if self.source_engine is not None and self.source_kind not in (
+            "TEXT_PARSED", "AI_ASSISTED"
+        ):
+            # Silnik bez źródła (przy wpisie ręcznym albo przy imporcie
+            # gotowej biblioteki) byłby proweniencją, która nie trzyma się
+            # kupy — import niczego nie „czyta”, tylko przepisuje.
             raise ValueError("Silnik można podać wyłącznie dla wpisu z opisu")
         for label, values, limit in (
             ("kroków techniki", self.steps, 600),
             ("błędów", self.mistakes, 400),
             ("wskazówek", self.cues, 300),
+            ("tagów", self.tags, 60),
         ):
             for value in values:
                 if not value.strip():

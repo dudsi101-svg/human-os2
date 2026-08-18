@@ -621,9 +621,14 @@ def test_migracja_23_na_starej_bazie(tmp_path):
         conn.execute(text(
             "CREATE TABLE users (id VARCHAR(40) PRIMARY KEY, email VARCHAR(200))"))
         conn.execute(text("INSERT INTO users(id, email) VALUES ('U1', 'a@example.com')"))
+        # Migracja nr 24 (import biblioteki ćwiczeń) dokłada kolumny do
+        # `exercises`, więc stara baza musi mieć tę tabelę, żeby domknąć
+        # cały zaległy ogon migracji — tu interesuje nas nr 23.
+        conn.execute(text(
+            "CREATE TABLE exercises (id VARCHAR(40) PRIMARY KEY, name VARCHAR(200))"))
 
     applied = run_migrations(eng)
-    assert applied == [23]
+    assert applied == [23, 24]
     with eng.connect() as conn:
         cols = {r[1]: r[3] for r in conn.exec_driver_sql("PRAGMA table_info(assistant_tasks)")}
         # Istniejące dane nietknięte.

@@ -5,6 +5,13 @@ import {
   Tabs, TopBar,
 } from "../../components";
 import { EMPTY_FILTERS, ExerciseFilters, exerciseQuery } from "../../exerciseFilters";
+import {
+  ExerciseImportReport,
+  hasChanges,
+  importSummary,
+  noChangesHint,
+  unmappedLine,
+} from "../../exerciseImport";
 import OcrCapture from "../../OcrCapture";
 import {
   OcrTask,
@@ -244,6 +251,26 @@ const EMPTY_EXERCISE_FORM: ExerciseForm = {
   tempo_hint: "", breathing: "",
 };
 
+/** Pola, których nie dotyka czytanie opisu: nazwa angielska, tagi i ślad
+ * po imporcie biblioteki. Trzymamy je osobno, żeby kontrakt formularza
+ * dzielony z parserem (`ExerciseFormValues`) się nie rozjechał. */
+interface ExerciseExtra {
+  name_en: string;
+  tags: string;
+  source_ref: string | null;
+  review_reason: string | null;
+}
+
+const EMPTY_EXTRA: ExerciseExtra = {
+  name_en: "", tags: "", source_ref: null, review_reason: null,
+};
+
+/** Tagi w interfejsie to jedno pole tekstowe rozdzielone przecinkami —
+ * krótsze niż osobny edytor listy, a i tak zapisujemy listę. */
+function splitTags(value: string): string[] {
+  return value.split(",").map((t) => t.trim()).filter(Boolean).slice(0, 12);
+}
+
 /** Edytor listy pozycji (kroki techniki / błędy / wskazówki): dodawanie
  * i usuwanie pojedynczych wierszy. Każde pole ma własną etykietę dla
  * czytników ekranu. */
@@ -320,6 +347,7 @@ function ExercisesTab() {
   const [provenance, setProvenance] = useState<
     { source_kind: string; source_engine: string | null } | null
   >(null);
+  const [extra, setExtra] = useState<ExerciseExtra>(EMPTY_EXTRA);
 
   const load = useCallback((offset = 0) => {
     if (offset > 0) setLoadingMore(true);
@@ -344,6 +372,7 @@ function ExercisesTab() {
   function startNew() {
     setForm(EMPTY_EXERCISE_FORM);
     setProvenance(null);
+    setExtra(EMPTY_EXTRA);
     setEditing("new");
   }
 
@@ -354,6 +383,12 @@ function ExercisesTab() {
         ? { source_kind: item.source_kind, source_engine: item.source_engine }
         : null
     );
+    setExtra({
+      name_en: item.name_en ?? "",
+      tags: item.tags.join(", "),
+      source_ref: item.source_ref,
+      review_reason: item.review_reason ?? null,
+    });
     setForm({
       name: item.name, muscle_group: item.muscle_group, how_to: item.how_to,
       benefit: item.benefit ?? "", equipment: item.equipment ?? "",
@@ -397,6 +432,12 @@ function ExercisesTab() {
         harder: form.harder || null,
         tempo_hint: form.tempo_hint || null,
         breathing: form.breathing || null,
+        name_en: extra.name_en.trim() || null,
+        tags: splitTags(extra.tags),
+        source_ref: extra.source_ref,
+        // Notatka „opis ogólny” znika, gdy trener ją zdejmie — to jego
+        // notatka robocza, nie flaga wystawiona przez system.
+        review_reason: extra.review_reason,
         ...(provenance ?? {}),
       };
       if (editing === "new") {
@@ -451,9 +492,35 @@ function ExercisesTab() {
               setProvenance(provenanceFor(engine));
             }}
           />
+          {extra.review_reason && (
+            <div className="card card--accent" style={{ marginBottom: 10 }}>
+              <p className="meta" style={{ marginTop: 0 }}>
+                <b>Notatka robocza:</b> {extra.review_reason}
+              </p>
+              <p className="dim" style={{ margin: "0 0 8px", fontSize: "0.85rem" }}>
+                Widzisz ją tylko Ty — klient nigdy nie dostaje tej informacji.
+              </p>
+              <button type="button" className="btn btn--ghost btn--small"
+                onClick={() => setExtra({ ...extra, review_reason: null })}>
+                Zdejmij notatkę (opis dopracowany)
+              </button>
+            </div>
+          )}
           <label htmlFor="ex-name">Nazwa</label>
           <input id="ex-name" required value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })} />
+          <div className="field-row">
+            <div>
+              <label htmlFor="ex-name-en">Nazwa angielska (opcjonalnie)</label>
+              <input id="ex-name-en" value={extra.name_en} placeholder="np. Barbell Bench Press"
+                onChange={(e) => setExtra({ ...extra, name_en: e.target.value })} />
+            </div>
+            <div>
+              <label htmlFor="ex-tags">Tagi (po przecinku)</label>
+              <input id="ex-tags" value={extra.tags} placeholder="np. klatka piersiowa, wielostawowe"
+                onChange={(e) => setExtra({ ...extra, tags: e.target.value })} />
+            </div>
+          </div>
           <div className="field-row">
             <div>
               <label htmlFor="ex-group">Grupa (widok listy)</label>
@@ -559,6 +626,7 @@ function ExercisesTab() {
 
       {!editing && (
         <>
+          <LibraryImport onImported={() => load(0)} />
           <div className="row" style={{ marginBottom: 10 }}>
             <button className="btn btn--small" onClick={startNew}>+ Nowe ćwiczenie</button>
             <button className="btn btn--ghost btn--small" aria-pressed={showArchived}
@@ -591,6 +659,123 @@ function ExercisesTab() {
         </button>
       )}
     </>
+  );
+}
+
+/** Panel „Importuj bibliotekę ćwiczeń”.
+ *
+ * Te same reguły interfejsu co przy czytaniu opisu i przy OCR:
+ * * najpierw PODGLĄD (`dry_run=true`) — nic się nie zapisuje, dopóki
+ *   trener nie kliknie „Zaimportuj”;
+ * * raport pokazuje wprost, ile pozycji powstanie, ile zostanie tylko
+ *   uzupełnionych (pola puste) i czego NIE udało się zmapować;
+ * * import nigdy nie nadpisuje opisów pisanych pod konkretne ćwiczenie —
+ *   piszemy to w interfejsie, a nie tylko w dokumentacji.
+ */
+function LibraryImport({ onImported }: { onImported: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [report, setReport] = useState<ExerciseImportReport | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function run(dryRun: boolean) {
+    setBusy(true);
+    setError(null);
+    try {
+      const data = await api.post<ExerciseImportReport>(
+        `/api/coach/exercises/import-library?dry_run=${dryRun}`
+      );
+      setReport(data);
+      setSaved(!dryRun);
+      if (!dryRun) onImported();
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="card" style={{ marginBottom: 12 }}>
+      <div className="row row--between">
+        <b>Importuj bibliotekę ćwiczeń</b>
+        <button type="button" className="btn btn--ghost btn--small" aria-expanded={open}
+          onClick={() => setOpen(!open)}>
+          {open ? "Zwiń" : "Rozwiń"}
+        </button>
+      </div>
+      {open && (
+        <>
+          <p className="dim" style={{ marginTop: 4 }}>
+            Dokłada do Twojej bazy pozycje z gotowej biblioteki. Ćwiczenia,
+            które już masz, <b>zostają nietknięte</b> — import uzupełnia w nich
+            wyłącznie pola, które są puste, i nigdy nie nadpisuje Twoich
+            opisów. Najpierw zobaczysz raport, zapis jest osobnym kliknięciem.
+          </p>
+          <div className="row" style={{ flexWrap: "wrap" }}>
+            <button type="button" className="btn btn--small" disabled={busy}
+              onClick={() => run(true)}>
+              {busy ? "Liczenie…" : "Pokaż, co się zmieni"}
+            </button>
+            {report && !saved && hasChanges(report) && (
+              <button type="button" className="btn btn--small" disabled={busy}
+                onClick={() => run(false)}>
+                Zaimportuj do mojej bazy
+              </button>
+            )}
+            {report && (
+              <button type="button" className="btn btn--ghost btn--small"
+                onClick={() => { setReport(null); setSaved(false); }}>
+                Zamknij raport
+              </button>
+            )}
+          </div>
+          <ErrorBox error={error} />
+          {report && (
+            <div className="card card--accent" style={{ marginTop: 8 }}>
+              <p className="meta" style={{ marginTop: 0 }} aria-live="polite">
+                {importSummary(report)}
+              </p>
+              <p className="dim" style={{ fontSize: "0.85rem" }}>
+                Źródło: {report.library}.
+              </p>
+              {!hasChanges(report) && (
+                <p className="meta">{noChangesHint(report)}</p>
+              )}
+              {report.created > 0 && (
+                <p className="meta">
+                  Nowe pozycje dostaną notatkę roboczą „opis ogólny”: technika w
+                  bibliotece jest wspólna dla całego wzorca ruchu, więc warto
+                  opisać je po swojemu. Notatkę widzisz tylko Ty.
+                </p>
+              )}
+              {report.unmapped_muscles.length > 0 && (
+                <p className="meta">
+                  <b>Nie rozpoznano partii mięśniowych:</b>{" "}
+                  {unmappedLine(report.unmapped_muscles)} — te pola zostają
+                  puste, uzupełnij je sam.
+                </p>
+              )}
+              {report.unmapped_patterns.length > 0 && (
+                <p className="meta">
+                  <b>Nie rozpoznano wzorców ruchu:</b>{" "}
+                  {unmappedLine(report.unmapped_patterns)} — te pola zostają
+                  puste, uzupełnij je sam.
+                </p>
+              )}
+              {report.errors.length > 0 && (
+                <ul className="meta" style={{ margin: "0 0 6px 18px" }}>
+                  {report.errors.map((e, i) => (
+                    <li key={i}>{e.exercise}: {e.message}</li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
+        </>
+      )}
+    </div>
   );
 }
 
@@ -818,6 +1003,11 @@ function CoachExerciseCard({ item, onEdit, onStatus }: {
             {item.steps[0] ?? item.how_to}
           </p>
           {item.equipment && <span className="badge">{item.equipment}</span>}
+          {item.review_reason && (
+            <p className="meta" style={{ marginTop: 6 }}>
+              <b>Do dopracowania:</b> {item.review_reason}
+            </p>
+          )}
         </>
       )}
     </div>
