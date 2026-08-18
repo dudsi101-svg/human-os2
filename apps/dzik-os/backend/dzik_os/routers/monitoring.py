@@ -135,10 +135,17 @@ def create_observation(
         for coach_id in coach_ids:
             coach = db.get(User, coach_id)
             if coach is not None:
+                # Treść e-maila BEZ danych zdrowotnych (kategoria i tekst
+                # obserwacji nimi są) — wyłącznie neutralne wezwanie do
+                # zajrzenia do panelu, jak w powiadomieniach push.
                 notifications.send_email(
                     to=coach.email,
-                    subject=f"Dzik OS: nowa obserwacja od {user.display_name}",
-                    body=f"Kategoria: {body.category}\n\n{body.text}",
+                    subject="Dzik OS: nowy wpis podopiecznego wymaga uwagi",
+                    body=(
+                        f"{user.display_name} dodał(a) wpis oznaczony jako "
+                        "niepokojący. Szczegóły znajdziesz po zalogowaniu "
+                        "do panelu trenera."
+                    ),
                 )
     db.commit()
     return {"id": row.id}

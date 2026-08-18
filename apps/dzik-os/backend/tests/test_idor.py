@@ -204,7 +204,6 @@ def test_relinking_existing_account_needs_subject_consent(seeded):
     id_a = get_user_id(seeded, ha)
     r = seeded.post("/api/coach/clients", headers=hf, json={
         "client_email": CLIENT_A["email"], "client_name": "Klient Testowy A",
-        "initial_password": "NieUzyte#2026x",
     })
     assert r.status_code == 201
     # Relacja jest, zgody nie ma → dane niedostępne.
@@ -227,7 +226,6 @@ def test_cannot_relink_admin_or_coach_account(seeded):
     for email in (ADMIN["email"], COACH["email"]):
         r = seeded.post("/api/coach/clients", headers=hf, json={
             "client_email": email, "client_name": "X",
-            "initial_password": "NieUzyte#2026x",
         })
         assert r.status_code == 409, f"{email}: konto nie-klienckie podpięte jako klient"
 
@@ -239,7 +237,6 @@ def test_reactivating_ended_relationship_reuses_row(seeded):
     seeded.post(f"/api/coach/clients/{id_a}/relationship-status?status=ENDED", headers=hc)
     r = seeded.post("/api/coach/clients", headers=hc, json={
         "client_email": CLIENT_A["email"], "client_name": "Klient Testowy A",
-        "initial_password": "NieUzyte#2026x",
     })
     assert r.status_code == 201
     clients = seeded.get("/api/coach/clients", headers=hc).json()["clients"]

@@ -11,11 +11,29 @@ klientów wymagających uwagi.
 
 ## Nowy podopieczny
 
-1. „+ Nowy klient" → imię, e-mail, hasło startowe (przekaż je klientowi
-   bezpiecznym kanałem i poproś o zmianę).
-2. Konto powstaje z aktywną współpracą i zgodą na przetwarzanie danych
+1. „+ Nowy klient" → tylko imię i e-mail — **żadnego hasła**. Klient
+   dostaje jednorazowy link aktywacyjny (ważny 7 dni) i sam ustawia
+   swoje hasło; Ty go nigdy nie poznasz.
+2. Jeśli wysyłka e-mail nie jest skonfigurowana, aplikacja pokaże Ci
+   link aktywacyjny do przekazania klientowi zaufanym kanałem
+   (np. osobiście). Link możesz w każdej chwili ponowić (stary przestaje
+   działać) albo anulować — przy kliencie ze statusem „oczekuje na
+   aktywację".
+3. Konto powstaje z aktywną współpracą i zgodą na przetwarzanie danych
    (klient widzi zgodę w aplikacji i może ją cofnąć — wtedy stracisz
    dostęp do jego danych do czasu ponownego udzielenia).
+
+## Bezpieczeństwo Twojego konta
+
+* **MFA (weryfikacja dwuetapowa) jest obowiązkowe dla trenera**: przy
+  pierwszym logowaniu aplikacja poprowadzi Cię przez konfigurację kodów
+  z aplikacji uwierzytelniającej (np. Google Authenticator). Zapisz
+  pokazane raz kody odzyskiwania — pozwalają zalogować się po utracie
+  telefonu; nowy komplet wygenerujesz w „Więcej".
+* W „Więcej" znajdziesz też aktywne sesje (wyloguj zapomniane
+  urządzenie) i historię zdarzeń bezpieczeństwa konta.
+* Zapomniane hasło: „Nie pamiętasz hasła?" na ekranie logowania (wymaga
+  skonfigurowanej wysyłki e-mail).
 
 ## Prowadzenie klienta (zakładki na karcie klienta)
 

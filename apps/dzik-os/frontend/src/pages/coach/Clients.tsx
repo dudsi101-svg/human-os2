@@ -7,6 +7,62 @@ import { CoachClientRow, CoachDashboardData } from "../../types";
 
 type Filter = "all" | "review" | "checkin" | "payment" | "messages" | "pain" | "observation";
 
+interface InvitationInfo {
+  id: string;
+  expires_at: string;
+  delivery: "email" | "manual";
+  activation_link?: string;
+}
+
+interface CreateClientResponse {
+  client_id: string;
+  relationship_id: string;
+  invitation: InvitationInfo | null;
+}
+
+/** Panel z wynikiem zaproszenia. Przy NullProvider (brak dostawcy e-mail)
+ * link aktywacyjny wraca trenerowi jako „link do przekazania" — świadomy
+ * kompromis opisany w docs/PERMISSIONS.md; ze skonfigurowanym dostawcą
+ * link idzie WYŁĄCZNIE e-mailem i trener go nie widzi. */
+function InvitationPanel({ invitation, onClose }: { invitation: InvitationInfo; onClose: () => void }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <div className="card card--accent">
+      <h3>Zaproszenie wysłane</h3>
+      {invitation.delivery === "email" ? (
+        <p>
+          Klient otrzymał e-mail z jednorazowym linkiem aktywacyjnym
+          (ważny do {plDate(invitation.expires_at)}). Sam ustawi swoje hasło —
+          nikt inny go nie pozna.
+        </p>
+      ) : (
+        <>
+          <p>
+            Wysyłka e-mail nie jest skonfigurowana, więc przekaż klientowi
+            poniższy jednorazowy link aktywacyjny (ważny do{" "}
+            {plDate(invitation.expires_at)}) zaufanym kanałem. Klient sam
+            ustawi hasło — Ty go nigdy nie poznasz.
+          </p>
+          <p style={{ fontFamily: "monospace", fontSize: "0.8rem", wordBreak: "break-all" }}>
+            {invitation.activation_link}
+          </p>
+          <div className="row">
+            <button className="btn btn--small" onClick={async () => {
+              await navigator.clipboard?.writeText(invitation.activation_link ?? "");
+              setCopied(true);
+            }}>
+              {copied ? "Skopiowano ✓" : "Kopiuj link"}
+            </button>
+          </div>
+        </>
+      )}
+      <div style={{ marginTop: 8 }}>
+        <button className="btn btn--ghost btn--small" onClick={onClose}>Zamknij</button>
+      </div>
+    </div>
+  );
+}
+
 export default function Clients() {
   const [clients, setClients] = useState<CoachClientRow[] | null>(null);
   const [dashboard, setDashboard] = useState<CoachDashboardData | null>(null);
@@ -14,7 +70,8 @@ export default function Clients() {
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
   const [showNew, setShowNew] = useState(false);
-  const [newClient, setNewClient] = useState({ client_name: "", client_email: "", initial_password: "" });
+  const [newClient, setNewClient] = useState({ client_name: "", client_email: "" });
+  const [invitation, setInvitation] = useState<InvitationInfo | null>(null);
 
   const load = () => {
     api.get<{ clients: CoachClientRow[] }>("/api/coach/clients")
@@ -29,9 +86,35 @@ export default function Clients() {
   async function createClient(e: FormEvent) {
     e.preventDefault();
     try {
-      await api.post("/api/coach/clients", newClient);
+      const r = await api.post<CreateClientResponse>("/api/coach/clients", newClient);
       setShowNew(false);
-      setNewClient({ client_name: "", client_email: "", initial_password: "" });
+      setNewClient({ client_name: "", client_email: "" });
+      setInvitation(r.invitation);
+      load();
+    } catch (err) {
+      setError((err as Error).message);
+    }
+  }
+
+  async function resendInvitation(clientId: string) {
+    setError(null);
+    try {
+      const r = await api.post<{ invitation: InvitationInfo }>(
+        `/api/coach/clients/${clientId}/invitations`
+      );
+      setInvitation(r.invitation);
+      load();
+    } catch (err) {
+      setError((err as Error).message);
+    }
+  }
+
+  async function cancelInvitation(clientId: string) {
+    if (!confirm("Anulować zaproszenie? Link aktywacyjny przestanie działać.")) return;
+    setError(null);
+    try {
+      await api.post(`/api/coach/clients/${clientId}/invitations/cancel`);
+      setInvitation(null);
       load();
     } catch (err) {
       setError((err as Error).message);
@@ -83,25 +166,26 @@ export default function Clients() {
           + Nowy klient
         </button>
       </div>
+      {invitation && (
+        <InvitationPanel invitation={invitation} onClose={() => setInvitation(null)} />
+      )}
       {showNew && (
         <form className="card card--accent" onSubmit={createClient}>
-          <h3>Nowy podopieczny</h3>
+          <h3>Zaproś podopiecznego</h3>
           <label>Imię i nazwisko</label>
           <input required value={newClient.client_name}
             onChange={(e) => setNewClient({ ...newClient, client_name: e.target.value })} />
           <label>E-mail</label>
           <input type="email" required value={newClient.client_email}
             onChange={(e) => setNewClient({ ...newClient, client_email: e.target.value })} />
-          <label>Hasło startowe (min. 10 znaków — klient zmieni po zalogowaniu)</label>
-          <input required minLength={10} value={newClient.initial_password}
-            onChange={(e) => setNewClient({ ...newClient, initial_password: e.target.value })} />
           <small>
-            Zakładając konto potwierdzasz, że klient wyraził zgodę na
-            przetwarzanie danych w celu prowadzenia trenerskiego. Klient
-            zobaczy tę zgodę w aplikacji i może ją cofnąć.
+            Klient otrzyma jednorazowy link aktywacyjny i SAM ustawi swoje
+            hasło — nikt go nie zobaczy. Zapraszając potwierdzasz, że klient
+            wyraził zgodę na przetwarzanie danych w celu prowadzenia
+            trenerskiego; zobaczy ją w aplikacji i może ją cofnąć.
           </small>
           <div style={{ marginTop: 10 }}>
-            <button className="btn">Załóż konto i rozpocznij współpracę</button>
+            <button className="btn">Wyślij zaproszenie</button>
           </div>
         </form>
       )}
@@ -126,7 +210,10 @@ export default function Clients() {
             <div className="row row--between">
               <b style={{ color: "var(--text)" }}>{c.display_name}</b>
               <div className="row" style={{ gap: 6 }}>
-                {!c.consent_active && <span className="badge badge--danger">brak zgody</span>}
+                {c.account_pending && (
+                  <span className="badge badge--warn">oczekuje na aktywację</span>
+                )}
+                {!c.account_pending && !c.consent_active && <span className="badge badge--danger">brak zgody</span>}
                 {c.relationship_status !== "ACTIVE" && (
                   <span className="badge">{c.relationship_status === "PAUSED" ? "pauza" : "zakończona"}</span>
                 )}
@@ -146,6 +233,25 @@ export default function Clients() {
               {c.email} · ostatni raport:{" "}
               {c.last_checkin_week ? plDate(c.last_checkin_week) : "brak"}
             </small>
+            {c.account_pending && (
+              <div className="row" style={{ marginTop: 8, gap: 6 }}>
+                <small className="dim">
+                  {c.invitation_expires_at
+                    ? `zaproszenie ważne do ${plDate(c.invitation_expires_at)}`
+                    : "brak aktywnego zaproszenia"}
+                </small>
+                <button className="btn btn--ghost btn--small"
+                  onClick={(e) => { e.preventDefault(); resendInvitation(c.client_id); }}>
+                  Wyślij ponownie
+                </button>
+                {c.invitation_expires_at && (
+                  <button className="btn btn--ghost btn--small"
+                    onClick={(e) => { e.preventDefault(); cancelInvitation(c.client_id); }}>
+                    Anuluj
+                  </button>
+                )}
+              </div>
+            )}
           </Link>
         ))}
         {filtered.length === 0 && <p className="dim">Brak klientów spełniających kryteria.</p>}

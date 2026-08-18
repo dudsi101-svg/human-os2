@@ -74,10 +74,16 @@ aktywną relacją (bez bramki zgody); **T·own** = trener-właściciel rekordu
 | Endpoint | Kto może | Zakres rekordów | Relacja | Zgoda | R/W |
 |---|---|---|---|---|---|
 | POST /api/auth/login, /logout; GET /api/auth/brand | publiczne | — | — | — | — |
+| POST /api/auth/mfa/verify | publiczne (wymaga ważnego tokenu wyzwania z /login) | drugi krok logowania konta z MFA | — | — | W |
+| POST /api/auth/activation/inspect, /activate | publiczne (wymaga ważnego tokenu zaproszenia) | aktywacja konta PENDING; jedna odpowiedź 404 dla każdego nieważnego tokenu | — | — | W |
+| POST /api/auth/password-reset/request, /confirm | publiczne | reset hasła; odpowiedź żądania identyczna niezależnie od istnienia konta; limit per e-mail+IP | — | — | W |
 | GET /api/auth/me; POST /api/auth/change-password | zalogowany | własne konto | — | — | R/W |
+| GET /api/auth/mfa/status; POST /api/auth/mfa/setup, /enable, /disable, /recovery-codes/regenerate | zalogowany | MFA własnego konta (disable: tylko role bez obowiązku MFA) | — | — | R/W |
+| GET /api/auth/security-events | zalogowany | historia zdarzeń bezpieczeństwa WŁASNEGO konta (metadane bez tokenów) | — | — | R |
 | GET /api/auth/sessions; POST /api/auth/sessions/revoke-others | zalogowany | własne sesje | — | — | R/W |
 | POST /api/auth/sessions/{session_id}/revoke | zalogowany | wyłącznie własna sesja (cudza aktywna → ACCESS_DENIED) | — | — | W |
-| POST /api/coach/clients | COACH | nowe konto: pełny onboarding + zgoda-deklaracja; istniejące konto: tylko aktywny CLIENT, **bez auto-zgody** (nadaje ją sam klient) | tworzy/reaktywuje | — | W |
+| POST /api/coach/clients | COACH | nowe konto: PENDING + zaproszenie aktywacyjne + zgoda-deklaracja; istniejące konto: tylko aktywny CLIENT, **bez auto-zgody** (nadaje ją sam klient) i bez zaproszenia | tworzy/reaktywuje | — | W |
+| POST /api/coach/clients/{id}/invitations, /invitations/cancel | COACH | zaproszenia wyłącznie własnego klienta w statusie PENDING (konto aktywowane → 409; cudzy/nieznany klient → 404) | tak (dowolny status) | — | W |
 | GET /api/coach/clients, /api/coach/dashboard | COACH | wyłącznie własne relacje (metadane operacyjne) | — | — | R |
 | POST /api/coach/clients/{id}/relationship-status | COACH | własna relacja | — | — | W |
 | GET /api/coach/clients/{id}/history, /overview | T | pokwitowania/konto jednego klienta | tak | tak | R |
@@ -276,6 +282,131 @@ Model sesji (`auth_sessions`, `security.py`, `routers/auth.py`):
 * Zdarzenia audytu: `SESSION_LOGGED_OUT`, `SESSION_REVOKED`,
   `SESSIONS_REVOKED`, `PASSWORD_CHANGED` (payload bez sekretów — testowane
   w `tests/test_sessions.py`).
+
+## Zaproszenia i aktywacja konta (od 0.11.0)
+
+Trener NIE ustawia i NIE zna żadnego hasła klienta. Przepływ:
+
+1. `POST /api/coach/clients` z **wyłącznie niezbędnymi danymi** (e-mail,
+   imię). Powstaje konto `users.status=PENDING` (pole `password_hash="!"`
+   nigdy nie zweryfikuje się w bcrypt; login dodatkowo filtruje
+   `status=ACTIVE`) + relacja + zgoda-deklaracja z onboardingu (jak w P3)
+   + wiersz `client_invitations`.
+2. Token aktywacyjny: `secrets.token_urlsafe(32)` (≥32 B entropii);
+   w bazie WYŁĄCZNIE hash SHA-256 (`token_hash`, wzorzec jak
+   `auth_sessions`). Termin ważności `DZIK_INVITATION_TTL_DAYS` (7 dni),
+   jednorazowy (`used_at`), anulowalny (`cancelled_at`). Ponowne wysłanie
+   (`POST .../invitations`) najpierw anuluje wszystkie aktywne tokeny —
+   nigdy nie istnieje więcej niż jeden ważny link.
+3. Link `https://…/aktywacja#TOKEN` — token we **fragmencie** URL, nie w
+   query: fragment nie jest wysyłany do serwera, więc nie trafia do logów
+   dostępowych. Do API token idzie wyłącznie w body POST.
+4. Klient otwiera link bez logowania (`/aktywacja`), widzi czyje konto
+   aktywuje (`activation/inspect`) i SAM ustawia hasło (`/activate`);
+   konto przechodzi PENDING→ACTIVE, zdarzenie `ACCOUNT_ACTIVATED`.
+5. E-mail zaproszenia nie zawiera ŻADNYCH danych zdrowotnych — tylko
+   imię, nazwę trenera/aplikacji i link.
+
+**Kompromis NullNotificationProvider (świadomy):** dopóki operator nie
+skonfiguruje prawdziwego dostawcy e-mail, `send_email` nic nie wysyła.
+Jedynym kanałem doręczenia jest wtedy trener: odpowiedź API na
+utworzenie/ponowienie zaproszenia zawiera `activation_link` („link do
+przekazania”), który trener przekazuje klientowi zaufanym kanałem. To
+oznacza, że trener zna link aktywacyjny (ale nadal NIE zna hasła — klient
+ustawia je sam, a link jest jednorazowy i wygasa). Po skonfigurowaniu
+prawdziwego dostawcy (`send_email` zwraca `True`) link idzie WYŁĄCZNIE
+e-mailem i nie pojawia się w odpowiedzi API ani w UI. Link/token nigdy
+nie trafia do audytu ani logów (testowane).
+
+Konta seedu demo (`seed.py`) pozostają tworzone bezpośrednio jako ACTIVE
+ze znanym jawnie hasłem demo — nowy przepływ dotyczy kont zakładanych
+przez UI/API.
+
+## Reset hasła (od 0.11.0)
+
+* `POST /api/auth/password-reset/request {email}` — **zawsze ta sama
+  odpowiedź 200** (treść i kształt identyczne dla konta istniejącego i
+  nieistniejącego; różnice czasowe odpowiedzi to zaakceptowane ryzyko
+  rezydualne MVP). Limit prób per e-mail ORAZ per IP
+  (`DZIK_RESET_MAX_REQUESTS`/`DZIK_RESET_WINDOW_MIN`, licznik w pamięci
+  procesu jak `login_rate_limiter`).
+* Token: `secrets.token_urlsafe(32)`, w bazie tylko hash SHA-256
+  (`password_reset_tokens`), TTL `DZIK_RESET_TOKEN_TTL_MIN` (60 min),
+  jednorazowy; nowe żądanie unieważnia poprzednie tokeny.
+* `POST /api/auth/password-reset/confirm {token,new_password}` — ustawia
+  hasło i **unieważnia WSZYSTKIE sesje konta** (zdarzenie
+  `PASSWORD_RESET_COMPLETED` z liczbą sesji, bez sekretów).
+* Link resetu (`/reset-hasla#TOKEN`) idzie **wyłącznie e-mailem** — przy
+  NullNotificationProvider nie ma bezpiecznego kanału doręczenia, więc
+  samoobsługowy reset wymaga skonfigurowanego dostawcy (odpowiedź API
+  celowo NIE zawiera linku — inaczej każdy znający e-mail mógłby przejąć
+  konto). Do tego czasu awaryjna ścieżka to kontakt z trenerem/operatorem
+  (dla konta PENDING: ponowne zaproszenie).
+
+## MFA — weryfikacja dwuetapowa (od 0.11.0)
+
+* **TOTP zgodny z RFC 6238** (HMAC-SHA1, krok 30 s, 6 cyfr) w czystym
+  Pythonie (`dzik_os/totp.py`, stdlib `hmac`/`struct` — zero zależności);
+  provisioning `otpauth://` do wpisania/zeskanowania w dowolnej aplikacji
+  uwierzytelniającej. Sekret (base32, 160 bitów) jest pokazywany
+  użytkownikowi wyłącznie raz przy konfiguracji; w odpowiedziach API,
+  audycie i logach nigdy nie występuje. Kolumny `users.totp_*`.
+* **Logowanie dwuetapowe**: poprawne hasło konta z MFA wydaje krótkotrwałe
+  wyzwanie (`mfa_challenges`, tylko hash tokenu, TTL 5 min, jednorazowe);
+  sesja powstaje dopiero po `POST /api/auth/mfa/verify` z poprawnym kodem
+  TOTP (okno ±1 kroku) lub kodem odzyskiwania. Ochrona przed powtórnym
+  użyciem kodu: `totp_last_counter` (kod z licznikiem ≤ ostatnio użytego
+  jest odrzucany). Nieudane próby: limiter per konto + zdarzenie
+  `LOGIN_MFA_FAILED` (bez kodu).
+* **Wymuszenie dla COACH/ADMIN** (`DZIK_MFA_REQUIRED_ROLES`, domyślnie
+  `COACH,ADMIN`): konto roli wymaganej bez skonfigurowanego MFA loguje
+  się hasłem, ale do PIERWSZEJ konfiguracji dostaje wyłącznie ścieżki
+  konfiguracji MFA (403 `MFA_SETUP_REQUIRED` wszędzie indziej — wzorzec
+  identyczny z `PASSWORD_CHANGE_REQUIRED`); po konfiguracji kod jest
+  wymagany przy każdym logowaniu, a wyłączenie MFA jest dla tych ról
+  zablokowane (403). Dla CLIENT MFA jest opcjonalne (ta sama mechanika,
+  z możliwością wyłączenia kodem). W testach wymuszanie jest globalnie
+  wyłączone i włączane punktowo w `tests/test_mfa.py`; konto demo trenera
+  na stagingu przy domyślnej konfiguracji skonfiguruje MFA przy pierwszym
+  logowaniu (login hasłem nadal działa — zmienia się tylko zakres dostępu
+  do czasu konfiguracji).
+* **Kody odzyskiwania**: 10 kodów (alfabet bez znaków mylących, format
+  `XXXXX-XXXXX`), pokazywane tylko raz; w bazie wyłącznie hashe SHA-256
+  (`mfa_recovery_codes`); każdy jednorazowy; regeneracja (za kodem TOTP)
+  unieważnia wszystkie poprzednie. Użycie kodu przy logowaniu emituje
+  `MFA_RECOVERY_CODE_USED` z liczbą pozostałych.
+* **WebAuthn/passkeys — następny krok (nieimplementowane)**: naturalne
+  rozszerzenie po TOTP (odporność na phishing, klucz sprzętowy/biometria).
+  Świadomie poza zakresem tej rundy: wymaga stabilnego origin i bezpiecznego
+  magazynu poświadczeń publicznych po stronie backendu oraz przebudowy
+  przepływu logowania — w obecnym stacku (Bearer + sessionStorage, patrz
+  decyzja niżej) ryzyko złożoności na jeden commit jest za duże. Mechanika
+  wyzwań (`mfa_challenges`) jest zaprojektowana tak, by drugi składnik
+  WebAuthn mógł ją w przyszłości współdzielić.
+* **Historia bezpieczeństwa**: `GET /api/auth/security-events` — logowania,
+  nieudane MFA, resety, kody odzyskiwania, zakończenia sesji (metadane z
+  pokwitowań; tokeny/kody/hasła nie występują). UI: karta „Historia
+  bezpieczeństwa” obok „Aktywnych sesji”.
+
+## Plan wycofania migracji 11
+
+Migracja 11 jest czysto addytywna (3 kolumny `users.totp_*`, 4 nowe
+tabele) — istniejące dane nie są modyfikowane. Wycofanie:
+
+1. Wdrożyć poprzednią wersję kodu (stare zapytania nie dotykają nowych
+   kolumn/tabel — mogą pozostać w schemacie bez szkody; SQLite i tak nie
+   wspiera DROP COLUMN bez przebudowy tabeli).
+2. Opcjonalne sprzątnięcie schematu: `DROP TABLE client_invitations,
+   password_reset_tokens, mfa_recovery_codes, mfa_challenges` oraz
+   `DELETE FROM schema_migrations WHERE version=11`.
+3. Dane wymagające decyzji przy wycofaniu: konta `users.status='PENDING'`
+   (zaproszone, nieaktywowane) nie mają hasła — stary kod ich nie założy
+   ponownie; należy je usunąć (nie mają żadnych danych zdrowotnych) albo
+   ręcznie nadać hasło startowe starym przepływem. Konta z aktywnym MFA
+   po wycofaniu logują się samym hasłem (kolumny są ignorowane) — o
+   wycofaniu trzeba poinformować użytkowników, bo obniża ochronę konta.
+4. Audyt: zdarzenia `CLIENT_INVITED`/`ACCOUNT_ACTIVATED`/`MFA_*`/
+   `PASSWORD_RESET_*` pozostają w łańcuchu (append-only, nie usuwamy).
 
 **Świadoma decyzja: pozostajemy przy Bearer + sessionStorage** (zamiast
 pełnego przejścia na ciasteczka httpOnly). Powody: (a) zmiana dotyka

@@ -72,20 +72,27 @@ def revoke_session(db: Session, token: str) -> AuthSession | None:
 class LoginRateLimiter:
     """Prosty limiter prób logowania per e-mail (okno przesuwne, w pamięci
     procesu). Chroni przed brute force; przy wdrożeniu wieloprocesowym
-    należy przenieść licznik do współdzielonego magazynu (docs/RISK_REGISTER)."""
+    należy przenieść licznik do współdzielonego magazynu (docs/RISK_REGISTER).
+    Domyślne progi pochodzą z ustawień logowania; instancje dla innych
+    operacji (reset hasła) mogą podać własne max_attempts/window_minutes."""
 
-    def __init__(self) -> None:
+    def __init__(
+        self, max_attempts: int | None = None, window_minutes: int | None = None
+    ) -> None:
         self._attempts: dict[str, list[float]] = {}
+        self._max_attempts = max_attempts
+        self._window_minutes = window_minutes
 
     def check(self, key: str) -> None:
-        window = settings.login_lockout_minutes * 60
+        window = (self._window_minutes or settings.login_lockout_minutes) * 60
+        limit = self._max_attempts or settings.login_max_attempts
         now = time.monotonic()
         attempts = [t for t in self._attempts.get(key, []) if now - t < window]
         self._attempts[key] = attempts
-        if len(attempts) >= settings.login_max_attempts:
+        if len(attempts) >= limit:
             raise HTTPException(
                 status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                detail="Zbyt wiele prób logowania. Spróbuj ponownie później.",
+                detail="Zbyt wiele prób. Spróbuj ponownie później.",
             )
 
     def record_failure(self, key: str) -> None:
@@ -102,6 +109,17 @@ login_rate_limiter = LoginRateLimiter()
 # hasło już zalogowanego (np. przejęta karta przeglądarki).
 password_change_rate_limiter = LoginRateLimiter()
 
+# Reset hasła: limit per e-mail ORAZ per IP (klucze "email:..."/"ip:...") —
+# chroni przed spamem resetów i sondowaniem istnienia kont wolumenem.
+password_reset_rate_limiter = LoginRateLimiter(
+    max_attempts=settings.reset_max_requests,
+    window_minutes=settings.reset_window_minutes,
+)
+
+# Kody MFA (klucz: id użytkownika) — 6-cyfrowy kod bez limitu prób byłby
+# zgadywalny w rozsądnym czasie.
+mfa_rate_limiter = LoginRateLimiter()
+
 
 def _extract_token(request: Request) -> str | None:
     auth = request.headers.get("Authorization", "")
@@ -117,6 +135,31 @@ _PASSWORD_CHANGE_ALLOWED_PATHS = {
     "/api/auth/logout",
     "/api/auth/me",
 }
+
+# Ścieżki dostępne dla konta COACH/ADMIN bez skonfigurowanego MFA — okres
+# przejściowy trwa wyłącznie do pierwszej konfiguracji; do tego czasu konto
+# ma dostęp jedynie do konfiguracji MFA i podstaw własnego konta.
+_MFA_SETUP_ALLOWED_PATHS = {
+    "/api/auth/mfa/status",
+    "/api/auth/mfa/setup",
+    "/api/auth/mfa/enable",
+    "/api/auth/change-password",
+    "/api/auth/logout",
+    "/api/auth/me",
+}
+
+
+def mfa_required_roles() -> set[str]:
+    return {r.strip() for r in settings.mfa_required_roles.split(",") if r.strip()}
+
+
+def mfa_setup_required(db: Session, user: User) -> bool:
+    """Czy konto MUSI skonfigurować MFA zanim uzyska dostęp do danych
+    (rola z listy wymaganych bez potwierdzonego TOTP)."""
+    if user.totp_confirmed_at is not None:
+        return False
+    required = mfa_required_roles()
+    return bool(required) and bool(required & active_roles(db, user.id))
 
 
 def current_user(request: Request, db: Session = Depends(get_db)) -> User:
@@ -149,6 +192,14 @@ def current_user(request: Request, db: Session = Depends(get_db)) -> User:
         # Egzekwowane po stronie serwera: konto z hasłem startowym nie ma
         # dostępu do danych, dopóki hasło nie zostanie zmienione.
         raise HTTPException(status_code=403, detail="PASSWORD_CHANGE_REQUIRED")
+    if (
+        request.url.path not in _MFA_SETUP_ALLOWED_PATHS
+        and mfa_setup_required(db, user)
+    ):
+        # Rola uprzywilejowana (COACH/ADMIN) bez skonfigurowanego MFA:
+        # okres przejściowy do PIERWSZEJ konfiguracji — dostęp wyłącznie
+        # do ekranu konfiguracji MFA, potem kod wymagany przy logowaniu.
+        raise HTTPException(status_code=403, detail="MFA_SETUP_REQUIRED")
     return user
 
 

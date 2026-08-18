@@ -1,5 +1,74 @@
 # Changelog — Dzik OS
 
+## 0.11.0 — 2026-08-18
+
+Runda tożsamości: **zaproszenia z aktywacją konta, bezpieczny reset hasła
+i MFA (TOTP)** — koniec hasła startowego widocznego dla trenera.
+
+* **Zaproszenia zamiast hasła startowego**: trener podaje wyłącznie
+  e-mail i imię; konto powstaje jako PENDING (bez żadnego hasła, login
+  zablokowany), a klient otrzymuje jednorazowy link aktywacyjny
+  (`/aktywacja#TOKEN` — token we fragmencie URL, poza logami serwera)
+  i SAM ustawia hasło na ekranie aktywacji bez logowania. Token:
+  `secrets.token_urlsafe(32)`, w bazie tylko hash SHA-256, ważny 7 dni,
+  jednorazowy, anulowalny; ponowne wysłanie unieważnia poprzedni.
+  Przepływ P3 dla istniejących kont (relacja bez auto-zgody) bez zmian.
+* **Kompromis NullProvider (jawny)**: bez skonfigurowanego dostawcy
+  e-mail link aktywacyjny wraca trenerowi w UI jako „link do
+  przekazania”; ze skonfigurowanym dostawcą idzie wyłącznie e-mailem
+  (trener go nie widzi) — opisane w PERMISSIONS.md.
+* **Bezpieczny reset hasła**: `/reset-hasla` — żądanie z ogólnym
+  komunikatem niezależnym od istnienia konta (bez enumeracji), limit
+  prób per e-mail+IP, token hashowany (SHA-256) ważny 60 min,
+  jednorazowy, nowszy unieważnia starszy; po resecie unieważnienie
+  WSZYSTKICH sesji konta. Link wyłącznie e-mailem (przy NullProviderze
+  reset wymaga skonfigurowanego dostawcy — świadomie bez linku w API).
+* **MFA (TOTP RFC 6238)** w czystym Pythonie (stdlib hmac/struct, zero
+  zależności): sekret base32 + URI `otpauth://` (tekst do przepisania /
+  otwarcia w aplikacji), potwierdzenie kodem, logowanie dwuetapowe
+  (wyzwanie 5 min, tylko hash w bazie), okno ±1 kroku z ochroną przed
+  ponownym użyciem kodu (licznik ostatniego okna), limit prób i audyt
+  nieudanych weryfikacji. **Obowiązkowe dla COACH/ADMIN**
+  (`DZIK_MFA_REQUIRED_ROLES`): do pierwszej konfiguracji konto ma dostęp
+  wyłącznie do ekranu konfiguracji MFA (403 `MFA_SETUP_REQUIRED`,
+  wzorzec jak wymuszona zmiana hasła), wyłączenie zablokowane; dla
+  CLIENT opcjonalne. WebAuthn/passkeys opisane w PERMISSIONS.md jako
+  następny krok (świadomie nieimplementowane).
+* **Kody odzyskiwania**: 10 jednorazowych kodów pokazywanych tylko raz
+  (w bazie hashe), logowanie kodem audytowane z liczbą pozostałych,
+  regeneracja za kodem TOTP unieważnia wszystkie stare.
+* **Historia bezpieczeństwa konta**: `GET /api/auth/security-events`
+  (logowania, nieudane MFA, resety, kody, zakończenia sesji — metadane
+  bez tokenów) jako karta obok „Aktywnych sesji” (Profil / Więcej).
+* **E-maile bez danych zdrowotnych**: naprawiony e-mail o niepokojącej
+  obserwacji (wysyłał kategorię i pełną treść wpisu) — teraz neutralne
+  wezwanie do panelu; treści zaproszeń/resetów projektowane bez PII
+  zdrowotnego i potwierdzone testami.
+* Migracja schematu nr 11 (kolumny `users.totp_*`, tabele
+  `client_invitations`, `password_reset_tokens`, `mfa_recovery_codes`,
+  `mfa_challenges`) — addytywna, plan wycofania w PERMISSIONS.md. Nowe
+  ustawienia: `DZIK_INVITATION_TTL_DAYS`, `DZIK_RESET_TOKEN_TTL_MIN`,
+  `DZIK_RESET_MAX_REQUESTS`, `DZIK_RESET_WINDOW_MIN`,
+  `DZIK_MFA_REQUIRED_ROLES`, `DZIK_MFA_CHALLENGE_TTL_MIN`,
+  `DZIK_PUBLIC_URL`.
+* UI: ekran aktywacji, ekran resetu (żądanie + nowe hasło), krok MFA w
+  logowaniu (kod TOTP/odzyskiwania), wymuszony ekran konfiguracji MFA
+  (`/mfa`), karta MFA w Profilu klienta i w „Więcej” trenera/admina,
+  formularz „Zaproś podopiecznego” bez pola hasła + status „oczekuje na
+  aktywację” z ponowieniem/anulowaniem zaproszenia, link „Nie pamiętasz
+  hasła?”.
+* Konta demo seedu pozostają aktywne z hasłami z seedu (nowy przepływ
+  dotyczy kont zakładanych przez UI/API); stare testy hasła startowego
+  przepisane świadomie na przepływ zaproszeń (mechanizm
+  `must_change_password` zachowany dla kont historycznych i nadal
+  testowany).
+* Testy: 232 → 256 (zaproszenia: ważne/wygasłe/ponowne
+  użycie/anulowanie/ponowienie/izolacja trenerów/brak tokenu w audycie;
+  reset: brak enumeracji, jednorazowość, wygaśnięcie, unieważnienie
+  sesji, limit prób; MFA: wektor RFC, dobry/zły kod, okno czasowe,
+  replay, kody odzyskiwania, wymuszenie dla trenera, opcjonalność dla
+  klienta, sekrety poza audytem; historia bezpieczeństwa).
+
 ## 0.10.1 — 2026-08-18
 
 Audyt i utwardzenie **całego systemu plików** (bez zmian schematu bazy).

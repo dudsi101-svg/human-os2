@@ -9,9 +9,13 @@ Migracje: `db.py` — rejestr `schema_migrations`, wersja 1 = schemat MVP.
 
 | Tabela | Rola | Kluczowe pola |
 |---|---|---|
-| `users` | konto | email, password_hash (bcrypt), display_name, identity_id, status, anonymized_at |
+| `users` | konto | email, password_hash (bcrypt; `"!"` dla PENDING = brak hasła), display_name, identity_id, status (PENDING/ACTIVE/SUSPENDED/DELETED), anonymized_at, totp_secret/totp_confirmed_at/totp_last_counter (MFA) |
 | `role_grants` | rola uprawnień (oś B) | user_id, role, scope, issued_by, valid_from/to, revoked_at |
 | `auth_sessions` | sesje | token_hash (SHA-256), expires_at, revoked_at |
+| `client_invitations` | zaproszenie aktywacyjne (migracja 11) | coach_id, client_id, email, token_hash (SHA-256, jedyny ślad tokenu), expires_at (7 dni), used_at, cancelled_at — jednorazowe; nowe unieważnia poprzednie |
+| `password_reset_tokens` | reset hasła (migracja 11) | user_id, token_hash (SHA-256), expires_at (60 min), used_at — jednorazowy; użycie unieważnia wszystkie sesje |
+| `mfa_recovery_codes` | kody odzyskiwania MFA (migracja 11) | user_id, code_hash (SHA-256), used_at — jednorazowe; regeneracja unieważnia stare |
+| `mfa_challenges` | wyzwanie drugiego kroku logowania (migracja 11) | user_id, token_hash (SHA-256), expires_at (5 min), used_at |
 | `coach_client_relationships` | współpraca | coach_id, client_id, status, started_at/ended_at, created_by |
 | `consents` | zgody (trwała warstwa ConsentRegistry) | subject_id, grantee_id, purpose, domain, actions, allow_sensitive, consent_text_version, granted_at, revoked_at |
 

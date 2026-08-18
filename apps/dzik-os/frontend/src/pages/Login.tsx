@@ -1,29 +1,65 @@
 import { FormEvent, useState } from "react";
-import { ApiError, login } from "../api";
+import { ApiError, login, SessionUser, verifyMfa } from "../api";
 import { ErrorBox } from "../components";
 
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [mfaToken, setMfaToken] = useState<string | null>(null);
+  const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+
+  function goHome(user: SessionUser) {
+    if (user.must_change_password) {
+      location.assign("/haslo");
+      return;
+    }
+    if (user.mfa_setup_required) {
+      location.assign("/mfa");
+      return;
+    }
+    location.assign(
+      user.roles.includes("COACH") ? "/trener" : user.roles.includes("ADMIN") ? "/admin" : "/"
+    );
+  }
 
   async function submit(e: FormEvent) {
     e.preventDefault();
     setBusy(true);
     setError(null);
     try {
-      const user = await login(email, password);
-      if (user.must_change_password) {
-        location.assign("/haslo");
+      const result = await login(email, password);
+      if (result.kind === "mfa") {
+        // Konto z MFA: hasło poprawne, sesja powstanie po kodzie.
+        setMfaToken(result.mfaToken);
         return;
       }
-      location.assign(
-        user.roles.includes("COACH") ? "/trener" : user.roles.includes("ADMIN") ? "/admin" : "/"
-      );
+      goHome(result.user);
     } catch (err) {
       // Serwer odpowiada jednym komunikatem niezależnie od istnienia konta.
       setError(err instanceof ApiError ? err.message : "Brak połączenia z serwerem");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function submitCode(e: FormEvent) {
+    e.preventDefault();
+    if (!mfaToken) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const user = await verifyMfa(mfaToken, code.trim());
+      goHome(user);
+    } catch (err) {
+      const apiErr = err instanceof ApiError ? err : null;
+      if (apiErr && apiErr.status === 401 && apiErr.message.includes("wygasła")) {
+        // Wyzwanie MFA wygasło — wróć do kroku hasła.
+        setMfaToken(null);
+        setCode("");
+      }
+      setError(apiErr ? apiErr.message : "Brak połączenia z serwerem");
     } finally {
       setBusy(false);
     }
@@ -39,28 +75,62 @@ export default function Login() {
             style={{ width: "min(78%, 300px)", height: "auto", display: "block", margin: "0 auto 8px" }}
           />
           <small className="dim">Panel Podopiecznego</small>
-          <p style={{ margin: "14px 0 0", fontWeight: 600 }}>
-            Cześć, dobrze Cię widzieć! 💪
-          </p>
-          <p className="dim" style={{ margin: "4px 0 0", fontSize: "0.88rem" }}>
-            Zaloguj się — Twój plan, dieta i wiadomości od trenera
-            czekają w jednym miejscu.
-          </p>
+          {!mfaToken && (
+            <>
+              <p style={{ margin: "14px 0 0", fontWeight: 600 }}>
+                Cześć, dobrze Cię widzieć! 💪
+              </p>
+              <p className="dim" style={{ margin: "4px 0 0", fontSize: "0.88rem" }}>
+                Zaloguj się — Twój plan, dieta i wiadomości od trenera
+                czekają w jednym miejscu.
+              </p>
+            </>
+          )}
         </div>
-        <form onSubmit={submit} className="card">
-          <label htmlFor="email">E-mail</label>
-          <input id="email" type="email" autoComplete="username" required
-            value={email} onChange={(e) => setEmail(e.target.value)} />
-          <label htmlFor="password">Hasło</label>
-          <input id="password" type="password" autoComplete="current-password" required
-            value={password} onChange={(e) => setPassword(e.target.value)} />
-          <ErrorBox error={error} />
-          <div style={{ marginTop: 14 }}>
-            <button className="btn" disabled={busy}>
-              {busy ? "Logowanie…" : "Zaloguj się"}
-            </button>
-          </div>
-        </form>
+        {!mfaToken && (
+          <form onSubmit={submit} className="card">
+            <label htmlFor="email">E-mail</label>
+            <input id="email" type="email" autoComplete="username" required
+              value={email} onChange={(e) => setEmail(e.target.value)} />
+            <label htmlFor="password">Hasło</label>
+            <input id="password" type="password" autoComplete="current-password" required
+              value={password} onChange={(e) => setPassword(e.target.value)} />
+            <ErrorBox error={error} />
+            <div style={{ marginTop: 14 }}>
+              <button className="btn" disabled={busy}>
+                {busy ? "Logowanie…" : "Zaloguj się"}
+              </button>
+            </div>
+            <p style={{ margin: "10px 0 0", textAlign: "center" }}>
+              <a href="/reset-hasla" style={{ fontSize: "0.85rem" }}>
+                Nie pamiętasz hasła?
+              </a>
+            </p>
+          </form>
+        )}
+        {mfaToken && (
+          <form onSubmit={submitCode} className="card">
+            <h3 style={{ marginTop: 0 }}>Weryfikacja dwuetapowa</h3>
+            <p className="dim" style={{ fontSize: "0.88rem" }}>
+              Wpisz kod z aplikacji uwierzytelniającej albo jeden z kodów
+              odzyskiwania.
+            </p>
+            <label htmlFor="mfa">Kod</label>
+            <input id="mfa" inputMode="numeric" autoComplete="one-time-code"
+              autoFocus placeholder="123456 albo XXXXX-XXXXX" required
+              value={code} onChange={(e) => setCode(e.target.value)} />
+            <ErrorBox error={error} />
+            <div className="row" style={{ marginTop: 14 }}>
+              <button className="btn" disabled={busy || code.trim().length < 6}>
+                {busy ? "Sprawdzanie…" : "Potwierdź"}
+              </button>
+              <button type="button" className="btn btn--ghost"
+                onClick={() => { setMfaToken(null); setCode(""); setError(null); }}>
+                Wróć
+              </button>
+            </div>
+          </form>
+        )}
         <p className="dim" style={{ textAlign: "center", fontSize: "0.8rem" }}>
           Twoje dane należą do Ciebie. Trener widzi je tylko za Twoją zgodą,
           którą możesz cofnąć w każdej chwili.

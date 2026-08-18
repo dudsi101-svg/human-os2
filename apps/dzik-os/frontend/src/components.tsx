@@ -2,8 +2,9 @@ import { ReactNode, useEffect, useState } from "react";
 import { NavLink } from "react-router-dom";
 import {
   api, ApiError, AuthSessionRow, fetchFile, fetchFileBlob, fetchFileUrl,
-  getUser, listSessions, logout, openBlobInNewTab, revokeOtherSessions,
-  revokeSession, saveBlobAs,
+  getMfaStatus, getToken, getUser, listSecurityEvents, listSessions, logout, MfaStatus,
+  mfaDisable, mfaEnable, mfaRegenerateRecoveryCodes, mfaSetup, openBlobInNewTab,
+  revokeOtherSessions, revokeSession, saveBlobAs, SecurityEventRow, setSession,
 } from "./api";
 import { plDate, plDateTime } from "./dates";
 import { applyUpdate, onUpdateAvailable } from "./pwa";
@@ -286,6 +287,243 @@ export function SessionsCard() {
           </button>
         </div>
       )}
+    </div>
+  );
+}
+
+const SECURITY_EVENT_LABELS: Record<string, string> = {
+  LOGIN_SUCCEEDED: "Zalogowanie",
+  LOGIN_MFA_FAILED: "Nieudana weryfikacja MFA",
+  MFA_ENABLED: "Włączenie MFA",
+  MFA_DISABLED: "Wyłączenie MFA",
+  MFA_RECOVERY_CODES_REGENERATED: "Nowe kody odzyskiwania",
+  MFA_RECOVERY_CODE_USED: "Użyto kodu odzyskiwania",
+  PASSWORD_CHANGED: "Zmiana hasła",
+  PASSWORD_RESET_REQUESTED: "Żądanie resetu hasła",
+  PASSWORD_RESET_COMPLETED: "Reset hasła",
+  ACCOUNT_ACTIVATED: "Aktywacja konta",
+  SESSION_LOGGED_OUT: "Wylogowanie",
+  SESSION_REVOKED: "Zakończenie sesji",
+  SESSIONS_REVOKED: "Wylogowanie z pozostałych urządzeń",
+};
+
+/** Historia istotnych zdarzeń bezpieczeństwa konta (bez tokenów). */
+export function SecurityEventsCard() {
+  const [events, setEvents] = useState<SecurityEventRow[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    listSecurityEvents().then((d) => setEvents(d.events)).catch((e) => setError(e.message));
+  }, [open]);
+
+  return (
+    <div className="card">
+      <div className="row row--between">
+        <h3 style={{ margin: 0 }}>Historia bezpieczeństwa</h3>
+        <button className="btn btn--ghost btn--small" onClick={() => setOpen(!open)}>
+          {open ? "Zwiń" : "Pokaż"}
+        </button>
+      </div>
+      {open && (
+        <>
+          <p className="dim" style={{ fontSize: "0.85rem" }}>
+            Logowania, nieudane próby MFA, resety hasła i kody odzyskiwania —
+            jeśli widzisz coś, czego nie rozpoznajesz, zakończ sesje i zmień
+            hasło.
+          </p>
+          <ErrorBox error={error} />
+          {!events && !error && <Spinner />}
+          {events?.length === 0 && <small>Brak zdarzeń.</small>}
+          {events?.map((e, i) => (
+            <div className="exercise" key={`${e.created_at}-${i}`}>
+              <div>
+                <b>{SECURITY_EVENT_LABELS[e.action] ?? e.action}</b>
+                <div className="meta">{plDateTime(e.created_at)}</div>
+              </div>
+            </div>
+          ))}
+        </>
+      )}
+    </div>
+  );
+}
+
+/** Lista kodów odzyskiwania — pokazywana wyłącznie raz po wygenerowaniu. */
+export function RecoveryCodesBox({ codes }: { codes: string[] }) {
+  return (
+    <div className="alert alert--info" style={{ marginTop: 10 }}>
+      <b>Kody odzyskiwania — zapisz je teraz.</b>
+      <p style={{ margin: "6px 0" }}>
+        Każdy działa tylko raz i zastępuje kod z aplikacji, gdy stracisz
+        telefon. Nie pokażemy ich ponownie.
+      </p>
+      <div style={{
+        display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(130px, 1fr))",
+        gap: 6, fontFamily: "monospace", fontSize: "0.95rem",
+      }}>
+        {codes.map((c) => <span key={c}>{c}</span>)}
+      </div>
+      <div style={{ marginTop: 8 }}>
+        <button className="btn btn--ghost btn--small"
+          onClick={() => navigator.clipboard?.writeText(codes.join("\n"))}>
+          Kopiuj wszystkie
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/** Konfiguracja MFA (TOTP): sekret + otpauth:// do aplikacji
+ * uwierzytelniającej, potwierdzenie kodem, kody odzyskiwania.
+ * Sekret pojawia się wyłącznie tutaj — nigdy więcej. */
+export function MfaCard({ forced = false }: { forced?: boolean }) {
+  const [status, setStatus] = useState<MfaStatus | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [ok, setOk] = useState<string | null>(null);
+  const [setup, setSetup] = useState<{ secret: string; otpauth_uri: string } | null>(null);
+  const [code, setCode] = useState("");
+  const [recoveryCodes, setRecoveryCodes] = useState<string[] | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const load = () => {
+    getMfaStatus().then(setStatus).catch((e) => setError(e.message));
+  };
+  useEffect(() => { load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function startSetup() {
+    setBusy(true); setError(null);
+    try {
+      setSetup(await mfaSetup());
+    } catch (e) { setError((e as Error).message); } finally { setBusy(false); }
+  }
+
+  async function confirmSetup() {
+    setBusy(true); setError(null);
+    try {
+      const r = await mfaEnable(code.trim());
+      setRecoveryCodes(r.recovery_codes);
+      setSetup(null);
+      setCode("");
+      setOk("MFA włączone. Od teraz logowanie wymaga kodu z aplikacji.");
+      // Zdejmij lokalną flagę wymuszenia (serwer i tak już przepuszcza).
+      const user = getUser();
+      const token = getToken();
+      if (user && token) setSession(token, { ...user, mfa_setup_required: false, mfa_enabled: true });
+      load();
+    } catch (e) { setError((e as Error).message); } finally { setBusy(false); }
+  }
+
+  async function regenerate() {
+    const c = prompt("Podaj aktualny kod z aplikacji, aby wygenerować nowe kody odzyskiwania (stare przestaną działać):");
+    if (!c) return;
+    setBusy(true); setError(null); setOk(null);
+    try {
+      const r = await mfaRegenerateRecoveryCodes(c.trim());
+      setRecoveryCodes(r.recovery_codes);
+      setOk("Wygenerowano nowe kody odzyskiwania — stare są nieważne.");
+      load();
+    } catch (e) { setError((e as Error).message); } finally { setBusy(false); }
+  }
+
+  async function disable() {
+    const c = prompt("Podaj aktualny kod z aplikacji, aby wyłączyć MFA:");
+    if (!c) return;
+    setBusy(true); setError(null); setOk(null);
+    try {
+      await mfaDisable(c.trim());
+      setRecoveryCodes(null);
+      setOk("MFA wyłączone.");
+      const user = getUser();
+      const token = getToken();
+      if (user && token) setSession(token, { ...user, mfa_enabled: false });
+      load();
+    } catch (e) { setError((e as Error).message); } finally { setBusy(false); }
+  }
+
+  const roles = getUser()?.roles ?? [];
+  const mandatory = roles.includes("COACH") || roles.includes("ADMIN");
+
+  return (
+    <div className="card">
+      <h3>Weryfikacja dwuetapowa (MFA)</h3>
+      {forced && (
+        <p className="alert alert--info">
+          Twoja rola wymaga MFA. Skonfiguruj je teraz — do tego czasu konto ma
+          dostęp wyłącznie do tego ekranu.
+        </p>
+      )}
+      <ErrorBox error={error} />
+      {ok && <div className="alert alert--info">{ok}</div>}
+      {!status && !error && <Spinner />}
+      {status && !status.enabled && !setup && (
+        <>
+          <p className="dim" style={{ fontSize: "0.85rem" }}>
+            Drugi składnik logowania: kod z aplikacji uwierzytelniającej
+            (np. Aegis, Google Authenticator, 1Password).
+            {mandatory ? " Dla roli trenera/administratora MFA jest obowiązkowe." : ""}
+          </p>
+          <button className="btn" disabled={busy} onClick={startSetup}>
+            Skonfiguruj MFA
+          </button>
+        </>
+      )}
+      {setup && (
+        <div>
+          <p style={{ fontSize: "0.9rem" }}>
+            1. Dodaj konto w aplikacji uwierzytelniającej — zeskanuj lub
+            otwórz link albo przepisz sekret ręcznie:
+          </p>
+          <p>
+            <a href={setup.otpauth_uri} style={{ wordBreak: "break-all", fontSize: "0.82rem" }}>
+              {setup.otpauth_uri}
+            </a>
+          </p>
+          <p style={{ fontFamily: "monospace", fontSize: "1.05rem", letterSpacing: 1, wordBreak: "break-all" }}>
+            {setup.secret.replace(/(.{4})/g, "$1 ").trim()}
+          </p>
+          <div className="row">
+            <button className="btn btn--ghost btn--small"
+              onClick={() => navigator.clipboard?.writeText(setup.secret)}>
+              Kopiuj sekret
+            </button>
+          </div>
+          <label htmlFor="mfa-code" style={{ marginTop: 10 }}>
+            2. Wpisz kod z aplikacji, aby potwierdzić
+          </label>
+          <input id="mfa-code" inputMode="numeric" autoComplete="one-time-code"
+            placeholder="123456" value={code} maxLength={6}
+            onChange={(e) => setCode(e.target.value)} />
+          <div style={{ marginTop: 10 }}>
+            <button className="btn" disabled={busy || code.trim().length !== 6}
+              onClick={confirmSetup}>
+              Potwierdź i włącz MFA
+            </button>
+          </div>
+        </div>
+      )}
+      {status?.enabled && (
+        <>
+          <p>
+            <span className="badge badge--ok">MFA aktywne</span>{" "}
+            <small className="dim">
+              kody odzyskiwania: {status.recovery_codes_left}
+            </small>
+          </p>
+          <div className="row" style={{ flexWrap: "wrap" }}>
+            <button className="btn btn--ghost btn--small" disabled={busy} onClick={regenerate}>
+              Nowe kody odzyskiwania
+            </button>
+            {!mandatory && (
+              <button className="btn btn--danger btn--small" disabled={busy} onClick={disable}>
+                Wyłącz MFA
+              </button>
+            )}
+          </div>
+        </>
+      )}
+      {recoveryCodes && <RecoveryCodesBox codes={recoveryCodes} />}
     </div>
   );
 }

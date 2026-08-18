@@ -2,7 +2,7 @@
 
 import io
 
-from conftest import COACH, login
+from conftest import COACH, activation_token, invite_client, login
 
 
 def test_full_coach_and_client_journey(client):
@@ -11,23 +11,17 @@ def test_full_coach_and_client_journey(client):
     seed_module.seed()
     hc = login(client, COACH)
 
-    # 1. Trener zakłada nowego klienta.
-    r = client.post("/api/coach/clients", headers=hc, json={
-        "client_email": "nowy.klient@example.com",
-        "client_name": "Nowy Klient",
-        "initial_password": "StartoweHaslo#1",
-    })
-    assert r.status_code == 201
-    new_id = r.json()["client_id"]
+    # 1. Trener zaprasza nowego klienta (bez hasła — tylko e-mail i imię).
+    created = invite_client(client, hc, "nowy.klient@example.com", "Nowy Klient")
+    new_id = created["client_id"]
 
-    # 2. Klient loguje się, zmienia hasło startowe, potwierdza zgodę
-    #    i uzupełnia profil.
-    hn = login(client, {"email": "nowy.klient@example.com",
-                        "password": "StartoweHaslo#1"})
-    r = client.post("/api/auth/change-password", headers=hn, json={
-        "current_password": "StartoweHaslo#1", "new_password": "WlasneNowe#123"})
+    # 2. Klient aktywuje konto jednorazowym linkiem i SAM ustawia hasło,
+    #    loguje się, potwierdza zgodę i uzupełnia profil.
+    r = client.post("/api/auth/activate", json={
+        "token": activation_token(created), "password": "WlasneNowe#123"})
     assert r.status_code == 200
-    hn = {"Authorization": f"Bearer {r.json()['token']}"}  # rotacja tokenu
+    hn = login(client, {"email": "nowy.klient@example.com",
+                        "password": "WlasneNowe#123"})
     consents = client.get("/api/me/consents", headers=hn).json()["consents"]
     onboarding = next(c for c in consents if c["confirmed_at"] is None)
     r = client.post(f"/api/me/consents/{onboarding['id']}/confirm", headers=hn)

@@ -8,6 +8,10 @@ export interface SessionUser {
   display_name: string;
   roles: string[];
   must_change_password?: boolean;
+  /** MFA aktywne na koncie (TOTP potwierdzone). */
+  mfa_enabled?: boolean;
+  /** Rola z obowiązkowym MFA bez konfiguracji — dostęp tylko do ekranu MFA. */
+  mfa_setup_required?: boolean;
 }
 
 const TOKEN_KEY = "dzik_token";
@@ -116,8 +120,30 @@ export interface LoginResponse {
   user: SessionUser;
 }
 
-export async function login(email: string, password: string): Promise<SessionUser> {
-  const data = await api.post<LoginResponse>("/api/auth/login", { email, password });
+export type LoginResult =
+  | { kind: "ok"; user: SessionUser }
+  | { kind: "mfa"; mfaToken: string };
+
+/** Logowanie. Konto z MFA dostaje po haśle krótkotrwałe wyzwanie —
+ * sesja powstaje dopiero po poprawnym kodzie (verifyMfa). */
+export async function login(email: string, password: string): Promise<LoginResult> {
+  const data = await api.post<LoginResponse & { mfa_required?: boolean; mfa_token?: string }>(
+    "/api/auth/login",
+    { email, password }
+  );
+  if (data.mfa_required && data.mfa_token) {
+    return { kind: "mfa", mfaToken: data.mfa_token };
+  }
+  setSession(data.token, data.user);
+  return { kind: "ok", user: data.user };
+}
+
+/** Drugi krok logowania: kod TOTP z aplikacji albo kod odzyskiwania. */
+export async function verifyMfa(mfaToken: string, code: string): Promise<SessionUser> {
+  const data = await api.post<LoginResponse>("/api/auth/mfa/verify", {
+    mfa_token: mfaToken,
+    code,
+  });
   setSession(data.token, data.user);
   return data.user;
 }
@@ -166,6 +192,60 @@ export const revokeSession = (sessionId: string) =>
 
 export const revokeOtherSessions = () =>
   api.post<{ ok: boolean; revoked: number }>("/api/auth/sessions/revoke-others");
+
+// ——— MFA (TOTP), aktywacja konta, reset hasła ————————————————————————————
+
+export interface MfaStatus {
+  enabled: boolean;
+  pending: boolean;
+  setup_required: boolean;
+  recovery_codes_left: number;
+}
+
+export const getMfaStatus = () => api.get<MfaStatus>("/api/auth/mfa/status");
+
+export const mfaSetup = () =>
+  api.post<{ secret: string; otpauth_uri: string }>("/api/auth/mfa/setup");
+
+export const mfaEnable = (code: string) =>
+  api.post<{ ok: boolean; recovery_codes: string[] }>("/api/auth/mfa/enable", { code });
+
+export const mfaDisable = (code: string) =>
+  api.post<{ ok: boolean }>("/api/auth/mfa/disable", { code });
+
+export const mfaRegenerateRecoveryCodes = (code: string) =>
+  api.post<{ ok: boolean; recovery_codes: string[] }>(
+    "/api/auth/mfa/recovery-codes/regenerate",
+    { code }
+  );
+
+export interface SecurityEventRow {
+  action: string;
+  summary: string;
+  created_at: string;
+}
+
+export const listSecurityEvents = () =>
+  api.get<{ events: SecurityEventRow[] }>("/api/auth/security-events");
+
+export const inspectActivation = (token: string) =>
+  api.post<{ email: string; display_name: string }>("/api/auth/activation/inspect", {
+    token,
+  });
+
+export const activateAccount = (token: string, password: string) =>
+  api.post<{ ok: boolean }>("/api/auth/activate", { token, password });
+
+export const requestPasswordReset = (email: string) =>
+  api.post<{ ok: boolean; message: string }>("/api/auth/password-reset/request", {
+    email,
+  });
+
+export const confirmPasswordReset = (token: string, newPassword: string) =>
+  api.post<{ ok: boolean }>("/api/auth/password-reset/confirm", {
+    token,
+    new_password: newPassword,
+  });
 
 // --- Autoryzowane pobieranie plików ---------------------------------------
 // Chronione pliki (/api/files/{id}) wymagają nagłówka Authorization — zwykły

@@ -1,23 +1,28 @@
-"""Wymuszona zmiana hasła startowego + potwierdzanie zgód przez podmiot
-+ dostęp do załączników wiadomości."""
+"""Wymuszona zmiana hasła (mechanizm legacy) + potwierdzanie zgód przez
+podmiot + dostęp do załączników wiadomości. Nowe konta powstają z
+zaproszenia (tests/test_invitations.py) — klient sam ustawia hasło."""
 
 import io
 
-from conftest import CLIENT_A, COACH, login
+from conftest import CLIENT_A, COACH, create_activated_client, login
 
 
-def _create_client(seeded, hc, email="swiezak@example.com"):
-    r = seeded.post("/api/coach/clients", headers=hc, json={
-        "client_email": email, "client_name": "Świeży Klient",
-        "initial_password": "StartoweHaslo#1",
-    })
-    assert r.status_code == 201
-    return r.json()["client_id"]
+def _create_client(seeded, hc, email="swiezak@example.com",
+                   password="WlasneHaslo#123"):
+    return create_activated_client(seeded, hc, email, password)
 
 
 def test_forced_password_change_blocks_until_changed(seeded):
+    """Mechanizm must_change_password pozostaje w systemie (konta
+    historyczne); egzekwowanie: blokada wszystkiego poza zmianą hasła."""
+    from dzik_os.db import db_session
+    from dzik_os.models import User
+
     hc = login(seeded, COACH)
-    _create_client(seeded, hc)
+    _create_client(seeded, hc, password="StartoweHaslo#1")
+    with db_session() as db:
+        user = db.query(User).filter(User.email == "swiezak@example.com").one()
+        user.must_change_password = True
     creds = {"email": "swiezak@example.com", "password": "StartoweHaslo#1"}
     r = seeded.post("/api/auth/login", json=creds)
     assert r.status_code == 200
@@ -76,12 +81,8 @@ def test_onboarding_consent_requires_subject_confirmation(seeded):
     hc = login(seeded, COACH)
     client_id = _create_client(seeded, hc, "potwierdz@example.com")
     r = seeded.post("/api/auth/login", json={
-        "email": "potwierdz@example.com", "password": "StartoweHaslo#1"})
+        "email": "potwierdz@example.com", "password": "WlasneHaslo#123"})
     hn = {"Authorization": f"Bearer {r.json()['token']}"}
-    r = seeded.post("/api/auth/change-password", headers=hn,
-                    json={"current_password": "StartoweHaslo#1",
-                          "new_password": "NoweWlasne#123"})
-    hn = {"Authorization": f"Bearer {r.json()['token']}"}  # rotacja tokenu
 
     consents = seeded.get("/api/me/consents", headers=hn).json()["consents"]
     onboarding = next(c for c in consents if c["revoked_at"] is None)
@@ -162,3 +163,9 @@ def test_migrations_apply_to_existing_v1_database(tmp_path):
     assert "last_used_at" in cols_s
     assert {"schedule_completions", "observations", "daily_nutrition_logs"} <= tables
     assert {"exercises", "food_products"} <= tables
+    # Migracja 11: MFA (TOTP) + zaproszenia + reset hasła.
+    assert {"totp_secret", "totp_confirmed_at", "totp_last_counter"} <= set(cols_u)
+    assert {
+        "client_invitations", "password_reset_tokens",
+        "mfa_recovery_codes", "mfa_challenges",
+    } <= tables

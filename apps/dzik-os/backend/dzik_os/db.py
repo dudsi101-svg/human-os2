@@ -183,6 +183,79 @@ MIGRATIONS: list[tuple[int, str, list[str]]] = [
     (9, "session security: last used timestamp", [
         "ALTER TABLE auth_sessions ADD COLUMN last_used_at VARCHAR(40)",
     ]),
+    (11, "invitations, password reset, TOTP MFA", [
+        # MFA (TOTP) na koncie użytkownika; sekret nigdy nie opuszcza
+        # backendu poza jednorazowym zwrotem przy konfiguracji.
+        "ALTER TABLE users ADD COLUMN totp_secret VARCHAR(64)",
+        "ALTER TABLE users ADD COLUMN totp_confirmed_at VARCHAR(40)",
+        "ALTER TABLE users ADD COLUMN totp_last_counter INTEGER",
+        """
+        CREATE TABLE IF NOT EXISTS client_invitations (
+            id VARCHAR(40) PRIMARY KEY,
+            coach_id VARCHAR(40) NOT NULL REFERENCES users(id),
+            client_id VARCHAR(40) NOT NULL REFERENCES users(id),
+            email VARCHAR(255) NOT NULL,
+            token_hash VARCHAR(64) NOT NULL UNIQUE,
+            created_at VARCHAR(40) NOT NULL,
+            expires_at VARCHAR(40) NOT NULL,
+            used_at VARCHAR(40),
+            cancelled_at VARCHAR(40)
+        )
+        """,
+        (
+            "CREATE INDEX IF NOT EXISTS ix_client_invitations_coach "
+            "ON client_invitations(coach_id)"
+        ),
+        (
+            "CREATE INDEX IF NOT EXISTS ix_client_invitations_client "
+            "ON client_invitations(client_id)"
+        ),
+        """
+        CREATE TABLE IF NOT EXISTS password_reset_tokens (
+            id VARCHAR(40) PRIMARY KEY,
+            user_id VARCHAR(40) NOT NULL REFERENCES users(id),
+            token_hash VARCHAR(64) NOT NULL UNIQUE,
+            created_at VARCHAR(40) NOT NULL,
+            expires_at VARCHAR(40) NOT NULL,
+            used_at VARCHAR(40)
+        )
+        """,
+        (
+            "CREATE INDEX IF NOT EXISTS ix_password_reset_tokens_user "
+            "ON password_reset_tokens(user_id)"
+        ),
+        """
+        CREATE TABLE IF NOT EXISTS mfa_recovery_codes (
+            id VARCHAR(40) PRIMARY KEY,
+            user_id VARCHAR(40) NOT NULL REFERENCES users(id),
+            code_hash VARCHAR(64) NOT NULL,
+            created_at VARCHAR(40) NOT NULL,
+            used_at VARCHAR(40)
+        )
+        """,
+        (
+            "CREATE INDEX IF NOT EXISTS ix_mfa_recovery_codes_user "
+            "ON mfa_recovery_codes(user_id)"
+        ),
+        (
+            "CREATE INDEX IF NOT EXISTS ix_mfa_recovery_codes_hash "
+            "ON mfa_recovery_codes(code_hash)"
+        ),
+        """
+        CREATE TABLE IF NOT EXISTS mfa_challenges (
+            id VARCHAR(40) PRIMARY KEY,
+            user_id VARCHAR(40) NOT NULL REFERENCES users(id),
+            token_hash VARCHAR(64) NOT NULL UNIQUE,
+            created_at VARCHAR(40) NOT NULL,
+            expires_at VARCHAR(40) NOT NULL,
+            used_at VARCHAR(40)
+        )
+        """,
+        (
+            "CREATE INDEX IF NOT EXISTS ix_mfa_challenges_user "
+            "ON mfa_challenges(user_id)"
+        ),
+    ]),
 ]
 
 

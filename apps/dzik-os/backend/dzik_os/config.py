@@ -48,6 +48,33 @@ class Settings:
     )
     # Koszt bcrypt (12 = produkcja; testy mogą obniżyć dla szybkości).
     bcrypt_rounds: int = field(default_factory=lambda: int(_env("DZIK_BCRYPT_ROUNDS", "12")))
+    # Zaproszenia do aktywacji konta (link jednorazowy) i reset hasła.
+    invitation_ttl_days: int = field(
+        default_factory=lambda: int(_env("DZIK_INVITATION_TTL_DAYS", "7"))
+    )
+    reset_token_ttl_minutes: int = field(
+        default_factory=lambda: int(_env("DZIK_RESET_TOKEN_TTL_MIN", "60"))
+    )
+    # Limit żądań resetu hasła (osobno per e-mail i per IP, okno przesuwne).
+    reset_max_requests: int = field(
+        default_factory=lambda: int(_env("DZIK_RESET_MAX_REQUESTS", "5"))
+    )
+    reset_window_minutes: int = field(
+        default_factory=lambda: int(_env("DZIK_RESET_WINDOW_MIN", "60"))
+    )
+    # Krok pośredni logowania z MFA (token wyzwania) — krótkie TTL.
+    mfa_challenge_ttl_minutes: int = field(
+        default_factory=lambda: int(_env("DZIK_MFA_CHALLENGE_TTL_MIN", "5"))
+    )
+    # Role z OBOWIĄZKOWYM MFA (TOTP): konto bez skonfigurowanego MFA dostaje
+    # po zalogowaniu wyłącznie dostęp do konfiguracji MFA. Pusta wartość
+    # wyłącza wymuszanie (używane w testach; produkcja: COACH,ADMIN).
+    mfa_required_roles: str = field(
+        default_factory=lambda: _env("DZIK_MFA_REQUIRED_ROLES", "COACH,ADMIN")
+    )
+    # Publiczny adres aplikacji do linków w e-mailach (aktywacja/reset).
+    # Pusty = użyj adresu bieżącego żądania (deployment same-origin).
+    public_base_url: str = field(default_factory=lambda: _env("DZIK_PUBLIC_URL", ""))
     # AI jest opcjonalne i domyślnie WYŁĄCZONE — aplikacja działa w pełni bez AI.
     ai_enabled: bool = field(default_factory=lambda: _env("DZIK_AI_ENABLED", "false") == "true")
     cors_origins: str = field(default_factory=lambda: _env("DZIK_CORS_ORIGINS", ""))
