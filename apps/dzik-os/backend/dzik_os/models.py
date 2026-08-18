@@ -536,6 +536,14 @@ class PaymentSchedule(Base):
 
 
 class PaymentRecord(Base):
+    """NALEŻNOŚĆ (okres rozliczeniowy) — "co się należy i na kiedy".
+    Faktyczne przepływy pieniędzy to osobne, append-only wiersze
+    PaymentTransaction; historia przejść statusu to PaymentStatusChange.
+    Maszyna stanów: payment_state.ALLOWED_PAYMENT_TRANSITIONS
+    (PLANNED/PENDING/IN_PROGRESS/PAID/OVERDUE/FAILED/CANCELLED/
+    PARTIALLY_REFUNDED/REFUNDED); statusy sprzed migracji nr 15 są jej
+    podzbiorem — patrz docs/PLATNOSCI.md."""
+
     __tablename__ = "payment_records"
 
     id: Mapped[str] = mapped_column(String(40), primary_key=True)
@@ -544,11 +552,101 @@ class PaymentRecord(Base):
     amount_cents: Mapped[int] = mapped_column(Integer)
     currency: Mapped[str] = mapped_column(String(10), default="PLN")
     status: Mapped[str] = mapped_column(String(20), default="PENDING")
-    # PENDING / PAID / OVERDUE / CANCELLED — zmiany statusu audytowane
     paid_at: Mapped[str | None] = mapped_column(String(40), nullable=True)
     marked_by: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    # Moment ręcznego oznaczenia przez trenera (kto = marked_by) — widoczne
+    # w UI obu stron (migracja nr 15; dla starych wierszy = paid_at).
+    marked_at: Mapped[str | None] = mapped_column(String(40), nullable=True)
     note: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[str] = mapped_column(String(40), default=now_iso)
+
+
+class PaymentTransaction(Base):
+    """Zarejestrowany przepływ pieniędzy / korekta ewidencji — append-only
+    (poprawka = nowy wiersz, cofnięcie omyłki = wiersz REVERSAL wskazujący
+    reverses_transaction_id; NIC nie jest edytowane ani usuwane).
+    document_ref to wyłącznie referencja dokumentu zewnętrznego (numer
+    faktury/przelewu) — aplikacja nie generuje faktur."""
+
+    __tablename__ = "payment_transactions"
+
+    id: Mapped[str] = mapped_column(String(40), primary_key=True)
+    record_id: Mapped[str] = mapped_column(ForeignKey("payment_records.id"), index=True)
+    # MANUAL_PAYMENT (adnotacja ręczna trenera) / PROVIDER_PAYMENT
+    # (przyszły operator) / REFUND / ADJUSTMENT (korekta księgowa) /
+    # REVERSAL (korekta odwracająca inną transakcję).
+    kind: Mapped[str] = mapped_column(String(30))
+    # Grosze (int); ADJUSTMENT może być ujemna, pozostałe zawsze > 0.
+    amount_cents: Mapped[int] = mapped_column(Integer)
+    currency: Mapped[str] = mapped_column(String(10), default="PLN")
+    document_ref: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    reverses_transaction_id: Mapped[str | None] = mapped_column(
+        ForeignKey("payment_transactions.id"), nullable=True
+    )
+    # Ślad przyszłego operatora (NULL dla systemu ręcznego).
+    provider: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    provider_event_id: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    created_by: Mapped[str] = mapped_column(String(40))
+    created_at: Mapped[str] = mapped_column(String(40), default=now_iso)
+
+
+class PaymentStatusChange(Base):
+    """Historia przejść statusu należności — append-only, per rekord
+    (kto, kiedy, skąd-dokąd, powód, powiązana transakcja). Obok wpisu w
+    łańcuchu audytu Human OS (Receipt) — ta tabela jest tanim, lokalnym
+    widokiem historii dla UI."""
+
+    __tablename__ = "payment_status_changes"
+
+    id: Mapped[str] = mapped_column(String(40), primary_key=True)
+    record_id: Mapped[str] = mapped_column(ForeignKey("payment_records.id"), index=True)
+    from_status: Mapped[str] = mapped_column(String(30))
+    to_status: Mapped[str] = mapped_column(String(30))
+    reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    transaction_id: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    changed_by: Mapped[str] = mapped_column(String(40))
+    changed_at: Mapped[str] = mapped_column(String(40), default=now_iso)
+
+
+class PaymentAttempt(Base):
+    """Próba płatności u operatora online (przygotowana architektura —
+    system ręczny jej nie tworzy; wiersze powstają wyłącznie ze zdarzeń
+    operatora, patrz payment_events.py)."""
+
+    __tablename__ = "payment_attempts"
+
+    id: Mapped[str] = mapped_column(String(40), primary_key=True)
+    record_id: Mapped[str] = mapped_column(ForeignKey("payment_records.id"), index=True)
+    provider: Mapped[str] = mapped_column(String(40))
+    provider_session_id: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    status: Mapped[str] = mapped_column(String(20), default="STARTED")
+    # STARTED / SUCCEEDED / FAILED / EXPIRED
+    created_at: Mapped[str] = mapped_column(String(40), default=now_iso)
+    updated_at: Mapped[str] = mapped_column(String(40), default=now_iso)
+
+
+class PaymentProviderEvent(Base):
+    """Rejestr PRZETWORZONYCH zdarzeń webhook operatora — idempotencja
+    (unikalny event_id per operator: powtórka = DUPLICATE bez skutków) i
+    ochrona przed złą kolejnością (occurred_at starsze od ostatniego
+    przetworzonego dla rekordu = STALE, bez cofania stanu). Zdarzenia z
+    błędnym podpisem NIE trafiają do tej tabeli (niezweryfikowany
+    event_id mógłby zapchać unikalność) — są tylko logowane i liczone."""
+
+    __tablename__ = "payment_provider_events"
+    __table_args__ = (UniqueConstraint("provider", "event_id"),)
+
+    id: Mapped[str] = mapped_column(String(40), primary_key=True)
+    provider: Mapped[str] = mapped_column(String(40))
+    event_id: Mapped[str] = mapped_column(String(120))
+    event_type: Mapped[str] = mapped_column(String(60))
+    record_id: Mapped[str | None] = mapped_column(String(40), index=True, nullable=True)
+    payload_hash: Mapped[str] = mapped_column(String(64))
+    occurred_at: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    received_at: Mapped[str] = mapped_column(String(40), default=now_iso)
+    outcome: Mapped[str] = mapped_column(String(30))  # PROCESSED / STALE / IGNORED
+    note: Mapped[str | None] = mapped_column(Text, nullable=True)
 
 
 class ScheduleCompletion(Base):

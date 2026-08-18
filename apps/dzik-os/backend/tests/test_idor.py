@@ -136,8 +136,13 @@ def test_payment_schedule_and_record_id_swap(seeded):
     schedule_id, record_id = schedule["schedule_id"], schedule["records"][0]["id"]
     assert seeded.post(f"/api/payments/schedules/{schedule_id}/records?due_date=2026-09-01",
                        headers=hf).status_code == 404
+    # Od rundy 15: "PAID" nie przechodzi walidacji schematu (statusy
+    # pieniężne mają dedykowane endpointy) — IDOR testujemy statusem
+    # administracyjnym oraz na mark-paid.
     assert seeded.post(f"/api/payments/records/{record_id}/status", headers=hf,
-                       json={"status": "PAID"}).status_code == 404
+                       json={"status": "CANCELLED"}).status_code == 404
+    assert seeded.post(f"/api/payments/records/{record_id}/mark-paid", headers=hf,
+                       json={}).status_code == 404
 
 
 def test_paused_and_ended_relationship_block_coach(seeded):

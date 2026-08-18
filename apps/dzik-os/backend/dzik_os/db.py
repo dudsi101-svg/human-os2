@@ -311,7 +311,87 @@ MIGRATIONS: list[tuple[int, str, list[str]]] = [
             "WHERE client_msg_id IS NOT NULL"
         ),
     ]),
-    # UWAGA: numery 14 i 15 są ZAREZERWOWANE dla równoległych rund —
+    # Nr 14 zarezerwowany dla równoległej rundy.
+    (15, "płatności: transakcje, korekty, historia statusów, zdarzenia operatora", [
+        # Kto oznaczył było (marked_by), od teraz też KIEDY (marked_at).
+        # Istniejące wiersze: moment oznaczenia = paid_at (jedyny znany).
+        # Statusy starych rekordów (PENDING/PAID/OVERDUE/CANCELLED) są
+        # podzbiorem nowej maszyny stanów — NIC nie jest przepisywane
+        # (mapowanie tożsamościowe, zero utraty danych); docs/PLATNOSCI.md.
+        "ALTER TABLE payment_records ADD COLUMN marked_at VARCHAR(40)",
+        "UPDATE payment_records SET marked_at = paid_at WHERE paid_at IS NOT NULL",
+        """
+        CREATE TABLE IF NOT EXISTS payment_transactions (
+            id VARCHAR(40) PRIMARY KEY,
+            record_id VARCHAR(40) NOT NULL REFERENCES payment_records(id),
+            kind VARCHAR(30) NOT NULL,
+            amount_cents INTEGER NOT NULL,
+            currency VARCHAR(10) NOT NULL DEFAULT 'PLN',
+            document_ref VARCHAR(120),
+            note TEXT,
+            reverses_transaction_id VARCHAR(40) REFERENCES payment_transactions(id),
+            provider VARCHAR(40),
+            provider_event_id VARCHAR(120),
+            created_by VARCHAR(40) NOT NULL,
+            created_at VARCHAR(40) NOT NULL
+        )
+        """,
+        (
+            "CREATE INDEX IF NOT EXISTS ix_payment_transactions_record "
+            "ON payment_transactions(record_id)"
+        ),
+        """
+        CREATE TABLE IF NOT EXISTS payment_status_changes (
+            id VARCHAR(40) PRIMARY KEY,
+            record_id VARCHAR(40) NOT NULL REFERENCES payment_records(id),
+            from_status VARCHAR(30) NOT NULL,
+            to_status VARCHAR(30) NOT NULL,
+            reason TEXT,
+            transaction_id VARCHAR(40),
+            changed_by VARCHAR(40) NOT NULL,
+            changed_at VARCHAR(40) NOT NULL
+        )
+        """,
+        (
+            "CREATE INDEX IF NOT EXISTS ix_payment_status_changes_record "
+            "ON payment_status_changes(record_id)"
+        ),
+        """
+        CREATE TABLE IF NOT EXISTS payment_attempts (
+            id VARCHAR(40) PRIMARY KEY,
+            record_id VARCHAR(40) NOT NULL REFERENCES payment_records(id),
+            provider VARCHAR(40) NOT NULL,
+            provider_session_id VARCHAR(120),
+            status VARCHAR(20) NOT NULL DEFAULT 'STARTED',
+            created_at VARCHAR(40) NOT NULL,
+            updated_at VARCHAR(40) NOT NULL
+        )
+        """,
+        (
+            "CREATE INDEX IF NOT EXISTS ix_payment_attempts_record "
+            "ON payment_attempts(record_id)"
+        ),
+        """
+        CREATE TABLE IF NOT EXISTS payment_provider_events (
+            id VARCHAR(40) PRIMARY KEY,
+            provider VARCHAR(40) NOT NULL,
+            event_id VARCHAR(120) NOT NULL,
+            event_type VARCHAR(60) NOT NULL,
+            record_id VARCHAR(40),
+            payload_hash VARCHAR(64) NOT NULL,
+            occurred_at VARCHAR(40),
+            received_at VARCHAR(40) NOT NULL,
+            outcome VARCHAR(30) NOT NULL,
+            note TEXT,
+            UNIQUE(provider, event_id)
+        )
+        """,
+        (
+            "CREATE INDEX IF NOT EXISTS ix_payment_provider_events_record "
+            "ON payment_provider_events(record_id)"
+        ),
+    ]),
+    # UWAGA: numer 14 jest ZAREZERWOWANY dla równoległej rundy —
     # nie zajmować. Migracje wykonują się w kolejności numerów, brakujące
     # numery są po prostu pomijane do czasu scalenia.
     (16, "challenges: wspólne wyzwania (prywatne, tylko-zaproszeni)", [

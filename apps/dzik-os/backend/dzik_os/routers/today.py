@@ -24,6 +24,7 @@ from ..models import (
     WeeklyCheckin,
     WorkoutSession,
 )
+from ..payment_state import DUE_STATUSES
 from ..security import current_user
 
 router = APIRouter(prefix="/api", tags=["today"])
@@ -168,7 +169,7 @@ def today_view(user: User = Depends(current_user), db: Session = Depends(get_db)
         .join(PaymentSchedule, PaymentRecord.schedule_id == PaymentSchedule.id)
         .filter(
             PaymentSchedule.client_id == client_id,
-            PaymentRecord.status.in_(["PENDING", "OVERDUE"]),
+            PaymentRecord.status.in_(list(DUE_STATUSES)),
         )
         .order_by(PaymentRecord.due_date)
         .first()

@@ -1,4 +1,4 @@
-import { FormEvent, useCallback, useEffect, useState } from "react";
+import { FormEvent, Fragment, useCallback, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { api, isCancel, money } from "../../api";
 import { WEEKDAYS, plDate, plDateTime } from "../../dates";
@@ -29,6 +29,10 @@ import {
   NutritionVersion,
   OBSERVATION_CATEGORY_LABELS,
   PAYMENT_LABELS,
+  PAYMENT_TX_LABELS,
+  paymentBadgeClass,
+  PaymentHistory,
+  PaymentRecordRow,
   PaymentScheduleRow,
   PlanVersion,
   POSE_LABELS,
@@ -1018,9 +1022,73 @@ function MeasurementsTab({ clientId }: { clientId: string }) {
   );
 }
 
+type PayFilter = "all" | "due" | "upcoming" | "paid";
+
+/** Historia jednego rekordu (przejścia statusu + transakcje) — dociągana
+ * na żądanie z dedykowanego endpointu. */
+function RecordHistoryPanel({ recordId, onReverse }: {
+  recordId: string;
+  onReverse: (txId: string) => void;
+}) {
+  const [data, setData] = useState<PaymentHistory | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const load = useCallback(() => {
+    api.get<PaymentHistory>(`/api/payments/records/${recordId}/history`)
+      .then(setData).catch((e) => setError(e.message));
+  }, [recordId]);
+  useEffect(load, [load]);
+  if (error) return <ErrorBox error={error} onRetry={load} />;
+  if (!data) return <Spinner />;
+  return (
+    <div style={{ fontSize: "0.85rem", padding: "6px 0" }}>
+      {data.status_changes.length === 0 && data.transactions.length === 0 && (
+        <p className="dim">Brak zmian dla tego rekordu.</p>
+      )}
+      {data.status_changes.length > 0 && (
+        <>
+          <h3>Zmiany statusu</h3>
+          {data.status_changes.map((c) => (
+            <div key={c.id} className="dim">
+              {plDateTime(c.changed_at)} — {PAYMENT_LABELS[c.from_status] ?? c.from_status}{" "}
+              → {PAYMENT_LABELS[c.to_status] ?? c.to_status}
+              {c.changed_by_name ? ` (${c.changed_by_name})` : ""}
+              {c.reason ? ` — ${c.reason}` : ""}
+            </div>
+          ))}
+        </>
+      )}
+      {data.transactions.length > 0 && (
+        <>
+          <h3>Transakcje</h3>
+          {data.transactions.map((t) => (
+            <div key={t.id} className="row row--between">
+              <span className="dim"
+                style={t.reversed ? { textDecoration: "line-through" } : undefined}>
+                {plDateTime(t.created_at)} — {PAYMENT_TX_LABELS[t.kind] ?? t.kind}{" "}
+                {money(Math.abs(t.amount_cents), t.currency)}
+                {t.created_by_name ? ` (${t.created_by_name})` : ""}
+                {t.document_ref ? `, dok. ${t.document_ref}` : ""}
+                {t.note ? ` — ${t.note}` : ""}
+                {t.reversed ? " — cofnięta" : ""}
+              </span>
+              {!t.reversed && t.kind !== "REVERSAL" && (
+                <button className="btn btn--ghost btn--small"
+                  onClick={() => onReverse(t.id)}>Cofnij</button>
+              )}
+            </div>
+          ))}
+        </>
+      )}
+    </div>
+  );
+}
+
 function PaymentsTab({ clientId }: { clientId: string }) {
   const [schedules, setSchedules] = useState<PaymentScheduleRow[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [filter, setFilter] = useState<PayFilter>("all");
+  const [openHistory, setOpenHistory] = useState<string | null>(null);
+  const [historyEpoch, setHistoryEpoch] = useState(0);
   const [form, setForm] = useState({ package_name: "", amount: "", first_due_date: "", period: "MONTHLY" });
 
   const load = useCallback(() => {
@@ -1028,6 +1096,8 @@ function PaymentsTab({ clientId }: { clientId: string }) {
       .then((d) => setSchedules(d.schedules)).catch((e) => setError(e.message));
   }, [clientId]);
   useEffect(load, [load]);
+
+  const reload = () => { load(); setHistoryEpoch((n) => n + 1); };
 
   async function create(e: FormEvent) {
     e.preventDefault();
@@ -1038,16 +1108,61 @@ function PaymentsTab({ clientId }: { clientId: string }) {
         period: form.period, first_due_date: form.first_due_date,
       });
       setForm({ package_name: "", amount: "", first_due_date: "", period: "MONTHLY" });
-      load();
+      reload();
     } catch (err) {
       setError((err as Error).message);
     }
   }
 
-  async function setStatus(recordId: string, status: string) {
+  // „Opłacona" wyłącznie przez dedykowany endpoint (transakcja ręczna z
+  // autorem i momentem); klucz idempotencji chroni przed podwójnym kliknięciem.
+  async function markPaid(r: PaymentRecordRow) {
+    const doc = prompt("Numer dokumentu (faktura/przelew, opcjonalnie):") ?? undefined;
+    if (doc === undefined && !confirm("Oznaczyć jako opłaconą bez numeru dokumentu?")) return;
     try {
-      await api.post(`/api/payments/records/${recordId}/status`, { status });
-      load();
+      await api.post(`/api/payments/records/${r.id}/mark-paid`, {
+        document_ref: doc || null,
+        idempotency_key: crypto.randomUUID(),
+      });
+      reload();
+    } catch (err) {
+      setError((err as Error).message);
+    }
+  }
+
+  async function refund(r: PaymentRecordRow) {
+    const raw = prompt(`Kwota zwrotu w ${r.currency} (np. 150,00):`);
+    if (!raw) return;
+    const cents = Math.round(Number(raw.replace(",", ".")) * 100);
+    if (!Number.isFinite(cents) || cents <= 0) { setError("Nieprawidłowa kwota zwrotu"); return; }
+    const note = prompt("Powód zwrotu (opcjonalnie):") || null;
+    try {
+      await api.post(`/api/payments/records/${r.id}/refund`, {
+        amount_cents: cents, note, idempotency_key: crypto.randomUUID(),
+      });
+      reload();
+    } catch (err) {
+      setError((err as Error).message);
+    }
+  }
+
+  async function reverse(txId: string) {
+    const reason = prompt("Powód cofnięcia (wymagany — ślad zostaje w historii):");
+    if (!reason) return;
+    try {
+      await api.post(`/api/payments/transactions/${txId}/reverse`, {
+        reason, idempotency_key: crypto.randomUUID(),
+      });
+      reload();
+    } catch (err) {
+      setError((err as Error).message);
+    }
+  }
+
+  async function setStatus(recordId: string, status: string, note?: string) {
+    try {
+      await api.post(`/api/payments/records/${recordId}/status`, { status, note });
+      reload();
     } catch (err) {
       setError((err as Error).message);
     }
@@ -1058,14 +1173,25 @@ function PaymentsTab({ clientId }: { clientId: string }) {
     if (!due) return;
     try {
       await api.post(`/api/payments/schedules/${scheduleId}/records?due_date=${due}`);
-      load();
+      reload();
     } catch (err) {
       setError((err as Error).message);
     }
   }
 
-  if (error) return <ErrorBox error={error} onRetry={load} />;
+  if (error) return <ErrorBox error={error} onRetry={() => { setError(null); load(); }} />;
   if (!schedules) return <Spinner />;
+
+  const matches = (r: PaymentRecordRow): boolean => {
+    const s = r.effective_status;
+    if (filter === "due") return ["OVERDUE", "FAILED"].includes(s);
+    if (filter === "upcoming") return ["PENDING", "PLANNED", "IN_PROGRESS"].includes(s);
+    if (filter === "paid") return ["PAID", "PARTIALLY_REFUNDED", "REFUNDED"].includes(s);
+    return true;
+  };
+  const overdueCount = schedules.flatMap((s) => s.records)
+    .filter((r) => ["OVERDUE", "FAILED"].includes(r.effective_status)).length;
+
   return (
     <>
       <form className="card" onSubmit={create}>
@@ -1091,6 +1217,16 @@ function PaymentsTab({ clientId }: { clientId: string }) {
         </div>
         <div style={{ marginTop: 10 }}><button className="btn btn--small">Utwórz</button></div>
       </form>
+
+      <div className="row" role="group" aria-label="Filtr płatności" style={{ margin: "8px 0", flexWrap: "wrap" }}>
+        {([["all", "Wszystkie"], ["due", `Zaległe (${overdueCount})`],
+           ["upcoming", "Nadchodzące"], ["paid", "Opłacone"]] as [PayFilter, string][]).map(([k, label]) => (
+          <button key={k} className={`btn btn--small ${filter === k ? "" : "btn--ghost"}`}
+            aria-pressed={filter === k} onClick={() => setFilter(k)}>{label}</button>
+        ))}
+        <Link className="btn btn--ghost btn--small" to="/trener/rozliczenia">Raport pojednania</Link>
+      </div>
+
       {schedules.map((s) => (
         <div className="card" key={s.schedule_id}>
           <div className="row row--between">
@@ -1104,25 +1240,58 @@ function PaymentsTab({ clientId }: { clientId: string }) {
           </div>
           <div className="table-wrap">
           <table className="simple table--cards">
-            <thead><tr><th>Termin</th><th>Status</th><th>Akcje</th></tr></thead>
+            <thead><tr><th>Termin</th><th>Kwota</th><th>Status</th><th>Akcje</th></tr></thead>
             <tbody>
-              {s.records.map((r) => (
-                <tr key={r.id}>
+              {s.records.filter(matches).map((r) => {
+                const status = r.effective_status;
+                return (
+                <Fragment key={r.id}>
+                <tr>
                   <td data-label="Termin">{plDate(r.due_date)}</td>
-                  <td data-label="Status"><span className={`badge ${r.status === "PAID" ? "badge--ok" : r.status === "CANCELLED" ? "" : "badge--warn"}`}>
-                    {PAYMENT_LABELS[r.status]}</span></td>
-                  <td>
-                    {r.status !== "PAID" && (
-                      <button className="btn btn--ghost btn--small"
-                        onClick={() => setStatus(r.id, "PAID")}>Opłacona</button>
-                    )}{" "}
-                    {r.status === "PENDING" && (
-                      <button className="btn btn--ghost btn--small"
-                        onClick={() => setStatus(r.id, "CANCELLED")}>Anuluj</button>
+                  <td data-label="Kwota">{money(r.amount_cents, r.currency)}</td>
+                  <td data-label="Status">
+                    <span className={paymentBadgeClass(status)}>
+                      {PAYMENT_LABELS[status] ?? status}</span>
+                    {r.marked_at && r.marked_by_name && (
+                      <div className="dim" style={{ fontSize: "0.75rem" }}>
+                        {r.marked_by_name}, {plDate(r.marked_at.slice(0, 10))}
+                      </div>
                     )}
                   </td>
+                  <td>
+                    {["PLANNED", "PENDING", "OVERDUE", "FAILED", "IN_PROGRESS"].includes(r.status) && (
+                      <button className="btn btn--ghost btn--small"
+                        onClick={() => markPaid(r)}>Opłacona</button>
+                    )}{" "}
+                    {["PAID", "PARTIALLY_REFUNDED"].includes(r.status) && (
+                      <button className="btn btn--ghost btn--small"
+                        onClick={() => refund(r)}>Zwrot</button>
+                    )}{" "}
+                    {["PLANNED", "PENDING", "OVERDUE", "FAILED"].includes(r.status) && (
+                      <button className="btn btn--ghost btn--small"
+                        onClick={() => setStatus(r.id, "CANCELLED")}>Anuluj</button>
+                    )}{" "}
+                    {r.status === "CANCELLED" && (
+                      <button className="btn btn--ghost btn--small"
+                        onClick={() => setStatus(r.id, "PENDING", "przywrócenie należności")}>
+                        Przywróć</button>
+                    )}{" "}
+                    <button className="btn btn--ghost btn--small"
+                      aria-expanded={openHistory === r.id}
+                      onClick={() => setOpenHistory(openHistory === r.id ? null : r.id)}>
+                      Historia</button>
+                  </td>
                 </tr>
-              ))}
+                {openHistory === r.id && (
+                  <tr>
+                    <td colSpan={4}>
+                      <RecordHistoryPanel key={historyEpoch} recordId={r.id} onReverse={reverse} />
+                    </td>
+                  </tr>
+                )}
+                </Fragment>
+                );
+              })}
             </tbody>
           </table>
           </div>

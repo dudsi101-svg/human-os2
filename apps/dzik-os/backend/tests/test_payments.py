@@ -13,21 +13,29 @@ def test_client_sees_payment_status_and_due_date(seeded):
 
 
 def test_coach_marks_payment_paid_and_it_is_audited(seeded):
+    # Od rundy 15: „opłacona" wyłącznie przez dedykowany endpoint mark-paid
+    # (transakcja ręczna z autorem i momentem oznaczenia).
     hc = login(seeded, COACH)
     ha = login(seeded, CLIENT_A)
     id_a = get_user_id(seeded, ha)
     schedules = seeded.get(f"/api/clients/{id_a}/payments", headers=hc).json()["schedules"]
     pending = next(rec for s in schedules for rec in s["records"]
                    if rec["status"] == "PENDING")
-    r = seeded.post(f"/api/payments/records/{pending['id']}/status", headers=hc,
-                    json={"status": "PAID", "note": "przelew otrzymany"})
+    r = seeded.post(f"/api/payments/records/{pending['id']}/mark-paid", headers=hc,
+                    json={"note": "przelew otrzymany"})
     assert r.status_code == 200
+    assert r.json()["transaction_id"]
     after = seeded.get(f"/api/clients/{id_a}/payments", headers=ha).json()["schedules"]
     rec = next(rec for s in after for rec in s["records"] if rec["id"] == pending["id"])
     assert rec["status"] == "PAID"
     assert rec["paid_at"]
+    # Kto i kiedy oznaczył — widoczne także dla klienta.
+    assert rec["marked_at"]
+    assert rec["marked_by_name"] == "Lubelski Dzik"
+    assert rec["transactions"][0]["kind"] == "MANUAL_PAYMENT"
     history = seeded.get(f"/api/coach/clients/{id_a}/history", headers=hc).json()
     assert any(x["action"] == "PAYMENT_STATUS_CHANGED" for x in history["receipts"])
+    assert any(x["action"] == "PAYMENT_TRANSACTION_RECORDED" for x in history["receipts"])
 
 
 def test_other_coach_cannot_touch_payment(seeded):

@@ -1,8 +1,37 @@
 import { useEffect, useState } from "react";
 import { api, getUser, money } from "../../api";
-import { localToday, plDate } from "../../dates";
+import { plDate } from "../../dates";
 import { ErrorBox, Spinner, TopBar } from "../../components";
-import { PAYMENT_LABELS, PaymentScheduleRow } from "../../types";
+import {
+  PAYMENT_LABELS, PAYMENT_TX_LABELS, PaymentRecordRow, PaymentScheduleRow,
+  paymentBadgeClass,
+} from "../../types";
+
+/** Historia rekordu: zarejestrowane transakcje (wpłaty, zwroty, korekty) —
+ * zawsze pełny ślad, wpisy odwrócone pozostają widoczne jako przekreślone. */
+function RecordHistory({ record }: { record: PaymentRecordRow }) {
+  if (record.transactions.length === 0 && !record.marked_at) return null;
+  return (
+    <div className="dim" style={{ fontSize: "0.82rem", marginTop: 4 }}>
+      {record.marked_at && record.marked_by_name && (
+        <div>
+          Oznaczona jako opłacona przez {record.marked_by_name},{" "}
+          {plDate(record.marked_at.slice(0, 10))}
+          {record.note ? ` — ${record.note}` : ""}
+        </div>
+      )}
+      {record.transactions.map((t) => (
+        <div key={t.id} style={t.reversed ? { textDecoration: "line-through" } : undefined}>
+          {plDate(t.created_at.slice(0, 10))} — {PAYMENT_TX_LABELS[t.kind] ?? t.kind}{" "}
+          {money(Math.abs(t.amount_cents), t.currency)}
+          {t.created_by_name ? ` (${t.created_by_name})` : ""}
+          {t.document_ref ? `, dok. ${t.document_ref}` : ""}
+          {t.reversed ? " — cofnięta" : ""}
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export default function Payments() {
   const user = getUser()!;
@@ -19,8 +48,31 @@ export default function Payments() {
 
   if (error) return <div className="page"><ErrorBox error={error} onRetry={load} /></div>;
   if (!schedules) return <div className="page"><Spinner /></div>;
-  // Zaległość liczona względem LOKALNEJ daty kalendarzowej (nie UTC).
-  const today = localToday();
+
+  const allRecords = schedules.flatMap((s) => s.records);
+  const due = allRecords.filter((r) =>
+    ["PENDING", "OVERDUE", "FAILED", "IN_PROGRESS"].includes(r.effective_status));
+  const history = allRecords.filter((r) =>
+    !["PENDING", "OVERDUE", "FAILED", "IN_PROGRESS", "PLANNED"].includes(r.effective_status));
+
+  const renderRow = (r: PaymentRecordRow) => {
+    const status = r.effective_status;
+    return (
+      <tr key={r.id}>
+        <td data-label="Termin">{plDate(r.due_date)}</td>
+        <td data-label="Kwota">{money(r.amount_cents, r.currency)}</td>
+        <td data-label="Status">
+          <span className={paymentBadgeClass(status)}>{PAYMENT_LABELS[status] ?? status}</span>
+        </td>
+        <td>
+          {!["PAID", "REFUNDED", "PARTIALLY_REFUNDED", "CANCELLED"].includes(status)
+            && r.payment_link && (
+            <a href={r.payment_link} target="_blank" rel="noreferrer">Opłać</a>
+          )}
+        </td>
+      </tr>
+    );
+  };
 
   return (
     <div className="page">
@@ -36,40 +88,50 @@ export default function Payments() {
             {s.period === "MONTHLY" ? "rozliczenie miesięczne"
               : s.period === "WEEKLY" ? "rozliczenie tygodniowe" : "płatność jednorazowa"}
           </small>
-          <div className="table-wrap" style={{ marginTop: 8 }}>
-          <table className="simple table--cards">
-            <thead><tr><th>Termin</th><th>Kwota</th><th>Status</th><th><span className="sr-only">Akcje</span></th></tr></thead>
-            <tbody>
-              {s.records.map((r) => {
-                const overdue = r.status === "PENDING" && r.due_date < today;
-                const status = overdue ? "OVERDUE" : r.status;
-                return (
-                  <tr key={r.id}>
-                    <td data-label="Termin">{plDate(r.due_date)}</td>
-                    <td data-label="Kwota">{money(r.amount_cents, r.currency)}</td>
-                    <td data-label="Status">
-                      <span className={`badge ${status === "PAID" ? "badge--ok" : status === "OVERDUE" ? "badge--danger" : "badge--warn"}`}>
-                        {PAYMENT_LABELS[status]}
-                      </span>
-                    </td>
-                    <td>
-                      {status !== "PAID" && r.payment_link && (
-                        <a href={r.payment_link} target="_blank" rel="noreferrer">Opłać</a>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-          </div>
+
+          {s.records.some((r) => due.includes(r) || r.effective_status === "PLANNED") && (
+            <>
+              <h3 style={{ marginTop: 10 }}>Należności</h3>
+              <div className="table-wrap">
+                <table className="simple table--cards">
+                  <thead><tr><th>Termin</th><th>Kwota</th><th>Status</th>
+                    <th><span className="sr-only">Akcje</span></th></tr></thead>
+                  <tbody>
+                    {s.records
+                      .filter((r) => due.includes(r) || r.effective_status === "PLANNED")
+                      .map(renderRow)}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          )}
+
+          {s.records.some((r) => history.includes(r)) && (
+            <>
+              <h3 style={{ marginTop: 10 }}>Historia</h3>
+              <div className="table-wrap">
+                <table className="simple table--cards">
+                  <thead><tr><th>Termin</th><th>Kwota</th><th>Status</th>
+                    <th><span className="sr-only">Akcje</span></th></tr></thead>
+                  <tbody>
+                    {s.records.filter((r) => history.includes(r)).map(renderRow)}
+                  </tbody>
+                </table>
+              </div>
+              {s.records.filter((r) => history.includes(r)).map((r) => (
+                <RecordHistory key={r.id} record={r} />
+              ))}
+            </>
+          )}
+
           {!s.records.some((r) => r.payment_link) && (
             <small>Szczegóły płatności (np. numer konta) otrzymasz od trenera w wiadomości.</small>
           )}
         </div>
       ))}
       <p className="dim" style={{ fontSize: "0.8rem" }}>
-        Aplikacja nie przechowuje danych kart płatniczych — jedynie terminy i statusy.
+        Aplikacja nie przechowuje danych kart płatniczych — jedynie terminy,
+        statusy i historię rozliczeń.
       </p>
     </div>
   );

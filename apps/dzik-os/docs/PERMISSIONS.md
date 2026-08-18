@@ -122,7 +122,11 @@ domeny endpointu (`sensitive` wynika z katalogu kategorii).
 | GET /api/clients/{id}/documents, /photos | W, T | dokumenty/zdjęcia klienta | T: tak | T: tak | R |
 | POST /api/payments/schedules | T·rel | pakiet dla własnego klienta | tak | nie (sens.=False) | W |
 | GET /api/clients/{id}/payments | W, T·rel | płatności jednego klienta | T: tak | nie (sens.=False) | R |
-| POST /api/payments/records/{record_id}/status; /schedules/{schedule_id}/records | T·own | wyłącznie rekordy własnych harmonogramów | — | — | W |
+| POST /api/payments/records/{record_id}/status; /schedules/{schedule_id}/records | T·own | wyłącznie rekordy własnych harmonogramów; /status tylko statusy ADMINISTRACYJNE (PENDING/OVERDUE/CANCELLED) — maszyna stanów egzekwowana serwerowo (422) | — | — | W |
+| POST /api/payments/records/{record_id}/mark-paid, /refund, /adjust | T·own | „opłacona"/zwrot/korekta WYŁĄCZNIE przez dedykowane endpointy rejestrujące transakcję (kto+kiedy); idempotencja P11; cudzy rekord = 404 | — | — | W |
+| POST /api/payments/transactions/{transaction_id}/reverse | T·own | korekta odwracająca omyłkę — nowy wpis REVERSAL, nigdy usunięcie; cudza transakcja = 404 | — | — | W |
+| GET /api/payments/records/{record_id}/history | klient (self) lub T·own | historia statusów i transakcji jednego rekordu; osoby trzecie = 404 | — | — | R |
+| GET /api/payments/reconciliation | COACH (tylko własne harmonogramy) | raport pojednania należności vs transakcje per okres | — | — | R |
 | GET/POST /api/me/consents; /consents/{id}/confirm, /revoke | podmiot danych | wyłącznie własne zgody | — | — | R/W |
 | GET /api/me/export, /api/me/export.xlsx | zalogowany | wyłącznie własne dane | — | — | R |
 | POST /api/me/deletion-request | CLIENT (self, hasło+fraza) | własne konto; kończy relacje, cofa zgody, unieważnia sesje | — | — | W |

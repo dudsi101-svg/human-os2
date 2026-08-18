@@ -141,8 +141,11 @@ def test_full_coach_and_client_journey(client):
     payments = client.get(f"/api/clients/{new_id}/payments",
                           headers=hc).json()["schedules"]
     rec = payments[0]["records"][0]
-    r = client.post(f"/api/payments/records/{rec['id']}/status", headers=hc,
-                    json={"status": "PAID"})
+    # Od rundy 15 „opłacona" ma dedykowany endpoint rejestrujący
+    # transakcję ręczną (ogólny /status obsługuje tylko statusy
+    # administracyjne).
+    r = client.post(f"/api/payments/records/{rec['id']}/mark-paid", headers=hc,
+                    json={"note": "przelew"})
     assert r.status_code == 200
 
     # 9. Klient eksportuje dane; audyt jest spójny.

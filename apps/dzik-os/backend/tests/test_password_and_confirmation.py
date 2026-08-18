@@ -151,6 +151,10 @@ def test_migrations_apply_to_existing_v1_database(tmp_path):
         conn.execute(text(
             "CREATE TABLE messages (id VARCHAR(40) PRIMARY KEY, "
             "thread_id VARCHAR(40), author_id VARCHAR(40), created_at VARCHAR(40))"))
+        # Stub dla migracji nr 15 (ALTER marked_at + backfill z paid_at).
+        conn.execute(text(
+            "CREATE TABLE payment_records (id VARCHAR(40) PRIMARY KEY, "
+            "paid_at VARCHAR(40))"))
     applied = run_migrations(eng)
     assert applied == [v for v, _, _ in MIGRATIONS if v != 1]
     with eng.connect() as conn:

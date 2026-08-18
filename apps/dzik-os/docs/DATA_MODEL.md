@@ -142,7 +142,11 @@ zmienia diety autonomicznie.
 | `message_threads` | unique(coach, client) |
 | `messages` | body, file_id, statusy: delivered_at/read_at (migracja 13), client_msg_id (deduplikacja ponowień, unikalny per wątek+autor); porządek (created_at, id) — patrz `WIADOMOSCI.md` |
 | `payment_schedules` | pakiet, kwota (grosze), okres, external_link |
-| `payment_records` | due_date, status PENDING/PAID/OVERDUE/CANCELLED, paid_at, marked_by |
+| `payment_records` | NALEŻNOŚĆ: due_date, status wg maszyny stanów (PLANNED/PENDING/IN_PROGRESS/PAID/OVERDUE/FAILED/CANCELLED/PARTIALLY_REFUNDED/REFUNDED — `payment_state.py`), paid_at, marked_by/marked_at (kto i kiedy oznaczył); pełny model: `PLATNOSCI.md` |
+| `payment_transactions` | append-only przepływy/korekty (migracja 15): MANUAL_PAYMENT/PROVIDER_PAYMENT/REFUND/ADJUSTMENT/REVERSAL, kwota w groszach + waluta, document_ref (referencja faktury/przelewu), reverses_transaction_id |
+| `payment_status_changes` | append-only historia przejść statusu per rekord (kto, kiedy, skąd→dokąd, powód, transakcja) |
+| `payment_attempts` | próby płatności u przyszłego operatora online (system ręczny ich nie tworzy) |
+| `payment_provider_events` | rejestr przetworzonych webhooków operatora — idempotencja (unique provider+event_id) i ochrona przed złą kolejnością |
 
 ## Audyt (Human OS Core)
 
