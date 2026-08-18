@@ -53,7 +53,7 @@ dołóż test, który ją psuje.**
 python apps/dzik-os/tools/mutacje.py     # z korzenia repozytorium
 ```
 
-Narzędzie po kolei **psuje kontrolę** na czternaście sposobów, po każdym
+Narzędzie po kolei **psuje kontrolę** na piętnaście sposobów, po każdym
 uruchamia `tests/test_spojnosc.py` i na koniec przywraca oryginał.
 Mutacja, po której testy nadal są zielone, to luka — wypisana wprost.
 
@@ -63,8 +63,8 @@ Pierwsze uruchomienie (2026-08-18) znalazło **dwie luki**:
   przed cichą śmiercią kontroli tras samo nie było zabezpieczone;
 * zamiana kontroli dokumentów w atrapę przechodziła bez śladu.
 
-Obie naprawione tego samego dnia; po naprawie **14 z 14 mutacji wykrytych**
-(siedem pierwotnych, trzy dla plików poza gitem, cztery dla konsultacji).
+Obie naprawione tego samego dnia; po naprawie **15 z 15 mutacji wykrytych**
+(siedem pierwotnych, trzy dla plików poza gitem, pięć dla konsultacji).
 
 **Samo narzędzie też miało błąd, i to niszczący.** Kopię oryginału robiło
 tylko wtedy, gdy jeszcze nie istniała (`if not ORYGINAL.exists()`), pod stałą

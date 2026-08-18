@@ -538,3 +538,10 @@ def test_brak_dziennika_nie_jest_awaria(kopia):
     w = m.Wynik()
     m.sprawdz_konsultacje(w)
     assert w.bledy == [] and w.uwagi == []
+
+
+def test_data_z_przyszlosci_jest_bledem(kopia):
+    """Ujemny wiek wpisu znaczy literówkę albo rozjechany zegar. Pierwsza
+    wersja kontroli wypisywała „otwarte od -0.2 h" i szła dalej."""
+    w = _dziennik(kopia, _wpis(stempel="2099-01-01 00:00"))
+    assert any("z przyszlosci" in b for b in w.bledy), w.bledy

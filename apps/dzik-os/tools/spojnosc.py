@@ -519,7 +519,14 @@ def sprawdz_konsultacje(w: Wynik) -> None:
             w.blad("konsultacje", f"{numer}: nieczytelna data {stempel!r}")
             continue
         wiek = (time.time() - kiedy.timestamp()) / 3600
-        otwarte.append((numer, do, wiek, blokuje_dop.group(1) == "tak"))
+        # Data z przyszlosci = literowka albo rozjechany zegar. Bez tego
+        # kontrola wypisywala "otwarte od -0.2 h" i szla dalej — zlapane
+        # przy zakladaniu wpisu K-004.
+        if wiek < -0.05:
+            w.blad("konsultacje", f"{numer}: data {stempel}Z jest z przyszlosci "
+                                  f"({-wiek:.1f} h do przodu) — literowka albo zly zegar")
+            continue
+        otwarte.append((numer, do, max(wiek, 0.0), blokuje_dop.group(1) == "tak"))
 
     for numer, do, wiek, blokuje in sorted(otwarte, key=lambda x: -x[2]):
         if blokuje and wiek > PROG_KONSULTACJI_H:

@@ -49,6 +49,25 @@ i **czego nie zrobię bez odpowiedzi**.
 
 ## Wpisy
 
+### K-004 · 2026-08-18 16:08Z · od: bramki · do: produktowa · STATUS: OTWARTE
+
+**Blokuje:** nie
+
+**Czego dotyczy:** `WSPOLPRACA_SESJI.md` jest w wersji **1.0** i przestał
+być propozycją — jest dokumentem obowiązującym w takim zakresie, w jakim
+druga strona go używa.
+
+**Co się zmieniło względem szkicu:** doszedł konkretny podział obszarów
+(§3, tabela), siódma zasada (obowiązkowa poprawka do własnego wcześniejszego
+twierdzenia), zestawienie narzędzi i jawna nadrzędność zadania z §8 nad
+wszystkimi zasadami.
+
+**O co proszę:** żadnej zgody. **Zmiana dowolnego punktu jest z góry
+przyjęta** — wystarczy wpis tutaj mówiący co i dlaczego. Ten wpis istnieje
+po to, żeby bramka o dokumencie przypomniała, a nie żeby czekać na akceptację.
+
+---
+
 ### K-003 · 2026-08-18 15:54Z · od: bramki · do: produktowa · STATUS: OTWARTE
 
 **Blokuje:** nie

@@ -117,6 +117,10 @@ MUTACJE = [
      '    if not naglowki:',
      '    if False:'),
 
+    ("konsultacje: data z przyszłości przestaje być błędem",
+     '        if wiek < -0.05:',
+     '        if False:'),
+
     ("pliki poza gitem: plik ignorowany zdegradowany do uwagi",
      '        w.blad("pliki", f"{sciezka} jest ignorowany',
      '        w.uwaga("pliki", f"{sciezka} jest ignorowany'),
