@@ -609,3 +609,47 @@ def test_old_restore_points_are_pruned(client, seeded):
         )
     history = client.get("/api/coach/imports", headers=headers).json()["imports"]
     assert len(history) == SNAPSHOT_KEEP
+
+
+def test_podglad_nie_dotyka_ani_jednego_obiektu_sesji(client, seeded):
+    """Kontrakt `sheet_import`: przy `dry_run=True` funkcja NIE dotyka
+    sesji — nie tylko „nic nie ląduje w bazie".
+
+    Różnica jest realna. Dziś podgląd jest bezpieczny podwójnie: funkcja
+    nic nie dodaje, a endpoint i tak nie commituje. Gdyby ktoś dołożył
+    zapis do sesji w podglądzie, testy przez endpoint **nadal by
+    przeszły** (obiekt zniknąłby przy zamknięciu sesji) — aż do dnia, w
+    którym coś w tym samym żądaniu zrobi commit i podgląd zacznie po cichu
+    zapisywać. Sprawdzone przeglądem mutacyjnym: bez tego testu mutant
+    „podgląd jednak zapisuje" przeżywał całą suitę.
+    """
+    from dzik_os import sheet_import
+    from dzik_os.models import User
+
+    headers = login(client, COACH)
+    coach_id = client.get("/api/auth/me", headers=headers).json()["id"]
+
+    wiersze = [
+        {"nazwa": "Podglądowe ćwiczenie", "grupa": "NOGI", "opis": "Opis"},
+        {"nazwa": "Wiosłowanie hantlem", "grupa": "PLECY", "opis": "Inny opis"},
+    ]
+    with db_session() as db:
+        assert db.query(User).filter(User.id == coach_id).one_or_none() is not None
+        raport = sheet_import.import_exercises_sheet(
+            db, coach_id, wiersze, dry_run=True, source_ref="podglad.csv"
+        )
+        assert raport.created >= 1, "podgląd ma raportować, co by powstało"
+        # Sedno: żadnych nowych ani zmienionych obiektów w sesji.
+        assert list(db.new) == [], f"podgląd dodał obiekty do sesji: {list(db.new)}"
+        assert list(db.dirty) == [], f"podgląd zmienił obiekty w sesji: {list(db.dirty)}"
+        assert raport.snapshot == [], "podgląd nie tworzy materiału na cofnięcie"
+
+    with db_session() as db:
+        raport = sheet_import.import_templates_sheet(
+            db, coach_id,
+            [{"szablon": "Podglądowy plan", "dzien": "Dzień A", "cwiczenie": "Przysiad"}],
+            dry_run=True, source_ref="podglad.csv",
+        )
+        assert raport.created == 1
+        assert list(db.new) == [], f"podgląd szablonów dodał obiekty: {list(db.new)}"
+        assert list(db.dirty) == [], f"podgląd szablonów zmienił obiekty: {list(db.dirty)}"

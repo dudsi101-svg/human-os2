@@ -90,6 +90,13 @@ def sprawdz_migracje(w: Wynik) -> None:
         w.blad("migracje", f"numery nie są rosnące: {numery}")
     if numery[0] != 1:
         w.blad("migracje", f"numeracja zaczyna się od {numery[0]}, nie od 1")
+    # Luki są dozwolone (numer bywa zarezerwowany przez równoległą rundę i
+    # nieużyty), ale muszą być WIDOCZNE — inaczej ktoś weźmie wolny numer
+    # pod nową migrację i zderzy się ze starą, niescaloną gałęzią.
+    luki = [i for i in range(numery[0], numery[-1]) if i not in numery]
+    if luki:
+        w.uwaga("migracje", f"wolne numery w środku numeracji: {luki} — NIE bierz ich "
+                            "pod nową migrację, prowadź numerację od największego")
 
 
 # --- 2. CHANGELOG ------------------------------------------------------

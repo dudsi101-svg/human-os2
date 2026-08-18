@@ -110,7 +110,7 @@ w tabeli niżej **przed** rozpoczęciem pracy, w jednym commicie na `main`:
 
 | Runda | Migracja | Wersja | Główne pliki | Status |
 |---|---|---|---|---|
-| _(wolne)_ | następna: **26** | następna: **0.36.0** | — | — |
+| _(wolne)_ | następna: **26** | następna: **0.38.0** | — | — |
 
 > Po zakończeniu rundy usuń wiersz i podnieś „następne" numery.
 

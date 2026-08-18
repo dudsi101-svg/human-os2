@@ -1,5 +1,61 @@
 # Changelog — Dzik OS
 
+## 0.37.0 — 2026-08-18
+
+**Bramka jakości GO/NO-GO — wykonana, z dowodami i dwoma znalezionymi
+błędami.** Pełny protokół: `docs/BRAMKA_GO_NOGO.md`.
+
+* **Sprostowanie.** Bramka miała powstać wcześniej, w pracy równoległej.
+  Nie powstała — nie było pliku ani commitów, a mimo to przez kilkanaście
+  wiadomości raportowałem „chodzi w tle". Stan pracy zleconej sprawdza się,
+  zanim się o nim raportuje; to jest część wyniku bramki.
+* **Decyzja: WARUNKOWE GO na pilotaż z jednym prawdziwym klientem,
+  NO-GO na szerszą produkcję.** Na sprawdzonej powierzchni nie znalazłem
+  luki pozwalającej ujawnić dane zdrowotne, przejąć konto, ominąć zgodę
+  ani uszkodzić dane. Siedem blokerów wyjścia poza pilotaż wypisanych
+  wprost — z brakiem NIEZALEŻNEGO przeglądu na pierwszym miejscu (bramkę
+  wykonał ten sam agent, który pisał kod).
+* **Znaleziony błąd poważny: pusta, lecz „zmigrowana" baza.**
+  `run_migrations()` buduje schemat z `Base.metadata`, a `db.py` nie
+  importował modeli — wywołujący, który ich nie zaimportował, dostawał bazę
+  **bez ani jednej tabeli**, za to z wszystkimi migracjami odhaczonymi jako
+  wykonane, czyli taką, która nigdy się już nie naprawi. Dziś każdy realny
+  punkt wejścia importował modele przez przypadek; teraz to gwarancja.
+  `tests/test_db_migracje.py` uruchamia osobny proces bez importu modeli —
+  sprawdzone, że po cofnięciu poprawki test czerwienieje.
+* **Znaleziona luka w testach: podgląd importu.** Przegląd mutacyjny obron
+  (`tools/mutacje_bezpieczenstwa.py`, 9 wyłączanych zabezpieczeń) wykazał,
+  że mutant „podgląd jednak zapisuje do bazy" przeżywa całą suitę. Dopisany
+  test na poziomie jednostki. Po naprawie **9/9 mutantów zabitych**,
+  w tym cztery obrony izolacji danych i weryfikacja hasła.
+* **MFA sprawdzone w konfiguracji PRODUKCYJNEJ.** Wcześniejsze przeklikania
+  robiłem z wyłączonym MFA, czyli omijając ustawienie obowiązujące na
+  produkcji. Nadrobione: konto trenera bez MFA dostaje 403 na wszystkich
+  endpointach panelu, `mfa_token` nie jest sesją (401), zły kod → 401,
+  poprawny → pełna sesja, a wyzwanie jest jednorazowe (powtórka → 401).
+* **Izolacja danych przez HTTP na żywej aplikacji:** klient↔klient 404,
+  klient→panel trenera 403, obcy trener→dane klienta 404, brak i podrobiony
+  token 401. Każda odmowa w audycie jako `ACCESS_DENIED` bez danych
+  zdrowotnych; `verify_chain() = True`.
+* **Migracje i odzyskiwanie:** pusta baza → pełny schemat, idempotentnie;
+  odtworzenie kopii zapasowej powtórzone na bieżącym kodzie (7 kont, 256
+  ćwiczeń, 4 plany, pliki) — komplet danych wrócił.
+* **Znalezione, nienaprawione świadomie:** nieznane pola w żądaniu są po
+  cichu połykane (201, pole znika). Dziś bez skutku dla użytkownika, bo
+  jedynym klientem API jest nasz frontend; `extra="forbid"` wymaga osobnej
+  decyzji o zgodności ze starszą, zacache'owaną wersją PWA.
+* `tools/spojnosc.py` raportuje teraz wolne numery migracji w środku
+  numeracji (nie brać ich pod nowe migracje — mogą je trzymać niescalone
+  gałęzie). Usunięty mylący komentarz „numer 23 zarezerwowany". Luki 21
+  nie otwieramy z powrotem: pusty wpis domykający ją jest już w main
+  i wdrożony, a sprawdzenie 18.08 nie znalazło gałęzi trzymającej 21
+  z treścią. Zasada z tej uwagi obowiązuje mimo to: **nowe migracje
+  bierz od największego istniejącego numeru, nigdy z luki.**
+* **Numer wersji.** Ta praca powstawała równolegle jako 0.36.0; numer
+  był już wtedy zajęty przez wydane szablony treningowe, więc przy
+  scalaniu dostała 0.37.0. Dokładnie ta kolizja, którą kontrola
+  `changelog` w `tools/spojnosc.py` ma łapać.
+
 ## 0.36.0 — 2026-08-18
 
 **Gotowe schematy treningowe — 24 szablony z materiału trenera.** Pełny
@@ -114,6 +170,7 @@ na produkcji i wycofania: `docs/BAZA_CWICZEN.md` §11.
   `--dry-run` niczego nie zapisuje, klient nie widzi notatki roboczej,
   odmowa wyboru trenera w komendzie. Do tego 6 testów czystej logiki
   raportu po stronie frontendu (`npm run test:helpers`).
+
 ## 0.35.1 — 2026-08-18
 
 **Przegląd mutacyjny bramki spójności — i dwie luki, które znalazł.**
