@@ -3,6 +3,7 @@ import { api, getUser } from "../../api";
 import { localToday, plDate } from "../../dates";
 import {
   AuthImage,
+  dailySparkPoints,
   ErrorBox,
   PersonalRecordsCard,
   PhotoCompare,
@@ -10,6 +11,7 @@ import {
   Spinner,
   StrengthChartsCard,
   TopBar,
+  wellbeingSparkPoints,
 } from "../../components";
 import {
   CATEGORY_LABELS,
@@ -18,12 +20,19 @@ import {
   MonitoringData,
   OBSERVATION_CATEGORY_LABELS,
   ObservationRow,
+  POSE_LABELS,
   ScheduleItem,
   SEVERITY_LABELS,
   WELLBEING_LABELS,
 } from "../../types";
 
-interface Photo { id: string; file_id: string; taken_at: string; note: string | null }
+interface Photo {
+  id: string;
+  file_id: string;
+  taken_at: string;
+  note: string | null;
+  pose: string | null;
+}
 
 export default function Progress() {
   const user = getUser()!;
@@ -136,9 +145,13 @@ export default function Progress() {
                 <b style={{ fontSize: "0.9rem" }}>{WELLBEING_LABELS[key] ?? key}</b>
                 <span className="badge">{points[points.length - 1].value}/5</span>
               </div>
-              <Sparkline unit="/5" points={points.map((p) => ({ x: plDate(p.date), y: p.value }))} />
+              <Sparkline unit="/5" points={wellbeingSparkPoints(points)} />
             </div>
           ))}
+          <small className="dim">
+            Tygodnie bez raportu (i pytania pominięte) to przerwy w linii —
+            brakujące dane nie są uzupełniane.
+          </small>
         </div>
       )}
 
@@ -163,7 +176,13 @@ export default function Progress() {
           <h3>Zdjęcia progresu</h3>
           <div className="photo-grid">
             {photos.map((p) => (
-              <AuthImage key={p.id} fileId={p.file_id} alt={`Zdjęcie ${plDate(p.taken_at)}`} />
+              <div key={p.id} style={{ textAlign: "center" }}>
+                <AuthImage fileId={p.file_id} alt={`Zdjęcie ${plDate(p.taken_at)}`} />
+                <small className="dim">
+                  {plDate(p.taken_at)}
+                  {p.pose && ` · ${POSE_LABELS[p.pose] ?? p.pose}`}
+                </small>
+              </div>
             ))}
           </div>
         </div>
@@ -262,7 +281,7 @@ function NutritionLogCard({ target, series, userId, onSaved }: {
       </form>
       {series.length >= 2 && (
         <div style={{ marginTop: 10 }}>
-          <Sparkline unit="kcal" points={series.map((p) => ({ x: plDate(p.date), y: p.value }))} />
+          <Sparkline unit="kcal" points={dailySparkPoints(series)} />
         </div>
       )}
     </div>

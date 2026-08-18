@@ -11,28 +11,50 @@ from ..authz import require_attachable_file, require_client_self, resolve_client
 from ..config import settings
 from ..db import get_db
 from ..hos_bridge import record_event
+from ..idempotency import replay_response, request_fingerprint, store_response
 from ..models import (
     CheckinRevision,
     CoachClientRelationship,
     ProgressPhoto,
+    StoredFile,
     User,
     WeeklyCheckin,
     new_id,
     now_iso,
 )
-from ..schemas import CheckinIn, CheckinReviewIn
+from ..schemas import CheckinIn, CheckinPhotoIn, CheckinPhotosAttachIn, CheckinReviewIn
 from ..security import current_user, require_role
 
 router = APIRouter(prefix="/api", tags=["checkins"])
 
 
+def _checkin_photos(db: Session, checkin_id: str) -> list[ProgressPhoto]:
+    """Zdjęcia raportu w kolejności wybranej przez klienta (position),
+    zdjęcia historyczne bez pozycji na końcu."""
+    rows = (
+        db.query(ProgressPhoto)
+        .filter(ProgressPhoto.checkin_id == checkin_id)
+        .all()
+    )
+    rows.sort(key=lambda p: (p.position is None, p.position or 0, p.created_at, p.id))
+    return rows
+
+
+def _photos_complete(checkin: WeeklyCheckin, attached: int) -> bool:
+    """Raport jest kompletny plikowo, gdy liczba zapisanych zdjęć osiąga
+    deklarację. NULL (raporty historyczne / bez deklaracji) = kompletny —
+    stare wiersze nie są reinterpretowane."""
+    return checkin.photos_expected is None or attached >= checkin.photos_expected
+
+
 def _checkin_out(db: Session, c: WeeklyCheckin) -> dict:
-    photos = db.query(ProgressPhoto).filter(ProgressPhoto.checkin_id == c.id).all()
+    photos = _checkin_photos(db, c.id)
+    payload = json.loads(c.payload_json)
     return {
         "id": c.id,
         "client_id": c.client_id,
         "week_start": c.week_start,
-        "payload": json.loads(c.payload_json),
+        "payload": payload,
         "status": c.status,
         "revision": c.revision,
         "submitted_at": c.submitted_at,
@@ -42,7 +64,104 @@ def _checkin_out(db: Session, c: WeeklyCheckin) -> dict:
         "reviewed_at": c.reviewed_at,
         "rating": c.rating,
         "photo_ids": [p.file_id for p in photos],
+        "photos": [
+            {
+                "id": p.id, "file_id": p.file_id, "pose": p.pose,
+                "position": p.position, "taken_at": p.taken_at,
+            }
+            for p in photos
+        ],
+        # Jakość danych — jawnie w API (i dalej w UI):
+        # * corrected: raport był poprawiany po wysłaniu (historia w
+        #   /checkins/{id}/revisions, nic nie jest nadpisywane w ciemno),
+        # * scales_declared: odpowiedzi skal mają rozróżnione stany
+        #   (ANSWERED/SKIPPED/NOT_APPLICABLE); False = raport sprzed zmiany —
+        #   wartości mogły zostać na domyślnym 3/5 (dane mniej wiarygodne),
+        # * photos_expected/attached/complete: stan plikowy raportu — raport
+        #   z brakującymi zdjęciami jest jawnie CZĘŚCIOWY.
+        "corrected": c.revision > 1,
+        "scales_declared": payload.get("scale_states") is not None,
+        "photos_expected": c.photos_expected,
+        "photos_attached": len(photos),
+        "photos_complete": _photos_complete(c, len(photos)),
     }
+
+
+def _attach_photos(
+    db: Session,
+    user: User,
+    checkin: WeeklyCheckin,
+    client_id: str,
+    specs: list[CheckinPhotoIn],
+) -> int:
+    """Podpina zdjęcia do raportu (dedup po file_id — ponowienie/rewizja nie
+    mnoży wierszy) i egzekwuje limity liczby oraz łącznego rozmiaru dla
+    CAŁEGO raportu (zdjęcia już zapisane + nowe). Zwraca liczbę wszystkich
+    zdjęć raportu po operacji."""
+    existing_rows = _checkin_photos(db, checkin.id)
+    # Limit liczby: zadeklarowana lista sama w sobie (przed deduplikacją —
+    # nadmiarowe żądanie jest odrzucane w całości, jak dotychczas) oraz
+    # stan całego raportu po deduplikacji (zdjęcia już zapisane + nowe).
+    limit_detail = f"Maksymalnie {settings.max_checkin_photos} zdjęć na raport"
+    if len(specs) > settings.max_checkin_photos:
+        raise HTTPException(status_code=422, detail=limit_detail)
+    existing_ids = {p.file_id for p in existing_rows}
+    new_specs = []
+    seen: set[str] = set()
+    for spec in specs:
+        if spec.file_id in existing_ids or spec.file_id in seen:
+            continue
+        seen.add(spec.file_id)
+        new_specs.append(spec)
+    total = len(existing_rows) + len(new_specs)
+    if total > settings.max_checkin_photos:
+        raise HTTPException(status_code=422, detail=limit_detail)
+    # Każdy plik musi być zdjęciem należącym do tego klienta (nie cudzym
+    # file_id); łączny rozmiar liczony dla całego raportu.
+    total_bytes = 0
+    for spec in new_specs:
+        stored = require_attachable_file(
+            db, user, spec.file_id, owner_id=client_id, require_image=True
+        )
+        total_bytes += stored.size_bytes
+    for row in existing_rows:
+        stored_existing = db.get(StoredFile, row.file_id)
+        if stored_existing is not None:
+            total_bytes += stored_existing.size_bytes
+    if total_bytes > settings.max_checkin_photos_total_mb * 1024 * 1024:
+        raise HTTPException(
+            status_code=413,
+            detail="Zdjęcia raportu przekraczają łączny limit "
+            f"{settings.max_checkin_photos_total_mb} MB",
+        )
+    next_position = max(
+        (p.position for p in existing_rows if p.position is not None), default=-1
+    ) + 1
+    for offset, spec in enumerate(new_specs):
+        db.add(
+            ProgressPhoto(
+                id=new_id("PHT"),
+                client_id=client_id,
+                file_id=spec.file_id,
+                checkin_id=checkin.id,
+                taken_at=checkin.week_start,
+                pose=spec.pose,
+                position=spec.position if spec.position is not None
+                else next_position + offset,
+            )
+        )
+    return total
+
+
+def _photo_specs(body: CheckinIn) -> list[CheckinPhotoIn]:
+    """Nowy kształt (photos: file_id+pose+position) z zachowaniem
+    kompatybilności ze starym photo_ids."""
+    specs = list(body.photos)
+    known = {s.file_id for s in specs}
+    for index, file_id in enumerate(body.photo_ids):
+        if file_id not in known:
+            specs.append(CheckinPhotoIn(file_id=file_id, position=index))
+    return specs
 
 
 @router.post("/checkins", status_code=201)
@@ -52,28 +171,38 @@ def submit_checkin(
     db: Session = Depends(get_db),
 ):
     """Raport tygodniowy klienta. Poprawka istniejącego raportu tworzy nową
-    rewizję — poprzednia treść zostaje zachowana (CheckinRevision)."""
+    rewizję — poprzednia treść zostaje zachowana (CheckinRevision).
+    Idempotencja: powtórka z tym samym idempotency_key (podwójne kliknięcie,
+    retry po przerwaniu sieci) zwraca zapisany wynik zamiast nowej rewizji."""
     client_id = require_client_self(db, user)
-    # Limity zdjęć raportu: liczba + łączny rozmiar; każdy plik musi być
-    # zdjęciem należącym do tego klienta (nie cudzym file_id).
-    if len(body.photo_ids) > settings.max_checkin_photos:
-        raise HTTPException(
-            status_code=422,
-            detail=f"Maksymalnie {settings.max_checkin_photos} zdjęć na raport",
+    fingerprint = None
+    if body.idempotency_key:
+        fingerprint = request_fingerprint(body.model_dump(exclude={"idempotency_key"}))
+        replay = replay_response(
+            db, user_id=user.id, operation="checkin_submit",
+            key=body.idempotency_key, fingerprint=fingerprint,
         )
-    total_bytes = 0
-    for file_id in body.photo_ids:
-        stored = require_attachable_file(
-            db, user, file_id, owner_id=client_id, require_image=True
-        )
-        total_bytes += stored.size_bytes
-    if total_bytes > settings.max_checkin_photos_total_mb * 1024 * 1024:
-        raise HTTPException(
-            status_code=413,
-            detail="Zdjęcia raportu przekraczają łączny limit "
-            f"{settings.max_checkin_photos_total_mb} MB",
-        )
-    payload = body.model_dump(exclude={"photo_ids"})
+        if replay is not None:
+            return replay
+    specs = _photo_specs(body)
+    if body.photos_expected is not None:
+        if body.photos_expected > settings.max_checkin_photos:
+            raise HTTPException(
+                status_code=422,
+                detail=f"Maksymalnie {settings.max_checkin_photos} zdjęć na raport",
+            )
+        if body.photos_expected < len(specs):
+            raise HTTPException(
+                status_code=422,
+                detail="Zadeklarowana liczba zdjęć jest mniejsza niż liczba "
+                "przesłanych.",
+            )
+    # payload_json przechowuje odpowiedzi formularza (ze scale_states —
+    # rozróżnienie brak odpowiedzi / wartość / pominięte / nie dotyczy);
+    # metadane przepływu (zdjęcia, idempotencja) nie są treścią raportu.
+    payload = body.model_dump(
+        exclude={"photo_ids", "photos", "photos_expected", "idempotency_key"}
+    )
     existing = (
         db.query(WeeklyCheckin)
         .filter_by(client_id=client_id, week_start=body.week_start)
@@ -105,26 +234,27 @@ def submit_checkin(
             client_id=client_id,
             week_start=body.week_start,
             payload_json=json.dumps(payload, ensure_ascii=False),
+            # Jawnie (nie default ORM): odpowiedź budowana przed commitem.
+            revision=1,
         )
         db.add(checkin)
         action = "CHECKIN_SUBMITTED"
-    for file_id in body.photo_ids:
-        db.add(
-            ProgressPhoto(
-                id=new_id("PHT"),
-                client_id=client_id,
-                file_id=file_id,
-                checkin_id=checkin.id,
-                taken_at=body.week_start,
-            )
-        )
+    attached = _attach_photos(db, user, checkin, client_id, specs)
+    if body.photos_expected is not None:
+        checkin.photos_expected = max(body.photos_expected, attached)
+    elif specs and (checkin.photos_expected is None or attached > checkin.photos_expected):
+        checkin.photos_expected = attached
     record_event(
         db,
         action=action,
         actor_id=user.id,
         subject_ids=[client_id],
+        # Payload audytu bez treści raportu i bez identyfikatorów/nazw
+        # plików zdjęć — wyłącznie liczniki stanu.
         payload={"checkin_id": checkin.id, "week_start": body.week_start,
-                 "revision": checkin.revision},
+                 "revision": checkin.revision,
+                 "photos_attached": attached,
+                 "photos_expected": checkin.photos_expected},
         summary=f"Raport tygodniowy {body.week_start} (rewizja {checkin.revision})",
     )
     # Push do trenera prowadzącego (bez treści raportu).
@@ -139,8 +269,80 @@ def submit_checkin(
             f"{user.display_name} wysłał(a) raport do oceny.",
             f"/trener/klient/{client_id}",
         )
+    response = {
+        "id": checkin.id,
+        "revision": checkin.revision,
+        "photos_attached": attached,
+        "photos_expected": checkin.photos_expected,
+        "photos_complete": _photos_complete(checkin, attached),
+    }
+    if body.idempotency_key and fingerprint is not None:
+        store_response(
+            db, user_id=user.id, operation="checkin_submit",
+            key=body.idempotency_key, fingerprint=fingerprint, response=response,
+        )
     db.commit()
-    return {"id": checkin.id, "revision": checkin.revision}
+    return response
+
+
+@router.post("/checkins/{checkin_id}/photos")
+def attach_checkin_photos(
+    checkin_id: str,
+    body: CheckinPhotosAttachIn,
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    """Dokończenie częściowego raportu: dopięcie kolejnych zapisanych zdjęć
+    (po jednym, zaraz po udanym uploadzie — stan częściowy jest trwały) lub
+    świadome zamknięcie deklaracji bez brakujących plików (set_expected).
+    Operacja naturalnie idempotentna: ten sam file_id nie jest podpinany
+    dwa razy."""
+    client_id = require_client_self(db, user)
+    checkin = db.get(WeeklyCheckin, checkin_id)
+    if checkin is None or checkin.client_id != client_id:
+        raise HTTPException(status_code=404, detail="Nie znaleziono")
+    if checkin.status == "REVIEWED":
+        raise HTTPException(
+            status_code=409,
+            detail="Raport został już oceniony przez trenera — zdjęć nie można "
+            "już zmieniać.",
+        )
+    attached = _attach_photos(db, user, checkin, client_id, body.photos)
+    if body.set_expected is not None:
+        if body.set_expected < attached:
+            raise HTTPException(
+                status_code=422,
+                detail="Deklarowana liczba zdjęć nie może być mniejsza niż "
+                "liczba już zapisanych.",
+            )
+        if body.set_expected > settings.max_checkin_photos:
+            raise HTTPException(
+                status_code=422,
+                detail=f"Maksymalnie {settings.max_checkin_photos} zdjęć na raport",
+            )
+        checkin.photos_expected = body.set_expected
+    elif checkin.photos_expected is not None and attached > checkin.photos_expected:
+        checkin.photos_expected = attached
+    checkin.updated_at = now_iso()
+    record_event(
+        db,
+        action="CHECKIN_PHOTOS_ATTACHED",
+        actor_id=user.id,
+        subject_ids=[client_id],
+        # Bez identyfikatorów/nazw plików — wyłącznie liczniki stanu
+        # (zdjęcia sylwetki to dane wrażliwe; nie wyciekają do audytu).
+        payload={"checkin_id": checkin.id,
+                 "photos_attached": attached,
+                 "photos_expected": checkin.photos_expected},
+        summary=f"Zdjęcia raportu {checkin.week_start}: {attached}"
+        + (f"/{checkin.photos_expected}" if checkin.photos_expected is not None else ""),
+    )
+    db.commit()
+    return {
+        "photos_attached": attached,
+        "photos_expected": checkin.photos_expected,
+        "photos_complete": _photos_complete(checkin, attached),
+    }
 
 
 @router.get("/clients/{client_id}/checkins")

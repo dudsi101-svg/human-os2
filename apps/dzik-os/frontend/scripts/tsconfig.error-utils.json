@@ -8,5 +8,5 @@
     "skipLibCheck": true,
     "outDir": "../node_modules/.cache/error-utils-test"
   },
-  "files": ["../src/errorUtils.ts"]
+  "files": ["../src/errorUtils.ts", "../src/seriesUtils.ts"]
 }

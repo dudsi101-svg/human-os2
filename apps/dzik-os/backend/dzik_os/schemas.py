@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, model_validator
 
 
 class LoginRequest(BaseModel):
@@ -112,6 +112,28 @@ class ScheduleItemIn(BaseModel):
     author_note: str | None = Field(default=None, max_length=2000)
 
 
+# Subiektywne skale raportu tygodniowego (1-5).
+CHECKIN_SCALE_KEYS = (
+    "diet_adherence", "energy", "sleep", "hunger", "stress", "recovery",
+)
+
+# Stany odpowiedzi na pytanie skalowe — rozróżnialne w modelu danych:
+# * ANSWERED        — świadomie wybrana wartość 1-5 (w tym neutralne 3),
+# * SKIPPED         — świadome pominięcie pytania (bez wartości),
+# * NOT_APPLICABLE  — pytanie nie dotyczy tego tygodnia (bez wartości),
+# * brak klucza     — brak odpowiedzi (NO_ANSWER; także wszystkie raporty
+#                     sprzed wprowadzenia scale_states — bez reinterpretacji).
+CHECKIN_SCALE_STATES = ("ANSWERED", "SKIPPED", "NOT_APPLICABLE")
+
+
+class CheckinPhotoIn(BaseModel):
+    """Zdjęcie raportu: plik + typ ujęcia + kolejność wybrana przez klienta."""
+
+    file_id: str = Field(min_length=1, max_length=40)
+    pose: str | None = Field(default=None, pattern="^(PRZOD|BOK|TYL|INNE)$")
+    position: int | None = Field(default=None, ge=0, le=100)
+
+
 class CheckinIn(BaseModel):
     week_start: str = Field(pattern=r"^\d{4}-\d{2}-\d{2}$")
     weight_kg: float | None = Field(default=None, ge=0, le=500)
@@ -123,10 +145,57 @@ class CheckinIn(BaseModel):
     hunger: int | None = Field(default=None, ge=1, le=5)
     stress: int | None = Field(default=None, ge=1, le=5)
     recovery: int | None = Field(default=None, ge=1, le=5)
+    # Stan każdej odpowiedzi skalowej (patrz CHECKIN_SCALE_STATES).
+    # None = klient bez rozróżniania stanów (stare wersje formularza) —
+    # wartości interpretowane jak dotychczas, bez oznaczenia świadomości.
+    scale_states: dict[str, str] | None = None
     pain_note: str | None = Field(default=None, max_length=2000)
     comment: str | None = Field(default=None, max_length=5000)
     questions: str | None = Field(default=None, max_length=5000)
     photo_ids: list[str] = []
+    # Nowy kształt zdjęć (typ ujęcia + kolejność); photo_ids zostaje dla
+    # kompatybilności wstecznej.
+    photos: list[CheckinPhotoIn] = []
+    # Zadeklarowana liczba zdjęć raportu: mniej zapisanych = raport jawnie
+    # CZĘŚCIOWY (dokończenie przez POST /checkins/{id}/photos).
+    photos_expected: int | None = Field(default=None, ge=0, le=50)
+    # Klucz idempotencji: powtórka żądania (double-click, retry po utracie
+    # odpowiedzi) zwraca zapisany wynik zamiast tworzyć rewizję.
+    idempotency_key: str | None = Field(default=None, min_length=8, max_length=80)
+
+    @model_validator(mode="after")
+    def _validate_scale_states(self) -> CheckinIn:
+        """Spójność wartości skal ze stanami odpowiedzi. Reguły działają
+        tylko przy podanym scale_states — stare klienty (bez pola) wysyłają
+        wartości jak dotychczas."""
+        if self.scale_states is None:
+            return self
+        for key, state in self.scale_states.items():
+            if key not in CHECKIN_SCALE_KEYS:
+                raise ValueError(f"Nieznane pytanie skalowe: {key}")
+            if state not in CHECKIN_SCALE_STATES:
+                raise ValueError(f"Nieznany stan odpowiedzi: {state}")
+            value = getattr(self, key)
+            if state == "ANSWERED" and value is None:
+                raise ValueError(f"Odpowiedź ANSWERED wymaga wartości 1-5: {key}")
+            if state in ("SKIPPED", "NOT_APPLICABLE") and value is not None:
+                raise ValueError(
+                    f"Pominięte pytanie nie może mieć wartości: {key}"
+                )
+        for key in CHECKIN_SCALE_KEYS:
+            if getattr(self, key) is not None and key not in self.scale_states:
+                raise ValueError(
+                    f"Wartość skali bez zadeklarowanego stanu odpowiedzi: {key}"
+                )
+        return self
+
+
+class CheckinPhotosAttachIn(BaseModel):
+    """Dokończenie częściowego raportu: dopięcie zapisanych zdjęć i/lub
+    świadome zamknięcie deklaracji (set_expected) bez brakujących plików."""
+
+    photos: list[CheckinPhotoIn] = []
+    set_expected: int | None = Field(default=None, ge=0, le=50)
 
 
 class CheckinReviewIn(BaseModel):

@@ -367,6 +367,30 @@ class WeeklyCheckin(Base):
     # (zasada Human OS: system nigdy nie rankinguje ludzi). Opcjonalna,
     # widoczna dla klienta obok odpowiedzi.
     rating: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    # Liczba zdjęć zadeklarowana przy wysyłce (migracja 12). Raport z
+    # mniejszą liczbą zapisanych zdjęć jest jawnie CZĘŚCIOWY — stan widoczny
+    # dla klienta i trenera, do dokończenia przez /checkins/{id}/photos.
+    # NULL = raport sprzed migracji lub bez deklaracji (traktowany jako
+    # kompletny — bez retroaktywnej reinterpretacji starych wierszy).
+    photos_expected: Mapped[int | None] = mapped_column(Integer, nullable=True)
+
+
+class IdempotencyKey(Base):
+    """Klucz idempotencji operacji zapisu (migracja 12): powtórka żądania
+    z tym samym kluczem (podwójne kliknięcie, retry po przerwaniu sieci)
+    zwraca zapisany wynik zamiast tworzyć duplikat. request_hash chroni
+    przed ponownym użyciem klucza z INNĄ treścią (jawny konflikt 409)."""
+
+    __tablename__ = "idempotency_keys"
+    __table_args__ = (UniqueConstraint("user_id", "operation", "idem_key"),)
+
+    id: Mapped[str] = mapped_column(String(40), primary_key=True)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
+    operation: Mapped[str] = mapped_column(String(80))
+    idem_key: Mapped[str] = mapped_column(String(80))
+    request_hash: Mapped[str] = mapped_column(String(64))
+    response_json: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[str] = mapped_column(String(40), default=now_iso)
 
 
 class CheckinRevision(Base):
@@ -443,6 +467,10 @@ class ProgressPhoto(Base):
     checkin_id: Mapped[str | None] = mapped_column(ForeignKey("weekly_checkins.id"), nullable=True)
     taken_at: Mapped[str] = mapped_column(String(40))
     note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Typ ujęcia (PRZOD/BOK/TYL/INNE) i kolejność wybrana przez klienta
+    # (migracja 12); NULL = zdjęcie historyczne bez deklaracji.
+    pose: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    position: Mapped[int | None] = mapped_column(Integer, nullable=True)
     created_at: Mapped[str] = mapped_column(String(40), default=now_iso)
 
 

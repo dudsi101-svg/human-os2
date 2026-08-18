@@ -20,6 +20,7 @@ from ..models import (
     DailyNutritionLog,
     Document,
     Goal,
+    IdempotencyKey,
     Measurement,
     Message,
     MessageThread,
@@ -463,6 +464,9 @@ def request_deletion(
         doc.status = "ARCHIVED"
     # Subskrypcje push znikają w całości (kanał doręczeń przestaje istnieć).
     db.query(PushSubscription).filter(PushSubscription.user_id == client_id).delete()
+    # Klucze idempotencji (metadane operacyjne z identyfikatorami zapisów)
+    # znikają razem z kontem.
+    db.query(IdempotencyKey).filter(IdempotencyKey.user_id == client_id).delete()
     # Konsultacje: odpięcie klienta od slotów; przyszłe rezerwacje wracają
     # do puli trenera jako wolne.
     for slot in db.query(ConsultSlot).filter(ConsultSlot.client_id == client_id).all():

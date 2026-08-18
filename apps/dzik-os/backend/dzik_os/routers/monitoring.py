@@ -319,10 +319,18 @@ def monitoring(
         .all()
     ):
         payload = json.loads(c.payload_json)
+        # declared=False oznacza raport sprzed rozróżniania stanów
+        # odpowiedzi (scale_states) — wartość mogła zostać na domyślnym
+        # 3/5 formularza, więc UI oznacza takie punkty jako mniej
+        # wiarygodne. Pytania pominięte / „nie dotyczy" nie mają wartości
+        # i nie trafiają do serii (nigdy nie są interpolowane).
+        declared = payload.get("scale_states") is not None
         for key in WELLBEING_KEYS:
             value = payload.get(key)
             if value is not None:
-                wellbeing_series[key].append({"date": c.week_start, "value": value})
+                wellbeing_series[key].append(
+                    {"date": c.week_start, "value": value, "declared": declared}
+                )
     wellbeing_series = {k: v for k, v in wellbeing_series.items() if v}
 
     nutrition_target = None
