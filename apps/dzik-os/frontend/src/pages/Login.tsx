@@ -47,6 +47,13 @@ export default function Login() {
             style={{ width: "min(78%, 300px)", height: "auto", display: "block", margin: "0 auto 8px" }}
           />
           <small className="dim">Panel Podopiecznego</small>
+          <p style={{ margin: "14px 0 0", fontWeight: 600 }}>
+            Cześć, dobrze Cię widzieć! 💪
+          </p>
+          <p className="dim" style={{ margin: "4px 0 0", fontSize: "0.88rem" }}>
+            Zaloguj się — Twój plan, dieta i wiadomości od trenera
+            czekają w jednym miejscu.
+          </p>
         </div>
         <form onSubmit={submit} className="card">
           <label htmlFor="email">E-mail</label>

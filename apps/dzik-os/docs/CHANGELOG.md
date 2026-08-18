@@ -1,5 +1,18 @@
 # Changelog — Dzik OS
 
+## 0.5.2 — 2026-08-18
+
+* **Powitanie na ekranie logowania**: pod logo ciepłe zaproszenie
+  („Cześć, dobrze Cię widzieć! 💪 Zaloguj się — Twój plan, dieta i
+  wiadomości od trenera czekają w jednym miejscu.").
+* **PWA — świeża wersja przy każdym otwarciu**: nawigacje przełączone na
+  network-first (cache tylko jako fallback offline) — użytkownik nie
+  utknie już na starej wersji aplikacji do czasu kliknięcia banera;
+  otwarcie/odświeżenie to naturalny moment aktualizacji, więc zasada
+  „bez cichej podmiany kodu w trakcie sesji" pozostaje zachowana.
+  Statyki nadal cache-first; /api nigdy nie jest cachowane. Cache
+  podbity do v2.
+
 ## 0.5.1 — 2026-08-18
 
 * **Duże logo na ekranie logowania**: pełna grafika marki (głowa dzika +
