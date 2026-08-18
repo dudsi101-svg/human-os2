@@ -1,5 +1,35 @@
 # Changelog — Dzik OS
 
+## 0.39.0 — 2026-08-18
+
+**Karta współpracy sesji — dziesięć zasad, każda z podpiętym zdarzeniem.**
+`docs/KARTA_WSPOLPRACY.md`, wskazana z `CLAUDE.md`, `KOORDYNACJA.md`
+i `STAN_PRZEKAZANIA.md`, więc każda sesja trafia na nią przed pracą.
+
+* **Punkt wyjścia, nie deklaracja.** Sesje nie mają wspólnej pamięci ani
+  kanału — żadna nie może drugiej zapytać ani ostrzec. Karta jest więc
+  zbudowana tak, żeby działała **asynchronicznie, przez artefakty, bez
+  rozmowy**; zasada wymagająca uzgodnienia w czasie rzeczywistym byłaby
+  tu martwa z definicji.
+* **Artykuł 0 definiuje „szczyt" mierzalnie**, nie liczbą funkcji: nic nie
+  ginie, nic nie wycieka, nic nie udaje, że działa.
+* **Każda zasada ma podpięte zdarzenie**, z którego się wzięła — od
+  skasowanych 88 linii cudzej pracy, przez raportowanie „chodzi w tle"
+  bez sprawdzenia, po uśpionego strażnika w kontroli tras. Zasada bez
+  zdarzenia za sobą jest ozdobą i podlega usunięciu.
+* **Role opisane jako obserwowane, nie przydzielone**: sesja produktowa
+  i sesja bramkowa mają udokumentowane mocne strony i żadna nie jest
+  kompletna sama — to jest ta „druga połówka", nie podział terytorium.
+* **Ósma kontrola: `przekazanie`.** Pierwsza wersja karty twierdziła, że
+  „sześć z dziesięciu zasad ma wsparcie maszynowe". Przy liczeniu okazało
+  się, że to nieprawda — więc zamiast poprawić liczbę w dół, doszła
+  kontrola pilnująca, żeby `STAN_PRZEKAZANIA.md` wskazywał bieżącą wersję
+  z CHANGELOG-a. **Złapała od razu własny dokument**, który został przy
+  0.37.0. Nieaktualne przekazanie jest gorsze niż jego brak: następna
+  sesja mu zaufa.
+* Karta podaje teraz **policzony, nie oszacowany** stan egzekwowalności:
+  trzy zasady ze wsparciem pełnym, dwie z częściowym, pięć na uczciwość.
+
 ## 0.38.0 — 2026-08-18
 
 **Jedna sesja naraz + naprawa narzędzia, które niszczyło cudzą pracę.**

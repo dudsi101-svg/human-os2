@@ -435,6 +435,15 @@ will flag it as an unused import.
   the same for `call_authorization.py` and its `AgentRuntime` integration point. Check the
   relevant contract doc before changing any of these code paths' public shape.
 
+## Praca nad aplikacją Dzik OS (`apps/dzik-os/`)
+
+Pracuje **jedna sesja naraz**. Zanim cokolwiek dotkniesz, przeczytaj
+`apps/dzik-os/docs/KARTA_WSPOLPRACY.md` (zasady współpracy między sesjami,
+każda z podpiętym zdarzeniem, z którego się wzięła) i
+`apps/dzik-os/docs/STAN_PRZEKAZANIA.md` (gdzie jesteśmy, co jest w toku —
+żeby nie zaczynać od nowa). Core (`hos_engine/`, `tests/`) jest poza
+zasięgiem pracy aplikacyjnej: 275 testów musi zostać zielone.
+
 ## Licensing
 
 Code is Apache-2.0 (`LICENSE`); documentation/specifications are CC BY 4.0 (`LICENSE-DOCS`). The

@@ -23,8 +23,10 @@ nowej roli: nie jako sposób na równoległość, tylko jako **przekazanie
 pałeczki** między kolejnymi sesjami. Jeśli kiedyś świadomie wrócimy do
 równoległości, są gotowe; dopóki nie wrócimy, są tanie i nic nie kosztują.
 
-**Przed rozpoczęciem rundy przeczytaj `docs/STAN_PRZEKAZANIA.md`** — tam
-jest, co zrobione, co w toku i co następne.
+**Przed rozpoczęciem rundy przeczytaj dwa dokumenty:**
+`docs/KARTA_WSPOLPRACY.md` (jak pracujemy — zasady i skąd się wzięły) oraz
+`docs/STAN_PRZEKAZANIA.md` (gdzie jesteśmy — co zrobione, co w toku, co
+następne).
 
 ---
 
@@ -37,7 +39,7 @@ python apps/dzik-os/tools/spojnosc.py     # 0 = czysto, 1 = są kolizje
 ```
 
 Uruchamiana w CI (`dzik-os-ci.yml`) i lokalnie przed każdym scaleniem.
-Siedem kontroli, każda wzięta z błędu, który **naprawdę się zdarzył**:
+Osiem kontroli, każda wzięta z błędu, który **naprawdę się zdarzył**:
 
 | Kontrola | Co łapie | Kiedy się zdarzyło |
 |---|---|---|
@@ -48,6 +50,7 @@ Siedem kontroli, każda wzięta z błędu, który **naprawdę się zdarzył**:
 | `testy frontendu` | `scripts/test-*.mjs` spoza `test:helpers`, czyli test-widmo | przy dokładaniu testów pomocniczych |
 | `dokumenty` | martwy odnośnik `docs/COŚ.md` (uwaga, nie błąd) | przy przenoszeniu dokumentacji |
 | `higiena gałęzi` | objawy gałęzi żyjącej za długo jak na tempo main (uwagi, nigdy błąd) | PR #11: 6,5 h życia, 8 scaleń nadążających |
+| `przekazanie` | `STAN_PRZEKAZANIA.md` bez bieżącej wersji z CHANGELOG-a | przy pisaniu Karty współpracy — dokument został przy 0.37.0, gdy repo było na 0.38.0 |
 
 Kontrola **niczego nie naprawia** — od tego jest człowiek albo agent,
 który zna zamiar. Ma wyłącznie nie pozwolić kolizji przejść niezauważenie.

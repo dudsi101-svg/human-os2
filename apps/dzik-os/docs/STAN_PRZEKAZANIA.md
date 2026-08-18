@@ -1,7 +1,11 @@
 # Stan przekazania — przeczytaj przed rozpoczęciem rundy
 
-**Aktualizacja:** 2026-08-18 · **Wersja w `main`:** 0.37.0
+**Aktualizacja:** 2026-08-18 · **Wersja w `main`:** 0.39.0
 **Tryb pracy:** jedna sesja naraz (`KOORDYNACJA.md`, zasada nadrzędna).
+
+**Zanim cokolwiek dotkniesz: `docs/KARTA_WSPOLPRACY.md`** — dziesięć
+zasad współpracy między sesjami, każda z podpiętym zdarzeniem, z którego
+się wzięła. Ten dokument mówi GDZIE jesteśmy; karta mówi JAK pracujemy.
 
 Ten dokument zastępuje domysły. Ma odpowiadać na trzy pytania: **gdzie
 jesteśmy**, **co jest w toku** i **co następne**. Aktualizuj go na koniec
@@ -24,9 +28,9 @@ sesji zostaje jedna linia:
 jednym prawdziwym klientem, **NO-GO na szerszą produkcję** — siedem
 blokerów wypisanych w §5 tamtego dokumentu.
 
-**Liczby:** ok. 740 testów backendu, 275 testów Core Human OS (nietykalne),
+**Liczby:** ok. 745 testów backendu, 275 testów Core Human OS (nietykalne),
 140 testów pomocniczych frontendu, testy E2E (Playwright) w CI,
-7 kontroli spójności, dwa przeglądy mutacyjne (7/7 i 9/9).
+8 kontroli spójności, dwa przeglądy mutacyjne (7/7 i 9/9).
 
 ---
 

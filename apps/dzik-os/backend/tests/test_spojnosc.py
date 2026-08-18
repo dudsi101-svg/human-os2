@@ -11,6 +11,7 @@ patrzymy, czy zgłasza. To jedyny sposób, żeby kontrola nie zgniła w ciszy.
 
 import importlib.util
 import json
+import re
 import shutil
 import sys
 from pathlib import Path
@@ -372,3 +373,27 @@ def test_narzedzie_mutacyjne_nie_przywraca_starej_kopii():
     assert "ODCISK_STARTOWY" in tresc and "sha256" in tresc, (
         "po przywróceniu musi być sprawdzana suma kontrolna pliku"
     )
+
+
+def test_wykrywa_nieaktualny_dokument_przekazania(kopia):
+    """`STAN_PRZEKAZANIA.md` bez bieżącej wersji z CHANGELOG-a to bramka,
+    nie ozdoba (Karta współpracy §VII).
+
+    Nieaktualny dokument przekazania jest gorszy niż jego brak: następna
+    sesja mu zaufa i zbuduje na nieprawdziwym obrazie stanu. Kontrola
+    powstała przy pisaniu karty i **od razu złapała** własny dokument,
+    który został przy 0.37.0, gdy CHANGELOG był już na 0.38.0."""
+    modul = zaladuj(kopia)
+    changelog = (kopia / "docs" / "CHANGELOG.md").read_text(encoding="utf-8")
+    biezaca = re.findall(r"^## (\d+\.\d+\.\d+)", changelog, re.MULTILINE)[0]
+    przekazanie = kopia / "docs" / "STAN_PRZEKAZANIA.md"
+
+    przekazanie.write_text(f"Wersja w main: {biezaca}\n", encoding="utf-8")
+    assert bledy(modul, modul.sprawdz_przekazanie) == []
+
+    przekazanie.write_text("Wersja w main: 0.0.1\n", encoding="utf-8")
+    znalezione = bledy(modul, modul.sprawdz_przekazanie)
+    assert any("nieaktualny" in b for b in znalezione), znalezione
+
+    przekazanie.unlink()
+    assert any("brak" in b for b in bledy(modul, modul.sprawdz_przekazanie))
