@@ -557,6 +557,13 @@ export function MfaCard({ forced = false }: { forced?: boolean }) {
   const [code, setCode] = useState("");
   const [recoveryCodes, setRecoveryCodes] = useState<string[] | null>(null);
   const [busy, setBusy] = useState(false);
+  // Odnawianie kodów pyta o kod TOTP. Wcześniej robił to natywny prompt(),
+  // który nie mówił, o jaką aplikację chodzi — a to jedyne pytanie w całym
+  // panelu, na które nie da się odpowiedzieć bez telefonu pod ręką.
+  // Jedno pole obsługuje obie akcje wymagające kodu TOTP: odnowienie kodów
+  // odzyskiwania i wyłączenie MFA. `trybKodu` mówi, o którą chodzi.
+  const [trybKodu, setTrybKodu] = useState<"odnow" | "wylacz" | null>(null);
+  const [kodOdnowienia, setKodOdnowienia] = useState("");
 
   const load = () => {
     getMfaStatus().then(setStatus).catch((e) => setError(e.message));
@@ -587,23 +594,27 @@ export function MfaCard({ forced = false }: { forced?: boolean }) {
   }
 
   async function regenerate() {
-    const c = prompt("Podaj aktualny kod z aplikacji, aby wygenerować nowe kody odzyskiwania (stare przestaną działać):");
-    if (!c) return;
+    const c = kodOdnowienia.trim();
+    if (c.length < 6) return;
     setBusy(true); setError(null); setOk(null);
     try {
-      const r = await mfaRegenerateRecoveryCodes(c.trim());
+      const r = await mfaRegenerateRecoveryCodes(c);
       setRecoveryCodes(r.recovery_codes);
       setOk("Wygenerowano nowe kody odzyskiwania — stare są nieważne.");
+      setTrybKodu(null);
+      setKodOdnowienia("");
       load();
     } catch (e) { setError((e as Error).message); } finally { setBusy(false); }
   }
 
   async function disable() {
-    const c = prompt("Podaj aktualny kod z aplikacji, aby wyłączyć MFA:");
-    if (!c) return;
+    const c = kodOdnowienia.trim();
+    if (c.length < 6) return;
     setBusy(true); setError(null); setOk(null);
     try {
-      await mfaDisable(c.trim());
+      await mfaDisable(c);
+      setTrybKodu(null);
+      setKodOdnowienia("");
       setRecoveryCodes(null);
       setOk("MFA wyłączone.");
       const user = getUser();
@@ -683,15 +694,57 @@ export function MfaCard({ forced = false }: { forced?: boolean }) {
             </small>
           </p>
           <div className="row" style={{ flexWrap: "wrap" }}>
-            <button className="btn btn--ghost btn--small" disabled={busy} onClick={regenerate}>
-              Nowe kody odzyskiwania
+            <button className="btn btn--ghost btn--small" disabled={busy}
+              onClick={() => {
+                setTrybKodu((v) => (v === "odnow" ? null : "odnow"));
+                setKodOdnowienia("");
+              }}>
+              {trybKodu === "odnow" ? "Anuluj" : "Nowe kody odzyskiwania"}
             </button>
             {!mandatory && (
-              <button className="btn btn--danger btn--small" disabled={busy} onClick={disable}>
-                Wyłącz MFA
+              <button className="btn btn--danger btn--small" disabled={busy}
+                onClick={() => {
+                  setTrybKodu((v) => (v === "wylacz" ? null : "wylacz"));
+                  setKodOdnowienia("");
+                }}>
+                {trybKodu === "wylacz" ? "Anuluj" : "Wyłącz MFA"}
               </button>
             )}
           </div>
+          {trybKodu && (
+            <div style={{ marginTop: 12 }}>
+              <label htmlFor="mfa-renew">
+                Kod z aplikacji uwierzytelniającej
+              </label>
+              <p className="dim" style={{ fontSize: "0.85rem", margin: "2px 0 6px" }}>
+                Sześć cyfr z aplikacji, którą podpiąłeś przy włączaniu logowania
+                dwuetapowego (np. Google Authenticator, Authy, menedżer haseł).
+                Kod zmienia się co 30 sekund. <b>Kod odzyskiwania tutaj nie
+                zadziała</b> — służy do zalogowania się, gdy nie masz telefonu.
+              </p>
+              <input id="mfa-renew" inputMode="numeric" autoComplete="one-time-code"
+                placeholder="123456" maxLength={6} value={kodOdnowienia}
+                onChange={(e) => setKodOdnowienia(e.target.value)} />
+              <p className="dim" style={{ fontSize: "0.85rem", margin: "6px 0 0" }}>
+                {trybKodu === "odnow"
+                  ? "Nowe kody unieważniają wszystkie dotychczasowe."
+                  : "Po wyłączeniu logowanie będzie wymagać wyłącznie hasła."}{" "}
+                Jeśli nie masz dostępu do aplikacji uwierzytelniającej, zaloguj
+                się kodem odzyskiwania — z poziomu zalogowanego konta możesz
+                wtedy skonfigurować MFA od nowa.
+              </p>
+              <div style={{ marginTop: 10 }}>
+                <button
+                  className={trybKodu === "odnow" ? "btn btn--small" : "btn btn--danger btn--small"}
+                  onClick={trybKodu === "odnow" ? regenerate : disable}
+                  disabled={busy || kodOdnowienia.trim().length < 6}>
+                  {busy
+                    ? "Sprawdzam…"
+                    : trybKodu === "odnow" ? "Wygeneruj nowe kody" : "Wyłącz MFA"}
+                </button>
+              </div>
+            </div>
+          )}
         </>
       )}
       {recoveryCodes && <RecoveryCodesBox codes={recoveryCodes} />}
