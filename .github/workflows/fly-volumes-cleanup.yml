@@ -1,0 +1,73 @@
+# Sprzątanie nieużywanych wolumenów Dzik OS na Fly.io.
+#
+# Każdy deploy z sekcją [mounts] potrafi zostawić po sobie nowy,
+# NIGDY niepodpięty wolumen 1 GB (znane zachowanie flyctl deploy) —
+# przy częstych wdrożeniach rośnie z tego stos płatnych sierot.
+#
+# Ten workflow usuwa WYŁĄCZNIE wolumeny bez podpiętej maszyny
+# (attached_machine_id puste). Zabezpieczenia:
+# * świeży backup aplikacyjny PRZED sprzątaniem (dzik_os.backup),
+# * wspólna grupa concurrency z deployem — nie działa w trakcie
+#   wdrożenia (deploy tworzy wolumen dla nowej maszyny zanim ją
+#   podepnie; równoległe sprzątanie mogłoby go zabrać),
+# * lista maszyn i wolumenów w logu przed i po.
+#
+# Trigger push zawężony do tego pliku: pierwsze sprzątanie odpala się
+# od razu po merge'u i rejestruje workflow (świeże pliki workflow
+# bywają czasowo niewidoczne dla API-dispatchu — jak w fly-backup.yml).
+
+name: Sprzątanie wolumenów (Fly.io)
+
+on:
+  workflow_dispatch: {}
+  schedule:
+    # Codziennie 03:15 UTC — po nocnym backupie (02:30 UTC).
+    - cron: "15 3 * * *"
+  push:
+    branches: [main]
+    paths: [".github/workflows/fly-volumes-cleanup.yml"]
+
+concurrency:
+  group: fly-deploy
+  cancel-in-progress: false
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    env:
+      FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+      APP_NAME: dzik-os-panel
+    steps:
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Obudź maszynę (auto-start)
+        run: curl -sfS "https://$APP_NAME.fly.dev/api/health"
+
+      - name: Backup przed sprzątaniem
+        run: |
+          flyctl ssh console --app "$APP_NAME" \
+            -C "env DZIK_BACKUP_DIR=/data/backups python -m dzik_os.backup"
+
+      - name: Stan przed — maszyny i wolumeny
+        run: |
+          flyctl machines list --app "$APP_NAME"
+          flyctl volumes list --app "$APP_NAME"
+
+      - name: Usuń wolumeny bez podpiętej maszyny
+        run: |
+          flyctl volumes list --app "$APP_NAME" --json > vols.json
+          orphans=$(jq -r '.[] | select((.attached_machine_id // "") == "") | .id' vols.json)
+          if [ -z "$orphans" ]; then
+            echo "Brak nieużywanych wolumenów — nic do zrobienia."
+            exit 0
+          fi
+          count=0
+          for id in $orphans; do
+            echo "Usuwam nieużywany wolumen: $id"
+            flyctl volumes destroy "$id" --app "$APP_NAME" --yes
+            count=$((count+1))
+          done
+          echo "Usunięto wolumenów: $count"
+
+      - name: Stan po — wolumeny
+        run: flyctl volumes list --app "$APP_NAME"
