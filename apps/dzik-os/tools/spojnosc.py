@@ -366,6 +366,34 @@ def sprawdz_przekazanie(w: Wynik) -> None:
                "dokument jest nieaktualny, a następna sesja mu zaufa")
 
 
+# --- 9. Konsultacje: czy ktoś czeka na odpowiedź -----------------------
+
+def sprawdz_konsultacje(w: Wynik) -> None:
+    """Wypisuje otwarte wpisy z `KONSULTACJE.md` — wspólnej skrzynki sesji.
+
+    Sesje nie rozmawiają na żywo, ale widzą nawzajem swoje działania i
+    mogą sobie zostawiać pytania. Pytanie bez odpowiedzi **blokuje drugą
+    sesję**, a przeoczyć je jest banalnie łatwo: nikt nie czyta wszystkich
+    plików przed rundą.
+
+    To UWAGA, nie błąd — otwarte pytanie nie może blokować scalenia
+    (czasem odpowiedź wymaga decyzji właściciela). Ma być widoczne, nie
+    paraliżujące."""
+    plik = DOCS / "KONSULTACJE.md"
+    if not plik.exists():
+        return
+    tresc = plik.read_text(encoding="utf-8")
+    otwarte = tresc.split("## Zamknięte")[0]
+    wpisy = re.findall(r"^### (PYTANIE|PROPOZYCJA|OSTRZEŻENIE) · ([^·]+) · (.+)$",
+                       otwarte, re.MULTILINE)
+    if not wpisy:
+        return
+    for rodzaj, autor, data in wpisy:
+        w.uwaga("konsultacje",
+                f"otwarte {rodzaj.lower()} od `{autor.strip()}` ({data.strip()}) "
+                "— odpowiedz w docs/KONSULTACJE.md przed własną pracą")
+
+
 KONTROLE = (
     ("migracje", sprawdz_migracje),
     ("changelog", sprawdz_changelog),
@@ -375,6 +403,7 @@ KONTROLE = (
     ("dokumenty", sprawdz_dokumenty),
     ("higiena gałęzi", sprawdz_galaz),
     ("przekazanie", sprawdz_przekazanie),
+    ("konsultacje", sprawdz_konsultacje),
 )
 
 
