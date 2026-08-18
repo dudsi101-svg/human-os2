@@ -57,9 +57,10 @@ def test_checkin_with_photo(seeded):
 
     ha = login(seeded, CLIENT_A)
     id_a = get_user_id(seeded, ha)
+    from conftest import make_png
+
     up = seeded.post("/api/files", headers=ha, files={
-        "file": ("sylwetka.png", io.BytesIO(b"\x89PNG\r\n\x1a\n" + b"0" * 50),
-                 "image/png")})
+        "file": ("sylwetka.png", io.BytesIO(make_png()), "image/png")})
     file_id = up.json()["id"]
     r = _submit(seeded, ha, photo_ids=[file_id])
     assert r.status_code == 201

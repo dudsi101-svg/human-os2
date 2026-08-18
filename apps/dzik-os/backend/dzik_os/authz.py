@@ -16,7 +16,7 @@ from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
 from .hos_bridge import ConsentService
-from .models import CoachClientRelationship, User
+from .models import CoachClientRelationship, StoredFile, User
 from .security import active_roles
 
 CONSENT_PURPOSE = "coaching"
@@ -64,6 +64,33 @@ def resolve_client_access(
     ):
         return client_id
     raise HTTPException(status_code=404, detail="Nie znaleziono")
+
+
+def require_attachable_file(
+    db: Session,
+    actor: User,
+    file_id: str,
+    *,
+    owner_id: str,
+    allow_uploader: bool = False,
+    require_image: bool = False,
+) -> StoredFile:
+    """Walidacja pliku PRZY PODPINANIU go do zasobu (wiadomość, raport,
+    dokument, baza wiedzy, trening). Plik musi istnieć, nie być usunięty i
+    należeć do wskazanego właściciela danych (opcjonalnie wystarczy, że
+    aktor sam go wgrał — załączniki wiadomości). Bez tej bramki podpięcie
+    cudzego file_id nadawałoby innym osobom dostęp do nie swojego pliku.
+    422, bo to walidacja wejścia tworzonego zasobu (nie odczyt pliku)."""
+    stored = db.get(StoredFile, file_id)
+    if stored is None or stored.deleted_at is not None:
+        raise HTTPException(status_code=422, detail="Nie znaleziono pliku")
+    if stored.owner_user_id != owner_id and not (
+        allow_uploader and stored.uploaded_by == actor.id
+    ):
+        raise HTTPException(status_code=422, detail="Plik nie należy do tego konta")
+    if require_image and not stored.content_type.startswith("image/"):
+        raise HTTPException(status_code=422, detail="Załącznik musi być zdjęciem")
+    return stored
 
 
 def require_client_self(db: Session, actor: User) -> str:

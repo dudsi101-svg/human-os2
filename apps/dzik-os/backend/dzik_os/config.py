@@ -24,6 +24,23 @@ class Settings:
     audit_db_path: str = field(default_factory=lambda: _env("DZIK_AUDIT_DB", "data/audit.db"))
     upload_dir: str = field(default_factory=lambda: _env("DZIK_UPLOAD_DIR", "data/uploads"))
     max_upload_mb: int = field(default_factory=lambda: int(_env("DZIK_MAX_UPLOAD_MB", "20")))
+    # Zdjęcia (nowe uploady image/*): usunięcie EXIF/GPS + ograniczenie
+    # rozdzielczości (dłuższy bok) + rekompresja o podanej jakości.
+    max_image_px: int = field(default_factory=lambda: int(_env("DZIK_MAX_IMAGE_PX", "2560")))
+    image_quality: int = field(default_factory=lambda: int(_env("DZIK_IMAGE_QUALITY", "85")))
+    # Limity zdjęć dołączanych do jednego raportu tygodniowego.
+    max_checkin_photos: int = field(
+        default_factory=lambda: int(_env("DZIK_MAX_CHECKIN_PHOTOS", "8"))
+    )
+    max_checkin_photos_total_mb: int = field(
+        default_factory=lambda: int(_env("DZIK_MAX_CHECKIN_PHOTOS_TOTAL_MB", "60"))
+    )
+    # Sprzątanie plików-sierot: upload nigdy nie podpięty do raportu/
+    # wiadomości/dokumentu/bazy wiedzy/treningu starszy niż N godzin
+    # dostaje soft delete (deleted_at) i znika z dysku.
+    orphan_file_ttl_hours: int = field(
+        default_factory=lambda: int(_env("DZIK_ORPHAN_FILE_TTL_H", "24"))
+    )
     session_ttl_hours: int = field(default_factory=lambda: int(_env("DZIK_SESSION_TTL_H", "72")))
     login_max_attempts: int = field(default_factory=lambda: int(_env("DZIK_LOGIN_MAX_ATTEMPTS", "5")))
     login_lockout_minutes: int = field(

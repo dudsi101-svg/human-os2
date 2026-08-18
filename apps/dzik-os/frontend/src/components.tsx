@@ -1,8 +1,9 @@
 import { ReactNode, useEffect, useState } from "react";
 import { NavLink } from "react-router-dom";
 import {
-  api, AuthSessionRow, fetchFileBlob, fetchFileUrl, getUser, listSessions,
-  logout, revokeOtherSessions, revokeSession,
+  api, ApiError, AuthSessionRow, fetchFile, fetchFileBlob, fetchFileUrl,
+  getUser, listSessions, logout, openBlobInNewTab, revokeOtherSessions,
+  revokeSession, saveBlobAs,
 } from "./api";
 import { plDate, plDateTime } from "./dates";
 import { applyUpdate, onUpdateAvailable } from "./pwa";
@@ -234,6 +235,60 @@ export function SessionsCard() {
   );
 }
 
+function downloadErrorMessage(e: unknown): string {
+  const err = e as ApiError;
+  if (err instanceof ApiError && (err.status === 403 || err.status === 404)) {
+    return "Brak dostępu do pliku lub plik nie istnieje.";
+  }
+  return `Nie udało się pobrać pliku${err?.message ? ` (${err.message})` : ""}.`;
+}
+
+/** Wspólny przycisk pobierania/otwierania chronionego pliku.
+ * Pobiera przez uwierzytelnione API (Bearer) do Blob, zapisuje/otwiera
+ * klikiem w <a> (bez window.open po await — nie wpada w blokadę popupów)
+ * i pokazuje stan: pobieranie / sukces / błąd / brak dostępu. */
+export function FileDownloadButton({ fileId, filename, label = "Pobierz", openInTab = false,
+  className = "btn btn--ghost btn--small" }: {
+  fileId: string;
+  /** Wymuszona nazwa zapisu; domyślnie nazwa z Content-Disposition backendu. */
+  filename?: string;
+  label?: ReactNode;
+  /** true = otwórz w nowej karcie (podgląd PDF), false = zapisz na dysk. */
+  openInTab?: boolean;
+  className?: string;
+}) {
+  const [busy, setBusy] = useState(false);
+  const [done, setDone] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function run() {
+    setError(null);
+    setBusy(true);
+    try {
+      const { blob, filename: served } = await fetchFile(fileId);
+      if (openInTab) openBlobInNewTab(blob);
+      else saveBlobAs(blob, filename ?? served ?? "plik");
+      setDone(true);
+      setTimeout(() => setDone(false), 2500);
+    } catch (e) {
+      setError(downloadErrorMessage(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <span style={{ display: "inline-flex", flexDirection: "column", gap: 4, alignItems: "flex-start" }}>
+      <button type="button" className={className} disabled={busy} onClick={run}>
+        {busy ? "Pobieranie…" : done ? "✓ Gotowe" : label}
+      </button>
+      {error && (
+        <small role="alert" style={{ color: "var(--danger)" }}>{error}</small>
+      )}
+    </span>
+  );
+}
+
 /** Miniaturka zdjęcia pobieranego przez uwierzytelnione API. */
 export function AuthImage({ fileId, alt }: { fileId: string; alt: string }) {
   const [url, setUrl] = useState<string | null>(null);
@@ -372,19 +427,27 @@ export function PhotoCompare({ photos, formatDate }: {
  * po nazwie pliku, więc działa niezależnie od tego, kto go wgrał. */
 export function AuthAttachment({ fileId, filename }: { fileId: string; filename?: string }) {
   const [state, setState] = useState<{ url: string; type: string } | null>(null);
+  const [error, setError] = useState<string | null>(null);
   useEffect(() => {
     let revoke: string | null = null;
+    setError(null);
     fetchFileBlob(fileId)
       .then((blob) => {
         const url = URL.createObjectURL(blob);
         revoke = url;
         setState({ url, type: blob.type });
       })
-      .catch(() => setState(null));
+      .catch((e) => {
+        setState(null);
+        setError(downloadErrorMessage(e));
+      });
     return () => {
       if (revoke) URL.revokeObjectURL(revoke);
     };
   }, [fileId]);
+  if (error) {
+    return <small role="alert" style={{ color: "var(--danger)" }}>📎 {error}</small>;
+  }
   if (!state) return <div className="stat" style={{ minHeight: 40 }} />;
   if (state.type.startsWith("image/")) return <img src={state.url} alt="załącznik" />;
   if (state.type.startsWith("audio/")) {

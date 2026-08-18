@@ -8,23 +8,37 @@ from sqlalchemy.orm import Session
 from ..authz import resolve_client_access
 from ..db import get_db
 from ..hos_bridge import record_event
-from ..models import NutritionPlan, NutritionPlanVersion, User, new_id, now_iso
+from ..models import Document, NutritionPlan, NutritionPlanVersion, User, new_id, now_iso
 from ..schemas import NutritionCreateIn, NutritionVersionIn
 from ..security import current_user, require_role
 
 router = APIRouter(prefix="/api", tags=["nutrition"])
 
 
-def _version_out(v: NutritionPlanVersion) -> dict:
+def _version_out(db: Session, v: NutritionPlanVersion) -> dict:
+    # document_id wskazuje rekord documents; frontend do pobrania potrzebuje
+    # file_id tego dokumentu (endpoint /api/files/{id} operuje na plikach).
+    doc = db.get(Document, v.document_id) if v.document_id else None
     return {
         "id": v.id,
         "version_no": v.version_no,
         "reason": v.reason,
         "content": json.loads(v.content_json),
         "document_id": v.document_id,
+        "document_file_id": doc.file_id if doc is not None and doc.status == "ACTIVE" else None,
         "created_by": v.created_by,
         "created_at": v.created_at,
     }
+
+
+def _check_document(db: Session, document_id: str | None, client_id: str) -> None:
+    """Dokument diety musi istnieć, być aktywny i należeć do klienta,
+    dla którego tworzona jest wersja planu."""
+    if document_id is None:
+        return
+    doc = db.get(Document, document_id)
+    if doc is None or doc.status != "ACTIVE" or doc.client_id != client_id:
+        raise HTTPException(status_code=422, detail="Nieprawidłowy dokument diety")
 
 
 def _content_json(body: NutritionVersionIn) -> str:
@@ -48,6 +62,7 @@ def create_nutrition_plan(
     db: Session = Depends(get_db),
 ):
     resolve_client_access(db, coach, body.client_id, action="write")
+    _check_document(db, body.version.document_id, body.client_id)
     plan = NutritionPlan(
         id=new_id("NUT"),
         client_id=body.client_id,
@@ -90,6 +105,7 @@ def create_nutrition_version(
     if plan is None or plan.coach_id != coach.id:
         raise HTTPException(status_code=404, detail="Nie znaleziono")
     resolve_client_access(db, coach, plan.client_id, action="write")
+    _check_document(db, body.document_id, plan.client_id)
     next_no = plan.current_version_no + 1
     version = NutritionPlanVersion(
         id=new_id("NUV"),
@@ -141,7 +157,7 @@ def client_nutrition(
                 "title": p.title,
                 "status": p.status,
                 "current_version_no": p.current_version_no,
-                "current_version": _version_out(current) if current else None,
+                "current_version": _version_out(db, current) if current else None,
             }
         )
     return {"plans": out}
@@ -164,4 +180,4 @@ def nutrition_versions(
         .all()
     )
     return {"plan_id": plan_id, "title": plan.title,
-            "versions": [_version_out(v) for v in rows]}
+            "versions": [_version_out(db, v) for v in rows]}

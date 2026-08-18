@@ -153,13 +153,96 @@ export const revokeSession = (sessionId: string) =>
 export const revokeOtherSessions = () =>
   api.post<{ ok: boolean; revoked: number }>("/api/auth/sessions/revoke-others");
 
+// --- Autoryzowane pobieranie plików ---------------------------------------
+// Chronione pliki (/api/files/{id}) wymagają nagłówka Authorization — zwykły
+// <a href> go nie wysyła. Jedyna poprawna ścieżka: pobranie przez klienta
+// API do Blob + krótkotrwały URL.createObjectURL (zawsze zwalniany).
+
+export interface FetchedFile {
+  blob: Blob;
+  /** Nazwa pliku z Content-Disposition backendu (RFC 5987) — jeśli podana. */
+  filename: string | null;
+}
+
+function filenameFromDisposition(header: string | null): string | null {
+  if (!header) return null;
+  const star = /filename\*=UTF-8''([^;]+)/i.exec(header);
+  if (star) {
+    try {
+      return decodeURIComponent(star[1].trim());
+    } catch {
+      /* uszkodzone kodowanie — spróbuj zwykłego filename */
+    }
+  }
+  const plain = /filename="?([^";]+)"?/i.exec(header);
+  return plain ? plain[1].trim() : null;
+}
+
+export async function fetchFile(fileId: string): Promise<FetchedFile> {
+  const headers: Record<string, string> = {};
+  const token = getToken();
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+  const resp = await fetch(`/api/files/${encodeURIComponent(fileId)}`, {
+    headers,
+    credentials: "same-origin",
+  });
+  if (resp.status === 401) {
+    clearSession();
+    if (!location.pathname.startsWith("/login")) location.assign("/login");
+    throw new ApiError(401, "Sesja wygasła");
+  }
+  if (!resp.ok) {
+    let detail = `Błąd ${resp.status}`;
+    try {
+      const data = await resp.json();
+      if (typeof data.detail === "string") detail = data.detail;
+    } catch {
+      /* ignore */
+    }
+    throw new ApiError(resp.status, detail);
+  }
+  return {
+    blob: await resp.blob(),
+    filename: filenameFromDisposition(resp.headers.get("content-disposition")),
+  };
+}
+
 export async function fetchFileBlob(fileId: string): Promise<Blob> {
-  return api.get<Blob>(`/api/files/${fileId}`);
+  return (await fetchFile(fileId)).blob;
 }
 
 export async function fetchFileUrl(fileId: string): Promise<string> {
   const blob = await fetchFileBlob(fileId);
   return URL.createObjectURL(blob);
+}
+
+function clickBlobAnchor(blob: Blob, configure: (a: HTMLAnchorElement) => void) {
+  // Klik w <a> tworzony programowo NIE podlega blokadzie popupów
+  // (w przeciwieństwie do window.open po await). URL zwalniamy po chwili —
+  // musi przeżyć start nawigacji/pobierania.
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.rel = "noopener noreferrer";
+  configure(a);
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 60_000);
+}
+
+/** Zapis blobu na dysk pod wskazaną nazwą (atrybut download). */
+export function saveBlobAs(blob: Blob, filename: string) {
+  clickBlobAnchor(blob, (a) => {
+    a.download = filename;
+  });
+}
+
+/** Otwarcie blobu w nowej karcie (np. podgląd PDF). */
+export function openBlobInNewTab(blob: Blob) {
+  clickBlobAnchor(blob, (a) => {
+    a.target = "_blank";
+  });
 }
 
 // Logika dat (localToday, plDate, plDateTime, WEEKDAYS...) mieszka w

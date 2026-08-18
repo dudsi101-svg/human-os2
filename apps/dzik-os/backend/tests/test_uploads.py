@@ -2,16 +2,17 @@
 
 import io
 
-from conftest import CLIENT_A, CLIENT_B, COACH, login
+from conftest import CLIENT_A, CLIENT_B, COACH, login, make_png
 
-PNG = b"\x89PNG\r\n\x1a\n" + b"0" * 100
+PNG = make_png()
 
 
-def _upload(client, headers, *, content=PNG, content_type="image/png",
+def _upload(client, headers, *, content=None, content_type="image/png",
             filename="zdjecie.png", params=None):
     return client.post(
         "/api/files", headers=headers, params=params or {},
-        files={"file": (filename, io.BytesIO(content), content_type)},
+        files={"file": (filename, io.BytesIO(PNG if content is None else content),
+                        content_type)},
     )
 
 
@@ -23,8 +24,11 @@ def test_upload_and_download_own_file(seeded):
     assert r.json()["sha256"]
     r = seeded.get(f"/api/files/{file_id}", headers=ha)
     assert r.status_code == 200
-    assert r.content == PNG
+    # Zdjęcie jest rekompresowane na uploadzie (EXIF out), ale pozostaje
+    # poprawnym PNG tego samego typu.
+    assert r.content.startswith(b"\x89PNG\r\n\x1a\n")
     assert r.headers["x-content-type-options"] == "nosniff"
+    assert r.headers["cache-control"] == "no-store"
 
 
 def test_other_client_cannot_download(seeded):

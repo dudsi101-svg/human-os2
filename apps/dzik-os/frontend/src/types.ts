@@ -50,6 +50,8 @@ export interface NutritionVersion {
   reason: string;
   content: NutritionContent;
   document_id: string | null;
+  /** file_id aktywnego dokumentu diety — do pobrania przez /api/files. */
+  document_file_id: string | null;
   created_at: string;
 }
 

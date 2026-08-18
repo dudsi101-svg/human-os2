@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from .. import push_service
-from ..authz import resolve_client_access
+from ..authz import require_attachable_file, resolve_client_access
 from ..db import get_db
 from ..models import Message, MessageThread, User, new_id, now_iso
 from ..schemas import MessageIn
@@ -106,6 +106,13 @@ def send_message(
     db: Session = Depends(get_db),
 ):
     thread = _accessible_thread(db, user, thread_id)
+    if body.file_id is not None:
+        # Załączyć można wyłącznie plik własny lub samodzielnie wgrany —
+        # podpięcie cudzego file_id dawałoby drugiej stronie wątku dostęp
+        # do nie swojego pliku.
+        require_attachable_file(
+            db, user, body.file_id, owner_id=user.id, allow_uploader=True
+        )
     message = Message(
         id=new_id("MSG"),
         thread_id=thread.id,

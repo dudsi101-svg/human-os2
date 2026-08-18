@@ -1,5 +1,57 @@
 # Changelog — Dzik OS
 
+## 0.10.1 — 2026-08-18
+
+Audyt i utwardzenie **całego systemu plików** (bez zmian schematu bazy).
+
+* Naprawa pobierania z frontendu: wszystkie bezpośrednie linki do
+  chronionych `/api/files/{id}` (PDF diety w Dieta, „Otwórz" w
+  Dokumentach) zastąpione wspólnym `FileDownloadButton` — pobranie przez
+  uwierzytelnione API do Blob, zapis/otwarcie klikiem w `<a>` (bez
+  blokady popupów), poprawna nazwa z `Content-Disposition`, zawsze
+  `URL.revokeObjectURL`; widoczne stany pobieranie/sukces/błąd/brak
+  dostępu (także w `AuthAttachment`).
+* Dieta: `document_id` (FK do `documents`) był wysyłany do frontendu
+  jako rzekome id pliku — API zwraca teraz dodatkowo
+  `document_file_id` (id pliku aktywnego dokumentu), a `document_id`
+  jest walidowane przy tworzeniu wersji (dokument musi być ACTIVE i
+  należeć do klienta planu).
+* Upload: rozpoznawanie typu po ZAWARTOŚCI (magic bytes: PDF/PNG/JPEG/
+  WEBP/MP4/WEBM/MP3/OGG) — niezgodność deklaracji z zawartością = 415
+  (odrzuca m.in. `plik.pdf.exe`); limit rozmiaru egzekwowany
+  strumieniowo; sanityzacja nazwy z wymuszonym kanonicznym rozszerzeniem;
+  SVG i pliki wykonywalne poza allowlistą (jak dotąd) + potwierdzone
+  testami.
+* Zdjęcia (NOWE uploady image/*): usunięcie WSZYSTKICH metadanych EXIF
+  (w tym GPS) z zachowaniem orientacji, dłuższy bok maks. 2560 px,
+  rekompresja (jakość 85, Pillow). Istniejące pliki na dysku pozostają
+  bez zmian (świadomie: bez retroaktywnego przetwarzania).
+* Pobieranie: `Content-Disposition` wg RFC 5987 (sanityzowana nazwa),
+  `X-Content-Type-Options: nosniff`, `Cache-Control: no-store`;
+  weryfikacja, że `storage_path` nie wychodzi poza katalog uploadów
+  (path traversal = 404).
+* Autoryzacja pobrania domknięta dla WSZYSTKICH ścieżek: właściciel;
+  trener przez relację+zgodę (`resolve_client_access` — cofnięcie zgody
+  odbiera dostęp też do ISTNIEJĄCYCH plików, test); załącznik wątku
+  (klient zawsze, trener tylko przy AKTYWNEJ relacji); załącznik
+  AKTYWNEGO wpisu bazy wiedzy dla aktywnie prowadzonych klientów
+  (wcześniej klienci dostawali 404).
+* Podpinanie plików walidowane wszędzie (`require_attachable_file`):
+  wiadomości, zdjęcia raportu (limit 8 szt. / 60 MB łącznie, tylko
+  obrazy własne), dokumenty (plik musi należeć do klienta), baza wiedzy
+  (tylko plik własny trenera), wpisy treningowe — koniec z podpinaniem
+  cudzych `file_id`.
+* Pliki-sieroty: upload bez żadnej referencji po 24 h dostaje soft
+  delete (`deleted_at`) i znika z dysku (pętla co godzinę + pierwszy
+  przebieg po starcie; zdarzenie audytowe ORPHAN_FILES_CLEANED).
+* Nowa zależność backendu: Pillow (>=10,<12). Nowe ustawienia:
+  `DZIK_MAX_IMAGE_PX`, `DZIK_IMAGE_QUALITY`, `DZIK_MAX_CHECKIN_PHOTOS`,
+  `DZIK_MAX_CHECKIN_PHOTOS_TOTAL_MB`, `DZIK_ORPHAN_FILE_TTL_H`.
+* Testy: 113 → 134 (magic bytes, podwójne rozszerzenie, path traversal,
+  EXIF, limity, cofnięta zgoda, wygasła relacja, baza wiedzy, sieroty,
+  soft delete, nagłówki odpowiedzi).
+
+
 ## 0.10.0 — 2026-08-18
 
 Runda bezpieczeństwa sesji: **serwerowe unieważnianie, rotacja tokenów,
