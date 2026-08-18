@@ -11,6 +11,9 @@ dokument i wzór do pobrania w aplikacji są z niego wyprowadzone. Endpoint
 więc opis w aplikacji nie może rozjechać się z tym, co realnie przyjmuje
 import.
 
+**Szukasz instrukcji dla osoby przygotowującej dane, a nie specyfikacji?**
+Jest osobny, krótszy dokument bez żargonu: `docs/INSTRUKCJA_PLIK_DANYCH.md`.
+
 ---
 
 ## 1. Zasady wspólne dla obu baz
