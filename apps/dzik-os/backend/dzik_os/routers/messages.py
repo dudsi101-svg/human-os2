@@ -301,6 +301,13 @@ def _deliver_event(user_id: str, event: dict) -> dict | None:
         # dopiero GET /api/ocr/tasks/{id}, czyli za bramką dostępu.
         data = {k: v for k, v in event.items() if k != "type"}
         return {"event": event_kind, "data": data, "id": data.get("task_id")}
+    if event_kind == "assistant.task":
+        # Postęp zadania asystenta trenera: adresowane wprost do trenera,
+        # który je zlecił (bus.publish per user_id), a payload to sam
+        # STATUS — bez propozycji. Treść pobiera dopiero
+        # GET /api/coach/assistant/tasks/{id}, czyli za bramką dostępu.
+        data = {k: v for k, v in event.items() if k != "type"}
+        return {"event": event_kind, "data": data, "id": data.get("task_id")}
     if event_kind.startswith("notification."):
         # Zdarzenia centrum powiadomień: adresowane wprost do użytkownika
         # (bus.publish per user_id), bez bramki wątku — nie zawierają danych
