@@ -19,6 +19,14 @@ on:
   schedule:
     # Codziennie 02:30 UTC (04:30 czasu polskiego latem).
     - cron: "30 2 * * *"
+  # Uruchomienie także przy każdej zmianie TEGO pliku na main — świeżo
+  # dodany workflow bywa niewidoczny dla API-dispatchu, dopóki się nie
+  # zarejestruje; push-trigger wykonuje pierwszy backup od razu po
+  # merge'u i rejestruje workflow na przyszłość. Backup po zmianie
+  # konfiguracji backupu jest przy okazji sensowny sam w sobie.
+  push:
+    branches: [main]
+    paths: [".github/workflows/fly-backup.yml"]
 
 concurrency:
   # Ta sama grupa co deploy/reset — operacje na /data nie nakładają się.
