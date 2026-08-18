@@ -32,6 +32,52 @@ jobs:
       - name: Dzik OS backend tests
         run: pytest apps/dzik-os/backend/tests -q
 
+  # Ten sam zestaw testów na PostgreSQL.
+  #
+  # Audyt 18.08.2026: PostgreSQL był zadeklarowany w `pyproject.toml`, w gałęzi
+  # kopii zapasowych i w indeksach częściowych modeli — a nie wykonała się na
+  # nim ANI JEDNA linia. Pierwszy przebieg wykazał, czego SQLite nie mógł
+  # pokazać: SQLite domyślnie nie egzekwuje kluczy obcych, więc kod potrafił
+  # zapisywać rekordy wskazujące na jeszcze nieistniejące wiersze.
+  #
+  # NIEBLOKUJĄCY (`continue-on-error`) — świadomie, na czas dochodzenia do
+  # zieloności. Naprawione zostały wszystkie naruszenia kluczy obcych, które
+  # ujawnił lokalny przebieg (569 testów przechodzi na SQLite z
+  # `PRAGMA foreign_keys=ON`, czyli z tą samą regułą co PostgreSQL), ale
+  # pełny przebieg na PG nie został jeszcze potwierdzony jako zielony — pierwszy
+  # pokazywał też błędy o innych przyczynach niż klucze obce.
+  # Job ma więc RAPORTOWAĆ stan, a nie blokować pozostałe bramki.
+  # `continue-on-error` należy usunąć, gdy przebieg będzie stabilnie zielony.
+  backend-postgres:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: dzik_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install hos_engine + backend (z PostgreSQL)
+        run: |
+          pip install -e ".[dev]"
+          pip install -e "apps/dzik-os/backend[dev,postgres]"
+      - name: Dzik OS backend tests na PostgreSQL
+        env:
+          DZIK_TEST_DATABASE_URL: postgresql+psycopg2://postgres:postgres@127.0.0.1:5432/dzik_test
+        run: pytest apps/dzik-os/backend/tests -q
+
   frontend:
     runs-on: ubuntu-latest
     steps:
