@@ -61,7 +61,9 @@ def _client_id(seeded, hc) -> str:
 def test_dashboard_reflects_awaiting_review_and_counts(seeded):
     hc = login(seeded, COACH)
     before = seeded.get("/api/coach/dashboard", headers=hc).json()
-    assert before["active_clients"] == 2
+    assert before["active_clients"] == 5  # A, B + symulowani C, D, E
+    # Seed: klient C ma raport czekający na ocenę.
+    assert before["awaiting_review"] >= 1
     assert before["exercises_count"] >= 10
     assert before["food_products_count"] >= 20
     assert before["knowledge_items_count"] >= 5

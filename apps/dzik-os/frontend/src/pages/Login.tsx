@@ -1,6 +1,6 @@
 import { FormEvent, useState } from "react";
 import { setSession, SessionUser } from "../api";
-import { ErrorBox, Logo } from "../components";
+import { ErrorBox } from "../components";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -40,12 +40,13 @@ export default function Login() {
   return (
     <div className="login-wrap">
       <div className="login-box">
-        <div className="row" style={{ justifyContent: "center", marginBottom: 18 }}>
-          <Logo size={44} />
-          <div>
-            <h1>Dzik OS</h1>
-            <small>Panel Podopiecznego</small>
-          </div>
+        <div style={{ textAlign: "center", marginBottom: 14 }}>
+          <img
+            src="/icons/logo-full.png"
+            alt="Dzik OS"
+            style={{ width: "min(78%, 300px)", height: "auto", display: "block", margin: "0 auto 8px" }}
+          />
+          <small className="dim">Panel Podopiecznego</small>
         </div>
         <form onSubmit={submit} className="card">
           <label htmlFor="email">E-mail</label>

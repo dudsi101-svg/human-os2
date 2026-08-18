@@ -7,6 +7,9 @@ danymi):
   trener:  dzik@example.com      / DzikTrener#2026
   klient A: klient.a@example.com / KlientA#2026!x
   klient B: klient.b@example.com / KlientB#2026!x
+  klient C: marek.dziczek@example.com / KlientC#2026!x  (raport do oceny)
+  klient D: anna.wilk@example.com     / KlientD#2026!x  (praca trenera wykonana)
+  klient E: piotr.zajac@example.com   / KlientE#2026!x  (zaległości + obserwacja)
   admin:   admin@example.com     / DzikAdmin#2026
 
 Żadna z osób nie jest prawdziwa; wszystkie wartości są zmyślone.
@@ -50,6 +53,12 @@ DEMO_ACCOUNTS = {
     "coach": ("dzik@example.com", "DzikTrener#2026", "Lubelski Dzik"),
     "client_a": ("klient.a@example.com", "KlientA#2026!x", "Klient Testowy A"),
     "client_b": ("klient.b@example.com", "KlientB#2026!x", "Klient Testowy B"),
+    # Symulowani podopieczni o zróżnicowanych stanach — panel trenera od
+    # razu pokazuje realną pracę (raport do oceny, oceniony raport,
+    # zaległości, niepokojąca obserwacja).
+    "client_c": ("marek.dziczek@example.com", "KlientC#2026!x", "Marek Dziczek"),
+    "client_d": ("anna.wilk@example.com", "KlientD#2026!x", "Anna Wilk"),
+    "client_e": ("piotr.zajac@example.com", "KlientE#2026!x", "Piotr Zając"),
     "admin": ("admin@example.com", "DzikAdmin#2026", "Administrator Techniczny"),
 }
 
@@ -75,9 +84,14 @@ def seed() -> dict[str, str]:
         coach, client_a, client_b, admin = (
             users["coach"], users["client_a"], users["client_b"], users["admin"],
         )
+        client_c, client_d, client_e = (
+            users["client_c"], users["client_d"], users["client_e"],
+        )
         role_map = {
             coach.id: "COACH", client_a.id: "CLIENT",
-            client_b.id: "CLIENT", admin.id: "ADMIN",
+            client_b.id: "CLIENT", client_c.id: "CLIENT",
+            client_d.id: "CLIENT", client_e.id: "CLIENT",
+            admin.id: "ADMIN",
         }
         for user_id, role in role_map.items():
             db.add(RoleGrant(id=new_id("ROL"), user_id=user_id, role=role,
@@ -95,7 +109,7 @@ def seed() -> dict[str, str]:
         today = datetime.now(UTC).date()
         monday = today - timedelta(days=today.isoweekday() - 1)
 
-        for client in (client_a, client_b):
+        for client in (client_a, client_b, client_c, client_d, client_e):
             rel = CoachClientRelationship(
                 id=new_id("REL"), coach_id=coach.id, client_id=client.id,
                 created_by=coach.id,
@@ -457,6 +471,137 @@ def seed() -> dict[str, str]:
         db.add(PaymentRecord(id=new_id("PAY"), schedule_id=pay_b.id,
                              due_date=(today - timedelta(days=5)).isoformat(),
                              amount_cents=30000, status="PENDING"))
+
+        # --- Symulowani klienci C–E: różne stany pracy trenerskiej ---
+
+        # Klient C (Marek): raport CZEKA na ocenę + nieprzeczytana
+        # wiadomość — widoczna praca "do zrobienia" na dashboardzie.
+        db.add(Goal(id=new_id("GOL"), client_id=client_c.id,
+                    title="Budowa masy mięśniowej (+5 kg)", kind="MAIN",
+                    target_date=(today + timedelta(days=120)).isoformat(),
+                    created_by=coach.id))
+        plan_c = TrainingPlan(id=new_id("PLN"), client_id=client_c.id,
+                              coach_id=coach.id, title="Masa — góra/dół 4x/tydz.",
+                              current_version_no=1)
+        db.add(plan_c)
+        db.add(TrainingPlanVersion(
+            id=new_id("PLV"), plan_id=plan_c.id, version_no=1,
+            reason="Plan startowy", created_by=coach.id,
+            content_json=json.dumps({"days": [
+                {"name": "Góra A", "weekday": 1, "exercises": [
+                    {"name": "Wyciskanie sztangi leżąc", "sets": "4", "reps": "8",
+                     "weight": "80 kg", "rest": "150 s"},
+                    {"name": "Wiosłowanie sztangą w opadzie", "sets": "4",
+                     "reps": "10", "weight": "70 kg"},
+                ]},
+                {"name": "Dół A", "weekday": 2, "exercises": [
+                    {"name": "Przysiad ze sztangą", "sets": "4", "reps": "8",
+                     "weight": "110 kg", "rest": "180 s"},
+                ]},
+            ]}, ensure_ascii=False),
+        ))
+        db.add(WeeklyCheckin(
+            id=new_id("CKN"), client_id=client_c.id, week_start=monday.isoformat(),
+            payload_json=json.dumps({
+                "weight_kg": 78.9, "trainings_done": 4, "diet_adherence": 5,
+                "energy": 4, "sleep": 4, "hunger": 4, "stress": 2, "recovery": 4,
+                "comment": "Najlepszy tydzień od startu, apetyt dopisuje.",
+                "questions": "Czy dokładamy piąty trening?",
+            }, ensure_ascii=False),
+        ))
+        db.add(Measurement(id=new_id("MSR"), client_id=client_c.id, kind="weight",
+                           value=78.9, unit="kg", measured_at=today.isoformat(),
+                           created_by=client_c.id))
+        pay_c = PaymentSchedule(
+            id=new_id("PSC"), client_id=client_c.id, coach_id=coach.id,
+            package_name="Prowadzenie miesięczne PRO", amount_cents=45000,
+            period="MONTHLY", created_by=coach.id,
+        )
+        db.add(pay_c)
+        db.add(PaymentRecord(id=new_id("PAY"), schedule_id=pay_c.id,
+                             due_date=(today + timedelta(days=12)).isoformat(),
+                             amount_cents=45000, status="PENDING"))
+
+        # Klient D (Anna): praca trenera już WYKONANA — raport oceniony
+        # (rating), odpowiedź w wątku, płatność opłacona, trend pomiarów.
+        db.add(Goal(id=new_id("GOL"), client_id=client_d.id,
+                    title="Redukcja 6 kg i poprawa kondycji", kind="MAIN",
+                    target_date=(today + timedelta(days=60)).isoformat(),
+                    created_by=coach.id))
+        for week in range(6):
+            db.add(Measurement(id=new_id("MSR"), client_id=client_d.id,
+                               kind="weight", value=round(68.5 - week * 0.4, 1),
+                               unit="kg",
+                               measured_at=(today - timedelta(days=7 * (5 - week))).isoformat(),
+                               created_by=client_d.id))
+        db.add(WeeklyCheckin(
+            id=new_id("CKN"), client_id=client_d.id,
+            week_start=(monday - timedelta(days=7)).isoformat(),
+            payload_json=json.dumps({
+                "weight_kg": 66.5, "trainings_done": 3, "diet_adherence": 4,
+                "energy": 3, "sleep": 4, "hunger": 3, "stress": 3, "recovery": 3,
+                "comment": "Trzymam deficyt, weekend był trudny.",
+            }, ensure_ascii=False),
+            status="REVIEWED",
+            coach_response="Bardzo dobra konsekwencja. Weekendy planujemy z "
+                           "wyprzedzeniem — dorzucam przepis na wysokobiałkowy "
+                           "deser do bazy wiedzy. Trening bez zmian.",
+            reviewed_by=coach.id,
+            rating=4,
+        ))
+        pay_d = PaymentSchedule(
+            id=new_id("PSC"), client_id=client_d.id, coach_id=coach.id,
+            package_name="Prowadzenie miesięczne START", amount_cents=30000,
+            period="MONTHLY", created_by=coach.id,
+        )
+        db.add(pay_d)
+        db.add(PaymentRecord(id=new_id("PAY"), schedule_id=pay_d.id,
+                             due_date=(today - timedelta(days=14)).isoformat(),
+                             amount_cents=30000, status="PAID",
+                             paid_at=(today - timedelta(days=13)).isoformat(),
+                             marked_by=coach.id))
+
+        # Klient E (Piotr): zaległości — brak jakiegokolwiek raportu,
+        # przeterminowana płatność, niepokojąca obserwacja (kolano).
+        db.add(Goal(id=new_id("GOL"), client_id=client_e.id,
+                    title="Powrót do formy i mobilność (start od zera)",
+                    kind="MAIN", created_by=coach.id))
+        pay_e = PaymentSchedule(
+            id=new_id("PSC"), client_id=client_e.id, coach_id=coach.id,
+            package_name="Prowadzenie miesięczne START", amount_cents=30000,
+            period="MONTHLY", created_by=coach.id,
+        )
+        db.add(pay_e)
+        db.add(PaymentRecord(id=new_id("PAY"), schedule_id=pay_e.id,
+                             due_date=(today - timedelta(days=10)).isoformat(),
+                             amount_cents=30000, status="PENDING"))
+        db.add(Observation(
+            id=new_id("OBS"), client_id=client_e.id,
+            occurred_on=(today - timedelta(days=2)).isoformat(),
+            category="OBJAW", severity="NIEPOKOJACE",
+            text="Kłucie w prawym kolanie przy schodzeniu ze schodów, "
+                 "od dwóch dni. Bez urazu, ale wolę zgłosić.",
+            created_by=client_e.id,
+        ))
+
+        # Wiadomości symulowanych klientów (C: nieprzeczytana; D: wątek
+        # domknięty odpowiedzią trenera).
+        db.flush()
+        thread_c = db.query(MessageThread).filter_by(client_id=client_c.id).one()
+        db.add(Message(id=new_id("MSG"), thread_id=thread_c.id,
+                       author_id=client_c.id,
+                       body="Trenerze, wysłałem raport — i pytanie: mogę w "
+                            "sobotę zrobić dodatkowy trening z kolegą?"))
+        thread_d = db.query(MessageThread).filter_by(client_id=client_d.id).one()
+        db.add(Message(id=new_id("MSG"), thread_id=thread_d.id,
+                       author_id=client_d.id,
+                       body="Dziękuję za ocenę raportu! Przepis na deser "
+                            "bardzo się przyda.",
+                       read_at=datetime.now(UTC).isoformat()))
+        db.add(Message(id=new_id("MSG"), thread_id=thread_d.id,
+                       author_id=coach.id,
+                       body="Śmiało, jest już w bazie wiedzy w kategorii "
+                            "Dieta. Daj znać jak smakował!"))
 
         # --- Baza ćwiczeń trenera (know-how: partia, technika, efekt) ---
         exercise_rows = [

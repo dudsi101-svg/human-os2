@@ -1,5 +1,20 @@
 # Changelog — Dzik OS
 
+## 0.5.1 — 2026-08-18
+
+* **Duże logo na ekranie logowania**: pełna grafika marki (głowa dzika +
+  wordmark „DZIK OS") w wysokiej rozdzielczości (900 px, spłaszczona
+  paleta — 59 KB) zamiast małej ikonki z tekstem; napis „DZIK"
+  przebarwiony na jasny wariant do ciemnego tła (czarny znikał na
+  czarnym), „OS" pozostaje zielone. Znak nawigacji podbity do 512 px
+  (ostrość na ekranach retina).
+* **Symulowani klienci demo (C–E)** — panel trenera od razu pokazuje
+  realną pracę: Marek Dziczek (raport czeka na ocenę + nieprzeczytana
+  wiadomość), Anna Wilk (praca trenera wykonana: raport oceniony 4/5,
+  odpowiedź w wątku, płatność opłacona, trend −2 kg), Piotr Zając
+  (brak raportu, przeterminowana płatność, niepokojąca obserwacja
+  kolana). Dashboard: 5 aktywnych klientów z pełnym przekrojem flag.
+
 ## 0.5.0 — 2026-08-18
 
 * **Nowość — Rekordy osobiste i postęp od startu** (rywalizacja wyłącznie

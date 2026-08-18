@@ -51,6 +51,9 @@ docker compose -f apps/dzik-os/docker-compose.yml run --rm seed   # dane demo
 | Trener | `dzik@example.com`    | `DzikTrener#2026` |
 | Klient A | `klient.a@example.com` | `KlientA#2026!x` |
 | Klient B | `klient.b@example.com` | `KlientB#2026!x` |
+| Klient C (raport do oceny) | `marek.dziczek@example.com` | `KlientC#2026!x` |
+| Klient D (praca wykonana) | `anna.wilk@example.com` | `KlientD#2026!x` |
+| Klient E (zaległości) | `piotr.zajac@example.com` | `KlientE#2026!x` |
 | Admin  | `admin@example.com`   | `DzikAdmin#2026` |
 
 ## Testy
