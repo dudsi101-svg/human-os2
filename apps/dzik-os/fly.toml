@@ -14,15 +14,17 @@ primary_region = "fra"   # Frankfurt (najbliższy region Fly dla Polski)
 # repozytorium, bo obraz kopiuje pakiet hos_engine.
 
 [env]
-  DZIK_ENV = "staging"
+  # PRODUKCJA (pilotaż, 0.43.0): cookie sesji dostaje flagę Secure,
+  # /api/docs przestaje być publiczne. Konta demo NIE zasiewają się —
+  # pierwsze konto trenera/admina zakłada `python -m dzik_os.bootstrap`
+  # po SSH (docs/DEPLOYMENT.md), a stare konta demo dezaktywuje
+  # `python -m dzik_os.purge_demo`.
+  DZIK_ENV = "production"
   # Start na SQLite na trwałym wolumenie — zero dodatkowych usług.
-  # Produkcyjnie: Fly Postgres + secret DZIK_DATABASE_URL (DEPLOYMENT.md).
+  # Docelowo: Fly Postgres + secret DZIK_DATABASE_URL (DEPLOYMENT.md).
   DZIK_DATABASE_URL = "sqlite:////data/dzik.db"
   DZIK_AUDIT_DB = "/data/audit.db"
   DZIK_UPLOAD_DIR = "/data/uploads"
-  # STAGING: przy pierwszym starcie zasiewa syntetyczne konta demo.
-  # Przy przejściu na produkcję z prawdziwymi klientami USUŃ tę linię.
-  DZIK_SEED_DEMO = "true"
 
 [http_service]
   internal_port = 8000

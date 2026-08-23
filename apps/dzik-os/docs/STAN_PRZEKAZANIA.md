@@ -1,6 +1,6 @@
 # Stan przekazania — przeczytaj przed rozpoczęciem rundy
 
-**Aktualizacja:** 2026-08-23 · **Wersja w `main`:** 0.42.0
+**Aktualizacja:** 2026-08-23 · **Wersja w `main`:** 0.43.0
 **Tryb pracy:** jeden piszący i jeden PR `[WRITER]` naraz
 (`KOORDYNACJA.md`, zasada nadrzędna).
 
@@ -33,13 +33,17 @@ pierwszy commit, draft PR `[WRITER]`, reszta agentów read-only.
 jednym prawdziwym klientem, **NO-GO na szerszą produkcję** — siedem
 blokerów wypisanych w §5 tamtego dokumentu.
 
-**Ostatnia runda (0.42.0, gałąź `agent/smtp-poczta`):** poczta wychodząca
-(`SMTPNotificationProvider` przeniesiony z gałęzi bramkowej — bloker nr 4
-bramki GO/NO-GO zamknięty w kodzie; sekrety SMTP ustawia właściciel,
-do tego czasu zachowanie bez zmian) + pełne rozliczenie gałęzi bramkowej
-(SMTP przeniesiony, „pamięć importu" odrzucona jako zdublowana,
-sprostowanie pomiaru uratowane) + podział E2E telefon/desktop
-(15/15 przemierzone na aktualnych spec-ach).
+**Ostatnia runda (0.43.0, gałąź `agent/pilotaz`):** repozytorium gotowe do
+pilotażu — `fly.toml` na `production` bez seeda, destrukcyjny workflow
+reset-demo usunięty, `python -m dzik_os.bootstrap` (pierwsze konto
+COACH/ADMIN na pustej bazie) i `python -m dzik_os.purge_demo`
+(dezaktywacja kont demo z bezpiecznikiem) — oba uruchomione na żywo,
+osiem scenariuszy zgodnych z projektem.
+
+**Runda 0.42.0:** poczta wychodząca (`SMTPNotificationProvider` —
+bloker nr 4 GO/NO-GO zamknięty w kodzie; sekrety SMTP ustawia właściciel)
++ pełne rozliczenie gałęzi bramkowej + podział E2E telefon/desktop
+(15/15 przemierzone).
 
 **Runda 0.41.0:** bomba dekompresyjna `.xlsx` (K-002 pkt 1) rozbrojona
 wewnątrz `sheet_import.py` — kontrola sumy rozmiarów po rozpakowaniu
@@ -90,12 +94,15 @@ nie uruchamiano, ponieważ runda nie zmienia kodu ani zasobów frontendu.
 
 Kolejność jest propozycją; właściciel może ją zmienić w dowolnym momencie.
 
-1. **Przygotowanie pilotażu w repo:** usunąć `DZIK_SEED_DEMO` z `fly.toml`
-   i przestawić `DZIK_ENV` na `production` (włącza cookie `Secure`, zamyka
-   `/api/docs`); wyłączyć destrukcyjny workflow `fly-reset-demo.yml`;
-   dopisać `python -m dzik_os.bootstrap` (pierwsze konto trenera/admina na
-   pustej bazie — dziś jedynym miejscem nadającym rolę COACH jest seed!)
-   i `purge_demo`. Szczegóły: raport agenta z 23.08 (analiza blokerów).
+1. **Pilotaż — działania właściciela** (repo jest gotowe od 0.43.0):
+   po scaleniu deploy pójdzie z automatu; potem po SSH `bootstrap`
+   (pierwsze prawdziwe konta, hasła przez env) i `purge_demo` (konta demo
+   ze znanymi hasłami — dezaktywacja); sekrety `DZIK_FILE_KEY` i SMTP
+   (`flyctl secrets set`); jedno pełne odtworzenie kopii NA produkcji;
+   test PWA na prawdziwym telefonie; pisemna zgoda klienta pilotażowego
+   (`BRAMKA_GO_NOGO.md` §6). Decyzje otwarte: dostawca e-maila, magazyn
+   kopii poza Fly (S3/B2), `extra="forbid"`, SQLite vs Postgres, R-01
+   (ocena prawna danych zdrowotnych).
 2. **Mała runda naprawcza testów:** testy OCR (izolacja założenia „bez
    Tesseracta") + testy stref/DST z datami absolutnymi (16.09, 25.10.2026)
    — ta sama kuracja co cztery naprawione w 0.41.0; do tego stara fraza

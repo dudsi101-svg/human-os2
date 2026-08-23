@@ -49,22 +49,32 @@ curl -L https://fly.io/install.sh | sh
 flyctl auth login
 
 # 2. Z korzenia repozytorium: utwórz aplikację i wolumen na dane
-flyctl apps create dzik-os              # nazwa musi być globalnie wolna;
+#    (nazwy i region DOKŁADNIE jak w fly.toml i workflowach: aplikacja
+#    dzik-os-panel, region fra — inna nazwa utworzy DRUGĄ, pustą aplikację)
+flyctl apps create dzik-os-panel        # nazwa musi być globalnie wolna;
                                         # przy innej nazwie zaktualizuj fly.toml
-flyctl volumes create dzik_data --region waw --size 1 --app dzik-os
+flyctl volumes create dzik_data --region fra --size 1 --app dzik-os-panel
 
 # 3. Deployment (buduje Dockerfile z hos_engine + frontendem)
 flyctl deploy --config apps/dzik-os/fly.toml
 
-# 4. Dane demo (wyłącznie staging!)
-flyctl ssh console --app dzik-os -C "python -m dzik_os.seed"
+# 4. Pierwsze konta (od 0.43.0 seed na Fly jest wyłączony — konta demo
+#    nie zasiewają się; hasła wyłącznie przez zmienne środowiskowe)
+flyctl ssh console --app dzik-os-panel
+#   a w konsoli maszyny:
+#   DZIK_BOOTSTRAP_COACH_PASSWORD='...' DZIK_BOOTSTRAP_ADMIN_PASSWORD='...' \
+#   python -m dzik_os.bootstrap --coach-email ... --admin-email ...
+#   (na bazie z zasianymi kontami demo: najpierw bootstrap się nie uda —
+#   konto trenera zakłada się wtedy w aplikacji — a stare konta demo
+#   dezaktywuje `python -m dzik_os.purge_demo`)
 
 # 5. Otwórz aplikację
-flyctl apps open --app dzik-os          # https://dzik-os.fly.dev
+flyctl apps open --app dzik-os-panel    # https://dzik-os-panel.fly.dev
 ```
 
-Własna domena później: `flyctl certs add panel.twojadomena.pl --app dzik-os`
-plus rekord CNAME u rejestratora — nic w kodzie się nie zmienia.
+Własna domena później: `flyctl certs add panel.twojadomena.pl --app
+dzik-os-panel` plus rekord CNAME u rejestratora — nic w kodzie się nie
+zmienia.
 
 Przejście na PostgreSQL (przy prawdziwych klientach):
 `flyctl postgres create` → `flyctl postgres attach` → ustaw secret
