@@ -1,6 +1,6 @@
 # Stan przekazania — przeczytaj przed rozpoczęciem rundy
 
-**Aktualizacja:** 2026-08-18 · **Wersja w `main`:** 0.41.0
+**Aktualizacja:** 2026-08-23 · **Wersja w `main`:** 0.42.0
 **Tryb pracy:** jeden piszący i jeden PR `[WRITER]` naraz
 (`KOORDYNACJA.md`, zasada nadrzędna).
 
@@ -26,20 +26,27 @@ pierwszy commit, draft PR `[WRITER]`, reszta agentów read-only.
 | `main` | **kanoniczna i domyślna**, najnowsza wersja produktu |
 | `agent/recover-agent-collisions` | scalona przez PR #14 (protokół agentów); nie używać ponownie |
 | `claude/dzik-os-personal-trainer-app-d3q7fx` (`94aaa39`) | przodek `main`, scalona; nie zaczynać tu nowej pracy |
-| `claude/ocena-projektu-dzik-os-76ercy` (`861ed53`) | **niescalona**: 2 własne commity i 3 brakujące z `main`; nie scalać mechanicznie, nie powtarzać jej pracy |
+| `claude/ocena-projektu-dzik-os-76ercy` (`861ed53`) | **rozliczona w 0.42.0**: SMTP przeniesiony, „pamięć importu" odrzucona jako zdublowana przez 0.40/0.41, sprostowanie pomiaru uratowane; gałąź zostaje w historii |
 | `claude/ui-layout-spacing-clarity-8tpz99` | przodek `main`, scalona |
 
 **Stan jakości** (`docs/BRAMKA_GO_NOGO.md`): warunkowe GO na pilotaż z
 jednym prawdziwym klientem, **NO-GO na szerszą produkcję** — siedem
 blokerów wypisanych w §5 tamtego dokumentu.
 
-**Ostatnia runda (0.41.0, gałąź `agent/xlsx-bomba`, pierwsza wg nowego
-protokołu):** bomba dekompresyjna `.xlsx` (K-002 pkt 1) rozbrojona
+**Ostatnia runda (0.42.0, gałąź `agent/smtp-poczta`):** poczta wychodząca
+(`SMTPNotificationProvider` przeniesiony z gałęzi bramkowej — bloker nr 4
+bramki GO/NO-GO zamknięty w kodzie; sekrety SMTP ustawia właściciel,
+do tego czasu zachowanie bez zmian) + pełne rozliczenie gałęzi bramkowej
+(SMTP przeniesiony, „pamięć importu" odrzucona jako zdublowana,
+sprostowanie pomiaru uratowane) + podział E2E telefon/desktop
+(15/15 przemierzone na aktualnych spec-ach).
+
+**Runda 0.41.0:** bomba dekompresyjna `.xlsx` (K-002 pkt 1) rozbrojona
 wewnątrz `sheet_import.py` — kontrola sumy rozmiarów po rozpakowaniu
 z katalogu ZIP-a przed `load_workbook`, twardy limit przeskanowanych
-wierszy przerywający iterację, limit szerokości wiersza; wszystko jako
-`SheetError`, routery bez zmian. Zmierzone na żywo: plik deklarujący
-400 MB XML odrzucony w 83 ms przy +6,9 MB RSS (było: 1164 MB, 129 s).
+wierszy, limit szerokości wiersza; zmierzone na żywo: 400 MB XML
+odrzucone w 83 ms przy +6,9 MB RSS (było: 1164 MB, 129 s). Do tego cztery
+testy uwolnione od prawdziwej daty (odblokowanie CI całego repo).
 **Wszystkie znaleziska przeglądu krzyżowego K-002 są zamknięte.**
 
 **Runda 0.40.0 (poprzednia):** ekran Szablony scalony do jednej karty
@@ -70,7 +77,7 @@ nie uruchamiano, ponieważ runda nie zmienia kodu ani zasobów frontendu.
 
 | Rzecz | Stan | Gdzie |
 |---|---|---|
-| **Niescalona runda bramkowa** | commity `81eb30a` (pamięć importu) i `861ed53` (SMTP + E2E) istnieją tylko na starej bazie; nie zaczynać tych zadań od nowa, ale przed scaleniem zaktualizować bazę i przejrzeć konflikty | `claude/ocena-projektu-dzik-os-76ercy` |
+| **Sekrety SMTP** | kod gotowy (0.42.0); do uruchomienia poczty właściciel ustawia `DZIK_SMTP_HOST`/`USER`/`PASSWORD`/`FROM` jako sekrety Fly — bez nich reset hasła pozostaje martwy (klient bez drogi powrotu, jedyna alternatywa: ponowne zaproszenie od trenera) | `flyctl secrets set` |
 | **Testy OCR** | dwa testy „bez Tesseracta” nie izolują założenia i czerwienią się, gdy binarka jest zainstalowana; poprawić w osobnym małym PR | `backend/tests/test_ocr.py` |
 | **Dostawca AI** | zaplanowany, **nierozpoczęty**. Istnieje wyłącznie `NullAIProvider`; kontrakt gotowy, cztery miejsca już go wołają | `backend/dzik_os/ai_provider.py` |
 | Klucz API | właściciel go ma; **musi trafić do sekretu**, nigdy do czatu ani repozytorium | `DZIK_AI_API_KEY` + `DZIK_AI_ENABLED=true` |
@@ -83,14 +90,16 @@ nie uruchamiano, ponieważ runda nie zmienia kodu ani zasobów frontendu.
 
 Kolejność jest propozycją; właściciel może ją zmienić w dowolnym momencie.
 
-1. **Rozliczyć niescaloną rundę bramkową.** Nie przepisywać jej zmian.
-   Zaktualizować bazę dwóch commitów, przejrzeć konflikt w
-   `STAN_PRZEKAZANIA.md`, uruchomić pełne bramki i dopiero wtedy podjąć
-   decyzję o osobnym PR-ze.
-2. **Dwie małe rundy naprawcze:** izolacja testów od środowiska — testy
-   OCR (założenie „bez Tesseracta") i cztery testy zależne od prawdziwej
-   daty (lista w §1); do tego ostatnia stara fraza „jedna-sesja-naraz"
-   w `KARTA_WSPOLPRACY.md` (linia ~191).
+1. **Przygotowanie pilotażu w repo:** usunąć `DZIK_SEED_DEMO` z `fly.toml`
+   i przestawić `DZIK_ENV` na `production` (włącza cookie `Secure`, zamyka
+   `/api/docs`); wyłączyć destrukcyjny workflow `fly-reset-demo.yml`;
+   dopisać `python -m dzik_os.bootstrap` (pierwsze konto trenera/admina na
+   pustej bazie — dziś jedynym miejscem nadającym rolę COACH jest seed!)
+   i `purge_demo`. Szczegóły: raport agenta z 23.08 (analiza blokerów).
+2. **Mała runda naprawcza testów:** testy OCR (izolacja założenia „bez
+   Tesseracta") + testy stref/DST z datami absolutnymi (16.09, 25.10.2026)
+   — ta sama kuracja co cztery naprawione w 0.41.0; do tego stara fraza
+   „jedna-sesja-naraz" w `KARTA_WSPOLPRACY.md` (linia ~191).
 3. **Dostawca AI.** Jedyna zmiana odblokowująca **cztery istniejące
    funkcje naraz** (OCR, odczyt opisu ćwiczenia, onboarding, asystent)
    zamiast dokładania piątej. Szczegóły:
@@ -108,8 +117,9 @@ Kolejność jest propozycją; właściciel może ją zmienić w dowolnym momenci
   zostać zielone.** Praca aplikacji nigdy tego nie dotyka.
 * Nie otwierać ponownie PR #13 i nie dodawać drugiego scalenia tych samych
   historii. Nie zmieniać gałęzi domyślnej bez osobnej decyzji właściciela.
-* Nie scalać mechanicznie `claude/ocena-projektu-dzik-os-76ercy`; gałąź
-  jest za `main`, dotyka plików integracyjnych i wymaga osobnego przeglądu.
+* `claude/ocena-projektu-dzik-os-76ercy` jest rozliczona (0.42.0) —
+  nie scalać jej już w żadnej formie i nie przenosić z niej niczego więcej;
+  commit `81eb30a` odrzucono świadomie (uzasadnienie w CHANGELOG).
 * Migracje już wydane: numeracja idzie **od największego numeru**, luk się
   nie zostawia (domyka się je pustym wpisem — patrz `db.py`, numer 21).
 * Historia planów, diet i szablonów: nowa wersja, **nigdy nadpisanie**.

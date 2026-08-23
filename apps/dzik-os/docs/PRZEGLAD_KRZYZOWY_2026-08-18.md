@@ -6,6 +6,33 @@ import arkusza, szablony, izolacja trenerów w nowych ścieżkach.
 **Po co:** bloker nr 1 bramki GO/NO-GO brzmi *„bramkę wykonał ten sam agent,
 który pisał kod"*.
 
+## SPROSTOWANIE i stan napraw (sformułowane 18.08 na gałęzi bramkowej, przeniesione przy jej rozliczeniu w 0.42.0)
+
+**Oba znaleziska są naprawione** — mechanizmem z `main`, nie z gałęzi
+bramkowej: (1) bomba dekompresyjna — limity wewnątrz parsera w 0.41.0
+(`MAX_UNPACKED_BYTES`/`MAX_SCAN_ROWS`/`MAX_SCAN_COLS`; zmierzone: plik
+deklarujący 400 MB odrzucony w 83 ms przy +6,9 MB RSS, na żywym
+endpointzie HTTP 422 w 20 ms); (2) upload bez limitu — `_read_limited`
+w 0.40.0 (odrzuca z kodem 413, nie ucina — sprawdzone w kodzie przy
+rozliczaniu gałęzi).
+
+**Jedna liczba w tym dokumencie była błędna.** Dla znaleziska 2 podano
+**1057 MB RSS**. Pomiar szedł przez `TestClient` w **tym samym procesie**,
+więc obejmował bufor klienta, który sam trzymał 290 MB. Serwer zmierzony
+osobno (uvicorn, `VmHWM` z `/proc`) brał **419 MB** — czyli +291 MB ponad
+stan spoczynkowy, dokładnie rozmiar pliku. **Błąd był realny, skala
+mniejsza niż podana o ok. 2,5×.**
+
+Pierwotny tekst niżej zostaje bez zmian — poprawianie liczby na miejscu
+zatarłoby to, że pomyłka w ogóle była. Karta współpracy §XII: poprawka do
+własnego wcześniejszego twierdzenia jest obowiązkowa.
+
+**Metoda, która to spowodowała, i jak jej unikać:** mierząc zużycie
+zasobów serwera, uruchom serwer w **osobnym procesie** i czytaj jego
+`VmHWM`. Klient w tym samym procesie mierzy sumę obu stron.
+
+---
+
 ## Czym to NIE jest
 
 **To nie jest niezależny audyt bezpieczeństwa i nie zastępuje go.** Druga
