@@ -1,6 +1,6 @@
 # Stan przekazania — przeczytaj przed rozpoczęciem rundy
 
-**Aktualizacja:** 2026-08-18 · **Wersja w `main`:** 0.40.0
+**Aktualizacja:** 2026-08-18 · **Wersja w `main`:** 0.41.0
 **Tryb pracy:** jeden piszący i jeden PR `[WRITER]` naraz
 (`KOORDYNACJA.md`, zasada nadrzędna).
 
@@ -16,19 +16,16 @@ każdej rundy — to warunek przekazania pałeczki.
 
 ## 1. Gdzie jesteśmy
 
-**`main` jest jedyną linią kanoniczną.** PR #13 został scalony 18.08.2026
-o 18:21 UTC i zachował obie historie w commicie `94aaa39`. `main` oraz
-`claude/dzik-os-personal-trainer-app-d3q7fx` wskazują teraz ten sam commit,
-więc wcześniejsza rozbieżność jest zamknięta.
-
-GitHub nadal wskazuje długą gałąź `claude/...` jako domyślną. To błąd
-konfiguracji, nie źródło prawdy. Zmiana na `main` wymaga osobnej decyzji
-właściciela po scaleniu PR-a porządkującego pracę agentów.
+**`main` jest jedyną linią kanoniczną — i od 18.08.2026 także gałęzią
+domyślną GitHuba** (właściciel przełączył po scaleniu PR #14). Protokół
+jednego piszącego jest scalony (`98dca51`) i obowiązuje: plan sesji jako
+pierwszy commit, draft PR `[WRITER]`, reszta agentów read-only.
 
 | Gałąź | Stan |
 |---|---|
-| `main` (`94aaa39`) | **kanoniczna**, najnowsza wersja produktu |
-| `claude/dzik-os-personal-trainer-app-d3q7fx` (`94aaa39`) | ten sam stan co `main`; nie zaczynać tu nowej pracy |
+| `main` | **kanoniczna i domyślna**, najnowsza wersja produktu |
+| `agent/recover-agent-collisions` | scalona przez PR #14 (protokół agentów); nie używać ponownie |
+| `claude/dzik-os-personal-trainer-app-d3q7fx` (`94aaa39`) | przodek `main`, scalona; nie zaczynać tu nowej pracy |
 | `claude/ocena-projektu-dzik-os-76ercy` (`861ed53`) | **niescalona**: 2 własne commity i 3 brakujące z `main`; nie scalać mechanicznie, nie powtarzać jej pracy |
 | `claude/ui-layout-spacing-clarity-8tpz99` | przodek `main`, scalona |
 
@@ -36,20 +33,31 @@ właściciela po scaleniu PR-a porządkującego pracę agentów.
 jednym prawdziwym klientem, **NO-GO na szerszą produkcję** — siedem
 blokerów wypisanych w §5 tamtego dokumentu.
 
-**Ostatnia runda (0.40.0):** ekran Szablony scalony do jednej karty
-„Dodaj szablon" (wzorzec z Ćwiczeń 0.34.0); limity `_read_limited` na
-trzech importach plików (K-002 pkt 2). Sesja bramek równolegle: scaliła
-katalogi E2E (`apps/dzik-os/e2e/` zniknął, zostały `frontend/e2e/` w CI),
-złączyła dokumenty współpracy w Kartę 1.0 i postawiła dziennik
-konsultacji K-NNN czytany przez bramkę. Dwa dawne punkty kolejki (E2E,
-Szablony) wykonane. W konflikcie `KONSULTACJE.md` i `spojnosc.py` zostały
-nowsze wersje: format `K-NNN`, 10 kontroli, 37 testów kontrolera i 17/17
-wykrytych mutacji.
+**Ostatnia runda (0.41.0, gałąź `agent/xlsx-bomba`, pierwsza wg nowego
+protokołu):** bomba dekompresyjna `.xlsx` (K-002 pkt 1) rozbrojona
+wewnątrz `sheet_import.py` — kontrola sumy rozmiarów po rozpakowaniu
+z katalogu ZIP-a przed `load_workbook`, twardy limit przeskanowanych
+wierszy przerywający iterację, limit szerokości wiersza; wszystko jako
+`SheetError`, routery bez zmian. Zmierzone na żywo: plik deklarujący
+400 MB XML odrzucony w 83 ms przy +6,9 MB RSS (było: 1164 MB, 129 s).
+**Wszystkie znaleziska przeglądu krzyżowego K-002 są zamknięte.**
 
-**Znany problem bramki lokalnej:** dwa testy OCR nazwane „bez Tesseracta"
-nie izolują tego założenia i czerwienią się, gdy binarka jest dostępna.
-Na maszynie audytowej z Tesseractem 5.3.4 oba zawiodły; po ukryciu binarki
-przeszły 2/2. To dług techniczny testów, nie regresja tej rundy.
+**Runda 0.40.0 (poprzednia):** ekran Szablony scalony do jednej karty
+„Dodaj szablon"; limity `_read_limited` na trzech importach (K-002 pkt 2);
+scalenie katalogów E2E, Karta 1.0, dziennik K-NNN czytany przez bramkę.
+
+**Znane problemy bramki lokalnej (dług testów, nie regresje):**
+
+* dwa testy OCR nazwane „bez Tesseracta" nie izolują tego założenia
+  i czerwienią się, gdy binarka jest dostępna (obejście:
+  `DZIK_OCR_BINARY=__missing_tesseract__`);
+* ~~cztery testy zależne od prawdziwej daty~~ — **naprawione w 0.41.0**
+  (23.08 prawdziwy zegar dogonił daty wpisane na sztywno i CI zrobiło się
+  czerwone na czystym `main`): daty liczone względem `dates.local_today()`
+  jak w seedzie, szum terminów płatności wyciszany w testach planowania.
+  **Uwaga:** inne testy z absolutnymi datami przyszłymi (strefy/DST w
+  `test_notifications.py` — 16.09, 25.10.2026) czekają na tę samą kurację,
+  zanim kalendarz je dogoni — dołożone do małej rundy naprawczej.
 
 **Bramki gałęzi porządkującej:** ruff czysto; backend 760 zaliczonych,
 1 opcjonalny test Tesseracta pominięty; Core 275/275; kontroler spójności
@@ -62,8 +70,6 @@ nie uruchamiano, ponieważ runda nie zmienia kodu ani zasobów frontendu.
 
 | Rzecz | Stan | Gdzie |
 |---|---|---|
-| **Protokół jednego piszącego** | przygotowany na PR `[WRITER]`: `main` jako jedyna baza, pozostali agenci tylko recenzują/testują read-only, konflikt oznacza STOP. **PR #14 jest jednorazowym PR-em startowym** — sam nie spełnia reguły „pierwszy commit to wyłącznie plan", bo ją dopiero wprowadza; reguła obowiązuje od następnej rundy i nie wolno się na ten wyjątek powoływać | `AGENTS.md`, `CLAUDE.md`, `KOORDYNACJA.md`, `plan-sesji/recover-agent-collisions.md` |
-| **Konfiguracja GitHuba** | gałąź domyślna nadal wskazuje długą linię `claude/...`; zmienić na `main` dopiero po osobnej zgodzie właściciela | ustawienia repozytorium |
 | **Niescalona runda bramkowa** | commity `81eb30a` (pamięć importu) i `861ed53` (SMTP + E2E) istnieją tylko na starej bazie; nie zaczynać tych zadań od nowa, ale przed scaleniem zaktualizować bazę i przejrzeć konflikty | `claude/ocena-projektu-dzik-os-76ercy` |
 | **Testy OCR** | dwa testy „bez Tesseracta” nie izolują założenia i czerwienią się, gdy binarka jest zainstalowana; poprawić w osobnym małym PR | `backend/tests/test_ocr.py` |
 | **Dostawca AI** | zaplanowany, **nierozpoczęty**. Istnieje wyłącznie `NullAIProvider`; kontrakt gotowy, cztery miejsca już go wołają | `backend/dzik_os/ai_provider.py` |
@@ -77,13 +83,14 @@ nie uruchamiano, ponieważ runda nie zmienia kodu ani zasobów frontendu.
 
 Kolejność jest propozycją; właściciel może ją zmienić w dowolnym momencie.
 
-1. **Domknąć protokół repozytorium.** Przejrzeć i scalić PR `[WRITER]` do
-   `main`, potem osobno zatwierdzić zmianę gałęzi domyślnej. Dopiero wtedy
-   uruchamiać następnego piszącego.
-2. **Rozliczyć niescaloną rundę bramkową.** Nie przepisywać jej zmian.
+1. **Rozliczyć niescaloną rundę bramkową.** Nie przepisywać jej zmian.
    Zaktualizować bazę dwóch commitów, przejrzeć konflikt w
    `STAN_PRZEKAZANIA.md`, uruchomić pełne bramki i dopiero wtedy podjąć
    decyzję o osobnym PR-ze.
+2. **Dwie małe rundy naprawcze:** izolacja testów od środowiska — testy
+   OCR (założenie „bez Tesseracta") i cztery testy zależne od prawdziwej
+   daty (lista w §1); do tego ostatnia stara fraza „jedna-sesja-naraz"
+   w `KARTA_WSPOLPRACY.md` (linia ~191).
 3. **Dostawca AI.** Jedyna zmiana odblokowująca **cztery istniejące
    funkcje naraz** (OCR, odczyt opisu ćwiczenia, onboarding, asystent)
    zamiast dokładania piątej. Szczegóły:

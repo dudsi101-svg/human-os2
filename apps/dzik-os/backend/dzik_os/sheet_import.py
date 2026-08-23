@@ -41,6 +41,7 @@ from __future__ import annotations
 import csv
 import io
 import json
+import zipfile
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -79,6 +80,24 @@ LIST_SEPARATOR = "|"
 #: Separator listy mięśni w komórce — tu przecinek jest naturalny i
 #: bezpieczny, bo nazwy partii go nie zawierają.
 MUSCLE_SEPARATOR = ","
+
+#: Limity przeciw bombie dekompresyjnej (K-002 pkt 1). `MAX_BYTES` ogranicza
+#: tylko plik SPAKOWANY — zmierzony przypadek: 1,64 MB `.xlsx` rozwijało się
+#: do 1164 MB RSS. Te trzy progi działają WEWNĄTRZ parsera, zanim cokolwiek
+#: urośnie. To stałe bezpieczeństwa modułu, jak `MAX_BYTES` — celowo nie są
+#: pokrętłami w `settings`.
+#:
+#: Suma rozmiarów po rozpakowaniu, zadeklarowana w katalogu ZIP-a — czytana
+#: bez rozpakowywania. Legalny arkusz 2000 wierszy to pojedyncze MB XML-a;
+#: 50 MB to wielokrotny zapas, a bomby deklarują gigabajty.
+MAX_UNPACKED_BYTES = 50 * 1024 * 1024
+#: Twardy limit PRZESKANOWANYCH wierszy arkusza (z pustymi włącznie) —
+#: wyraźnie większy od `MAX_ROWS`, żeby nie karać plików z pustymi
+#: wierszami; bomba „w dół” deklaruje miliony.
+MAX_SCAN_ROWS = 20_000
+#: Twardy limit szerokości wiersza. Nasze arkusze mają ~20 kolumn; bomba
+#: „w bok” deklaruje ich 16 384 i każdy wiersz materializuje się szeroki.
+MAX_SCAN_COLS = 256
 
 XLSX_SUFFIXES = (".xlsx", ".xlsm")
 CSV_SUFFIXES = (".csv", ".txt", ".tsv")
@@ -270,23 +289,61 @@ def _read_csv(raw: bytes) -> tuple[list[str], list[list[str]]]:
     return rows[0], rows[1:]
 
 
+def _assert_xlsx_unpacked_size(raw: bytes) -> None:
+    """Odetnij bombę dekompresyjną PRZED parsowaniem. Katalog ZIP-a deklaruje
+    rozmiary po rozpakowaniu i można je przeczytać bez rozpakowywania
+    czegokolwiek; kłamliwą deklarację utnie sam `zipfile` przy czytaniu.
+    Kontrola tutaj łapie też bombę w `sharedStrings.xml`, który `openpyxl`
+    wciąga w całości, zanim odda pierwszy wiersz."""
+    try:
+        with zipfile.ZipFile(io.BytesIO(raw)) as archive:
+            unpacked = sum(entry.file_size for entry in archive.infolist())
+    except zipfile.BadZipFile as exc:
+        raise SheetError(f"Nie udało się otworzyć arkusza: {exc}") from exc
+    if unpacked > MAX_UNPACKED_BYTES:
+        raise SheetError(
+            f"Arkusz po rozpakowaniu miałby {unpacked // (1024 * 1024)} MB "
+            f"(limit: {MAX_UNPACKED_BYTES // (1024 * 1024)} MB) — wygląda na "
+            "uszkodzony albo spreparowany. Wyeksportuj dane do CSV albo "
+            "podziel bazę na mniejsze pliki."
+        )
+
+
 def _read_xlsx(raw: bytes) -> tuple[list[str], list[list[str]]]:
     try:
         import openpyxl
     except ImportError:  # pragma: no cover - openpyxl jest zależnością twardą
         raise SheetError("Obsługa .xlsx jest niedostępna; prześlij plik CSV.") from None
+    _assert_xlsx_unpacked_size(raw)
     try:
         book = openpyxl.load_workbook(
             io.BytesIO(raw), read_only=True, data_only=True, keep_links=False
         )
     except Exception as exc:  # dowolna awaria parsera = zły plik, nie awaria aplikacji
         raise SheetError(f"Nie udało się otworzyć arkusza: {exc}") from exc
+    rows: list[list[str]] = []
     try:
         sheet = book.worksheets[0]
-        rows = [[_cell(cell) for cell in row] for row in sheet.iter_rows(values_only=True)]
+        # Iteracja z licznikami zamiast materializacji całego arkusza:
+        # limity muszą przerwać czytanie, a nie sprzątać po nim.
+        for scanned, row in enumerate(sheet.iter_rows(values_only=True), start=1):
+            if scanned > MAX_SCAN_ROWS:
+                raise SheetError(
+                    f"Arkusz ma więcej niż {MAX_SCAN_ROWS} wierszy (licząc "
+                    f"puste) — import obsługuje do {MAX_ROWS} wierszy danych. "
+                    "Podziel bazę na części albo prześlij jako CSV."
+                )
+            if len(row) > MAX_SCAN_COLS:
+                raise SheetError(
+                    f"Arkusz deklaruje więcej niż {MAX_SCAN_COLS} kolumn — "
+                    "wygląda na uszkodzony albo spreparowany. Wyeksportuj "
+                    "dane do CSV albo usuń nadmiarowe kolumny."
+                )
+            cells = [_cell(cell) for cell in row]
+            if any(cells):
+                rows.append(cells)
     finally:
         book.close()
-    rows = [row for row in rows if any(cell for cell in row)]
     if not rows:
         raise SheetError("Arkusz jest pusty.")
     return rows[0], rows[1:]

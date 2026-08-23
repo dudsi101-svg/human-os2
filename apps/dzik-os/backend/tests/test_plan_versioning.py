@@ -84,14 +84,22 @@ def test_workout_logging_against_plan(seeded):
     versions = seeded.get(f"/api/plans/{plan['id']}/versions",
                           headers=ha).json()["versions"]
     current = versions[-1]
+    # Data względem prawdziwego `today` — seed też sieje treningi względem
+    # dzisiaj, więc data wpisana na sztywno po kilku dniach przestaje być
+    # najnowsza i wpis spada z pozycji zerowej listy.
+    from dzik_os.dates import local_today_iso
+
+    dzis = local_today_iso()
     r = seeded.post(f"/api/clients/{id_a}/workouts", headers=ha, json={
         "plan_version_id": current["id"], "day_index": 0,
-        "performed_on": "2026-08-17", "status": "DONE",
+        "performed_on": dzis, "status": "DONE",
         "pain_flag": True, "pain_note": "Lekki ból barku przy 3 serii",
         "entries": [{"exercise_index": 0, "exercise_name": "Wyciskanie",
                      "result": "4x8 @ 70 kg"}],
     })
     assert r.status_code == 201
     workouts = seeded.get(f"/api/clients/{id_a}/workouts", headers=hc).json()["workouts"]
-    assert workouts[0]["pain_flag"] is True
-    assert workouts[0]["entries"][0]["result"] == "4x8 @ 70 kg"
+    moj = next(w for w in workouts
+               if w.get("pain_note") == "Lekki ból barku przy 3 serii")
+    assert moj["pain_flag"] is True
+    assert moj["entries"][0]["result"] == "4x8 @ 70 kg"

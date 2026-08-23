@@ -94,8 +94,13 @@ def test_reminder_loop_sends_for_matching_schedule(seeded, monkeypatch):
     client_id = get_user_id(seeded, ha)
 
     # Element harmonogramu klienta A: kreatyna o 08:00 codziennie (seed).
-    # 08:00 Europe/Warsaw (lato) = 06:00 UTC; środa.
-    now = datetime(2026, 8, 19, 8, 0, tzinfo=ZoneInfo("Europe/Warsaw"))
+    # Data względem prawdziwego `today` — seed startuje harmonogram dziś,
+    # więc zamrożony dzień z przeszłości nie miałby żadnych wystąpień.
+    from datetime import time, timedelta
+
+    from dzik_os.dates import local_today
+    jutro = local_today() + timedelta(days=1)
+    now = datetime.combine(jutro, time(8, 0), tzinfo=ZoneInfo("Europe/Warsaw"))
     count = reminder_loop._tick(now)
     assert count >= 1
     # Push wychodzi do klienta, ale z treścią NEUTRALNĄ — nazwa suplementu

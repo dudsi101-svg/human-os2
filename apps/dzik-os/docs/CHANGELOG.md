@@ -1,5 +1,37 @@
 # Changelog — Dzik OS
 
+## 0.41.0 — 2026-08-18
+
+**Bomba dekompresyjna w imporcie `.xlsx` rozbrojona wewnątrz parsera
+(K-002 pkt 1, ostatnie otwarte znalezisko przeglądu krzyżowego).**
+
+* **Trzy limity weszły do `sheet_import.py`**, bo limit rozmiaru wejścia
+  (0.40.0) ogranicza tylko plik spakowany, a bomba puchnie w parserze:
+  suma rozmiarów po rozpakowaniu czytana z katalogu ZIP-a **przed**
+  `load_workbook` (`MAX_UNPACKED_BYTES`, 50 MB — łapie też bombę w
+  `sharedStrings.xml`, który openpyxl wciąga w całości), twardy limit
+  przeskanowanych wierszy przerywający iterację (`MAX_SCAN_ROWS`, 20 000)
+  i limit szerokości wiersza (`MAX_SCAN_COLS`, 256). Wszystko zgłaszane
+  jako `SheetError` → czytelny błąd HTTP; routery bez zmian.
+* **Materializacja całego arkusza naraz zniknęła** — `_read_xlsx` iteruje
+  z licznikami zamiast budować listę wszystkich wierszy przed limitem.
+  Umowa dla legalnych plików bez zmian: powyżej `MAX_ROWS` wierszy danych
+  nadal ucięcie z ostrzeżeniem, przypięte testem.
+* **Zmierzone, nie zadeklarowane:** plik deklarujący 400 MB XML odrzucony
+  w **83 ms** przy wzroście RSS **6,9 MB** (wcześniej zmierzony przypadek:
+  1,64 MB pliku → **1164 MB RSS, 129 s**). Wiersz o 16 384 kolumnach —
+  odmowa w 296 ms. Cztery nowe testy, w tym prawdziwy plik-bomba
+  z pomiarem RSS w asercji. Uruchomione też na żywej aplikacji: bomba
+  przez `/api/coach/exercises/import-file` → HTTP 422 w 20 ms, legalny
+  CSV → 200 z raportem próby.
+* **Cztery testy przestały zależeć od prawdziwej daty** (jawne
+  rozszerzenie rundy — prawdziwy zegar dogonił daty wpisane na sztywno
+  18.08 i CI zrobiło się czerwone na czystym `main`): daty liczone
+  względem `dates.local_today()` — tej samej funkcji co seed — a szum
+  terminów płatności z seeda wyciszany w testach planowania (przypomnienie
+  o zaległości strzela co `days_over % 7`, więc zamrożony tick trafiał
+  w nie losowo, zależnie od dnia uruchomienia testów).
+
 ## 0.40.0 — 2026-08-18
 
 **Jedno „Dodaj szablon" zamiast trzech wejść — to samo lekarstwo,

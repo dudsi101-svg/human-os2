@@ -14,6 +14,7 @@ Testy pilnują tego, co przy imporcie z pliku najłatwiej zepsuć po cichu:
 
 import io
 import json
+import zipfile
 
 import pytest
 from conftest import COACH, create_user_with_role, login
@@ -22,6 +23,9 @@ from dzik_os.db import db_session
 from dzik_os.models import Exercise, TrainingPlan, TrainingPlanVersion
 from dzik_os.sheet_import import (
     EXERCISE_COLUMNS,
+    MAX_ROWS,
+    MAX_SCAN_COLS,
+    MAX_SCAN_ROWS,
     MODE_FILL,
     MODE_REPLACE,
     TEMPLATE_COLUMNS,
@@ -118,6 +122,85 @@ def test_unsupported_format_is_refused_with_a_readable_message():
     with pytest.raises(SheetError) as exc:
         read_table("baza.pdf", b"%PDF-1.4", EXERCISE_COLUMNS)
     assert ".xlsx" in str(exc.value)
+
+
+# --- Bomba dekompresyjna (K-002 pkt 1) ------------------------------------
+#
+# Zmierzony przypadek: plik .xlsx o rozmiarze 1,64 MB rozwijał się przy
+# imporcie do 1164 MB RSS w 129 s. Limit rozmiaru wejścia tego nie łapie —
+# bomba puchnie dopiero w parserze. Te testy pilnują limitów WEWNĄTRZ
+# `_read_xlsx`: każdy odrzuca prawdziwy spreparowany plik, nie atrapę.
+
+
+def test_xlsx_bomb_is_refused_before_parsing_without_memory_growth():
+    """Mały plik deklarujący setki MB XML ma odpaść na katalogu ZIP-a —
+    szybko i bez wzrostu pamięci, bo niczego nie wolno rozpakować."""
+    import resource
+
+    buffer = io.BytesIO()
+    with (
+        zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as archive,
+        archive.open("xl/worksheets/sheet1.xml", "w") as entry,
+    ):
+        chunk = b" " * (1024 * 1024)
+        for _ in range(200):  # 200 MB po rozpakowaniu, ~200 KB na dysku
+            entry.write(chunk)
+    bomb = buffer.getvalue()
+    assert len(bomb) < 1024 * 1024, "bomba ma być mała na wejściu"
+
+    rss_before_kb = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+    with pytest.raises(SheetError) as exc:
+        read_table("baza.xlsx", bomb, EXERCISE_COLUMNS)
+    rss_after_kb = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+
+    assert "po rozpakowaniu" in str(exc.value)
+    grown_mb = (rss_after_kb - rss_before_kb) / 1024
+    assert grown_mb < 50, f"odrzucenie bomby zajęło {grown_mb:.0f} MB RSS"
+
+
+def test_xlsx_with_more_scanned_rows_than_hard_limit_is_refused():
+    """Bomba „w dół”: arkusz z wierszami ponad twardy limit skanowania ma
+    dostać odmowę w trakcie iteracji, nie po zbudowaniu listy."""
+    openpyxl = pytest.importorskip("openpyxl")
+    book = openpyxl.Workbook(write_only=True)
+    sheet = book.create_sheet()
+    for _ in range(MAX_SCAN_ROWS + 1):
+        sheet.append(["x"])
+    buffer = io.BytesIO()
+    book.save(buffer)
+    with pytest.raises(SheetError) as exc:
+        read_table("baza.xlsx", buffer.getvalue(), EXERCISE_COLUMNS)
+    assert "wierszy" in str(exc.value)
+
+
+def test_xlsx_wider_than_hard_limit_is_refused():
+    """Bomba „w bok”: wiersz szerszy niż limit kolumn odpada na pierwszym
+    wierszu, zanim cokolwiek się zmaterializuje."""
+    openpyxl = pytest.importorskip("openpyxl")
+    book = openpyxl.Workbook()
+    sheet = book.active
+    sheet.append(["k"] * (MAX_SCAN_COLS + 1))
+    buffer = io.BytesIO()
+    book.save(buffer)
+    with pytest.raises(SheetError) as exc:
+        read_table("baza.xlsx", buffer.getvalue(), EXERCISE_COLUMNS)
+    assert "kolumn" in str(exc.value)
+
+
+def test_xlsx_over_max_rows_still_truncates_with_warning_not_error():
+    """Limity bezpieczeństwa nie zmieniają umowy dla legalnych plików:
+    powyżej MAX_ROWS wierszy danych nadal jest ucięcie z ostrzeżeniem."""
+    openpyxl = pytest.importorskip("openpyxl")
+    book = openpyxl.Workbook(write_only=True)
+    sheet = book.create_sheet()
+    sheet.append(["nazwa", "grupa", "opis"])
+    for i in range(MAX_ROWS + 5):
+        sheet.append([f"Ćwiczenie {i}", "KLATKA", "opis"])
+    buffer = io.BytesIO()
+    book.save(buffer)
+    rows, _, warnings = read_table("baza.xlsx", buffer.getvalue(), EXERCISE_COLUMNS)
+    assert len(rows) == MAX_ROWS
+    assert any(str(MAX_ROWS) in warning for warning in warnings)
 
 
 # --- Słowniki: brak zgadywania --------------------------------------------
