@@ -1,5 +1,42 @@
 # Changelog — Dzik OS
 
+## 0.43.0 — 2026-08-23
+
+**Repozytorium gotowe do pilotażu: koniec kont demo na produkcji.**
+
+* **`fly.toml` przechodzi na produkcję:** `DZIK_SEED_DEMO` usunięte
+  (konta demo ze znanymi hasłami z publicznego repo nie zasieją się już
+  nigdy), `DZIK_ENV="production"` — cookie sesji dostaje flagę `Secure`,
+  `/api/docs` przestaje być publiczne.
+* **`python -m dzik_os.bootstrap`** — pierwsze konto trenera i admina na
+  pustej bazie. Zamyka pułapkę: seed był JEDYNYM miejscem nadającym role
+  COACH/ADMIN, więc wyłączenie go bez tego narzędzia odcinałoby logowanie
+  na zawsze. Hasła wyłącznie ze zmiennych środowiskowych (argv widać
+  w `ps`), minimum 12 znaków, konto z `must_change_password`, wpis
+  w audycie. Odmawia na zajętej bazie — nic nie nadpisze na działającej
+  produkcji.
+* **`python -m dzik_os.purge_demo`** — dezaktywacja kont demo: status
+  `SUSPENDED` + podmiana hasha na losowy (powrót do `ACTIVE` nie
+  przywróci hasła z repo). Świadomie NIE kasuje wierszy — usuwanie danych
+  ma własną ścieżkę RODO, a ręczny kasownik z kluczami obcymi to ryzyko
+  cichego zepsucia. Bezpiecznik: odmawia, gdy po dezaktywacji nie
+  zostałby żaden aktywny trener spoza demo (`--force` dla świadomych).
+* **`.github/workflows/fly-reset-demo.yml` usunięty** — workflow kasujący
+  całe `/data` jednym kliknięciem z zakładki Actions; sam ostrzegał
+  „NIGDY nie używać po przejściu na produkcję", a ostrzeżenie w
+  komentarzu nie jest zabezpieczeniem. W razie powrotu stagingu — do
+  przywrócenia z historii gita.
+* **`DEPLOYMENT.md` §3a naprawione:** instrukcja używała nazwy `dzik-os`
+  i regionu `waw`, podczas gdy cała reszta (fly.toml, workflowy) używa
+  `dzik-os-panel` i `fra` — kopiuj-wklej tworzył drugą, pustą aplikację.
+  Sekcja „dane demo" zastąpiona przepływem bootstrap/purge.
+* **Uruchomione na żywo** (lokalna baza, przez CLI, jak zrobi to
+  właściciel po SSH): bootstrap bez haseł w env → odmowa; na pustej →
+  dwa konta; drugi raz → odmowa; purge na bazie z demo-trenerem jako
+  jedynym → odmowa bezpiecznika; po dołożeniu prawdziwego trenera →
+  7 kont SUSPENDED, stare hasło przestaje przechodzić weryfikację,
+  prawdziwe działa.
+
 ## 0.42.0 — 2026-08-23
 
 **Poczta wychodząca naprawdę wychodzi + rozliczenie gałęzi bramkowej.**
