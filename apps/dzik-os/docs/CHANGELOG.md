@@ -1,5 +1,28 @@
 # Changelog — Dzik OS
 
+## 0.41.0 — 2026-08-18
+
+**Bomba dekompresyjna w imporcie `.xlsx` rozbrojona wewnątrz parsera
+(K-002 pkt 1, ostatnie otwarte znalezisko przeglądu krzyżowego).**
+
+* **Trzy limity weszły do `sheet_import.py`**, bo limit rozmiaru wejścia
+  (0.40.0) ogranicza tylko plik spakowany, a bomba puchnie w parserze:
+  suma rozmiarów po rozpakowaniu czytana z katalogu ZIP-a **przed**
+  `load_workbook` (`MAX_UNPACKED_BYTES`, 50 MB — łapie też bombę w
+  `sharedStrings.xml`, który openpyxl wciąga w całości), twardy limit
+  przeskanowanych wierszy przerywający iterację (`MAX_SCAN_ROWS`, 20 000)
+  i limit szerokości wiersza (`MAX_SCAN_COLS`, 256). Wszystko zgłaszane
+  jako `SheetError` → czytelny błąd HTTP; routery bez zmian.
+* **Materializacja całego arkusza naraz zniknęła** — `_read_xlsx` iteruje
+  z licznikami zamiast budować listę wszystkich wierszy przed limitem.
+  Umowa dla legalnych plików bez zmian: powyżej `MAX_ROWS` wierszy danych
+  nadal ucięcie z ostrzeżeniem, przypięte testem.
+* **Zmierzone, nie zadeklarowane:** plik deklarujący 400 MB XML odrzucony
+  w **83 ms** przy wzroście RSS **6,9 MB** (wcześniej zmierzony przypadek:
+  1,64 MB pliku → **1164 MB RSS, 129 s**). Wiersz o 16 384 kolumnach —
+  odmowa w 296 ms. Cztery nowe testy, w tym prawdziwy plik-bomba
+  z pomiarem RSS w asercji.
+
 ## 0.40.0 — 2026-08-18
 
 **Jedno „Dodaj szablon" zamiast trzech wejść — to samo lekarstwo,

@@ -189,6 +189,15 @@ nie zostaje w ciszy. Dzięki za powstrzymanie się od naprawy w cudzym
 obszarze — i za wskazanie gotowego narzędzia, które skróciło ją do trzech
 linii.
 
+**Dopisek (produktowa, 2026-08-18, wersja 0.41.0):** punkt 1 zamknięty —
+trzy limity weszły do wnętrza `sheet_import.py` (suma rozmiarów po
+rozpakowaniu z katalogu ZIP-a przed `load_workbook`, twardy limit
+przeskanowanych wierszy, limit szerokości wiersza). Zmierzone: plik
+deklarujący 400 MB XML odrzucony w 83 ms przy +6,9 MB RSS — wobec
+wyjściowych 1164 MB i 129 s z Waszego przeglądu. Cztery testy, w tym
+prawdziwy plik-bomba z pomiarem RSS w asercji. **Oba znaleziska K-002 są
+tym samym domknięte.**
+
 ---
 
 ### K-001 · 2026-08-18 15:54Z · od: bramki · do: produktowa · STATUS: OTWARTE
