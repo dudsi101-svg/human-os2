@@ -1,5 +1,27 @@
 # Changelog — Dzik OS
 
+## 0.43.1 — 2026-08-23
+
+**E-maile do nowych klientów: poprawne linki i domknięta konfiguracja.**
+
+* **Ścieżka zweryfikowana end-to-end na żywo** (prawdziwy serwer SMTP na
+  gniazdach): trener zakłada klienta → HTTP 201, `delivery: "email"`,
+  list „Dzik OS: aktywuj swoje konto" z jednorazowym linkiem; link znika
+  z odpowiedzi API, gdy wychodzi e-mailem; log zawiera tylko `email_sent`,
+  bez adresu i treści. Kod działał od 0.42.0 — ta runda domyka
+  konfigurację wokół niego.
+* **`DZIK_PUBLIC_URL` w `fly.toml`** — linki aktywacyjne i resetu hasła
+  budują się z jawnego adresu publicznego zamiast z `request.base_url`,
+  który za proxy Fly widzi `http://` (uvicorn chodził bez proxy-headers).
+* **`--proxy-headers --forwarded-allow-ips=*` w Dockerfile** — schemat
+  i host z `X-Forwarded-*`; kontener słucha wyłącznie wewnętrznego proxy
+  Fly, więc nagłówki są wiarygodne.
+* **`DEPLOYMENT.md` §4c** opisuje teraz, co dokładnie wychodzi po
+  włączeniu poczty (zaproszenie, reset hasła, alerty — wszystko bez
+  danych zdrowotnych) i skąd biorą się linki. Sekrety `DZIK_SMTP_*`
+  pozostają po stronie właściciela — prawdziwy list do prawdziwej
+  skrzynki nadal nigdy nie wyszedł i ta runda tego nie zmienia.
+
 ## 0.43.0 — 2026-08-23
 
 **Repozytorium gotowe do pilotażu: koniec kont demo na produkcji.**

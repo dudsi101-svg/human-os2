@@ -40,4 +40,9 @@ ENV DZIK_DATABASE_URL=sqlite:////data/dzik.db \
     DZIK_FRONTEND_DIST=/app/apps/dzik-os/frontend/dist \
     DZIK_ENV=production
 EXPOSE 8000
-CMD ["uvicorn", "dzik_os.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# --proxy-headers: za proxy Fly schemat/host przychodzą w X-Forwarded-* —
+# bez tego request.base_url (linki w e-mailach, przekierowania) widzi http.
+# --forwarded-allow-ips=*: kontener słucha wyłącznie wewnętrznego proxy Fly,
+# więc nagłówkom można ufać z każdego adresu wewnętrznego.
+CMD ["uvicorn", "dzik_os.main:app", "--host", "0.0.0.0", "--port", "8000", \
+     "--proxy-headers", "--forwarded-allow-ips=*"]
