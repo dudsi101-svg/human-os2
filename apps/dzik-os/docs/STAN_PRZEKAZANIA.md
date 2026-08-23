@@ -51,16 +51,13 @@ scalenie katalogów E2E, Karta 1.0, dziennik K-NNN czytany przez bramkę.
 * dwa testy OCR nazwane „bez Tesseracta" nie izolują tego założenia
   i czerwienią się, gdy binarka jest dostępna (obejście:
   `DZIK_OCR_BINARY=__missing_tesseract__`);
-* cztery testy zależne od prawdziwej daty czerwienią się, gdy zegar
-  maszyny odjedzie od dnia pisania testów (wykryte 23.08 na maszynie
-  z zegarem 5 dni przed czasem CI): `test_notifications.py::
-  test_active_days_skip_planning`, `::test_paid_payment_suppresses_due_reminder`,
-  `test_plan_versioning.py::test_workout_logging_against_plan`,
-  `test_push.py::test_reminder_loop_sends_for_matching_schedule`.
-  Mechanizm: test wstrzykuje zamrożoną datę do sprawdzanej funkcji, ale
-  dane przygotowuje względem prawdziwego `now()`. Padają na czystym
-  `main` w 3 s — potwierdzone stashem podczas rundy 0.41.0. Naprawa:
-  zamrozić czas także dla danych (ta sama mała runda co testy OCR).
+* ~~cztery testy zależne od prawdziwej daty~~ — **naprawione w 0.41.0**
+  (23.08 prawdziwy zegar dogonił daty wpisane na sztywno i CI zrobiło się
+  czerwone na czystym `main`): daty liczone względem `dates.local_today()`
+  jak w seedzie, szum terminów płatności wyciszany w testach planowania.
+  **Uwaga:** inne testy z absolutnymi datami przyszłymi (strefy/DST w
+  `test_notifications.py` — 16.09, 25.10.2026) czekają na tę samą kurację,
+  zanim kalendarz je dogoni — dołożone do małej rundy naprawczej.
 
 **Bramki gałęzi porządkującej:** ruff czysto; backend 760 zaliczonych,
 1 opcjonalny test Tesseracta pominięty; Core 275/275; kontroler spójności

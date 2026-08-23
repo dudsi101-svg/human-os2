@@ -21,7 +21,16 @@
   w **83 ms** przy wzroście RSS **6,9 MB** (wcześniej zmierzony przypadek:
   1,64 MB pliku → **1164 MB RSS, 129 s**). Wiersz o 16 384 kolumnach —
   odmowa w 296 ms. Cztery nowe testy, w tym prawdziwy plik-bomba
-  z pomiarem RSS w asercji.
+  z pomiarem RSS w asercji. Uruchomione też na żywej aplikacji: bomba
+  przez `/api/coach/exercises/import-file` → HTTP 422 w 20 ms, legalny
+  CSV → 200 z raportem próby.
+* **Cztery testy przestały zależeć od prawdziwej daty** (jawne
+  rozszerzenie rundy — prawdziwy zegar dogonił daty wpisane na sztywno
+  18.08 i CI zrobiło się czerwone na czystym `main`): daty liczone
+  względem `dates.local_today()` — tej samej funkcji co seed — a szum
+  terminów płatności z seeda wyciszany w testach planowania (przypomnienie
+  o zaległości strzela co `days_over % 7`, więc zamrożony tick trafiał
+  w nie losowo, zależnie od dnia uruchomienia testów).
 
 ## 0.40.0 — 2026-08-18
 

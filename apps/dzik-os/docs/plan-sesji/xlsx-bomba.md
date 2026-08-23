@@ -56,6 +56,25 @@ z ostrzeżeniem zostaje dokładnie takie, jakie jest.
 - **Wersja: 0.41.0** (ostatnia w CHANGELOG: 0.40.0).
 - **Migracja: brak** — zmiana nie dotyka schematu bazy.
 
+## Rozszerzenie zakresu (jawne, za zgodą właściciela)
+
+Po pierwszym pushu rundy CI zrobiło się czerwone na **cztery testy
+zależne od prawdziwej daty** (`test_notifications.py` ×2, `test_push.py`,
+`test_plan_versioning.py`) — prawdziwy zegar dogonił daty wpisane w testy
+na sztywno 18.08. To nie jest regresja tej rundy (padają na czystym
+`main`), ale blokuje CI tego PR-a i każdego następnego. Właściciel polecił
+„rozwiązać wszystkie problemy stojące naprzeciw odpalenia aplikacji",
+więc naprawa wchodzi do tej rundy zamiast czekać w kolejce:
+
+- daty w testach liczone względem `dates.local_today()` — tej samej
+  funkcji, której używa seed;
+- szum terminów płatności z seeda wyciszany w testach planowania
+  (`_oplac_seedowe_terminy`) — przypomnienie o zaległości strzela co
+  7 dni, więc przy zamrożonym ticku była to loteria zależna od dnia
+  uruchomienia;
+- do obszaru dochodzą: `tests/test_notifications.py`, `tests/test_push.py`,
+  `tests/test_plan_versioning.py`.
+
 ## Świadomie nie robię
 
 - nie zmieniam zachowania importu CSV (nie ma dekompresji — rozmiar

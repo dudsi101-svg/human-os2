@@ -5,9 +5,49 @@ preferencje per kategoria × kanał, wygasłe subskrypcje, odmowa zgody,
 wiele urządzeń, url kliknięcia per kategoria, centrum powiadomień i
 monitoring doręczeń w /api/metrics."""
 
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime, time, timedelta
+from zoneinfo import ZoneInfo
 
 from conftest import ADMIN, CLIENT_A, COACH, get_user_id, login
+
+from dzik_os.dates import local_today
+
+WARSAW = ZoneInfo("Europe/Warsaw")
+
+
+def _nastepna_sroda() -> date:
+    """Najbliższa środa PO dzisiejszym dniu — seed sieje harmonogramy od
+    prawdziwego `today` (dates.local_today), więc zamrożona data ticku musi
+    leżeć w przyszłości względem startu harmonogramu, nie być stałą."""
+    d = local_today() + timedelta(days=1)
+    while d.isoweekday() != 3:
+        d += timedelta(days=1)
+    return d
+
+
+def _osma_rano(d: date) -> datetime:
+    """08:00 czasu Warszawy danego dnia — wystąpienia planują się o 08:00
+    lokalnie, a LATE_SEND_MAX to 30 minut; godzina UTC wpisana na sztywno
+    psuje się przy zmianie czasu."""
+    return datetime.combine(d, time(8, 0), tzinfo=WARSAW)
+
+
+def _oplac_seedowe_terminy() -> None:
+    """Wycisz szum płatności z seeda. Terminy płatności seed liczy od
+    PRAWDZIWEGO `today`, a przypomnienie o zaległości wychodzi co 7 dni
+    (days_over % 7 == 0) — przy zamrożonym ticku to loteria zależna od dnia
+    uruchomienia testów (18.08 cicho, 23.08 strzał). Testy planowania mają
+    sprawdzać planowanie; płatności mają własne testy z własnymi datami."""
+    from dzik_os.db import db_session
+    from dzik_os.models import PaymentRecord
+    from dzik_os.payment_state import DUE_STATUSES
+
+    with db_session() as db:
+        for rec in db.query(PaymentRecord).filter(
+            PaymentRecord.status.in_(DUE_STATUSES)
+        ):
+            rec.status = "PAID"
+        db.commit()
 
 SUB = {
     "endpoint": "https://push.example.com/sub/dev-1",
@@ -152,16 +192,18 @@ def test_quiet_hours_silence_push_but_keep_center(seeded, monkeypatch):
 
 def test_active_days_skip_planning(seeded, monkeypatch):
     sent = _capture_push(monkeypatch)
+    _oplac_seedowe_terminy()
     ha = login(seeded, CLIENT_A)
     seeded.post("/api/push/subscribe", headers=ha, json=SUB)
     # Środa (3) wyłączona z dni aktywnych.
     r = seeded.put("/api/notifications/settings", headers=ha,
                    json={"active_days": "1,2,4,5,6,7"})
     assert r.status_code == 200
-    assert _tick(datetime(2026, 9, 16, 6, 0, tzinfo=UTC)) == 0  # środa
+    sroda = _nastepna_sroda()
+    assert _tick(_osma_rano(sroda)) == 0
     assert sent == []
     # Czwartek działa normalnie.
-    assert _tick(datetime(2026, 9, 17, 6, 0, tzinfo=UTC)) >= 1
+    assert _tick(_osma_rano(sroda + timedelta(days=1))) >= 1
 
 
 # ---------------------------------------------------------------------------
@@ -244,13 +286,15 @@ def test_submitted_checkin_suppresses_report_reminder(seeded, monkeypatch):
 
 def test_paid_payment_suppresses_due_reminder(seeded, monkeypatch):
     _capture_push(monkeypatch)
+    _oplac_seedowe_terminy()
     hc = login(seeded, COACH)
     ha = login(seeded, CLIENT_A)
     client_id = get_user_id(seeded, ha)
     seeded.post("/api/push/subscribe", headers=ha, json=SUB)
+    termin = _nastepna_sroda()
     r = seeded.post("/api/payments/schedules", headers=hc, json={
         "client_id": client_id, "package_name": "Pakiet testowy",
-        "amount_cents": 20000, "first_due_date": "2026-09-16",
+        "amount_cents": 20000, "first_due_date": termin.isoformat(),
     })
     record_id = r.json()["record_id"]
     # Opłacona przed 08:00 → przypomnienie o terminie nie wychodzi.
@@ -259,7 +303,7 @@ def test_paid_payment_suppresses_due_reminder(seeded, monkeypatch):
     r = seeded.post(f"/api/payments/records/{record_id}/mark-paid", headers=hc,
                     json={})
     assert r.status_code == 200
-    _tick(datetime(2026, 9, 16, 6, 0, tzinfo=UTC))
+    _tick(_osma_rano(termin))
     inbox = _inbox(seeded, ha)
     assert all(n["category"] != "PLATNOSC" for n in inbox["notifications"])
 
