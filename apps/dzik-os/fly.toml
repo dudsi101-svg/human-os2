@@ -20,6 +20,11 @@ primary_region = "fra"   # Frankfurt (najbliższy region Fly dla Polski)
   # po SSH (docs/DEPLOYMENT.md), a stare konta demo dezaktywuje
   # `python -m dzik_os.purge_demo`.
   DZIK_ENV = "production"
+  # Publiczny adres aplikacji — z niego budują się linki w e-mailach
+  # (aktywacja konta nowego klienta, reset hasła). Bez tej zmiennej link
+  # powstaje z request.base_url, czyli za proxy Fly jako http://.
+  # Przy własnej domenie podmień na https://panel.twojadomena.pl.
+  DZIK_PUBLIC_URL = "https://dzik-os-panel.fly.dev"
   # Start na SQLite na trwałym wolumenie — zero dodatkowych usług.
   # Docelowo: Fly Postgres + secret DZIK_DATABASE_URL (DEPLOYMENT.md).
   DZIK_DATABASE_URL = "sqlite:////data/dzik.db"

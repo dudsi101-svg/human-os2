@@ -1,6 +1,6 @@
 # Stan przekazania — przeczytaj przed rozpoczęciem rundy
 
-**Aktualizacja:** 2026-08-23 · **Wersja w `main`:** 0.43.0
+**Aktualizacja:** 2026-08-23 · **Wersja w `main`:** 0.43.1
 **Tryb pracy:** jeden piszący i jeden PR `[WRITER]` naraz
 (`KOORDYNACJA.md`, zasada nadrzędna).
 

@@ -254,6 +254,26 @@ flyctl secrets set \
   jest jednoprocesowy, więc zawieszony serwer poczty blokuje aplikację
   wszystkim użytkownikom na czas tego limitu.
 
+**Co dokładnie wychodzi po włączeniu.** Trzy rzeczy, wszystkie bez danych
+zdrowotnych w treści:
+
+1. **zaproszenie nowego klienta** — trener dodaje klienta w panelu,
+   klient dostaje list „aktywuj swoje konto" z jednorazowym linkiem
+   (ważnym `DZIK_INVITATION_TTL_DAYS` dni); gdy poczta nie jest
+   skonfigurowana, panel pokazuje trenerowi link do ręcznego przekazania
+   (`delivery: "manual"`) — po włączeniu poczty link ZNIKA z odpowiedzi
+   i istnieje tylko w liście;
+2. **reset hasła** — bez poczty ten przepływ jest martwy (token powstaje,
+   list nie wychodzi), a jedyną drogą powrotu jest ponowne zaproszenie;
+3. **alerty i przypomnienia** wg preferencji użytkownika.
+
+Linki w listach budują się z `DZIK_PUBLIC_URL` (ustawione w `fly.toml` na
+adres aplikacji; przy własnej domenie podmień). Ścieżka zaproszenia
+zweryfikowana end-to-end 23.08 na prawdziwym serwerze SMTP: HTTP 201,
+`delivery: "email"`, list z tematem „Dzik OS: aktywuj swoje konto"
+i linkiem `https://…/aktywacja#…`; log zawiera tylko `email_sent`, bez
+adresu i treści.
+
 **Sprawdzenie po włączeniu** — nie wierz konfiguracji, wyślij:
 
 ```bash
