@@ -1,5 +1,40 @@
 # Changelog — Dzik OS
 
+## 0.42.0 — 2026-08-23
+
+**Poczta wychodząca naprawdę wychodzi + rozliczenie gałęzi bramkowej.**
+
+* **`SMTPNotificationProvider`** (napisany 18.08 na gałęzi bramkowej
+  `claude/ocena-projektu-dzik-os-76ercy`, przeniesiony plikowo z commita
+  `861ed53` po analizie `merge-tree` — zero konfliktów): siedem pól
+  `smtp_*` w konfiguracji, `send_email` nigdy nie rzuca, obowiązkowy
+  timeout (zawieszony serwer poczty nie zablokuje jednoprocesowego
+  backendu), zero PII w logach. **Puste `DZIK_SMTP_HOST` = zachowanie
+  dokładnie dotychczasowe** (Null, nic nie wychodzi). Zamyka bloker nr 4
+  bramki GO/NO-GO; bez tego reset hasła był martwy — token powstawał,
+  list nie istniał. Testy wysyłają prawdziwy list do serwera SMTP
+  stawianego na czas testu na gniazdach (RFC 2047 dla polskich znaków
+  w temacie). Prawdziwy dostawca NIE został podłączony — sekrety ustawia
+  właściciel; tryb rozszerzony jeszcze nigdy się nie wykonał.
+* **Podział E2E na projekty `telefon` (Pixel 7) i `desktop-trener`
+  (1280×800)** — desktop dostaje wyłącznie testy niezapisujące.
+  Przemierzone po przeniesieniu: **15/15 zielonych** na aktualnych
+  spec-ach (deklaracja z gałęzi liczona była na `szablony.spec.ts` sprzed
+  przebudowy ekranu w 0.40.0 — dlatego pomiar własny, nie przepisany).
+* **Commit `81eb30a` („pamięć importu") świadomie ODRZUCONY w całości:**
+  `main` ma ścisły nadzbiór tej pracy (0.40.0 `_read_limited` w routerach —
+  który odrzuca z kodem 413, nie ucina, sprawdzone przy rozliczaniu;
+  0.41.0 limity wewnątrz parsera, w tym bomba „w bok", której gałąź nie
+  miała). Przeniesienie dałoby dwa mechanizmy do jednego celu i testy
+  asertujące nieistniejący kod. Z commita uratowane **sprostowanie
+  pomiaru** w `PRZEGLAD_KRZYZOWY_2026-08-18.md` (1057 MB → 419 MB; pomiar
+  przez `TestClient` w tym samym procesie liczył bufor klienta) — korekta
+  faktu obowiązuje niezależnie od losu kodu. R-14 w rejestrze ryzyk
+  zaktualizowany ręcznie; R-19 nietknięty (opisuje kod spoza `main`).
+* Gałąź bramkowa przestaje wisieć jako „niescalona" — jej treść jest
+  rozliczona co do commita: przeniesione, odrzucone-bo-zdublowane,
+  uratowane. Sama gałąź zostaje w historii, nic nie skasowano.
+
 ## 0.41.0 — 2026-08-18
 
 **Bomba dekompresyjna w imporcie `.xlsx` rozbrojona wewnątrz parsera

@@ -16,11 +16,34 @@ export default defineConfig({
   testDir: "./e2e",
   // Aplikacja jest mobile-first, więc domyślny widok też jest telefonem.
   use: {
-    ...devices["Pixel 7"],
     baseURL: `http://127.0.0.1:${process.env.DZIK_E2E_PORT || 8099}`,
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
   },
+  // DWA PROJEKTY, NIE JEDEN — a podział między nimi nie jest kosmetyczny.
+  //
+  // Aplikacja jest mobile-first i cały zestaw chodził wyłącznie na telefonie.
+  // Tyle że KLIENT używa telefonu, a TRENER siedzi przy panelu na desktopie:
+  // lista klientów, karta klienta, katalog szablonów. Ta powierzchnia nie
+  // miała ani jednego testu w swojej własnej szerokości.
+  //
+  // Desktop dostaje WYŁĄCZNIE testy, które nic nie zapisują. Powód jest
+  // twardy, nie estetyczny: backend ma jedną bazę SQLite z danymi demo,
+  // a raport wychodzi raz na tydzień. Uruchomienie testów zapisujących
+  // drugi raz na tej samej bazie wywróciłoby je z powodu stanu zostawionego
+  // przez pierwszy przebieg — czyli dokładnie ta flakowatość, przed którą
+  // broni `workers: 1` i `retries: 0`.
+  projects: [
+    {
+      name: "telefon",
+      use: { ...devices["Pixel 7"] },
+    },
+    {
+      name: "desktop-trener",
+      use: { ...devices["Desktop Chrome"], viewport: { width: 1280, height: 800 } },
+      testMatch: /(logowanie|szablony|pwa)\.spec\.ts/,
+    },
+  ],
   // Jeden worker: backend ma jedną bazę SQLite z danymi demo, a testy
   // zapisują (check-in, wiadomość). Równoległość dawałaby wyścigi
   // o ten sam stan, czyli dokładnie tę flakowatość, której nie chcemy.

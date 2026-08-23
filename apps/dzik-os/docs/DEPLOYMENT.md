@@ -221,3 +221,42 @@ Workflow `pages.yml` (odziedziczony z Human OS) publikuje wyłącznie
 `apps/user-demo` — prototyp UX bez backendu; nie koliduje z Dzik OS.
 Dzik OS wymaga backendu, więc **nie** jest wdrażany na Pages — właściwa
 ścieżka to sekcje 3–4 powyżej.
+
+### 4c. Poczta wychodząca (opcjonalna, domyślnie WYŁĄCZONA)
+
+Bez `DZIK_SMTP_HOST` aplikacja **nie wysyła żadnego e-maila** — przypomnienia
+i alerty zostają w panelu. To stan domyślny i bezpieczny.
+
+Żeby uruchomić pocztę, ustaw sekrety (nigdy w repozytorium):
+
+```bash
+flyctl secrets set \
+  DZIK_SMTP_HOST=smtp.dostawca.pl \
+  DZIK_SMTP_PORT=587 \
+  DZIK_SMTP_USER=konto@twojadomena.pl \
+  DZIK_SMTP_PASSWORD='...' \
+  DZIK_SMTP_FROM='Dzik OS <konto@twojadomena.pl>'
+```
+
+* `DZIK_SMTP_SECURITY` — `starttls` (domyślnie, port 587), `ssl` (port 465)
+  albo `none` (wyłącznie testy lokalne).
+* `DZIK_SMTP_TIMEOUT` — domyślnie 10 s. **Nie podnoś bez potrzeby:** backend
+  jest jednoprocesowy, więc zawieszony serwer poczty blokuje aplikację
+  wszystkim użytkownikom na czas tego limitu.
+
+**Sprawdzenie po włączeniu** — nie wierz konfiguracji, wyślij:
+
+```bash
+flyctl ssh console --app dzik-os-panel -C "python -c \"
+from dzik_os.notifications_provider import provider
+print(provider.name)
+print(provider.send_email(to='twoj@adres.pl', subject='Dzik OS — proba',
+                          body='Jesli to czytasz, poczta dziala.'))\""
+```
+
+Oczekiwane: `smtp` i `True` oraz list w skrzynce. `null` znaczy, że
+`DZIK_SMTP_HOST` nie doszło do procesu.
+
+**Co jedzie w treści:** wyłącznie neutralne komunikaty — nigdy dane
+zdrowotne ani kwoty (`docs/POWIADOMIENIA.md`). Adres, temat i treść
+**nie trafiają do logów**.
