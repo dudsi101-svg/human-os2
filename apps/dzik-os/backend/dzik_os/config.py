@@ -98,6 +98,13 @@ class Settings:
     public_base_url: str = field(default_factory=lambda: _env("DZIK_PUBLIC_URL", ""))
     # AI jest opcjonalne i domyślnie WYŁĄCZONE — aplikacja działa w pełni bez AI.
     ai_enabled: bool = field(default_factory=lambda: _env("DZIK_AI_ENABLED", "false") == "true")
+    # Klucz dostawcy WYŁĄCZNIE ze środowiska (sekret Fly) — nigdy w repo.
+    # Sam klucz bez DZIK_AI_ENABLED=true niczego nie włącza: uruchomienie
+    # AI wymaga podwójnej, świadomej decyzji operatora.
+    ai_api_key: str = field(default_factory=lambda: _env("DZIK_AI_API_KEY", ""))
+    ai_model: str = field(default_factory=lambda: _env("DZIK_AI_MODEL", "claude-opus-5"))
+    # Górny limit tokenów JEDNEJ odpowiedzi modelu (kontrola kosztów).
+    ai_max_tokens: int = field(default_factory=lambda: int(_env("DZIK_AI_MAX_TOKENS", "4000")))
     # Limit czasu JEDNEGO wywołania dostawcy modelu. Po nim rozmowa schodzi
     # do trybu formularza z jawnym komunikatem (nigdy wieczny spinner).
     ai_timeout_s: int = field(default_factory=lambda: int(_env("DZIK_AI_TIMEOUT_S", "20")))

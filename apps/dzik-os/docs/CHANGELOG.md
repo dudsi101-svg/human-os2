@@ -1,5 +1,35 @@
 # Changelog — Dzik OS
 
+## 0.45.0 — 2026-08-24
+
+**Dostawca AI: cztery funkcje na jednym kluczu.**
+
+* **`AnthropicAIProvider`** (oficjalne SDK `anthropic`) implementuje cały
+  kontrakt `AIProvider`: podsumowanie raportu z twardym schematem
+  {summary, draft_response, flags}, `propose_json` (instrukcje i dane
+  użytkownika osobnymi kanałami — ochrona przed wstrzyknięciem z
+  wołających zostaje), `propose_json_from_image` (vision dla OCR:
+  jedzie wyłącznie zdjęcie + rodzaj zadania). Model domyślnie
+  `claude-opus-5` (`DZIK_AI_MODEL`), adaptacyjne myślenie.
+* **Odblokowane funkcje** (żadna nie wymagała zmiany — czekały na
+  dostawcę): OCR etykiet, odczyt opisów ćwiczeń, onboarding wspierany
+  AI, asystent trenera. Ich bramki zgód (`funkcje_ai`), limity dzienne
+  i walidacja schematów pozostają jedynym wejściem.
+* **Włączenie wymaga OBU naraz:** `DZIK_AI_ENABLED=true` i
+  `DZIK_AI_API_KEY` (sekret) — sam klucz niczego nie uruchamia. Bez
+  konfiguracji zachowanie dokładnie dotychczasowe (Null). Instrukcja:
+  `DEPLOYMENT.md` §4d.
+* **Błąd dostawcy nigdy nie wybucha:** limit/5xx/sieć → `None` → UI
+  schodzi do trybu lokalnego/formularza. W logach wyłącznie klasa
+  wyjątku i liczniki tokenów — zero treści i PII (wzorzec SMTP).
+* **Uruchomione na żywo z atrapą modelu** (klient wstrzykiwalny — żadne
+  wywołanie nie opuściło środowiska): bez klucza → `engine: LOCAL`
+  z jawnym powodem; odpowiedź niezgodna ze schematem → odrzucona
+  z powodem i fallback lokalny; odpowiedź zgodna → **`engine: EXTENDED`**
+  przechodzi całą ścieżką do propozycji dla trenera. **Prawdziwe
+  wywołanie modelu nigdy się nie wykonało** — wymaga klucza właściciela;
+  po włączeniu sprawdzić wg §4d.
+
 ## 0.44.0 — 2026-08-23
 
 **Kreator diety: tygodniowa propozycja z procentowego rozkładu makro.**

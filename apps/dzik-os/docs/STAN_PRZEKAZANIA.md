@@ -1,6 +1,6 @@
 # Stan przekazania — przeczytaj przed rozpoczęciem rundy
 
-**Aktualizacja:** 2026-08-23 · **Wersja w `main`:** 0.44.0
+**Aktualizacja:** 2026-08-24 · **Wersja w `main`:** 0.45.0
 **Tryb pracy:** jeden piszący i jeden PR `[WRITER]` naraz
 (`KOORDYNACJA.md`, zasada nadrzędna).
 
@@ -90,7 +90,7 @@ nie uruchamiano, ponieważ runda nie zmienia kodu ani zasobów frontendu.
 |---|---|---|
 | **Sekrety SMTP** | kod gotowy (0.42.0); do uruchomienia poczty właściciel ustawia `DZIK_SMTP_HOST`/`USER`/`PASSWORD`/`FROM` jako sekrety Fly — bez nich reset hasła pozostaje martwy (klient bez drogi powrotu, jedyna alternatywa: ponowne zaproszenie od trenera) | `flyctl secrets set` |
 | **Testy OCR** | dwa testy „bez Tesseracta” nie izolują założenia i czerwienią się, gdy binarka jest zainstalowana; poprawić w osobnym małym PR | `backend/tests/test_ocr.py` |
-| **Dostawca AI** | zaplanowany, **nierozpoczęty**. Istnieje wyłącznie `NullAIProvider`; kontrakt gotowy, cztery miejsca już go wołają | `backend/dzik_os/ai_provider.py` |
+| **Dostawca AI** | **ZAIMPLEMENTOWANY (0.45.0)** — `AnthropicAIProvider`; do uruchomienia na produkcji brakuje wyłącznie sekretów właściciela (`DZIK_AI_API_KEY` + `DZIK_AI_ENABLED=true`, `DEPLOYMENT.md` §4d); prawdziwe wywołanie modelu nigdy się nie wykonało | `backend/dzik_os/ai_provider.py` |
 | Klucz API | właściciel go ma; **musi trafić do sekretu**, nigdy do czatu ani repozytorium | `DZIK_AI_API_KEY` + `DZIK_AI_ENABLED=true` |
 | Decyzja o `extra="forbid"` | przygotowana analiza, **decyzja należy do właściciela** | `BRAMKA_GO_NOGO.md` §4 |
 | Wyniesienie kopii zapasowych poza Fly | czeka na wybór dostawcy magazynu | `ODZYSKIWANIE.md` §5 |
@@ -114,12 +114,7 @@ Kolejność jest propozycją; właściciel może ją zmienić w dowolnym momenci
    Tesseracta") + testy stref/DST z datami absolutnymi (16.09, 25.10.2026)
    — ta sama kuracja co cztery naprawione w 0.41.0; do tego stara fraza
    „jedna-sesja-naraz" w `KARTA_WSPOLPRACY.md` (linia ~191).
-3. **Dostawca AI.** Jedyna zmiana odblokowująca **cztery istniejące
-   funkcje naraz** (OCR, odczyt opisu ćwiczenia, onboarding, asystent)
-   zamiast dokładania piątej. Szczegóły:
-   `docs/plan-sesji/dzik-os-personal-trainer-app.md` §4.
-   Konsultacja rozstrzygnięta (K-000): **obszar w całości produktowy.**
-4. **Przygotowanie pilotażu** — usunięcie `DZIK_SEED_DEMO` z `fly.toml`
+3. **Przygotowanie pilotażu** — usunięcie `DZIK_SEED_DEMO` z `fly.toml`
    (zasiewa konta ze znanymi hasłami), zmiana haseł, jedno odtworzenie
    kopii **na produkcji**.
 
