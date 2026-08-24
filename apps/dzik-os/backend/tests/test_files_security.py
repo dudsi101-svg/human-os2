@@ -164,9 +164,20 @@ def test_corrupt_image_rejected(seeded):
 
 # --- Podpinanie plików do zasobów -----------------------------------------
 
+def _poniedzialek_files(tygodni_naprzod: int) -> str:
+    """Przyszły poniedziałek względem local_today — patrz komentarz przy
+    bliźniaczym helperze w test_checkin_rating_and_dashboard."""
+    from datetime import timedelta
+
+    from dzik_os.dates import local_today
+    dzis = local_today()
+    poniedzialek = dzis - timedelta(days=dzis.isoweekday() - 1)
+    return (poniedzialek + timedelta(weeks=tygodni_naprzod)).isoformat()
+
+
 def _submit_checkin(client, headers, photo_ids):
     return client.post("/api/checkins", headers=headers, json={
-        "week_start": "2026-08-17", "photo_ids": photo_ids,
+        "week_start": _poniedzialek_files(2), "photo_ids": photo_ids,
     })
 
 

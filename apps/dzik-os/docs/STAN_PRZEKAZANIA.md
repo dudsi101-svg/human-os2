@@ -1,6 +1,6 @@
 # Stan przekazania — przeczytaj przed rozpoczęciem rundy
 
-**Aktualizacja:** 2026-08-23 · **Wersja w `main`:** 0.43.1
+**Aktualizacja:** 2026-08-23 · **Wersja w `main`:** 0.44.0
 **Tryb pracy:** jeden piszący i jeden PR `[WRITER]` naraz
 (`KOORDYNACJA.md`, zasada nadrzędna).
 
@@ -33,12 +33,19 @@ pierwszy commit, draft PR `[WRITER]`, reszta agentów read-only.
 jednym prawdziwym klientem, **NO-GO na szerszą produkcję** — siedem
 blokerów wypisanych w §5 tamtego dokumentu.
 
-**Ostatnia runda (0.43.0, gałąź `agent/pilotaz`):** repozytorium gotowe do
-pilotażu — `fly.toml` na `production` bez seeda, destrukcyjny workflow
-reset-demo usunięty, `python -m dzik_os.bootstrap` (pierwsze konto
-COACH/ADMIN na pustej bazie) i `python -m dzik_os.purge_demo`
-(dezaktywacja kont demo z bezpiecznikiem) — oba uruchomione na żywo,
-osiem scenariuszy zgodnych z projektem.
+**Ostatnia runda (0.44.0, gałąź `agent/kreator-diety`):** kreator diety —
+`POST /coach/diet-wizard` (procentowy rozkład makro, 2–6 posiłków,
+1–7 dni, wykluczenia, budżet czasu, regułowe sugestie przyrządzenia;
+gramatura układem 3×3, na żywo: śr. 2174/2200 kcal i makra w punkt)
++ zakładka „Kreator diety" z „Utwórz plan żywieniowy" przez istniejące
+`POST /nutrition`. Katalog: 409 pozycji — cel „200 najpopularniejszych"
+był już spełniony. Propose-only pilnowane testem.
+
+**Rundy 0.43.x:** repozytorium gotowe do pilotażu — `fly.toml` na
+`production` bez seeda, workflow reset-demo usunięty, `bootstrap`
+i `purge_demo` (uruchomione na żywo); poprawne linki https w e-mailach
+(`DZIK_PUBLIC_URL` + proxy-headers), ścieżka zaproszeń zweryfikowana
+end-to-end na żywym SMTP.
 
 **Runda 0.42.0:** poczta wychodząca (`SMTPNotificationProvider` —
 bloker nr 4 GO/NO-GO zamknięty w kodzie; sekrety SMTP ustawia właściciel)

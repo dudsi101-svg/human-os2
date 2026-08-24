@@ -850,6 +850,49 @@ export interface DietSuggestionResult {
   disclaimer?: string;
 }
 
+// --- Kreator diety (propozycja dnia/tygodnia — propose-only) ---
+
+export interface DietWizardEntry {
+  product_id: string;
+  name: string;
+  category: string;
+  grams: number;
+  kcal: number;
+  protein_g: number;
+  fat_g: number;
+  carbs_g: number;
+  units: number | null;
+  unit_name: string | null;
+}
+
+export interface DietWizardMeal {
+  name: string;
+  kcal_share: number;
+  entries: DietWizardEntry[];
+  totals: { kcal: number; protein_g: number; fat_g: number; carbs_g: number };
+  prep_minutes: number;
+  prep_suggestion: string;
+}
+
+export interface DietWizardDay {
+  day_no: number;
+  meals: DietWizardMeal[];
+  totals: { kcal: number; protein_g: number; fat_g: number; carbs_g: number };
+}
+
+export interface DietWizardResult {
+  target: { kcal: number; protein_g: number; fat_g: number; carbs_g: number };
+  days: DietWizardDay[];
+  daily_average: { kcal: number; protein_g: number; fat_g: number; carbs_g: number };
+  warnings: string[];
+  disclaimer: string;
+  nutrition_plan_content: {
+    kcal: number; protein_g: number; fat_g: number; carbs_g: number;
+    sections: { title: string; body: string }[];
+    meals: { name: string; description: string; swaps: string }[];
+  };
+}
+
 // --- Wspólne wyzwania (moduł prywatny — tylko zaproszeni) ---
 
 export interface ChallengeBase {

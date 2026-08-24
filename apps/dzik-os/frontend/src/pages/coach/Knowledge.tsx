@@ -38,7 +38,9 @@ import {
   useFoodCatalog,
 } from "../../FoodCatalog";
 import {
+  CoachClientRow,
   DietSuggestionResult,
+  DietWizardResult,
   EXERCISE_LEVEL_LABELS,
   ExerciseLibraryItem,
   FoodImportResult,
@@ -52,10 +54,11 @@ import {
   muscleLabels,
 } from "../../types";
 
-type Tab = "artykuly" | "cwiczenia" | "produkty" | "dieta";
+type Tab = "artykuly" | "cwiczenia" | "produkty" | "dieta" | "kreator";
 const TABS: [Tab, string][] = [
   ["artykuly", "Artykuły"], ["cwiczenia", "Ćwiczenia"],
   ["produkty", "Produkty"], ["dieta", "Kompozytor diety"],
+  ["kreator", "Kreator diety"],
 ];
 
 export default function Knowledge() {
@@ -69,6 +72,7 @@ export default function Knowledge() {
         {tab === "cwiczenia" && <ExercisesTab />}
         {tab === "produkty" && <ProductsTab />}
         {tab === "dieta" && <DietComposerTab />}
+        {tab === "kreator" && <DietWizardTab />}
       </TabPanel>
     </div>
   );
@@ -1607,6 +1611,244 @@ function DietComposerTab() {
         ))}
       </div>
       <FoodLoadMore catalog={catalog} />
+    </>
+  );
+}
+
+function DietWizardTab() {
+  const catalog = useFoodCatalog("/api/coach/food-products");
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [form, setForm] = useState({
+    kcal: "2200", protein: "30", fat: "25", carbs: "45",
+    meals: "4", days: "7", maxPrep: "",
+  });
+  const [excluded, setExcluded] = useState<Set<string>>(new Set());
+  const [result, setResult] = useState<DietWizardResult | null>(null);
+  const [clients, setClients] = useState<CoachClientRow[]>([]);
+  const [clientId, setClientId] = useState("");
+  const [planTitle, setPlanTitle] = useState("Propozycja z kreatora diety");
+  const [planMsg, setPlanMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    api.get<{ clients: CoachClientRow[] }>("/api/coach/clients")
+      .then((r) => setClients(r.clients))
+      .catch(() => setClients([]));
+  }, []);
+
+  const macroSum =
+    (Number(form.protein) || 0) + (Number(form.fat) || 0) + (Number(form.carbs) || 0);
+
+  function toggleCategory(cat: string) {
+    const next = new Set(excluded);
+    if (next.has(cat)) next.delete(cat);
+    else next.add(cat);
+    setExcluded(next);
+  }
+
+  async function generate() {
+    setBusy(true);
+    setError(null);
+    setResult(null);
+    setPlanMsg(null);
+    try {
+      const r = await api.post<DietWizardResult>("/api/coach/diet-wizard", {
+        target_kcal: Number(form.kcal) || 0,
+        protein_percent: Number(form.protein) || 0,
+        fat_percent: Number(form.fat) || 0,
+        carbs_percent: Number(form.carbs) || 0,
+        meals_per_day: Number(form.meals) || 3,
+        days: Number(form.days) || 1,
+        excluded_categories: Array.from(excluded),
+        max_prep_minutes: form.maxPrep ? Number(form.maxPrep) : null,
+      });
+      setResult(r);
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function createPlan() {
+    if (!result || !clientId) return;
+    setBusy(true);
+    setPlanMsg(null);
+    try {
+      const c = result.nutrition_plan_content;
+      const r = await api.post<{ id: string; version_no: number }>("/api/nutrition", {
+        client_id: clientId,
+        title: planTitle || "Propozycja z kreatora diety",
+        version: {
+          reason: "Utworzono z kreatora diety (propozycja przejrzana przez trenera)",
+          kcal: Math.round(c.kcal),
+          protein_g: Math.round(c.protein_g),
+          fat_g: Math.round(c.fat_g),
+          carbs_g: Math.round(c.carbs_g),
+          sections: c.sections,
+          meals: c.meals,
+          supplements: [],
+        },
+      });
+      setPlanMsg(`Plan utworzony (${r.id}, wersja ${r.version_no}).`);
+    } catch (err) {
+      setPlanMsg(`Nie udało się utworzyć planu: ${(err as Error).message}`);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <>
+      <ErrorBox error={error} />
+      <div className="card card--accent">
+        <h2>Kreator diety</h2>
+        <p className="dim" style={{ marginTop: -6, fontSize: "0.85rem" }}>
+          Regułowa propozycja dnia lub tygodnia z Twojego katalogu: procentowy
+          rozkład makro, liczba posiłków, wykluczenia i budżet czasu na
+          posiłek. To propozycja — przejrzyj, dostosuj i dopiero wtedy utwórz
+          z niej plan dla klienta.
+        </p>
+        <div className="field-row">
+          <div><label htmlFor="dw-kcal">Cel kcal / dzień</label>
+            <input id="dw-kcal" type="number" min="800" max="8000" value={form.kcal}
+              onChange={(e) => setForm({ ...form, kcal: e.target.value })} /></div>
+          <div><label htmlFor="dw-meals">Posiłków dziennie</label>
+            <select id="dw-meals" value={form.meals}
+              onChange={(e) => setForm({ ...form, meals: e.target.value })}>
+              {["2", "3", "4", "5", "6"].map((n) => <option key={n}>{n}</option>)}
+            </select></div>
+          <div><label htmlFor="dw-days">Dni</label>
+            <select id="dw-days" value={form.days}
+              onChange={(e) => setForm({ ...form, days: e.target.value })}>
+              {["1", "2", "3", "4", "5", "6", "7"].map((n) => <option key={n}>{n}</option>)}
+            </select></div>
+        </div>
+        <div className="field-row">
+          <div><label htmlFor="dw-protein">Białko (%)</label>
+            <input id="dw-protein" type="number" min="5" max="60" value={form.protein}
+              onChange={(e) => setForm({ ...form, protein: e.target.value })} /></div>
+          <div><label htmlFor="dw-fat">Tłuszcz (%)</label>
+            <input id="dw-fat" type="number" min="10" max="60" value={form.fat}
+              onChange={(e) => setForm({ ...form, fat: e.target.value })} /></div>
+          <div><label htmlFor="dw-carbs">Węglowodany (%)</label>
+            <input id="dw-carbs" type="number" min="5" max="75" value={form.carbs}
+              onChange={(e) => setForm({ ...form, carbs: e.target.value })} /></div>
+          <div><label htmlFor="dw-prep">Maks. czas posiłku (min)</label>
+            <input id="dw-prep" type="number" min="5" max="180" value={form.maxPrep}
+              placeholder="bez limitu"
+              onChange={(e) => setForm({ ...form, maxPrep: e.target.value })} /></div>
+        </div>
+        <p className={macroSum === 100 ? "dim" : "alert alert--warn"}
+          style={{ fontSize: "0.85rem" }}>
+          Suma makro: {macroSum}% {macroSum === 100 ? "✓" : "— musi wynosić 100%"}
+        </p>
+        {catalog.categories.length > 0 && (
+          <>
+            <label>Wyklucz kategorie (preferencje klienta)</label>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+              {catalog.categories.map((cat) => (
+                <label key={cat} className="badge"
+                  style={{ cursor: "pointer", opacity: excluded.has(cat) ? 1 : 0.6 }}>
+                  <input type="checkbox" checked={excluded.has(cat)}
+                    onChange={() => toggleCategory(cat)}
+                    style={{ marginRight: 4 }}
+                    aria-label={`Wyklucz kategorię: ${cat}`} />
+                  {cat}
+                </label>
+              ))}
+            </div>
+          </>
+        )}
+        <div style={{ marginTop: 10 }}>
+          <button className="btn btn--small" disabled={busy || macroSum !== 100}
+            onClick={generate}>
+            {busy ? "Układanie…" : "Ułóż propozycję"}
+          </button>
+        </div>
+      </div>
+
+      {result && (
+        <>
+          {result.warnings.map((w, i) => (
+            <p className="alert alert--warn" key={i}>{w}</p>
+          ))}
+          <div className="card">
+            <h2>Średnio dziennie vs cel</h2>
+            <div className="stat-grid">
+              <div className="stat"><b>{result.daily_average.kcal}</b>
+                <span>kcal (cel {result.target.kcal})</span></div>
+              <div className="stat"><b>{result.daily_average.protein_g} g</b>
+                <span>białko (cel {result.target.protein_g})</span></div>
+              <div className="stat"><b>{result.daily_average.fat_g} g</b>
+                <span>tłuszcz (cel {result.target.fat_g})</span></div>
+              <div className="stat"><b>{result.daily_average.carbs_g} g</b>
+                <span>węgle (cel {result.target.carbs_g})</span></div>
+            </div>
+          </div>
+          {result.days.map((d) => (
+            <div className="card" key={d.day_no}>
+              <h2>Dzień {d.day_no}
+                <span className="dim" style={{ fontWeight: 400, fontSize: "0.8rem" }}>
+                  {" "}· {d.totals.kcal} kcal · B {d.totals.protein_g} g ·
+                  T {d.totals.fat_g} g · W {d.totals.carbs_g} g
+                </span>
+              </h2>
+              {d.meals.map((m) => (
+                <div className="exercise" key={m.name} style={{ alignItems: "start" }}>
+                  <div>
+                    <b>{m.name}</b>
+                    <span className="badge" style={{ marginLeft: 6 }}>
+                      ~{m.prep_minutes} min
+                    </span>
+                    <div className="meta">
+                      {m.entries.map((e) =>
+                        `${e.name} ${e.grams} g` +
+                        (e.units && e.unit_name ? ` (~${e.units} ${e.unit_name})` : "")
+                      ).join(" · ")}
+                    </div>
+                    <div className="meta">Przygotowanie: {m.prep_suggestion}</div>
+                    <div className="meta">
+                      {m.totals.kcal} kcal · B {m.totals.protein_g} g ·
+                      T {m.totals.fat_g} g · W {m.totals.carbs_g} g
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ))}
+          <div className="card card--accent">
+            <h2>Utwórz plan żywieniowy z propozycji</h2>
+            <p className="dim" style={{ marginTop: -6, fontSize: "0.85rem" }}>
+              Plan powstaje dopiero po Twojej decyzji — posiłki trafią do nowej
+              wersji planu klienta, którą możesz dalej edytować.
+            </p>
+            <div className="field-row">
+              <div><label htmlFor="dw-client">Klient</label>
+                <select id="dw-client" value={clientId}
+                  onChange={(e) => setClientId(e.target.value)}>
+                  <option value="">— wybierz —</option>
+                  {clients.map((c) => (
+                    <option key={c.client_id} value={c.client_id}>
+                      {c.display_name}
+                    </option>
+                  ))}
+                </select></div>
+              <div><label htmlFor="dw-title">Tytuł planu</label>
+                <input id="dw-title" value={planTitle} maxLength={300}
+                  onChange={(e) => setPlanTitle(e.target.value)} /></div>
+            </div>
+            <div style={{ marginTop: 8 }}>
+              <button className="btn btn--small" disabled={busy || !clientId}
+                onClick={createPlan}>
+                Utwórz plan żywieniowy
+              </button>
+            </div>
+            {planMsg && <p className="dim" style={{ fontSize: "0.85rem" }}>{planMsg}</p>}
+          </div>
+          <FoodDisclaimer text={result.disclaimer} />
+        </>
+      )}
     </>
   );
 }
