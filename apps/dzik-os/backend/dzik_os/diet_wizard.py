@@ -1,4 +1,6 @@
-"""Kreator diety: tygodniowa PROPOZYCJA posiłków z katalogu produktów.
+"""Kreator diety v2: tygodniowa PROPOZYCJA posiłków komponowana wg zasad
+uznanych wzorców żywieniowych (śródziemnomorski / DASH), z katalogu
+trenera dopełnianego jawnie z wbudowanej bazy.
 
 Granica roli (Human OS): kreator wyłącznie proponuje — trener przegląda,
 edytuje i świadomie tworzy z propozycji plan żywieniowy. Nic nie zapisuje
@@ -7,25 +9,33 @@ się samo, żadna propozycja nie trafia do klienta bez decyzji człowieka.
 Zasady konstrukcji:
 
 * **Deterministycznie.** Te same wejścia dają tę samą propozycję —
-  zmienność między dniami pochodzi z jawnej rotacji puli produktów po
-  indeksie dnia, nie z losowości. Propozycję da się odtworzyć i wyjaśnić.
-* **Regułowo, bez AI.** Dobór po dominującym makro i dopasowaniu
-  kategorii do pory dnia; sugestia przyrządzenia składana z reguł per
-  kategoria. Zero wywołań zewnętrznych.
-* **Braki są ostrzeżeniami, nigdy wyjątkami** — wzorzec z istniejącej
-  Sugestii diety (`diet_suggestion`).
-* **Makro domykane sekwencyjnie:** najpierw źródło białka, potem jego
-  wkład tłuszczu/węgli odejmuje się od pozostałych celów, itd. Dzięki
-  temu sumy dnia lądują blisko celu zamiast systematycznie go przebijać.
+  zmienność między dniami pochodzi z jawnej rotacji po indeksie dnia.
+* **Regułowo, bez AI.** Zero wywołań zewnętrznych.
+* **Kompozycja, nie tylko arytmetyka** (v2, po zrzutach z produkcji
+  24.08): każdy główny posiłek to źródło białka + węgli + tłuszczu
+  (solver 3×3) PLUS dodatek warzywny/owocowy w stałej rozsądnej porcji —
+  wzorzec śródziemnomorski/DASH: warzywa lub owoce w każdym posiłku,
+  ryby i strączkowe premiowane w rotacji obiadowej. Makra dodatku
+  odejmują się od celów slotu przed solverem, więc sumy dnia nadal
+  trafiają cel.
+* **Katalog trenera jest pierwszy, wbudowana baza dopełnia.** Gdy
+  w katalogu trenera brakuje źródła makro dla slotu, kandydat pochodzi
+  z wbudowanej bazy i jest JAWNIE oznaczony (`source: "builtin"`) —
+  propozycja nigdy nie wychodzi kaleka, a trener widzi, czego nie ma
+  u siebie (pierwszy prawdziwy katalog dał posiłki z samych wafli
+  ryżowych i 1168 kcal na cel 2200).
+* **Ostrzeżenia są zbiorcze** — deduplikacja po (slot, problem)
+  z licznikiem dni; 28 żółtych boxów ze zrzutu to był błąd UX.
+* **Braki są ostrzeżeniami, nigdy wyjątkami.**
 """
 
 from __future__ import annotations
 
+from collections import Counter
 from dataclasses import dataclass, field
 from typing import Any
 
 #: Sloty posiłków wg liczby posiłków dziennie: (nazwa, waga kcal).
-#: Wagi w obrębie zestawu sumują się do 1.0.
 SLOTY: dict[int, tuple[tuple[str, float], ...]] = {
     2: (("Śniadanie", 0.45), ("Obiadokolacja", 0.55)),
     3: (("Śniadanie", 0.30), ("Obiad", 0.40), ("Kolacja", 0.30)),
@@ -37,8 +47,7 @@ SLOTY: dict[int, tuple[tuple[str, float], ...]] = {
         ("Podwieczorek", 0.10), ("Kolacja", 0.20), ("Przekąska", 0.10)),
 }
 
-#: Kategorie katalogu pasujące do pory dnia. Slot spoza mapy (i pusta
-#: pula po filtrze) wraca do pełnej puli — z ostrzeżeniem, nie wyjątkiem.
+#: Kategorie katalogu pasujące do pory dnia (porównanie znormalizowane).
 SLOT_KATEGORIE: dict[str, tuple[str, ...]] = {
     "Śniadanie": ("Nabiał", "Jaja", "Zboża i pieczywo", "Owoce",
                   "Orzechy i nasiona", "Tłuszcze i oleje"),
@@ -57,14 +66,31 @@ SLOT_KATEGORIE: dict[str, tuple[str, ...]] = {
                   "Odżywki i suplementy"),
 }
 
-#: Szacunkowy czas przygotowania per kategoria (minuty). Jawnie heurystyka
-#: — „szacunek wg kategorii składników", nie pomiar. Montaż posiłku
-#: doliczany osobno.
+#: Dodatek kompozycyjny per slot: (kategoria, gramy). Warzywa do posiłków
+#: głównych, owoc do śniadań i przekąsek — stała, rozsądna porcja, której
+#: makra odejmują się od celów slotu przed solverem. Wzorzec
+#: śródziemnomorski/DASH; dodatek jest opcjonalny (brak kategorii w puli
+#: nie generuje ostrzeżenia).
+DODATKI_SLOTU: dict[str, tuple[str, float]] = {
+    "Śniadanie": ("Owoce", 120.0),
+    "II śniadanie": ("Owoce", 100.0),
+    "Obiad": ("Warzywa", 200.0),
+    "Obiadokolacja": ("Warzywa", 200.0),
+    "Podwieczorek": ("Owoce", 100.0),
+    "Kolacja": ("Warzywa", 150.0),
+    "Przekąska": ("Owoce", 100.0),
+}
+
+#: Kategorie premiowane w rotacji białka obiadowego (ryby ≥ raz w tygodniu,
+#: strączkowe często — zalecenia wzorca śródziemnomorskiego).
+PREMIA_OBIADOWA = ("Ryby i owoce morza", "Rośliny strączkowe")
+
+#: Szacunkowy czas przygotowania per kategoria (minuty) — jawna heurystyka.
 CZAS_KATEGORII: dict[str, int] = {
     "Mięso i drób": 25,
     "Ryby i owoce morza": 20,
     "Kasze, ryż i makarony": 20,
-    "Rośliny strączkowe": 15,   # wariant z puszki / szybkie
+    "Rośliny strączkowe": 15,
     "Dania gotowe i fast food": 10,
     "Jaja": 10,
     "Warzywa": 10,
@@ -78,9 +104,8 @@ CZAS_KATEGORII: dict[str, int] = {
     "Napoje": 1,
     "Odżywki i suplementy": 2,
 }
-CZAS_MONTAZU = 5  # minuty na złożenie/podanie, doliczane raz na posiłek
+CZAS_MONTAZU = 5
 
-#: Czasownik przyrządzenia per kategoria — do regułowej sugestii.
 METODA: dict[str, str] = {
     "Mięso i drób": "usmaż lub upiecz",
     "Ryby i owoce morza": "upiecz lub uduś",
@@ -96,15 +121,12 @@ METODA: dict[str, str] = {
     "Odżywki i suplementy": "zmieszaj wg etykiety",
 }
 
-#: Kolejność domykania makro. Ostatnie w kolejności jest najcelniejsze
-#: (zbiera odjęte wkłady wszystkich wcześniejszych pozycji) — a trenerowi
-#: najbardziej zależy na trafieniu białka, więc białko idzie na końcu.
+#: Kolejność domykania makro: ostatnie jest najcelniejsze — białko.
 _MAKRA = ("CARB", "FAT", "PROTEIN")
 _POLE = {"PROTEIN": "protein_100g", "FAT": "fat_100g", "CARB": "carbs_100g"}
-_KCAL_NA_GRAM = {"PROTEIN": 4.0, "FAT": 9.0, "CARB": 4.0}
-#: Górny limit gramatury jednej pozycji w posiłku — porcja większa niż
-#: pół kilograma jednego produktu to znak złego doboru, nie propozycja.
+_NAZWA_MAKRO = {"PROTEIN": "białka", "FAT": "tłuszczu", "CARB": "węglowodanów"}
 MAKS_GRAMY_POZYCJI = 500.0
+MAKS_KROTNOSC_PORCJI = 4.0
 
 
 @dataclass
@@ -121,12 +143,26 @@ class Skladnik:
     unit_name: str | None = None
     unit_grams: float | None = None
     default_portion_g: float | None = None
+    #: "coach" = katalog trenera, "builtin" = wbudowana baza (dopełnienie).
+    source: str = "coach"
 
 
 @dataclass
 class _Wynik:
     dni: list[dict[str, Any]] = field(default_factory=list)
-    ostrzezenia: list[str] = field(default_factory=list)
+    problemy: Counter = field(default_factory=Counter)
+    uzyto_wbudowanej: bool = False
+
+
+def _norm_kat(kategoria: str) -> str:
+    return kategoria.strip().casefold()
+
+
+_SLOT_KATEGORIE_NORM = {
+    slot: {_norm_kat(k) for k in kategorie}
+    for slot, kategorie in SLOT_KATEGORIE.items()
+}
+_PREMIA_NORM = {_norm_kat(k) for k in PREMIA_OBIADOWA}
 
 
 def dominujace_makro(s: Skladnik) -> str:
@@ -142,12 +178,20 @@ def _czas(kategoria: str) -> int:
     return CZAS_KATEGORII.get(kategoria, 10)
 
 
+def _maks_gramy(s: Skladnik) -> float:
+    if s.default_portion_g and s.default_portion_g > 0:
+        return min(MAKS_GRAMY_POZYCJI,
+                   s.default_portion_g * MAKS_KROTNOSC_PORCJI)
+    return MAKS_GRAMY_POZYCJI
+
+
 def _pozycja(s: Skladnik, gramy: float) -> dict[str, Any]:
     gramy = round(min(gramy, MAKS_GRAMY_POZYCJI), 1)
     return {
         "product_id": s.id,
         "name": s.name,
         "category": s.category,
+        "source": s.source,
         "grams": gramy,
         "kcal": round(gramy / 100 * s.kcal_100g, 1),
         "protein_g": round(gramy / 100 * s.protein_100g, 1),
@@ -159,8 +203,6 @@ def _pozycja(s: Skladnik, gramy: float) -> dict[str, Any]:
 
 
 def _sugestia_przyrzadzenia(pozycje: list[dict[str, Any]]) -> str:
-    """Regułowy opis przyrządzenia: po jednej wskazówce na kategorię,
-    w kolejności od najdłuższej obróbki (gotowanie startuje pierwsze)."""
     widziane: dict[str, str] = {}
     for p in sorted(pozycje, key=lambda x: -_czas(x["category"])):
         kat = p["category"]
@@ -172,33 +214,27 @@ def _sugestia_przyrzadzenia(pozycje: list[dict[str, Any]]) -> str:
     return "; ".join(widziane.values()) + "."
 
 
-#: Zdrowa porcja: pozycja nie powinna przekraczać tylu porcji domyślnych
-#: z katalogu. Wyklucza absurdy typu „czosnek 260 g" (porcja ~5 g),
-#: przepuszcza normalne posiłki (jogurt 3×150 g).
-MAKS_KROTNOSC_PORCJI = 4.0
-
-
-def _maks_gramy(s: Skladnik) -> float:
-    """Górny limit gramatury dla produktu: 4× porcja domyślna z katalogu,
-    a bez zadeklarowanej porcji — ogólny limit pozycji."""
-    if s.default_portion_g and s.default_portion_g > 0:
-        return min(MAKS_GRAMY_POZYCJI,
-                   s.default_portion_g * MAKS_KROTNOSC_PORCJI)
-    return MAKS_GRAMY_POZYCJI
-
-
 def _wybierz(
-    grupa: list[Skladnik], obrot: int, cel_g: float, pole: str
+    grupa: list[Skladnik], obrot: int, cel_g: float, pole: str,
+    zajete: set[str] | None = None,
 ) -> Skladnik:
-    """Rotacja po grupie z bezpiecznikiem zdrowej porcji: kandydat, który
-    do pokrycia celu potrzebowałby gramatury ponad własny limit porcji,
-    przegrywa z najbliższym w rotacji, który się mieści."""
+    """Rotacja z bezpiecznikiem zdrowej porcji. Produkty już obecne
+    w posiłku (`zajete`, np. dodatek warzywno-owocowy) przegrywają
+    z każdym wolnym kandydatem — „Banan 120 g + Banan 91 g" w jednym
+    śniadaniu to nie kompozycja."""
+    zajete = zajete or set()
     n = len(grupa)
+    najlepszy_zajety: Skladnik | None = None
     for przesuniecie in range(n):
         s = grupa[(obrot + przesuniecie) % n]
         na_100 = getattr(s, pole)
         if na_100 > 0 and cel_g / na_100 * 100 <= _maks_gramy(s):
-            return s
+            if s.id not in zajete:
+                return s
+            if najlepszy_zajety is None:
+                najlepszy_zajety = s
+    if najlepszy_zajety is not None:
+        return najlepszy_zajety
     return grupa[obrot % n]
 
 
@@ -206,13 +242,11 @@ def _rozwiaz_gramy(
     produkty: dict[str, Skladnik], cele: dict[str, float]
 ) -> dict[str, float] | None:
     """Dokładna gramatura trzech produktów na trzy cele makro naraz —
-    układ równań 3×3 (wzory Cramera, bez zależności zewnętrznych).
-    Zwraca None, gdy układ jest osobliwy albo rozwiązanie wychodzi poza
-    zdrowe granice — wtedy woła się fallback sekwencyjny."""
+    układ 3×3 (Cramer). None przy układzie osobliwym albo rozwiązaniu
+    poza zdrowymi granicami — wtedy fallback sekwencyjny."""
     if set(produkty) != set(_MAKRA):
         return None
     kol = [produkty["CARB"], produkty["FAT"], produkty["PROTEIN"]]
-    # Wiersze: białko / tłuszcz / węgle na GRAM produktu.
     a = [[s.protein_100g / 100 for s in kol],
          [s.fat_100g / 100 for s in kol],
          [s.carbs_100g / 100 for s in kol]]
@@ -239,6 +273,17 @@ def _rozwiaz_gramy(
     return gramy
 
 
+def _pasuje_do_slotu(s: Skladnik, nazwa_slotu: str) -> bool:
+    return _norm_kat(s.category) in _SLOT_KATEGORIE_NORM.get(nazwa_slotu, set())
+
+
+def _grupy_makro(pula: list[Skladnik]) -> dict[str, list[Skladnik]]:
+    grupy: dict[str, list[Skladnik]] = {m: [] for m in _MAKRA}
+    for s in pula:
+        grupy[dominujace_makro(s)].append(s)
+    return grupy
+
+
 def zbuduj_propozycje(
     skladniki: list[Skladnik],
     *,
@@ -250,31 +295,33 @@ def zbuduj_propozycje(
     wykluczone_produkty: set[str] | None = None,
     preferowane_produkty: set[str] | None = None,
     maks_minut_na_posilek: int | None = None,
+    wbudowane: list[Skladnik] | None = None,
 ) -> dict[str, Any]:
     """Buduje propozycję `dni` dni po `posilkow_dziennie` posiłków.
 
-    `procent` to {"protein","fat","carbs"} sumujące się do ~100 —
-    walidacja zakresów należy do warstwy API; tu tylko matematyka.
+    `wbudowane` to opcjonalna wbudowana baza produktów służąca WYŁĄCZNIE
+    do dopełniania braków katalogu trenera — każda taka pozycja jest
+    oznaczona w wyniku (`source: "builtin"`).
     """
-    wykluczone_kategorie = wykluczone_kategorie or set()
+    wykluczone_kategorie_norm = {
+        _norm_kat(k) for k in (wykluczone_kategorie or set())
+    }
     wykluczone_produkty = wykluczone_produkty or set()
     preferowane_produkty = preferowane_produkty or set()
 
+    def _dopuszczony(s: Skladnik) -> bool:
+        return (_norm_kat(s.category) not in wykluczone_kategorie_norm
+                and s.id not in wykluczone_produkty
+                and s.kcal_100g > 0)
+
     wynik = _Wynik()
-    pula = [
-        s for s in skladniki
-        if s.category not in wykluczone_kategorie
-        and s.id not in wykluczone_produkty
-        and s.kcal_100g > 0
-    ]
-    if not pula:
-        wynik.ostrzezenia.append(
-            "Po zastosowaniu wykluczeń pula produktów jest pusta — "
-            "propozycja nie może powstać."
-        )
+    pula = [s for s in skladniki if _dopuszczony(s)]
+    pula_wbudowana = [s for s in (wbudowane or []) if _dopuszczony(s)]
+    if not pula and not pula_wbudowana:
+        wynik.problemy["Po zastosowaniu wykluczeń pula produktów jest "
+                       "pusta — propozycja nie może powstać."] = 1
         return _zloz_wynik(wynik, target_kcal, procent, dni)
 
-    # Cele dnia w gramach (4/9/4 kcal na gram).
     cele_dnia = {
         "PROTEIN": target_kcal * procent["protein"] / 100 / 4,
         "FAT": target_kcal * procent["fat"] / 100 / 9,
@@ -282,65 +329,114 @@ def zbuduj_propozycje(
     }
     sloty = SLOTY[posilkow_dziennie]
 
-    # Preferowane produkty na początek każdej grupy (stabilnie).
     def _kolejnosc(s: Skladnik) -> tuple[int, str]:
         return (0 if s.id in preferowane_produkty else 1, s.id)
+
+    def _kolejnosc_obiadowa(s: Skladnik) -> tuple[int, int, str]:
+        # Ryby i strączkowe na przód rotacji białka obiadowego.
+        return (0 if s.id in preferowane_produkty else 1,
+                0 if _norm_kat(s.category) in _PREMIA_NORM else 1, s.id)
+
+    def _kolejnosc_czasowa(s: Skladnik) -> tuple[int, int, str]:
+        return (0 if s.id in preferowane_produkty else 1,
+                _czas(s.category), s.id)
 
     for dzien_nr in range(1, dni + 1):
         posilki: list[dict[str, Any]] = []
         for slot_nr, (nazwa_slotu, waga) in enumerate(sloty):
-            pasujace_kategorie = SLOT_KATEGORIE.get(nazwa_slotu, ())
-            pula_slotu = [s for s in pula if s.category in pasujace_kategorie]
-            if not pula_slotu:
-                pula_slotu = pula
-                wynik.ostrzezenia.append(
-                    f"Dzień {dzien_nr}, {nazwa_slotu}: brak produktów "
-                    "z kategorii pasujących do pory dnia — użyto pełnej puli."
-                )
-            grupy: dict[str, list[Skladnik]] = {m: [] for m in _MAKRA}
-            for s in pula_slotu:
-                grupy[dominujace_makro(s)].append(s)
-            for grupa in grupy.values():
-                grupa.sort(key=_kolejnosc)
-                if maks_minut_na_posilek is not None:
-                    # Budżet czasu przestawia szybsze produkty na przód —
-                    # preferencje nadal wygrywają w obrębie tego samego czasu.
-                    grupa.sort(key=lambda s: (
-                        0 if s.id in preferowane_produkty else 1,
-                        _czas(s.category), s.id,
-                    ))
-
+            obrot = dzien_nr - 1 + slot_nr
             cele_posilku = {m: cele_dnia[m] * waga for m in _MAKRA}
             pozycje: list[dict[str, Any]] = []
-            obrot = dzien_nr - 1 + slot_nr  # jawna rotacja: dzień + slot
 
-            # Wybór po jednym produkcie na makro (rotacja + zdrowa porcja).
+            trener_slot = [s for s in pula if _pasuje_do_slotu(s, nazwa_slotu)]
+            wbudowana_slot = [
+                s for s in pula_wbudowana if _pasuje_do_slotu(s, nazwa_slotu)
+            ]
+
+            # Dodatek kompozycyjny (warzywo/owoc) — stała porcja, makra
+            # odejmowane od celów slotu. Katalog trenera pierwszy.
+            dodatek_kat, dodatek_g = DODATKI_SLOTU.get(nazwa_slotu, ("", 0.0))
+            if dodatek_kat:
+                kat_norm = _norm_kat(dodatek_kat)
+                kandydaci = ([s for s in pula
+                              if _norm_kat(s.category) == kat_norm]
+                             or [s for s in pula_wbudowana
+                                 if _norm_kat(s.category) == kat_norm])
+                if kandydaci:
+                    kandydaci.sort(key=_kolejnosc)
+                    dodatek = kandydaci[obrot % len(kandydaci)]
+                    if dodatek.source == "builtin":
+                        wynik.uzyto_wbudowanej = True
+                    poz = _pozycja(dodatek, dodatek_g)
+                    pozycje.append(poz)
+                    cele_posilku["PROTEIN"] = max(
+                        0.0, cele_posilku["PROTEIN"] - poz["protein_g"])
+                    cele_posilku["FAT"] = max(
+                        0.0, cele_posilku["FAT"] - poz["fat_g"])
+                    cele_posilku["CARB"] = max(
+                        0.0, cele_posilku["CARB"] - poz["carbs_g"])
+
+            # Źródła makro: katalog trenera (slot) → wbudowana (slot) →
+            # katalog trenera (pełny).
+            grupy_trenera = _grupy_makro(trener_slot)
+            grupy_wbudowanej = _grupy_makro(wbudowana_slot)
+            grupy_pelne = _grupy_makro(pula)
+            grupy_wbudowanej_pelne = _grupy_makro(pula_wbudowana)
+            obiadowy = nazwa_slotu in ("Obiad", "Obiadokolacja")
+            zajete_w_posilku = {p["product_id"] for p in pozycje}
+
             wybrane: dict[str, Skladnik] = {}
             for makro in _MAKRA:
                 if cele_posilku[makro] <= 1.0:
                     continue
-                grupa = grupy[makro]
+                grupa = grupy_trenera[makro]
+                if not grupa and grupy_wbudowanej[makro]:
+                    grupa = grupy_wbudowanej[makro]
+                    wynik.problemy[
+                        f"Brak źródła {_NAZWA_MAKRO[makro]} w Twoim "
+                        "katalogu — uzupełniono z wbudowanej bazy"
+                    ] += 1
+                    wynik.uzyto_wbudowanej = True
+                elif not grupa and grupy_pelne[makro]:
+                    grupa = grupy_pelne[makro]
+                    wynik.problemy[
+                        "Brak produktów pasujących do pory dnia — "
+                        "użyto pełnego katalogu"
+                    ] += 1
+                elif not grupa and grupy_wbudowanej_pelne[makro]:
+                    grupa = grupy_wbudowanej_pelne[makro]
+                    wynik.problemy[
+                        f"Brak źródła {_NAZWA_MAKRO[makro]} w Twoim "
+                        "katalogu — uzupełniono z wbudowanej bazy"
+                    ] += 1
+                    wynik.uzyto_wbudowanej = True
                 if not grupa:
-                    wynik.ostrzezenia.append(
-                        f"Dzień {dzien_nr}, {nazwa_slotu}: brak produktu "
-                        f"z przewagą "
-                        f"{'białka' if makro == 'PROTEIN' else 'tłuszczu' if makro == 'FAT' else 'węglowodanów'}"
-                        " w dopasowanej puli."
-                    )
+                    wynik.problemy[
+                        f"Brak źródła {_NAZWA_MAKRO[makro]} — makro "
+                        "pozostaje niedomknięte"
+                    ] += 1
                     continue
+                if obiadowy and makro == "PROTEIN":
+                    grupa = sorted(grupa, key=_kolejnosc_obiadowa)
+                elif maks_minut_na_posilek is not None:
+                    grupa = sorted(grupa, key=_kolejnosc_czasowa)
+                else:
+                    grupa = sorted(grupa, key=_kolejnosc)
                 wybrane[makro] = _wybierz(
-                    grupa, obrot, cele_posilku[makro], _POLE[makro]
+                    grupa, obrot, cele_posilku[makro], _POLE[makro],
+                    zajete=zajete_w_posilku,
                 )
+                zajete_w_posilku.add(wybrane[makro].id)
 
-            # Najpierw dokładnie: układ 3×3 na wszystkie makro naraz —
-            # wtedy również kcal ląduje w celu (tożsamość 4/9/4).
+            for s in wybrane.values():
+                if s.source == "builtin":
+                    wynik.uzyto_wbudowanej = True
+
             dokladnie = _rozwiaz_gramy(wybrane, cele_posilku)
             if dokladnie is not None:
                 for makro in _MAKRA:
                     pozycje.append(_pozycja(wybrane[makro], dokladnie[makro]))
             else:
-                # Fallback: sekwencyjne domykanie węgle → tłuszcz → białko
-                # z odjęciem wkładów krzyżowych (białko ostatnie = najcelniejsze).
                 pozostalo = dict(cele_posilku)
                 for makro in _MAKRA:
                     s = wybrane.get(makro)
@@ -359,11 +455,11 @@ def zbuduj_propozycje(
             czas = (max((_czas(p["category"]) for p in pozycje), default=0)
                     + (CZAS_MONTAZU if pozycje else 0))
             if maks_minut_na_posilek is not None and czas > maks_minut_na_posilek:
-                wynik.ostrzezenia.append(
-                    f"Dzień {dzien_nr}, {nazwa_slotu}: szacowany czas "
-                    f"{czas} min przekracza budżet {maks_minut_na_posilek} "
-                    "min mimo doboru najszybszych produktów."
-                )
+                wynik.problemy[
+                    f"{nazwa_slotu}: szacowany czas przekracza budżet "
+                    f"{maks_minut_na_posilek} min mimo doboru najszybszych "
+                    "produktów"
+                ] += 1
             posilki.append({
                 "name": nazwa_slotu,
                 "kcal_share": waga,
@@ -405,22 +501,40 @@ def _zloz_wynik(
         }
     else:
         srednia = {k: 0.0 for k in ("kcal", "protein_g", "fat_g", "carbs_g")}
+    # Ostrzeżenia zbiorcze: jeden wpis per problem, z liczbą wystąpień.
+    ostrzezenia = [
+        (f"{tresc} ({ile}×)." if ile > 1 else f"{tresc}.")
+        for tresc, ile in wynik.problemy.items()
+    ]
+    zalecenie = None
+    if wynik.uzyto_wbudowanej:
+        zalecenie = (
+            "Część składników pochodzi z wbudowanej bazy (oznaczone) — "
+            "możesz dograć ją do swojego katalogu jednym przyciskiem "
+            "w zakładce Produkty, żeby edytować wartości i porcje."
+        )
+    elif any("niedomknięte" in o for o in ostrzezenia):
+        zalecenie = (
+            "W katalogu brakuje źródeł niektórych makro — uzupełnij "
+            "produkty albo dograj wbudowaną bazę w zakładce Produkty."
+        )
     return {
         "target": cel,
         "days": wynik.dni,
         "daily_average": srednia,
-        "warnings": wynik.ostrzezenia,
+        "warnings": ostrzezenia,
+        "recommendation": zalecenie,
         "disclaimer": (
-            "To propozycja wygenerowana regułowo z Twojego katalogu — "
-            "przejrzyj, dostosuj i dopiero wtedy utwórz z niej plan."
+            "To propozycja wygenerowana regułowo (kompozycja wg wzorca "
+            "śródziemnomorskiego/DASH) — przejrzyj, dostosuj i dopiero "
+            "wtedy utwórz z niej plan."
         ),
         "nutrition_plan_content": _tresc_planu(wynik.dni, cel),
     }
 
 
 def _tresc_planu(dni: list[dict[str, Any]], cel: dict[str, float]) -> dict[str, Any]:
-    """Kształt zgodny z `content_json` wersji planu żywieniowego —
-    trener tworzy plan istniejącym `POST /nutrition` bez przepisywania."""
+    """Kształt zgodny z `content_json` wersji planu żywieniowego."""
     meals: list[dict[str, Any]] = []
     for d in dni:
         for m in d["meals"]:

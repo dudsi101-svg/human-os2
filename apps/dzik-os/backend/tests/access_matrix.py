@@ -170,6 +170,7 @@ MATRIX: dict[tuple[str, str], Access] = {
     ("GET", "/api/coach/dashboard"): Access.COACH_ONLY,
     ("POST", "/api/coach/diet-suggestion"): Access.COACH_ONLY,
     ("POST", "/api/coach/diet-wizard"): Access.COACH_ONLY,
+    ("POST", "/api/coach/food-products/load-builtin"): Access.COACH_ONLY,
     ("GET", "/api/coach/exercises"): Access.COACH_ONLY,
     ("POST", "/api/coach/exercises"): Access.COACH_ONLY,
     # Wymaga roli COACH (require_role) i niczego nie zapisuje — zwraca

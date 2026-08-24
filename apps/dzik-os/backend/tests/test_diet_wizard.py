@@ -165,3 +165,127 @@ def test_endpoint_requires_coach_role(seeded):
         "carbs_percent": 40,
     })
     assert r.status_code in (401, 403)
+
+
+# --- v2 (0.46.0): wbudowana baza, kompozycja, zbiorcze ostrzeżenia --------
+#
+# Scenariusz ze zrzutów właściciela z produkcji (24.08): ubogi katalog
+# trenera (same produkty węglowodanowe o cudzych kategoriach) dawał
+# posiłki jednoskładnikowe, 1168 kcal na cel 2200 i ścianę 28 ostrzeżeń.
+
+UBOGI_KATALOG = [
+    Skladnik("U1", "Wafle ryżowe", "Moje przekąski", 387, 8, 2.8, 81),
+    Skladnik("U2", "Makaron pełnoziarnisty", "Moje węgle", 350, 13, 2.5, 67),
+]
+
+WBUDOWANA = [
+    Skladnik("builtin:1", "Pierś z kurczaka", "Mięso i drób", 110, 23, 1.5, 0,
+             source="builtin"),
+    Skladnik("builtin:2", "Twaróg półtłusty", "Nabiał", 120, 18, 4, 3,
+             source="builtin"),
+    Skladnik("builtin:3", "Oliwa z oliwek", "Tłuszcze i oleje", 884, 0, 100, 0,
+             source="builtin"),
+    Skladnik("builtin:4", "Ryż biały", "Kasze, ryż i makarony", 345, 7, 0.7, 78,
+             source="builtin"),
+    Skladnik("builtin:5", "Brokuł", "Warzywa", 34, 2.8, 0.4, 7,
+             source="builtin"),
+    Skladnik("builtin:6", "Banan", "Owoce", 89, 1.1, 0.3, 23,
+             source="builtin"),
+    Skladnik("builtin:7", "Łosoś", "Ryby i owoce morza", 208, 20, 13, 0,
+             source="builtin"),
+    Skladnik("builtin:8", "Soczewica, ugotowana", "Rośliny strączkowe",
+             116, 9, 0.4, 20, source="builtin"),
+]
+
+
+def test_poor_catalog_is_completed_from_builtin_and_marked():
+    """Scenariusz z produkcji: propozycja ma być PEŁNA (makra w celu),
+    braki dopełnione z wbudowanej bazy i jawnie oznaczone."""
+    wynik = zbuduj_propozycje(
+        UBOGI_KATALOG, target_kcal=2200.0, procent=PROCENT,
+        posilkow_dziennie=4, dni=7, wbudowane=WBUDOWANA,
+    )
+    cel, srednia = wynik["target"], wynik["daily_average"]
+    assert srednia["kcal"] > cel["kcal"] * 0.8          # nie 1168/2200
+    assert srednia["protein_g"] > cel["protein_g"] * 0.8  # nie 24/165
+    zrodla = {
+        e["source"]
+        for d in wynik["days"] for m in d["meals"] for e in m["entries"]
+    }
+    assert "builtin" in zrodla
+    assert wynik["recommendation"] is not None
+    assert "wbudowanej bazy" in wynik["recommendation"]
+
+
+def test_warnings_are_aggregated_not_a_wall():
+    """28 boxów ze zrzutu to był błąd UX: 7 dni ubogiego katalogu ma dać
+    kilka zbiorczych zdań z licznikami, nie wpis per dzień×slot."""
+    wynik = zbuduj_propozycje(
+        UBOGI_KATALOG, target_kcal=2200.0, procent=PROCENT,
+        posilkow_dziennie=4, dni=7, wbudowane=WBUDOWANA,
+    )
+    assert len(wynik["warnings"]) <= 10
+    assert any("×" in w for w in wynik["warnings"])  # licznik wystąpień
+
+
+def test_meals_contain_vegetable_or_fruit_additions():
+    """Kompozycja wg wzorca śródziemnomorskiego/DASH: obiad z warzywem,
+    śniadanie z owocem — nie sama arytmetyka makro."""
+    wynik = _propozycja(posilkow_dziennie=3, dni=1)
+    dzien = wynik["days"][0]
+    posilki = {m["name"]: m for m in dzien["meals"]}
+    kategorie_obiadu = {e["category"] for e in posilki["Obiad"]["entries"]}
+    kategorie_sniadania = {e["category"] for e in posilki["Śniadanie"]["entries"]}
+    assert "Warzywa" in kategorie_obiadu
+    assert "Owoce" in kategorie_sniadania
+    # posiłki są złożone: 3+ składników w posiłkach głównych
+    assert len(posilki["Obiad"]["entries"]) >= 3
+
+
+def test_lunch_protein_rotation_includes_fish_or_legumes_weekly():
+    """Premia obiadowa: przy dostępnych rybach/strączkowych tygodniowa
+    rotacja białka obiadowego sięga po nie co najmniej raz."""
+    wynik = zbuduj_propozycje(
+        UBOGI_KATALOG, target_kcal=2200.0, procent=PROCENT,
+        posilkow_dziennie=3, dni=7, wbudowane=WBUDOWANA,
+    )
+    obiadowe_kategorie = {
+        e["category"]
+        for d in wynik["days"] for m in d["meals"] if m["name"] == "Obiad"
+        for e in m["entries"]
+    }
+    assert obiadowe_kategorie & {"Ryby i owoce morza", "Rośliny strączkowe"}
+
+
+def test_unknown_category_still_serves_as_macro_source():
+    """Produkt o cudzej kategorii („Moje węgle") nie wypada z gry —
+    działa jako źródło makro po klasyfikacji dominującym makrem."""
+    wynik = zbuduj_propozycje(
+        UBOGI_KATALOG, target_kcal=1800.0,
+        procent={"protein": 15.0, "fat": 15.0, "carbs": 70.0},
+        posilkow_dziennie=2, dni=1,
+    )
+    nazwy = {
+        e["name"] for d in wynik["days"] for m in d["meals"]
+        for e in m["entries"]
+    }
+    assert nazwy & {"Wafle ryżowe", "Makaron pełnoziarnisty"}
+
+
+def test_load_builtin_endpoint_is_idempotent(seeded):
+    """Dogranie wbudowanej bazy: świeży trener dostaje pełny katalog,
+    drugie kliknięcie niczego nie dubluje ani nie nadpisuje."""
+    from conftest import create_user_with_role
+    from conftest import login as _login
+
+    kredki = {"email": "nowy.trener@pilot.pl", "password": "NowyTrener#2026!"}
+    create_user_with_role(kredki["email"], kredki["password"],
+                          "Nowy Trener", "COACH")
+    h = _login(seeded, kredki)
+    r1 = seeded.post("/api/coach/food-products/load-builtin", headers=h)
+    assert r1.status_code == 200
+    assert r1.json()["added"] > 400
+    r2 = seeded.post("/api/coach/food-products/load-builtin", headers=h)
+    assert r2.json()["added"] == 0
+    lista = seeded.get("/api/coach/food-products?limit=1", headers=h).json()
+    assert lista["total"] == r1.json()["added"]

@@ -1171,6 +1171,7 @@ function ProductsTab() {
   const [form, setForm] = useState(EMPTY_PRODUCT_FORM);
   const [busy, setBusy] = useState(false);
   const [importResult, setImportResult] = useState<FoodImportResult | null>(null);
+  const [builtinMsg, setBuiltinMsg] = useState<string | null>(null);
   // Zdjęcie etykiety: identyfikator zadania OCR, z którego pochodzi
   // wstępnie wypełniony formularz. Zapis idzie wtedy ścieżką zatwierdzenia
   // propozycji, żeby produkt niósł proweniencję (skąd wzięły się wartości).
@@ -1258,6 +1259,24 @@ function ProductsTab() {
     }
   }
 
+  async function loadBuiltin() {
+    setBusy(true);
+    setError(null);
+    try {
+      const r = await api.post<{ added: number; skipped: number }>(
+        "/api/coach/food-products/load-builtin", {}
+      );
+      setBuiltinMsg(r.added > 0
+        ? `Dograno ${r.added} pozycji z wbudowanej bazy (${r.skipped} już było).`
+        : "Cała wbudowana baza jest już w Twoim katalogu.");
+      catalog.reload();
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function exportCsv() {
     setError(null);
     try {
@@ -1296,6 +1315,16 @@ function ProductsTab() {
         Baza produktów z makroskładnikami na 100 g — wpisz gramaturę albo liczbę
         sztuk, żeby zobaczyć przeliczone kalorie i makro.
       </p>
+      <div style={{ marginBottom: 8 }}>
+        <button className="btn btn--small" disabled={busy} onClick={loadBuiltin}>
+          Dograj wbudowaną bazę (409 produktów)
+        </button>
+        {builtinMsg && (
+          <p className="dim" style={{ fontSize: "0.85rem" }} role="status">
+            {builtinMsg}
+          </p>
+        )}
+      </div>
       <FoodDisclaimer text={catalog.disclaimer} />
 
       {editing && (
@@ -1773,6 +1802,10 @@ function DietWizardTab() {
           {result.warnings.map((w, i) => (
             <p className="alert alert--warn" key={i}>{w}</p>
           ))}
+          {result.recommendation && (
+            <p className="alert">{result.recommendation} Pozycje z wbudowanej
+              bazy oznaczono znakiem †.</p>
+          )}
           <div className="card">
             <h2>Średnio dziennie vs cel</h2>
             <div className="stat-grid">
@@ -1803,7 +1836,7 @@ function DietWizardTab() {
                     </span>
                     <div className="meta">
                       {m.entries.map((e) =>
-                        `${e.name} ${e.grams} g` +
+                        `${e.name}${e.source === "builtin" ? "†" : ""} ${e.grams} g` +
                         (e.units && e.unit_name ? ` (~${e.units} ${e.unit_name})` : "")
                       ).join(" · ")}
                     </div>
