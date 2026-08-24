@@ -48,8 +48,30 @@ pięciokrotnie bazę składników")
   zasada z BAZA_PRODUKTOW.md zostaje);
 - nie ruszam wartości istniejących 410 pozycji.
 
-## Weryfikacja (do wypełnienia)
+## Weryfikacja (wypełnione 24.08)
 
-- pełne bramki; test spójności nowej bazy; uruchomienie na żywo:
-  gramatury odmierzalne (5/10 g, pół-jednostki), makra dnia w celu,
-  load-builtin dogrywa powiększoną bazę.
+- **Odstępstwo od planu, jawne:** `FOOD_ROWS` NIE jest doklejane — seed
+  demo i round-trip CSV (limit importu 1000 wierszy) zakładają pierwotne
+  410 pozycji (3 testy czerwone przy doklejeniu). Pełna baza idzie nową
+  stałą `FOOD_ROWS_ALL` (= 410 + ext), używaną przez load-builtin
+  i dopełnianie kreatora; seed bez zmian.
+- Baza: **2058 pozycji łącznie** (ext 1648), zero duplikatów po
+  znormalizowanej nazwie (dwie partie autorskie odrzucone w całości jako
+  kolizje — czyszczenie regeneracją pliku + filtr antykolizyjny przy
+  generowaniu ostatnich partii).
+- Pełne bramki z korzenia: ruff czysto (po `--fix` 2×RUF100);
+  backend **809 zaliczonych, 1 pominięty** (w tym 5 nowych testów
+  spójności bazy i 19 kreatora); Core 275; spójność 10 kontroli;
+  mutacje 17/17; mutacje bezpieczeństwa 9/9; frontend tsc+build,
+  helpers, E2E 15/15.
+- Uruchomienie na żywo (uvicorn :8148, seed, `DZIK_MFA_REQUIRED_ROLES=""`;
+  co uruchomiłem i co zobaczyłem): login trenera demo →
+  `POST /coach/food-products/load-builtin` → **added=1649, skipped=409**,
+  katalog total **2058**; `POST /coach/diet-wizard` (2200 kcal, 30/25/45,
+  4 posiłki, 2 dni) → **wszystkie gramatury kuchenne** (kontrola
+  programowa: sztuki wielokrotnością 0,5; gramy %5 poniżej 100 g, %10
+  powyżej; zero odstępstw), dni 2324/2167 kcal, **0 ostrzeżeń** na
+  pełnej bazie, sugestie przyrządzenia obecne.
+- Test kcal↔makra ujawnił i uwzględnił dwie konwencje tabel (błonnik
+  w węglowodanach albo netto — widełki C±błonnik) oraz energię spoza
+  makr (alkohol, poliole — lista wyłączeń po nazwie).

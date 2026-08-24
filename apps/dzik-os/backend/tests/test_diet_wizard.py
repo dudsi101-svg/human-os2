@@ -289,3 +289,18 @@ def test_load_builtin_endpoint_is_idempotent(seeded):
     assert r2.json()["added"] == 0
     lista = seeded.get("/api/coach/food-products?limit=1", headers=h).json()
     assert lista["total"] == r1.json()["added"]
+
+
+def test_grams_are_kitchen_measurable():
+    """Feedback z produkcji: „316,4 g" nikt nie odważy. Bez jednostki —
+    wielokrotność 5 g (<100 g) albo 10 g; z jednostką — pół-sztuki."""
+    wynik = _propozycja(posilkow_dziennie=4, dni=7)
+    for d in wynik["days"]:
+        for m in d["meals"]:
+            for e in m["entries"]:
+                if e["units"] is not None:
+                    assert (e["units"] * 2) == int(e["units"] * 2)  # pół-sztuki
+                elif e["grams"] < 100:
+                    assert e["grams"] % 5 == 0, e
+                else:
+                    assert e["grams"] % 10 == 0, e

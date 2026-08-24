@@ -29,7 +29,7 @@ from ..authz import require_owned_resource
 from ..config import settings
 from ..db import get_db
 from ..diet_wizard import Skladnik, zbuduj_propozycje
-from ..food_catalog_data import FOOD_DISCLAIMER, FOOD_ROWS, FOOD_SOURCE
+from ..food_catalog_data import FOOD_DISCLAIMER, FOOD_ROWS_ALL, FOOD_SOURCE
 from ..hos_bridge import record_event
 from ..models import CoachClientRelationship, FoodProduct, User, new_id, now_iso
 from ..schemas import DietSuggestionIn, DietWizardIn, FoodProductIn, PortionCalcIn
@@ -554,7 +554,7 @@ def _skladniki_wbudowane() -> list[Skladnik]:
             unit_grams=f.unit_grams, default_portion_g=f.portion_g,
             source="builtin",
         )
-        for i, f in enumerate(FOOD_ROWS)
+        for i, f in enumerate(FOOD_ROWS_ALL)
     ]
 
 
@@ -573,7 +573,7 @@ def load_builtin_food_products(
         .all()
     }
     dodane = 0
-    for food in FOOD_ROWS:
+    for food in FOOD_ROWS_ALL:
         if normalize_name(food.name) in istniejace:
             continue
         db.add(FoodProduct(
@@ -596,7 +596,7 @@ def load_builtin_food_products(
         db.commit()
     return {
         "added": dodane,
-        "skipped": len(FOOD_ROWS) - dodane,
+        "skipped": len(FOOD_ROWS_ALL) - dodane,
         "disclaimer": FOOD_DISCLAIMER,
     }
 
