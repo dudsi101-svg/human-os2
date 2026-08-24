@@ -290,3 +290,34 @@ Oczekiwane: `smtp` i `True` oraz list w skrzynce. `null` znaczy, że
 **Co jedzie w treści:** wyłącznie neutralne komunikaty — nigdy dane
 zdrowotne ani kwoty (`docs/POWIADOMIENIA.md`). Adres, temat i treść
 **nie trafiają do logów**.
+
+### 4d. Funkcje AI (opcjonalne, domyślnie WYŁĄCZONE)
+
+Bez konfiguracji aplikacja działa w pełni — cztery funkcje AI (OCR
+etykiet, odczyt opisów ćwiczeń, onboarding wspierany AI, asystent
+trenera) pokazują wtedy jawnie „wymaga konfiguracji" i pracują w trybie
+lokalnym/formularza. Włączenie wymaga **obu naraz** (sam klucz niczego
+nie uruchamia):
+
+```bash
+flyctl secrets set \
+  DZIK_AI_API_KEY='sk-ant-…' \
+  DZIK_AI_ENABLED=true \
+  --app dzik-os-panel
+```
+
+* Dostawca: Anthropic Claude API (oficjalne SDK). Model domyślnie
+  `claude-opus-5`; zmiana przez `DZIK_AI_MODEL`.
+* Koszty pod kontrolą: `DZIK_AI_DAILY_CALLS_USER` (domyślnie 20/dzień),
+  `DZIK_AI_DAILY_CALLS_GLOBAL` (500/dzień), `DZIK_AI_MAX_TOKENS`
+  (limit jednej odpowiedzi, 4000), `DZIK_AI_MAX_INPUT_CHARS` (6000),
+  `DZIK_AI_TIMEOUT_S` (20 s — po nim tryb formularza, nigdy wieczny
+  spinner).
+* **Co jedzie do dostawcy:** wyłącznie minimalny zakres z
+  `docs/DATA_PROCESSING_MAP.md` §AI, bramkowany zgodą `funkcje_ai`
+  podmiotu danych. Do logów trafia tylko klasa błędu i liczniki tokenów
+  — nigdy treść.
+* **Sprawdzenie po włączeniu** — nie wierz konfiguracji: w bazie
+  ćwiczeń wklej opis i wybierz tryb „AI"; odpowiedź ma mieć
+  `engine: EXTENDED`. Każda propozycja AI wymaga przejrzenia
+  i zatwierdzenia przez trenera — to reguła aplikacji, nie opcja.
