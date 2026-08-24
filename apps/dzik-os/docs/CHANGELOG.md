@@ -1,5 +1,22 @@
 # Changelog — Dzik OS
 
+## 0.47.0 — 2026-08-24
+
+**Jedna sekcja Dieta — trzeci raz ten sam lek na tę samą chorobę.**
+
+* „Kompozytor diety" i „Kreator diety" miały ostatecznie wspólne zadanie
+  (obserwacja właściciela): kreowanie propozycji posiłków z produktów
+  wedle ustalonych zasad i proporcji. Scalone w jedną zakładkę **Dieta**
+  z kartą „Ułóż dietę" i wyborem drogi — dokładnie jak Ćwiczenia
+  (0.34.0) i Szablony (0.40.0): jedno wejście, drogi w środku.
+* Droga **„Wygeneruj propozycję"** (domyślna): zasady i proporcje —
+  % makro, posiłki, dni, wykluczenia, budżet czasu → gotowe posiłki.
+  Droga **„Ułóż sam z produktów"**: własny wybór produktów + cele
+  gramowe → rozkład porcji. Oba mechanizmy bez zmian, zero utraty
+  funkcji; zakładek w Bazie wiedzy jest 4 zamiast 5.
+* Backend nietknięty — dwa endpointy zostają (różne kontrakty, wspólne
+  wejście w UI).
+
 ## 0.46.0 — 2026-08-24
 
 **Kreator diety v2 — po pierwszym prawdziwym teście na telefonie
