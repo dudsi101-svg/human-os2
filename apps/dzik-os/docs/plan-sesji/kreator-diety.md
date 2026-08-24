@@ -79,6 +79,22 @@ wyłącznie brakujących do `food_catalog_data.py` (spodziewane: 0–5).
 
 - **Wersja: 0.44.0** (ostatnia: 0.43.1). **Migracja: brak.**
 
+## Rozszerzenie zakresu (jawne, ten sam wzorzec co 0.41.0)
+
+Pełny backend w trakcie rundy zrobił się czerwony na **pięć** testów:
+jeden słusznie (macierz dostępu wymaga deklaracji dla nowego
+`diet-wizard` — dopisany jako `COACH_ONLY`), cztery to kolejne „bomby
+datowe" z kolejki napraw, które kalendarz zdetonował 24.08 (przejście
+z niedzieli na poniedziałek): raporty tygodniowe wpisane na sztywno
+(„2026-08-17" stało się bieżącym tygodniem seeda → 409) i loteria
+zaległości płatności trafiająca w zamrożony tick 16.09
+(`Sep16 − Aug19 = 28`, a 28 % 7 == 0). Padają na czystej bazie bez zmian
+tej rundy (sprawdzone stashem). Naprawa u źródła, jak w 0.41.0:
+poniedziałki względem `local_today()` (przyszłe tygodnie zawsze wolne
+od seeda), `_oplac_seedowe_terminy()` w testach stref/DST. Do obszaru
+dochodzą: `tests/access_matrix.py`, `tests/test_checkin_rating_and_
+dashboard.py`, `tests/test_files_security.py`, `tests/test_notifications.py`.
+
 ## Świadomie nie robię
 
 - nie liczę zapotrzebowania kalorycznego klienta (BMR/TDEE) — cel kcal
@@ -88,9 +104,17 @@ wyłącznie brakujących do `food_catalog_data.py` (spodziewane: 0–5).
   kompetencją narzędzia;
 - nie generuję przepisów AI — sugestie przyrządzenia są regułowe.
 
-## Weryfikacja (do wypełnienia)
+## Weryfikacja (wykonana)
 
-- pełne bramki §5 z frontendem i E2E;
-- uruchomienie na żywo: wygenerowanie tygodniowej propozycji przez API
-  i utworzenie z niej planu żywieniowego dla klienta demo — obejrzane,
-  nie „sprawdzone".
+- bramki: ruff czysto; testy kreatora 12/12; Core 275/275; spójność 10
+  kontroli; mutacje 17/17; bezpieczeństwo 9/9; tsc+build+helpers czysto;
+  E2E 15/15; pełny backend — wynik w opisie commita.
+- uruchomienie na żywo (uvicorn, prawdziwe HTTP): tydzień 4×7 przy
+  2200 kcal i 30/25/45 wygenerowany w 33 ms, zero ostrzeżeń; średnia
+  dnia 2174 kcal, B 164,9/165 g, T 62,4/61,1 g, W 248,4/247,5 g;
+  wykluczone kategorie nieobecne; dzień 2 różni się od dnia 1;
+  plan żywieniowy utworzony z propozycji (HTTP 201).
+- pierwsze przebiegi na żywo wykryły dwa realne problemy (białko
+  przestrzelone o 25%, pozycje typu „czosnek 262 g") — naprawione
+  w tej samej rundzie (układ 3×3, reguła zdrowej porcji) i domknięte
+  ponownym pomiarem.

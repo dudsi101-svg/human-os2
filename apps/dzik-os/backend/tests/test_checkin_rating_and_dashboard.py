@@ -1,10 +1,24 @@
 """Ocena raportu przez trenera (rating 1-5, opcjonalna) oraz dashboard
 trenera (agregaty operacyjne — metadane, nigdy ranking klientów)."""
 
+from datetime import timedelta
+
 from conftest import CLIENT_A, COACH, login
 
+from dzik_os.dates import local_today
 
-def _submit_checkin(seeded, ha, week_start="2026-08-03"):
+
+def _poniedzialek(tygodni_naprzod: int) -> str:
+    """Poniedziałek tygodnia N tygodni w przód od dziś. Seed sieje raporty
+    względem PRAWDZIWEGO `today` (tygodnie bieżący i przeszłe), więc data
+    wpisana na sztywno prędzej czy później koliduje (409) — 24.08.2026
+    kalendarz dogonił „2026-08-17". Przyszłe tygodnie są zawsze wolne."""
+    dzis = local_today()
+    poniedzialek = dzis - timedelta(days=dzis.isoweekday() - 1)
+    return (poniedzialek + timedelta(weeks=tygodni_naprzod)).isoformat()
+
+def _submit_checkin(seeded, ha, week_start=None):
+    week_start = week_start or _poniedzialek(2)
     r = seeded.post("/api/checkins", headers=ha, json={"week_start": week_start})
     assert r.status_code == 201
     return r.json()["id"]
@@ -32,7 +46,7 @@ def test_coach_can_rate_report_and_client_sees_rating(seeded):
 
 def test_rating_is_optional(seeded):
     ha = login(seeded, CLIENT_A)
-    checkin_id = _submit_checkin(seeded, ha, "2026-07-27")
+    checkin_id = _submit_checkin(seeded, ha, _poniedzialek(3))
     hc = login(seeded, COACH)
     r = seeded.post(f"/api/checkins/{checkin_id}/review", headers=hc, json={
         "coach_response": "OK, bez oceny tym razem.",
@@ -45,7 +59,7 @@ def test_rating_is_optional(seeded):
 
 def test_rating_out_of_range_rejected(seeded):
     ha = login(seeded, CLIENT_A)
-    checkin_id = _submit_checkin(seeded, ha, "2026-08-17")
+    checkin_id = _submit_checkin(seeded, ha, _poniedzialek(4))
     hc = login(seeded, COACH)
     r = seeded.post(f"/api/checkins/{checkin_id}/review", headers=hc, json={
         "coach_response": "x", "rating": 9,
@@ -69,7 +83,7 @@ def test_dashboard_reflects_awaiting_review_and_counts(seeded):
     assert before["knowledge_items_count"] >= 5
 
     ha = login(seeded, CLIENT_A)
-    _submit_checkin(seeded, ha, "2026-08-24")
+    _submit_checkin(seeded, ha, _poniedzialek(5))
     after = seeded.get("/api/coach/dashboard", headers=hc).json()
     assert after["awaiting_review"] == before["awaiting_review"] + 1
 

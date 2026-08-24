@@ -1,5 +1,47 @@
 # Changelog — Dzik OS
 
+## 0.44.0 — 2026-08-23
+
+**Kreator diety: tygodniowa propozycja z procentowego rozkładu makro.**
+
+* **`POST /coach/diet-wizard`** (`diet_wizard.py`): cel kcal + rozkład
+  makro w procentach (suma pilnowana walidacją), 2–6 posiłków dziennie
+  z polskimi slotami i wagami kcal, 1–7 dni, wykluczenia kategorii
+  i produktów, produkty preferowane, budżet czasu na posiłek. W 100%
+  regułowy i deterministyczny — te same wejścia dają tę samą propozycję,
+  zmienność między dniami z jawnej rotacji, zero AI.
+* **Gramatura liczona układem równań 3×3** (wzory Cramera) na wszystkie
+  trzy makro naraz — kcal ląduje w celu z tożsamości 4/9/4; fallback
+  sekwencyjny (węgle → tłuszcz → białko), gdy układ nie ma zdrowego
+  rozwiązania. Zmierzone na żywo (2200 kcal, 30/25/45, 4 posiłki, 7 dni):
+  średnia dnia 2174 kcal, B 164,9/165 g, T 62,4/61,1 g, W 248,4/247,5 g.
+* **Reguła zdrowej porcji:** kandydat wymagający gramatury ponad 4×
+  własną porcję domyślną z katalogu przegrywa rotację — pierwsze
+  przebiegi na żywo proponowały „czosnek 262 g" i „błonnik 464 g";
+  po regule posiłki wyglądają jak jedzenie.
+* **Szacunek czasu przygotowania** per kategoria składników (+ montaż)
+  i **regułowa sugestia przyrządzenia** („Królik — usmaż lub upiecz;
+  Szparagi — krótko podsmaż…") przy każdym posiłku. Jawnie heurystyka.
+* **Zakładka „Kreator diety"** w bazie wiedzy trenera: formularz
+  z kontrolą sumy makro, wynik per dzień i **„Utwórz plan żywieniowy"**
+  — wynik kreatora jest zgodny z `content_json` wersji planu, więc plan
+  powstaje istniejącym `POST /nutrition` (jedna decyzja trenera, zero
+  przepisywania). Propose-only: endpoint niczego nie zapisuje, co
+  pilnuje test.
+* **Katalog produktów:** cel „do 200 najpopularniejszych pozycji" był
+  spełniony przed rundą — katalog liczy **409 pozycji w 16 kategoriach**
+  (kontrola wyrywkowa klasyków: 24/25 trafień, „jajko" istnieje jako
+  „Jajo kurze" w kategorii Jaja). Nic nie dosypano na siłę.
+* Świadomie poza zakresem: automat kcal (BMR/TDEE), dobór pod jednostki
+  chorobowe, przepisy AI — granice wypisane w planie sesji.
+* **Cztery kolejne testy uwolnione od dat na sztywno** (jawne rozszerzenie
+  rundy — kalendarz 24.08 zdetonował następną porcję bomb z kolejki
+  napraw, blokując CI): raporty tygodniowe na względnych poniedziałkach
+  (`local_today()`, przyszłe tygodnie zawsze wolne od seeda), testy
+  stref/DST z wyciszoną loterią płatności. Piąty upadek był słuszny —
+  macierz dostępu zażądała deklaracji dla nowego endpointu
+  (`diet-wizard` → `COACH_ONLY`).
+
 ## 0.43.1 — 2026-08-23
 
 **E-maile do nowych klientów: poprawne linki i domknięta konfiguracja.**

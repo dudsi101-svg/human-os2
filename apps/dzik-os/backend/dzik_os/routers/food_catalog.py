@@ -28,10 +28,11 @@ from sqlalchemy.orm import Session
 from ..authz import require_owned_resource
 from ..config import settings
 from ..db import get_db
+from ..diet_wizard import Skladnik, zbuduj_propozycje
 from ..food_catalog_data import FOOD_DISCLAIMER
 from ..hos_bridge import record_event
 from ..models import CoachClientRelationship, FoodProduct, User, new_id, now_iso
-from ..schemas import DietSuggestionIn, FoodProductIn, PortionCalcIn
+from ..schemas import DietSuggestionIn, DietWizardIn, FoodProductIn, PortionCalcIn
 from ..security import current_user, require_role
 from ..storage import _read_limited
 
@@ -539,6 +540,48 @@ def _dominant_macro(p: FoodProduct) -> str:
         "CARB": p.carbs_100g * 4,
     }
     return max(shares, key=lambda k: shares[k])
+
+
+@router.post("/coach/diet-wizard")
+def diet_wizard(
+    body: DietWizardIn,
+    coach: User = Depends(require_role("COACH")),
+    db: Session = Depends(get_db),
+):
+    """Kreator diety: deterministyczna, regułowa propozycja dnia/tygodnia
+    z całego AKTYWNEGO katalogu trenera. Propose-only — wynik zawiera
+    `nutrition_plan_content` gotowe pod POST /nutrition, ale planu nie
+    tworzy; to świadome działanie trenera."""
+    produkty = (
+        db.query(FoodProduct)
+        .filter(FoodProduct.coach_id == coach.id, FoodProduct.status == "ACTIVE")
+        .all()
+    )
+    skladniki = [
+        Skladnik(
+            id=p.id, name=p.name, category=p.category,
+            kcal_100g=p.kcal_100g, protein_100g=p.protein_100g,
+            fat_100g=p.fat_100g, carbs_100g=p.carbs_100g,
+            unit_name=p.unit_name, unit_grams=p.unit_grams,
+            default_portion_g=p.default_portion_g,
+        )
+        for p in produkty
+    ]
+    return zbuduj_propozycje(
+        skladniki,
+        target_kcal=float(body.target_kcal),
+        procent={
+            "protein": float(body.protein_percent),
+            "fat": float(body.fat_percent),
+            "carbs": float(body.carbs_percent),
+        },
+        posilkow_dziennie=body.meals_per_day,
+        dni=body.days,
+        wykluczone_kategorie=set(body.excluded_categories),
+        wykluczone_produkty=set(body.excluded_product_ids),
+        preferowane_produkty=set(body.preferred_product_ids),
+        maks_minut_na_posilek=body.max_prep_minutes,
+    )
 
 
 @router.post("/coach/diet-suggestion")

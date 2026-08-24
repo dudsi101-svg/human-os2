@@ -88,6 +88,7 @@ def _inbox(client, headers) -> dict:
 def test_schedule_reminder_respects_user_timezone(seeded, monkeypatch):
     """Zmiana strefy użytkownika przesuwa moment wysyłki: 08:00 w Nowym
     Jorku to 12:00 UTC (EDT), a nie 06:00 UTC jak dla Warszawy."""
+    _oplac_seedowe_terminy()
     sent = _capture_push(monkeypatch)
     ha = login(seeded, CLIENT_A)
     seeded.post("/api/push/subscribe", headers=ha, json=SUB)
@@ -106,6 +107,7 @@ def test_schedule_reminder_respects_user_timezone(seeded, monkeypatch):
 def test_dst_transition_europe_warsaw(seeded, monkeypatch):
     """08:00 Europe/Warsaw to 06:00 UTC latem i 07:00 UTC zimą — zoneinfo
     rozstrzyga przejście DST (2026: zmiana czasu 25 października)."""
+    _oplac_seedowe_terminy()
     sent = _capture_push(monkeypatch)
     ha = login(seeded, CLIENT_A)
     seeded.post("/api/push/subscribe", headers=ha, json=SUB)

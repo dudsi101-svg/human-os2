@@ -652,6 +652,34 @@ class PortionCalcIn(BaseModel):
     units: float | None = Field(default=None, ge=0, le=100)
 
 
+class DietWizardIn(BaseModel):
+    """Wejście kreatora diety: cel kcal + PROCENTOWY rozkład makro,
+    liczba posiłków dziennie, liczba dni (dzień albo tydzień), preferencje
+    i budżet czasu na posiłek. Wynik to deterministyczna, regułowa
+    propozycja z całego aktywnego katalogu trenera — „propose-only":
+    plan powstaje dopiero świadomym działaniem trenera (POST /nutrition)."""
+
+    target_kcal: int = Field(ge=800, le=8000)
+    protein_percent: int = Field(ge=5, le=60)
+    fat_percent: int = Field(ge=10, le=60)
+    carbs_percent: int = Field(ge=5, le=75)
+    meals_per_day: int = Field(default=3, ge=2, le=6)
+    days: int = Field(default=1, ge=1, le=7)
+    excluded_categories: list[str] = Field(default_factory=list, max_length=16)
+    excluded_product_ids: list[str] = Field(default_factory=list, max_length=100)
+    preferred_product_ids: list[str] = Field(default_factory=list, max_length=40)
+    max_prep_minutes: int | None = Field(default=None, ge=5, le=180)
+
+    @model_validator(mode="after")
+    def _suma_procentow(self) -> DietWizardIn:
+        suma = self.protein_percent + self.fat_percent + self.carbs_percent
+        if not 99 <= suma <= 101:
+            raise ValueError(
+                f"Rozkład makro musi sumować się do 100% (jest {suma}%)."
+            )
+        return self
+
+
 class DietSuggestionIn(BaseModel):
     """Wejście kompozytora diety: cel kcal/makro + katalog produktów
     WYBRANYCH PRZEZ TRENERA. Wynik to przejrzysta arytmetyka (podział celu
