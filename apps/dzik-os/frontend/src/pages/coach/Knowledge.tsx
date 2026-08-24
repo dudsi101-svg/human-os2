@@ -54,11 +54,10 @@ import {
   muscleLabels,
 } from "../../types";
 
-type Tab = "artykuly" | "cwiczenia" | "produkty" | "dieta" | "kreator";
+type Tab = "artykuly" | "cwiczenia" | "produkty" | "dieta";
 const TABS: [Tab, string][] = [
   ["artykuly", "Artykuły"], ["cwiczenia", "Ćwiczenia"],
-  ["produkty", "Produkty"], ["dieta", "Kompozytor diety"],
-  ["kreator", "Kreator diety"],
+  ["produkty", "Produkty"], ["dieta", "Dieta"],
 ];
 
 export default function Knowledge() {
@@ -71,8 +70,7 @@ export default function Knowledge() {
         {tab === "artykuly" && <ArticlesTab />}
         {tab === "cwiczenia" && <ExercisesTab />}
         {tab === "produkty" && <ProductsTab />}
-        {tab === "dieta" && <DietComposerTab />}
-        {tab === "kreator" && <DietWizardTab />}
+        {tab === "dieta" && <DietTab />}
       </TabPanel>
     </div>
   );
@@ -1488,6 +1486,45 @@ function ProductsTab() {
         ))}
       </div>
       <FoodLoadMore catalog={catalog} />
+    </>
+  );
+}
+
+type DietWay = "kreator" | "kompozytor";
+const DIET_WAYS: [DietWay, string, string][] = [
+  ["kreator", "Wygeneruj propozycję",
+   "Podajesz zasady i proporcje (makro %, posiłki, dni, wykluczenia, "
+   + "czas) — kreator układa gotowe posiłki z Twojego katalogu."],
+  ["kompozytor", "Ułóż sam z produktów",
+   "Sam zaznaczasz produkty i podajesz cele gramowe — dostajesz "
+   + "rozkład porcji do ręcznego ułożenia diety."],
+];
+
+function DietTab() {
+  const [way, setWay] = useState<DietWay>("kreator");
+  return (
+    <>
+      <div className="card card--accent">
+        <h2>Ułóż dietę</h2>
+        <p className="dim" style={{ marginTop: -6, fontSize: "0.85rem" }}>
+          Jedno zadanie, dwie drogi — obie są propozycją: przeglądasz,
+          dostosowujesz i dopiero wtedy trafia do klienta.
+        </p>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          {DIET_WAYS.map(([id, label]) => (
+            <button key={id}
+              className={"btn btn--small" + (way === id ? "" : " btn--ghost")}
+              aria-pressed={way === id}
+              onClick={() => setWay(id)}>
+              {label}
+            </button>
+          ))}
+        </div>
+        <p className="dim" style={{ fontSize: "0.85rem", marginBottom: 0 }}>
+          {DIET_WAYS.find(([id]) => id === way)?.[2]}
+        </p>
+      </div>
+      {way === "kreator" ? <DietWizardTab /> : <DietComposerTab />}
     </>
   );
 }
