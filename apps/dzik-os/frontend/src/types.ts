@@ -856,6 +856,8 @@ export interface DietWizardEntry {
   product_id: string;
   name: string;
   category: string;
+  /** "coach" = katalog trenera, "builtin" = dopełnienie z wbudowanej bazy. */
+  source: "coach" | "builtin";
   grams: number;
   kcal: number;
   protein_g: number;
@@ -885,6 +887,7 @@ export interface DietWizardResult {
   days: DietWizardDay[];
   daily_average: { kcal: number; protein_g: number; fat_g: number; carbs_g: number };
   warnings: string[];
+  recommendation: string | null;
   disclaimer: string;
   nutrition_plan_content: {
     kcal: number; protein_g: number; fat_g: number; carbs_g: number;

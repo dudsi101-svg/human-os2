@@ -1,5 +1,38 @@
 # Changelog — Dzik OS
 
+## 0.46.0 — 2026-08-24
+
+**Kreator diety v2 — po pierwszym prawdziwym teście na telefonie
+właściciela** (zrzuty z produkcji: katalog per-trener bez bazy →
+posiłki z samych wafli ryżowych, 1168 kcal na cel 2200, ściana
+28 ostrzeżeń).
+
+* **Wbudowana baza jednym przyciskiem:** `POST /coach/food-products/
+  load-builtin` dogrywa 409 pozycji do katalogu trenera (idempotentnie,
+  po znormalizowanej nazwie — edycje trenera nigdy nie są nadpisywane);
+  przycisk w zakładce Produkty.
+* **Kreator dopełnia braki z wbudowanej bazy** — łańcuch puli: katalog
+  trenera (slot) → wbudowana (slot) → katalog trenera (pełny) →
+  wbudowana (pełna). Każda dopełniona pozycja jawnie oznaczona
+  (`source: "builtin"`, w UI znak †) + zalecenie dogrania bazy.
+  Propozycja nigdy nie wychodzi kaleka.
+* **Kompozycja wg wzorców uznanych diet** (śródziemnomorski/DASH jako
+  zasady, nie etykieta): warzywa do obiadu (200 g) i kolacji (150 g),
+  owoc do śniadań i przekąsek (100–120 g) — stała porcja odejmowana od
+  celów slotu przed solverem 3×3, więc makra dnia nadal w punkt; ryby
+  i strączkowe premiowane w rotacji białka obiadowego; posiłki
+  3–5-składnikowe; jeden produkt nie występuje dwa razy w posiłku.
+* **Ostrzeżenia zbiorcze:** deduplikacja po problemie z licznikiem
+  wystąpień — scenariusz ze zrzutów daje teraz **3 zdania zamiast 28
+  boxów**; do tego pole `recommendation` z konkretną naprawą.
+* **Odporność na cudze kategorie:** porównanie znormalizowane; produkt
+  o nieznanej kategorii nadal działa jako źródło makro.
+* **Zmierzone na scenariuszu z produkcji** (ubogi katalog + prawdziwa
+  wbudowana baza): średnia dnia **2210/2200 kcal, B 165,0/165,0 g,
+  T 73,3/73,3 g, W 220,0/220,0 g** — co do grama; 0 dubli w 28
+  posiłkach; śniadanie = owoc+pieczywo+ser+twaróg, obiad =
+  warzywo+ryż+mięso+ryba.
+
 ## 0.45.0 — 2026-08-24
 
 **Dostawca AI: cztery funkcje na jednym kluczu.**

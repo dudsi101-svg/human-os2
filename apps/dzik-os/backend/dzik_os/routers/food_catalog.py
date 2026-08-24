@@ -29,7 +29,7 @@ from ..authz import require_owned_resource
 from ..config import settings
 from ..db import get_db
 from ..diet_wizard import Skladnik, zbuduj_propozycje
-from ..food_catalog_data import FOOD_DISCLAIMER
+from ..food_catalog_data import FOOD_DISCLAIMER, FOOD_ROWS, FOOD_SOURCE
 from ..hos_bridge import record_event
 from ..models import CoachClientRelationship, FoodProduct, User, new_id, now_iso
 from ..schemas import DietSuggestionIn, DietWizardIn, FoodProductIn, PortionCalcIn
@@ -542,6 +542,65 @@ def _dominant_macro(p: FoodProduct) -> str:
     return max(shares, key=lambda k: shares[k])
 
 
+def _skladniki_wbudowane() -> list[Skladnik]:
+    """Wbudowana baza jako pula dopełniająca kreatora — pozycje oznaczone
+    `source="builtin"`, identyfikatory syntetyczne (nie istnieją w bazie
+    trenera, więc nie kolidują z niczym)."""
+    return [
+        Skladnik(
+            id=f"builtin:{i}", name=f.name, category=f.category,
+            kcal_100g=f.kcal, protein_100g=f.protein, fat_100g=f.fat,
+            carbs_100g=f.carbs, unit_name=f.unit_name,
+            unit_grams=f.unit_grams, default_portion_g=f.portion_g,
+            source="builtin",
+        )
+        for i, f in enumerate(FOOD_ROWS)
+    ]
+
+
+@router.post("/coach/food-products/load-builtin", status_code=200)
+def load_builtin_food_products(
+    coach: User = Depends(require_role("COACH")),
+    db: Session = Depends(get_db),
+):
+    """Dogrywa wbudowaną bazę produktów do katalogu trenera. Idempotentne:
+    pozycje o już istniejącej (znormalizowanej) nazwie są pomijane —
+    edycje trenera nigdy nie są nadpisywane."""
+    istniejace = {
+        normalize_name(p.name)
+        for p in db.query(FoodProduct)
+        .filter(FoodProduct.coach_id == coach.id)
+        .all()
+    }
+    dodane = 0
+    for food in FOOD_ROWS:
+        if normalize_name(food.name) in istniejace:
+            continue
+        db.add(FoodProduct(
+            id=new_id("FOD"), coach_id=coach.id, name=food.name,
+            category=food.category, kcal_100g=food.kcal,
+            protein_100g=food.protein, fat_100g=food.fat,
+            carbs_100g=food.carbs, fiber_100g=food.fiber,
+            default_portion_g=food.portion_g,
+            unit_name=food.unit_name, unit_grams=food.unit_grams,
+            source=FOOD_SOURCE, note=food.note, created_by=coach.id,
+        ))
+        dodane += 1
+    if dodane:
+        record_event(
+            db, action="FOOD_PRODUCT_CREATED", actor_id=coach.id,
+            subject_ids=[coach.id],
+            payload={"builtin_import": True, "added": dodane},
+            summary=f"Baza produktów: dograno wbudowaną bazę ({dodane} pozycji)",
+        )
+        db.commit()
+    return {
+        "added": dodane,
+        "skipped": len(FOOD_ROWS) - dodane,
+        "disclaimer": FOOD_DISCLAIMER,
+    }
+
+
 @router.post("/coach/diet-wizard")
 def diet_wizard(
     body: DietWizardIn,
@@ -549,9 +608,8 @@ def diet_wizard(
     db: Session = Depends(get_db),
 ):
     """Kreator diety: deterministyczna, regułowa propozycja dnia/tygodnia
-    z całego AKTYWNEGO katalogu trenera. Propose-only — wynik zawiera
-    `nutrition_plan_content` gotowe pod POST /nutrition, ale planu nie
-    tworzy; to świadome działanie trenera."""
+    z AKTYWNEGO katalogu trenera, dopełniana jawnie z wbudowanej bazy,
+    komponowana wg wzorca śródziemnomorskiego/DASH. Propose-only."""
     produkty = (
         db.query(FoodProduct)
         .filter(FoodProduct.coach_id == coach.id, FoodProduct.status == "ACTIVE")
@@ -569,6 +627,7 @@ def diet_wizard(
     ]
     return zbuduj_propozycje(
         skladniki,
+        wbudowane=_skladniki_wbudowane(),
         target_kcal=float(body.target_kcal),
         procent={
             "protein": float(body.protein_percent),
