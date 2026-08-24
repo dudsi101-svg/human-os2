@@ -1,6 +1,6 @@
 # Stan przekazania — przeczytaj przed rozpoczęciem rundy
 
-**Aktualizacja:** 2026-08-24 · **Wersja w `main`:** 0.47.0
+**Aktualizacja:** 2026-08-24 · **Wersja w `main`:** 0.48.0
 **Tryb pracy:** jeden piszący i jeden PR `[WRITER]` naraz
 (`KOORDYNACJA.md`, zasada nadrzędna).
 
@@ -33,7 +33,21 @@ pierwszy commit, draft PR `[WRITER]`, reszta agentów read-only.
 jednym prawdziwym klientem, **NO-GO na szerszą produkcję** — siedem
 blokerów wypisanych w §5 tamtego dokumentu.
 
-**Ostatnia runda (0.44.0, gałąź `agent/kreator-diety`):** kreator diety —
+**Ostatnia runda (0.48.0, gałąź `agent/precyzja-i-baza`):** precyzja
+kuchenna i baza ×5 (zgłoszenie właściciela z produkcji) — gramatury
+posiłków zaokrąglane do wielkości mierzalnych (pół sztuki / 5 g / 10 g,
+`units` w odpowiedzi kreatora), wbudowana baza 410 → 2058 pozycji
+(`food_catalog_data_ext.py`, ten sam przycisk load-builtin), test
+integralności bazy (unikalność po znormalizowanej nazwie, zakresy,
+kcal↔makra). **Rundy 0.46–0.47:** kreator v2 po zrzutach z telefonu
+właściciela (wbudowana baza jednym przyciskiem, dopełnianie braków
+katalogu z jawnym znaczkiem, kompozycja wg wzorców śródziemnomorskiego/
+DASH — warzywa/owoce jako stałe dodatki, premia obiadowa dla ryb
+i strączków, deduplikacja produktów w posiłku, ostrzeżenia zbiorcze
+zamiast ściany boxów) oraz scalenie Kompozytora i Kreatora w jedną
+zakładkę **Dieta** z wyborem drogi (wzorzec 0.34.0/0.40.0).
+
+**Runda 0.44.0 (gałąź `agent/kreator-diety`):** kreator diety —
 `POST /coach/diet-wizard` (procentowy rozkład makro, 2–6 posiłków,
 1–7 dni, wykluczenia, budżet czasu, regułowe sugestie przyrządzenia;
 gramatura układem 3×3, na żywo: śr. 2174/2200 kcal i makra w punkt)

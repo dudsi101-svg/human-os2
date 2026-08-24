@@ -1,5 +1,34 @@
 # Changelog — Dzik OS
 
+## 0.48.0 — 2026-08-24
+
+**Precyzja kuchenna i baza ×5** (zgłoszenie właściciela: „kompozycje
+wyglądają dużo lepiej, brak jest jednak precyzji, i powiększ
+pięciokrotnie bazę składników").
+
+* **Gramatury mierzalne w kuchni:** każda pozycja posiłku jest
+  zaokrąglana do wielkości, którą da się odmierzyć — produkty
+  sztukowe do pół sztuki (`units` w odpowiedzi: 1,5 jajka, 2 kromki),
+  reszta do 5 g poniżej 100 g i do 10 g powyżej. Zaokrąglenie działa
+  po solverze, więc cel kaloryczny trzyma się w dotychczasowej
+  tolerancji, a lista zakupów przestaje wymagać wagi jubilerskiej
+  (koniec z „czosnek 37,3 g").
+* **Wbudowana baza 410 → 2058 pozycji** (`food_catalog_data_ext.py`,
+  druga transza dogrywana tym samym przyciskiem load-builtin):
+  rozszerzone mięsa/wędliny/podroby i dziczyzna, ~40 gatunków ryb
+  i owoców morza, sery regionalne i światowe, mąki bezglutenowe,
+  kasze i makarony specjalne (soba, udon, shirataki), warzywa
+  sezonowe/azjatyckie/kiszonki, owoce egzotyczne i jagodowe,
+  strączki i przetwory wysokobiałkowe, dania kuchni polskiej
+  i światowej, sosy/pasty/przyprawy, napoje i suplementy treningowe.
+  Wartości makro wg ogólnodostępnych tabel (USDA/IŻŻ).
+* **Test integralności bazy** (`test_food_catalog_data.py`): ≥2000
+  pozycji, unikalność po znormalizowanej nazwie (klucz deduplikacji
+  load-builtin — duplikat w danych byłby pozycją martwą), zakresy
+  wartości i spójność kcal↔makra wzorem Atwatera z widełkami na obie
+  konwencje błonnika; energia z alkoholu i poliole pomijane jawnie.
+* Etykieta przycisku w Produktach bez zaszytej liczby „409".
+
 ## 0.47.0 — 2026-08-24
 
 **Jedna sekcja Dieta — trzeci raz ten sam lek na tę samą chorobę.**

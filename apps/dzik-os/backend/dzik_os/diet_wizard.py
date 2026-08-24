@@ -185,8 +185,26 @@ def _maks_gramy(s: Skladnik) -> float:
     return MAKS_GRAMY_POZYCJI
 
 
+def _zaokraglij_kuchennie(s: Skladnik, gramy: float) -> tuple[float, float | None]:
+    """Gramatura odmierzalna w kuchni (feedback z produkcji: „316,4 g"
+    nikt nie odważy). Produkt z jednostką → najpierw pół-jednostki
+    („2 jajka", „1,5 kromki"), gramy z jednostek; bez jednostki →
+    do 5 g poniżej 100 g, do 10 g powyżej. Makra liczone są z gramatury
+    PO zaokrągleniu — sumy pozostają uczciwe."""
+    gramy = min(gramy, MAKS_GRAMY_POZYCJI)
+    if s.unit_grams and s.unit_grams > 0:
+        sztuki = max(0.5, round(gramy / s.unit_grams * 2) / 2)
+        return round(sztuki * s.unit_grams, 1), sztuki
+    if gramy < 100:
+        zaokraglone = max(5.0, round(gramy / 5) * 5)
+    else:
+        zaokraglone = round(gramy / 10) * 10
+    zaokraglone = min(zaokraglone, MAKS_GRAMY_POZYCJI)
+    return float(zaokraglone), None
+
+
 def _pozycja(s: Skladnik, gramy: float) -> dict[str, Any]:
-    gramy = round(min(gramy, MAKS_GRAMY_POZYCJI), 1)
+    gramy, sztuki = _zaokraglij_kuchennie(s, gramy)
     return {
         "product_id": s.id,
         "name": s.name,
@@ -197,7 +215,7 @@ def _pozycja(s: Skladnik, gramy: float) -> dict[str, Any]:
         "protein_g": round(gramy / 100 * s.protein_100g, 1),
         "fat_g": round(gramy / 100 * s.fat_100g, 1),
         "carbs_g": round(gramy / 100 * s.carbs_100g, 1),
-        "units": round(gramy / s.unit_grams, 1) if s.unit_grams else None,
+        "units": sztuki,
         "unit_name": s.unit_name,
     }
 

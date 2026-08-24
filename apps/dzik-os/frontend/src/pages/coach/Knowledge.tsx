@@ -1315,7 +1315,7 @@ function ProductsTab() {
       </p>
       <div style={{ marginBottom: 8 }}>
         <button className="btn btn--small" disabled={busy} onClick={loadBuiltin}>
-          Dograj wbudowaną bazę (409 produktów)
+          Dograj wbudowaną bazę (ponad 2000 produktów)
         </button>
         {builtinMsg && (
           <p className="dim" style={{ fontSize: "0.85rem" }} role="status">

@@ -762,3 +762,13 @@ FOOD_ROWS: list[FoodRow] = [
     FoodRow("Erytrytol", PRZYPRAWY, 20, 0.0, 0.0, 100.0, 0.0, 5,
             unit_name="łyżeczka", unit_grams=5, note="wartości uśrednione dla słodzika"),
 ]
+
+# Druga transza wbudowanej bazy (0.48.0). Import na końcu pliku jest celowy:
+# food_catalog_data_ext importuje stąd stałe kategorii i FoodRow, więc musi
+# widzieć moduł już zainicjalizowany powyżej. FOOD_ROWS zostaje przy
+# pierwotnych 410 pozycjach (tyle sieje seed demo i tyle zakłada eksport/
+# import CSV z limitem 1000 wierszy); pełną bazę — do przycisku
+# load-builtin i dopełniania kreatora diety — niesie FOOD_ROWS_ALL.
+from .food_catalog_data_ext import FOOD_ROWS_EXT
+
+FOOD_ROWS_ALL: list[FoodRow] = FOOD_ROWS + FOOD_ROWS_EXT
