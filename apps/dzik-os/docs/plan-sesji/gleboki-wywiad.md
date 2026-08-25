@@ -1,7 +1,10 @@
 # Plan sesji: Głęboki wywiad jako drugi przepływ rozmowy (0.53.0)
 
 **Gałąź:** `claude/ocena-projektu-dzik-os-76ercy` (restart z `main` @ 0.51.0 —
-poprzednia zawartość gałęzi rozliczona w 0.42.0).
+poprzednia zawartość gałęzi rozliczona w 0.42.0; jej ostatnia końcówka to
+`afa1638` — zapisana tu i w dokumentach na `main`, bo zdalne repo nie
+przyjmuje tagów archiwalnych, a „gałąź zostaje w historii" ma być
+odnajdywalne po hashu).
 **Rola:** aktywny piszący (jawne polecenie właściciela: „Wprowadź wywiad do
 aplikacji", 25.08). **Uwaga o kolejce:** w chwili planowania otwarty był PR
 `[WRITER]` #27 (0.52.0) — ta runda została zbudowana lokalnie i zostanie
