@@ -28,6 +28,12 @@ class Settings:
     # Puste `smtp_host` = dostawca `null`, czyli stan sprzed 0.42.0:
     # aplikacja bez konfiguracji zachowuje się DOKŁADNIE tak jak dotąd
     # i nie wysyła nic. Hasło wyłącznie ze zmiennej środowiskowej.
+    # Limit niezakończonych współprac per trener (skala pilotażu, decyzja
+    # właściciela 25.08: 10 podopiecznych). ENDED zwalnia miejsce; 0 = bez
+    # limitu. Egzekwowany przy zapraszaniu klienta (routers/clients.py).
+    max_clients: int = field(
+        default_factory=lambda: int(_env("DZIK_MAX_CLIENTS", "10"))
+    )
     smtp_host: str = field(default_factory=lambda: _env("DZIK_SMTP_HOST", ""))
     smtp_port: int = field(default_factory=lambda: int(_env("DZIK_SMTP_PORT", "587")))
     smtp_user: str = field(default_factory=lambda: _env("DZIK_SMTP_USER", ""))

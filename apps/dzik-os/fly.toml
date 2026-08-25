@@ -20,6 +20,8 @@ primary_region = "fra"   # Frankfurt (najbliższy region Fly dla Polski)
   # po SSH (docs/DEPLOYMENT.md), a stare konta demo dezaktywuje
   # `python -m dzik_os.purge_demo`.
   DZIK_ENV = "production"
+  # Skala pilotażu (decyzja właściciela 25.08): maks. 10 podopiecznych.
+  DZIK_MAX_CLIENTS = "10"
   # Publiczny adres aplikacji — z niego budują się linki w e-mailach
   # (aktywacja konta nowego klienta, reset hasła). Bez tej zmiennej link
   # powstaje z request.base_url, czyli za proxy Fly jako http://.

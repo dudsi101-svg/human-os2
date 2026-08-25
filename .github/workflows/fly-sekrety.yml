@@ -1,0 +1,69 @@
+# Przeniesienie sekretów konfiguracyjnych na Fly — bez terminala (0.52.0).
+#
+# Właściciel ustawia w repozytorium (Settings → Secrets and variables →
+# Actions) te sekrety, które chce włączyć, i klika Run workflow. Na Fly
+# trafiają WYŁĄCZNIE sekrety niepuste — reszta jest pomijana bez błędu,
+# więc workflow można uruchamiać wielokrotnie, dokładając kolejne.
+#
+# Obsługiwane sekrety (nazwy 1:1 jak zmienne aplikacji):
+#   Poczta:    DZIK_SMTP_HOST, DZIK_SMTP_PORT, DZIK_SMTP_USER,
+#              DZIK_SMTP_PASSWORD, DZIK_SMTP_FROM, DZIK_SMTP_SECURITY
+#   AI:        DZIK_AI_API_KEY, DZIK_AI_ENABLED
+#   Szyfrowanie plików: DZIK_FILE_KEY
+#
+# Wartości są maskowane w logach Actions; `flyctl secrets set` restartuje
+# maszynę, więc nowa konfiguracja działa od razu po zakończeniu.
+
+name: Sekrety produkcji (Fly.io)
+
+on:
+  workflow_dispatch: {}
+
+concurrency:
+  group: fly-maintenance
+  cancel-in-progress: false
+
+jobs:
+  sekrety:
+    runs-on: ubuntu-latest
+    env:
+      FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+      APP_NAME: dzik-os-panel
+      DZIK_SMTP_HOST: ${{ secrets.DZIK_SMTP_HOST }}
+      DZIK_SMTP_PORT: ${{ secrets.DZIK_SMTP_PORT }}
+      DZIK_SMTP_USER: ${{ secrets.DZIK_SMTP_USER }}
+      DZIK_SMTP_PASSWORD: ${{ secrets.DZIK_SMTP_PASSWORD }}
+      DZIK_SMTP_FROM: ${{ secrets.DZIK_SMTP_FROM }}
+      DZIK_SMTP_SECURITY: ${{ secrets.DZIK_SMTP_SECURITY }}
+      DZIK_AI_API_KEY: ${{ secrets.DZIK_AI_API_KEY }}
+      DZIK_AI_ENABLED: ${{ secrets.DZIK_AI_ENABLED }}
+      DZIK_FILE_KEY: ${{ secrets.DZIK_FILE_KEY }}
+    steps:
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Ustaw na Fly sekrety, które są wypełnione w repo
+        run: |
+          NAZWY="DZIK_SMTP_HOST DZIK_SMTP_PORT DZIK_SMTP_USER DZIK_SMTP_PASSWORD DZIK_SMTP_FROM DZIK_SMTP_SECURITY DZIK_AI_API_KEY DZIK_AI_ENABLED DZIK_FILE_KEY"
+          ARGS=()
+          USTAWIONE=""
+          for n in $NAZWY; do
+            v="${!n}"
+            if [ -n "$v" ]; then
+              ARGS+=("$n=$v")
+              USTAWIONE="$USTAWIONE $n"
+            fi
+          done
+          if [ ${#ARGS[@]} -eq 0 ]; then
+            echo "::error::Żaden z obsługiwanych sekretów nie jest ustawiony w repozytorium. Dodaj je w Settings → Secrets and variables → Actions i uruchom ponownie."
+            exit 1
+          fi
+          flyctl secrets set --app "$APP_NAME" "${ARGS[@]}"
+          echo "Przeniesione na Fly (wartości ukryte):$USTAWIONE"
+
+      - name: Poczekaj, aż maszyna wstanie po restarcie
+        run: |
+          for i in $(seq 1 30); do
+            curl -sfS "https://$APP_NAME.fly.dev/api/health" && exit 0
+            sleep 5
+          done
+          echo "::error::Maszyna nie wstała w 150 s"; exit 1

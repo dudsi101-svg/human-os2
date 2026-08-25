@@ -55,8 +55,16 @@ flyctl).
   profilu, jeśli będzie potrzeba;
 - nie uruchamiam workflow sam — hasła i klik należą do właściciela.
 
-## Weryfikacja (do wypełnienia)
+## Weryfikacja (wypełnione 25.08)
 
-- pełne bramki; na żywo: limit odmawia przy 10 aktywnych współpracach
-  i wpuszcza po zakończeniu jednej; workflow zwalidowane składniowo
-  (actionlint/py yaml), uruchomienie na produkcji — właściciel.
+- Bramki: ruff czysto (po `--fix` 1×I001), backend **816** zaliczonych
+  (3 nowe testy limitu), Core 275, spójność 10 kontroli, mutacje 17/17
+  i 9/9, frontend tsc+build, helpers 0 fail, E2E 17/17.
+- Uruchomienie na żywo (serve.sh :8153 z `DZIK_MAX_CLIENTS=5`; co
+  uruchomiłem i co zobaczyłem): seed ma 5 aktywnych współprac →
+  `POST /coach/clients` zwrócił **409** z komunikatem „Limit
+  podopiecznych (5) jest osiągnięty…"; w testach jednostkowych ENDED
+  zwalnia miejsce (201 po zakończeniu współpracy), a 0 wyłącza limit.
+- Oba workflow zwalidowane YAML-owo + fragment bashowy `bash -n`;
+  uruchomienie na produkcji (sekrety + klik) — świadomie po stronie
+  właściciela.
