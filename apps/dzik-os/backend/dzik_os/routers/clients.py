@@ -110,6 +110,26 @@ def create_client(
     Zgoda na przetwarzanie danych zdrowotnych jest rejestrowana jako
     deklaracja z onboardingu (proweniencja jawna w audycie); klient widzi
     ją w aplikacji i może ją w każdej chwili cofnąć."""
+    # Limit pilotażu: liczą się współprace niezakończone (ACTIVE/PAUSED) —
+    # zakończenie współpracy (ENDED) zwalnia miejsce. 0 = bez limitu.
+    if settings.max_clients > 0:
+        zajete = (
+            db.query(CoachClientRelationship)
+            .filter(
+                CoachClientRelationship.coach_id == coach.id,
+                CoachClientRelationship.status.in_(("ACTIVE", "PAUSED")),
+            )
+            .count()
+        )
+        if zajete >= settings.max_clients:
+            raise HTTPException(
+                status_code=409,
+                detail=(
+                    f"Limit podopiecznych ({settings.max_clients}) jest "
+                    "osiągnięty. Zakończ jedną ze współprac albo zwiększ "
+                    "limit (DZIK_MAX_CLIENTS), żeby zaprosić kolejną osobę."
+                ),
+            )
     email = body.client_email.lower()
     existing = db.query(User).filter(User.email == email).one_or_none()
     new_account = existing is None

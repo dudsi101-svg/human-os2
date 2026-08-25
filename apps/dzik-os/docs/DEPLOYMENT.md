@@ -68,6 +68,26 @@ flyctl ssh console --app dzik-os-panel
 #   konto trenera zakłada się wtedy w aplikacji — a stare konta demo
 #   dezaktywuje `python -m dzik_os.purge_demo`)
 
+# 4bis. TO SAMO BEZ TERMINALA (GitHub Actions, 0.52.0)
+#
+# Kroki 4 (pierwsze konta) i sekrety (SMTP/AI/klucz plików) da się
+# wyklikać z przeglądarki — flyctl nie jest potrzebny:
+#
+#   a) Pierwsze konta: w repo Settings → Secrets and variables → Actions
+#      dodaj DZIK_BOOTSTRAP_COACH_PASSWORD i DZIK_BOOTSTRAP_ADMIN_PASSWORD
+#      (min. 12 znaków, wymyśl silne — są jednorazowe, aplikacja wymusi
+#      zmianę przy pierwszym logowaniu). Potem Actions → „Pierwsze konta
+#      (Fly.io)" → Run workflow (podaj e-maile kont). Po sukcesie sekrety
+#      DZIK_BOOTSTRAP_* możesz usunąć z repo. Hasła wędrują: sekret repo →
+#      chwilowy sekret Fly (env maszyny, nigdy argv) → kasowane po użyciu.
+#   b) Sekrety konfiguracyjne: dodaj w repo te z listy DZIK_SMTP_HOST/
+#      PORT/USER/PASSWORD/FROM/SECURITY, DZIK_AI_API_KEY, DZIK_AI_ENABLED,
+#      DZIK_FILE_KEY, które chcesz włączyć, i uruchom Actions → „Sekrety
+#      produkcji (Fly.io)". Puste są pomijane — można wracać i dokładać.
+#
+# Limit pilotażu: aplikacja przyjmuje maks. 10 niezakończonych współprac
+# na trenera (DZIK_MAX_CLIENTS w fly.toml; ENDED zwalnia miejsce).
+
 # 5. Otwórz aplikację
 flyctl apps open --app dzik-os-panel    # https://dzik-os-panel.fly.dev
 ```

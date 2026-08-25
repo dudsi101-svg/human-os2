@@ -1,6 +1,6 @@
 # Stan przekazania — przeczytaj przed rozpoczęciem rundy
 
-**Aktualizacja:** 2026-08-25 · **Wersja w `main`:** 0.51.0
+**Aktualizacja:** 2026-08-25 · **Wersja w `main`:** 0.52.0
 **Tryb pracy:** jeden piszący i jeden PR `[WRITER]` naraz
 (`KOORDYNACJA.md`, zasada nadrzędna).
 
@@ -33,7 +33,12 @@ pierwszy commit, draft PR `[WRITER]`, reszta agentów read-only.
 jednym prawdziwym klientem, **NO-GO na szerszą produkcję** — siedem
 blokerów wypisanych w §5 tamtego dokumentu.
 
-**Ostatnia runda (0.51.0, gałąź `agent/prawdziwy-trener`):** sekcja
+**Ostatnia runda (0.52.0, gałąź `agent/pilotaz-10-podopiecznych`):**
+limit 10 niezakończonych współprac na trenera (`DZIK_MAX_CLIENTS`)
++ dwa workflow workflow_dispatch („Pierwsze konta", „Sekrety produkcji")
+zdejmujące z właściciela konieczność instalowania flyctl — bootstrap
+i sekrety wyklikiwane z Actions. **Runda 0.51.0
+(`agent/prawdziwy-trener`):** sekcja
 „O trenerze" i kontakt z prawdziwymi danymi Łukasza Drygla („Lubelski
 Dzik", IFBB PRO, Lublin/online) z publicznych profili; kontakt tel./
 e-mail i social na stronie. **Runda 0.50.0 (`agent/og-i-galeria`):** meta-tagi

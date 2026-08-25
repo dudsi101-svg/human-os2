@@ -1,0 +1,132 @@
+# Pierwsze konta na PUSTEJ bazie produkcyjnej — bez terminala (0.52.0).
+#
+# Zamienia krok „zainstaluj flyctl i wejdź po SSH" na jedno kliknięcie:
+# Actions → „Pierwsze konta (Fly.io)" → Run workflow.
+#
+# Hasła startowe — dwie drogi:
+#   1) sekrety repozytorium DZIK_BOOTSTRAP_COACH_PASSWORD /
+#      DZIK_BOOTSTRAP_ADMIN_PASSWORD (Settings → Secrets → Actions), albo
+#   2) gdy sekretów brak — workflow sam GENERUJE silne hasła jednorazowe
+#      (openssl rand, nigdy nie trafiają do logów) i zostawia je w
+#      artefakcie „hasla-startowe" o ważności 1 DNIA, dostępnym tylko
+#      dla współpracowników repozytorium. Hasła są jednorazowe z definicji:
+#      pierwsze logowanie wymusza zmianę hasła i konfigurację MFA, więc
+#      okno ryzyka kończy się przy pierwszym logowaniu. Po pobraniu
+#      artefakt można usunąć ręcznie na stronie runu.
+# FLY_API_TOKEN — już istnieje (używa go deploy).
+#
+# Droga haseł: sekret repo → chwilowy sekret Fly (zmienna środowiskowa
+# maszyny — NIGDY argv; `dzik_os.bootstrap` czyta wyłącznie env) →
+# po założeniu kont sekrety bootstrapowe są USUWANE z Fly. W logach
+# Actions wartości sekretów są maskowane. Hasła startowe są jednorazowe:
+# aplikacja wymusza ich zmianę przy pierwszym logowaniu.
+#
+# Bootstrap działa tylko na bazie bez żadnego konta COACH/ADMIN — na
+# zasianej bazie odmówi, niczego nie nadpisując (patrz bootstrap.py).
+
+name: Pierwsze konta (Fly.io)
+
+on:
+  workflow_dispatch:
+    inputs:
+      coach_email:
+        description: "E-mail konta trenera"
+        required: true
+        default: "lubelskidzikk@gmail.com"
+      admin_email:
+        description: "E-mail konta administratora (inny niż trenera)"
+        required: true
+
+concurrency:
+  group: fly-maintenance
+  cancel-in-progress: false
+
+jobs:
+  bootstrap:
+    runs-on: ubuntu-latest
+    env:
+      FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+      APP_NAME: dzik-os-panel
+    steps:
+      - name: Przygotuj hasła (sekrety repo albo wygenerowane)
+        env:
+          COACH_PW: ${{ secrets.DZIK_BOOTSTRAP_COACH_PASSWORD }}
+          ADMIN_PW: ${{ secrets.DZIK_BOOTSTRAP_ADMIN_PASSWORD }}
+        run: |
+          mkdir -p /tmp/hasla
+          if [ -n "$COACH_PW" ] && [ -n "$ADMIN_PW" ]; then
+            if [ ${#COACH_PW} -lt 12 ] || [ ${#ADMIN_PW} -lt 12 ]; then
+              echo "::error::Hasła startowe muszą mieć co najmniej 12 znaków."
+              exit 1
+            fi
+            printf '%s' "$COACH_PW" > /tmp/hasla/coach
+            printf '%s' "$ADMIN_PW" > /tmp/hasla/admin
+            echo "zrodlo=sekrety" >> "$GITHUB_ENV"
+            echo "Hasła wzięte z sekretów repozytorium."
+          else
+            openssl rand -base64 18 | tr -d '\n' > /tmp/hasla/coach
+            openssl rand -base64 18 | tr -d '\n' > /tmp/hasla/admin
+            # Maskowanie: gdyby cokolwiek kiedyś wypisało te wartości,
+            # Actions zamieni je w logach na ***.
+            echo "::add-mask::$(cat /tmp/hasla/coach)"
+            echo "::add-mask::$(cat /tmp/hasla/admin)"
+            echo "zrodlo=wygenerowane" >> "$GITHUB_ENV"
+            echo "Sekretów repo brak — wygenerowano silne hasła jednorazowe (trafią do artefaktu o ważności 1 dnia)."
+          fi
+
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Wstaw hasła jako chwilowe sekrety Fly (restart maszyny)
+        run: |
+          flyctl secrets set --app "$APP_NAME" \
+            DZIK_BOOTSTRAP_COACH_PASSWORD="$(cat /tmp/hasla/coach)" \
+            DZIK_BOOTSTRAP_ADMIN_PASSWORD="$(cat /tmp/hasla/admin)"
+
+      - name: Poczekaj, aż maszyna wstanie po restarcie
+        run: |
+          for i in $(seq 1 30); do
+            curl -sfS "https://$APP_NAME.fly.dev/api/health" && exit 0
+            sleep 5
+          done
+          echo "::error::Maszyna nie wstała w 150 s"; exit 1
+
+      - name: Załóż konta (bootstrap czyta hasła z env maszyny)
+        run: |
+          flyctl ssh console --app "$APP_NAME" -C \
+            "python -m dzik_os.bootstrap --coach-email ${{ inputs.coach_email }} --admin-email ${{ inputs.admin_email }}"
+
+      - name: Usuń chwilowe sekrety bootstrapowe z Fly
+        if: always()
+        run: |
+          flyctl secrets unset --app "$APP_NAME" \
+            DZIK_BOOTSTRAP_COACH_PASSWORD DZIK_BOOTSTRAP_ADMIN_PASSWORD || true
+
+      - name: Przygotuj artefakt z hasłami (tylko tryb wygenerowany)
+        if: env.zrodlo == 'wygenerowane'
+        run: |
+          {
+            echo "HASŁA STARTOWE DZIK OS — JEDNORAZOWE"
+            echo "Ważność artefaktu: 1 dzień. Po zalogowaniu hasło i tak musisz zmienić."
+            echo
+            echo "Trener  (${{ inputs.coach_email }}): $(cat /tmp/hasla/coach)"
+            echo "Admin   (${{ inputs.admin_email }}): $(cat /tmp/hasla/admin)"
+            echo
+            echo "Zaloguj się: https://dzik-os-panel.fly.dev"
+            echo "Aplikacja wymusi zmianę hasła i konfigurację MFA (aplikacja TOTP)."
+          } > /tmp/hasla/hasla-startowe.txt
+
+      - uses: actions/upload-artifact@v4
+        if: env.zrodlo == 'wygenerowane'
+        with:
+          name: hasla-startowe
+          path: /tmp/hasla/hasla-startowe.txt
+          retention-days: 1
+
+      - name: Co dalej
+        run: |
+          echo "Konta założone. Zaloguj się hasłem startowym na https://$APP_NAME.fly.dev — aplikacja wymusi zmianę hasła i konfigurację MFA."
+          if [ "$zrodlo" = "wygenerowane" ]; then
+            echo "Hasła startowe: artefakt 'hasla-startowe' na stronie tego runu (ważny 1 dzień)."
+          else
+            echo "Sekrety DZIK_BOOTSTRAP_* w repozytorium możesz teraz usunąć."
+          fi

@@ -1,5 +1,24 @@
 # Changelog — Dzik OS
 
+## 0.52.0 — 2026-08-25
+
+**Pilotaż na 10 podopiecznych + konfiguracja produkcji bez terminala**
+(polecenie właściciela: „zrealizuj te punkty; dopuść 10 podopiecznych").
+
+* **Limit podopiecznych:** `DZIK_MAX_CLIENTS` (domyślnie 10, jawnie
+  w `fly.toml`; 0 = bez limitu). `POST /coach/clients` odmawia (409,
+  komunikat po polsku) przy osiągniętym limicie niezakończonych
+  współprac (ACTIVE/PAUSED); zakończenie współpracy zwalnia miejsce.
+  Testy: odmowa, zwolnienie miejsca po ENDED, wyłączenie limitu zerem.
+* **Workflow „Pierwsze konta (Fly.io)"** — bootstrap kont trenera
+  i admina jednym kliknięciem: hasła z sekretów repo wędrują jako
+  chwilowe sekrety Fly (env maszyny, nigdy argv) i są kasowane po
+  użyciu; bootstrap nadal działa wyłącznie na pustej bazie.
+* **Workflow „Sekrety produkcji (Fly.io)"** — przenosi na Fly wypełnione
+  sekrety repo (SMTP ×6, AI ×2, DZIK_FILE_KEY), puste pomija;
+  uruchamialny wielokrotnie.
+* `DEPLOYMENT.md` §4bis: ścieżka klikania krok po kroku.
+
 ## 0.51.0 — 2026-08-25
 
 **Prawdziwy trener na stronie** (deklaracja właściciela: współpraca
