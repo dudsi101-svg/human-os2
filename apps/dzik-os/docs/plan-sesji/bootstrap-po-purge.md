@@ -33,6 +33,10 @@ odmowa na zasianej bazie bez purge — bez zmian).
 
 - **Wersja: 0.52.2.** **Migracja: brak.**
 
-## Weryfikacja (do wypełnienia)
+## Weryfikacja (wypełnione 25.08)
 
-- pełne bramki; na produkcji: ponowny run workflow bootstrapu po scaleniu.
+- Bramki: ruff czysto, backend **817** zaliczonych (nowy test regresji
+  purge→bootstrap; dopasowanie komunikatu w teście odmowy), Core 275,
+  spójność, mutacje 17/17 i 9/9.
+- Na produkcji (po scaleniu): ponowny run workflow „Pierwsze konta" —
+  wynik dopisany w rozmowie z właścicielem (artefakt hasła-startowe).
