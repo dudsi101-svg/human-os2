@@ -3,6 +3,7 @@ import { getUser } from "./api";
 import { ErrorBoundary, Nav } from "./components";
 import { maskPathIds } from "./errorUtils";
 import Login from "./pages/Login";
+import Landing from "./pages/Landing";
 import ChangePassword from "./pages/ChangePassword";
 import Activate from "./pages/Activate";
 import ResetPassword from "./pages/ResetPassword";
@@ -45,9 +46,9 @@ export default function App() {
   const { pending, catalog, reload } = usePendingConsents(
     !!user && isClient && !needsPassword && !needsMfaSetup
   );
-  // Ekrany publiczne (bez zalogowania): logowanie, aktywacja konta z
-  // zaproszenia, reset hasła (żądanie + ustawienie nowego).
-  const publicPaths = ["/login", "/aktywacja", "/reset-hasla"];
+  // Ekrany publiczne (bez zalogowania): strona marketingowa, logowanie,
+  // aktywacja konta z zaproszenia, reset hasła (żądanie + ustawienie nowego).
+  const publicPaths = ["/", "/login", "/aktywacja", "/reset-hasla"];
   if (!user && !publicPaths.includes(location.pathname)) {
     return <Navigate to="/login" replace />;
   }
@@ -81,6 +82,9 @@ export default function App() {
           więc awaria jednego widoku nie „przykleja się" do kolejnych. */}
       <ErrorBoundary scope={`route:${maskPathIds(location.pathname)}`} key={location.pathname}>
       <Routes>
+        {/* Publiczna strona marketingowa: gość na "/" widzi wizytówkę,
+            zalogowany — swój ekran startowy jak dotąd. */}
+        {!user && <Route path="/" element={<Landing />} />}
         <Route path="/login" element={user ? <Navigate to={home} replace /> : <Login />} />
         <Route path="/aktywacja" element={<Activate />} />
         <Route path="/reset-hasla" element={<ResetPassword />} />

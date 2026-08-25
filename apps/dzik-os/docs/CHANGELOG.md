@@ -1,5 +1,33 @@
 # Changelog — Dzik OS
 
+## 0.49.0 — 2026-08-25
+
+**Publiczna strona marketingowa + formularz zapytań** (polecenie
+właściciela: „potrzebujemy stronę internetową głównie marketingową,
+ale jeśli to korzystne — z innymi funkcjami również").
+
+* **Wizytówka na `/`:** niezalogowany gość widzi stronę marketingową
+  (hero z logo, sześć atutów współpracy, trzy kroki startu, sekcja
+  „O trenerze", FAQ, formularz kontaktu, stopka z notą prywatności) —
+  w estetyce aplikacji (ciemny motyw, akcent limonkowy, Unbounded).
+  Zalogowani widzą na `/` swój ekran jak dotąd; nieznane ścieżki dalej
+  prowadzą do `/login`. Miejsca do personalizacji (imię, zdjęcie,
+  hasło przewodnie, dane firmy) oznaczone komentarzami PERSONALIZACJA
+  w `Landing.tsx`. Zero ciasteczek i śledzenia.
+* **`POST /api/public/lead`** — jedyna nowa funkcja backendu:
+  zapytanie od potencjalnego klienta (imię, e-mail, opcjonalny telefon,
+  wiadomość) trafia jako powiadomienie nowej kategorii `ZAPYTANIE` do
+  wszystkich aktywnych kont COACH (treść wyłącznie w centrum za
+  logowaniem; push/e-mail dostają neutralne wezwanie — zasady
+  POWIADOMIENIA.md). Ochrona publicznego wejścia: twarde limity
+  długości (`extra="forbid"`), honeypot (bot dostaje 200 bez zapisu),
+  limiter 5 zgłoszeń/h per IP, wpis audytu bez treści wiadomości.
+  Żadnych nowych tabel ani migracji.
+* Testy: 4 nowe backendu (doręczenie, honeypot, walidacja, limiter),
+  wpis `Access.PUBLIC` w macierzy dostępu, 2 nowe E2E (gość widzi
+  wizytówkę i przechodzi do logowania; gość wysyła zapytanie i widzi
+  potwierdzenie).
+
 ## 0.48.0 — 2026-08-24
 
 **Precyzja kuchenna i baza ×5** (zgłoszenie właściciela: „kompozycje
