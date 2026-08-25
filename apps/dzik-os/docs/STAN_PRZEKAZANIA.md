@@ -1,6 +1,6 @@
 # Stan przekazania — przeczytaj przed rozpoczęciem rundy
 
-**Aktualizacja:** 2026-08-25 · **Wersja w `main`:** 0.52.0
+**Aktualizacja:** 2026-08-25 · **Wersja w `main`:** 0.52.1
 **Tryb pracy:** jeden piszący i jeden PR `[WRITER]` naraz
 (`KOORDYNACJA.md`, zasada nadrzędna).
 
@@ -33,7 +33,11 @@ pierwszy commit, draft PR `[WRITER]`, reszta agentów read-only.
 jednym prawdziwym klientem, **NO-GO na szerszą produkcję** — siedem
 blokerów wypisanych w §5 tamtego dokumentu.
 
-**Ostatnia runda (0.52.0, gałąź `agent/pilotaz-10-podopiecznych`):**
+**Ostatnia runda (0.52.1, gałąź `agent/porzadki-demo`):** workflow
+„Porządki demo (Fly.io)" — `purge_demo` na produkcji (diagnoza /
+`--force`), bo baza produkcyjna niosła konta demo sprzed 0.43.0
+i bootstrap pierwszych prawdziwych kont słusznie odmawiał.
+**Runda 0.52.0 (`agent/pilotaz-10-podopiecznych`):**
 limit 10 niezakończonych współprac na trenera (`DZIK_MAX_CLIENTS`)
 + dwa workflow workflow_dispatch („Pierwsze konta", „Sekrety produkcji")
 zdejmujące z właściciela konieczność instalowania flyctl — bootstrap
