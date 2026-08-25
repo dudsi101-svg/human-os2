@@ -43,7 +43,11 @@ pustej bazie; brakuje ścieżki operacyjnej.
   aplikacji webowej — osobna decyzja produktowa; narzędzie CLI+workflow
   wystarcza na skalę pilotażu i zostawia ślad w audycie).
 
-## Weryfikacja (do wypełnienia)
+## Weryfikacja (wypełnione 25.08)
 
-- pełne bramki; na produkcji: workflow zakłada konto testowe właściciela
-  (dudsi101+trener@gmail.com) — hasło w artefakcie.
+- Bramki: ruff czysto (po `--fix` 1×F401), backend **841** zaliczonych
+  (4 nowe testy: założenie+logowanie z wymuszoną zmianą hasła i rolą
+  COACH, zajęty e-mail, krótkie hasło, brak env), Core 275, spójność,
+  mutacje 17/17 i 9/9; YAML workflow zwalidowany.
+- Na produkcji: uruchomienie workflow „Dodaj trenera" po scaleniu —
+  wynik dopisany do STAN przy przekazaniu hasła właścicielowi.
