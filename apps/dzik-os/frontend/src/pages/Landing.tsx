@@ -162,6 +162,27 @@ export default function Landing() {
         </ol>
       </section>
 
+      <section className="landing-section" id="aplikacja">
+        <h2>Zobacz aplikację</h2>
+        <p className="landing-gallery__intro">
+          Prawdziwe ekrany z danymi demonstracyjnymi — tak wygląda
+          codzienna współpraca.
+        </p>
+        <div className="landing-gallery">
+          {[
+            { src: "/screens/dzisiaj.jpg", podpis: "Dzisiaj — Twój dzień w pigułce" },
+            { src: "/screens/plan.jpg", podpis: "Plan treningowy z techniką" },
+            { src: "/screens/dieta.jpg", podpis: "Dieta z gramaturami" },
+            { src: "/screens/postepy.jpg", podpis: "Postępy i rekordy" },
+          ].map((e) => (
+            <figure key={e.src}>
+              <img src={e.src} alt={e.podpis} loading="lazy" />
+              <figcaption>{e.podpis}</figcaption>
+            </figure>
+          ))}
+        </div>
+      </section>
+
       <section className="landing-section" id="o-trenerze">
         <h2>O trenerze</h2>
         <div className="card landing-card landing-about">

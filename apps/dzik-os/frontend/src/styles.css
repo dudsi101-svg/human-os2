@@ -576,3 +576,13 @@ table.simple th { color: var(--text-dim); font-weight: 600; font-size: 0.78rem; 
 .landing-footer { margin-top: 44px; padding-top: 18px; border-top: 1px solid var(--border);
   color: var(--text-dim); font-size: 0.82rem; text-align: center; }
 .landing-footer p { margin: 4px 0; }
+
+/* Galeria ekranów na stronie marketingowej (0.50.0). */
+.landing-gallery__intro { color: var(--text-dim); margin: -8px 0 18px; font-size: 0.95rem; }
+.landing-gallery { display: flex; gap: 16px; overflow-x: auto; padding-bottom: 12px;
+  scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; }
+.landing-gallery figure { flex: 0 0 auto; width: 230px; margin: 0; scroll-snap-align: start; }
+.landing-gallery img { width: 100%; border-radius: 18px; border: 1px solid var(--border);
+  display: block; }
+.landing-gallery figcaption { color: var(--text-dim); font-size: 0.82rem; text-align: center;
+  margin-top: 8px; }

@@ -14,6 +14,10 @@ test("gość widzi stronę marketingową i przechodzi do logowania", async ({ pa
   await expect(page.getByRole("heading", { name: "Trening prowadzony, nie zgadywany" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Co dostajesz we współpracy" })).toBeVisible();
 
+  // Galeria ekranów (0.50.0): sekcja jest na stronie, zrzuty się ładują.
+  await expect(page.getByRole("heading", { name: "Zobacz aplikację" })).toBeVisible();
+  await expect(page.getByAltText("Dzisiaj — Twój dzień w pigułce")).toBeVisible();
+
   await page.getByRole("link", { name: "Zaloguj się" }).click();
   await expect(page).toHaveURL(/\/login$/);
   await expect(page.getByLabel("E-mail")).toBeVisible();
