@@ -16,6 +16,9 @@ test("gość widzi stronę marketingową i przechodzi do logowania", async ({ pa
 
   // Galeria ekranów (0.50.0): sekcja jest na stronie, zrzuty się ładują.
   await expect(page.getByRole("heading", { name: "Zobacz aplikację" })).toBeVisible();
+  // Prawdziwy trener (0.51.0): sekcja z nazwiskiem i kontakt bezpośredni.
+  await expect(page.getByRole("heading", { name: /Łukasz Drygiel/ })).toBeVisible();
+  await expect(page.getByRole("link", { name: "+48 570 477 540" })).toBeVisible();
   await expect(page.getByAltText("Dzisiaj — Twój dzień w pigułce")).toBeVisible();
 
   await page.getByRole("link", { name: "Zaloguj się" }).click();

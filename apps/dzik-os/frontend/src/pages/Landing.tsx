@@ -186,20 +186,35 @@ export default function Landing() {
       <section className="landing-section" id="o-trenerze">
         <h2>O trenerze</h2>
         <div className="card landing-card landing-about">
-          {/* PERSONALIZACJA: wstaw swoje imię, doświadczenie, certyfikaty
-              i zdjęcie (np. <img src="/icons/trener.jpg" ... /> po dodaniu
-              pliku do frontend/public/icons/). */}
+          <img
+            src="/icons/trener.jpg"
+            alt="Łukasz Drygiel na treningu"
+            className="landing-about__foto"
+            loading="lazy"
+          />
+          <h3 className="landing-about__imie">
+            Łukasz Drygiel — <span className="landing-about__ksywa">Lubelski Dzik</span>
+          </h3>
           <p>
-            Trenuję ludzi, którzy chcą realnej zmiany — siły, sylwetki albo
-            po prostu zdrowia — i wolą plan oparty na pomiarach niż na
-            motywacyjnych hasłach. Każdą współpracę prowadzę osobiście:
-            układam plan, czytam każdy raport i odpowiadam na każdą
-            wiadomość.
+            Trener personalny i zawodnik scen sylwetkowych (IFBB PRO).
+            Prowadzę podopiecznych na siłowni w Lublinie (RAPTOR GYM)
+            i online — w całej Polsce. Na Instagramie towarzyszy mi
+            społeczność ponad 30 tysięcy osób, ale każdą współpracę
+            prowadzę osobiście: układam plan, czytam każdy raport
+            i odpowiadam na każdą wiadomość.
           </p>
           <p>
-            Aplikacja Dzik OS to moje własne narzędzie pracy — powstała po
+            Mój konik to redukcja bez utraty mięśni — pomagam schudnąć
+            nawet 12 kg w 20 tygodni, budując przy tym siłę i sylwetkę.
+            Aplikacja Dzik OS to moje własne narzędzie pracy: powstała po
             to, żeby nic z naszej współpracy nie ginęło w czatach
             i arkuszach.
+          </p>
+          <p className="landing-about__social">
+            <a href="https://www.instagram.com/lubelski_dzik_ifbbpro/" target="_blank" rel="noopener nofollow">Instagram</a>
+            <a href="https://www.tiktok.com/@lubelski_dzik" target="_blank" rel="noopener nofollow">TikTok</a>
+            <a href="https://www.youtube.com/@Lubelski_dzik_ifbbpro" target="_blank" rel="noopener nofollow">YouTube</a>
+            <a href="https://www.facebook.com/lubelskidzikk/" target="_blank" rel="noopener nofollow">Facebook</a>
           </p>
         </div>
       </section>
@@ -285,13 +300,18 @@ export default function Landing() {
               Podane dane posłużą wyłącznie do odpowiedzi na Twoje
               zapytanie. Nie trafiają na żadną listę mailingową.
             </p>
+            <p className="landing-form__alt">
+              Wolisz bezpośrednio? Zadzwoń:{" "}
+              <a href="tel:+48570477540">+48 570 477 540</a> albo napisz:{" "}
+              <a href="mailto:lubelskidzikk@gmail.com">lubelskidzikk@gmail.com</a>
+            </p>
           </form>
         )}
       </section>
 
       <footer className="landing-footer">
-        {/* PERSONALIZACJA: dane firmy / NIP / adres, jeśli wymagane. */}
-        <p>© {new Date().getFullYear()} Dzik OS — trening personalny.</p>
+        {/* Dane firmy / NIP — do uzupełnienia przez właściciela. */}
+        <p>© {new Date().getFullYear()} Dzik OS · Łukasz Drygiel — Lubelski Dzik · trening personalny Lublin i online</p>
         <p>
           Strona nie używa ciasteczek marketingowych ani narzędzi
           śledzących.
