@@ -1,6 +1,6 @@
 # Stan przekazania — przeczytaj przed rozpoczęciem rundy
 
-**Aktualizacja:** 2026-08-25 · **Wersja w `main`:** 0.52.1
+**Aktualizacja:** 2026-08-25 · **Wersja w `main`:** 0.52.2
 **Tryb pracy:** jeden piszący i jeden PR `[WRITER]` naraz
 (`KOORDYNACJA.md`, zasada nadrzędna).
 
@@ -33,7 +33,11 @@ pierwszy commit, draft PR `[WRITER]`, reszta agentów read-only.
 jednym prawdziwym klientem, **NO-GO na szerszą produkcję** — siedem
 blokerów wypisanych w §5 tamtego dokumentu.
 
-**Ostatnia runda (0.52.1, gałąź `agent/porzadki-demo`):** workflow
+**Ostatnia runda (0.52.2, gałąź `agent/bootstrap-po-purge`):** naprawa
+strażnika bootstrapu (liczy tylko nieodwołane role aktywnych kont —
+sekwencja purge→bootstrap wykonalna; wykryte na produkcji podczas
+zakładania pierwszych prawdziwych kont). **Runda 0.52.1
+(`agent/porzadki-demo`):** workflow
 „Porządki demo (Fly.io)" — `purge_demo` na produkcji (diagnoza /
 `--force`), bo baza produkcyjna niosła konta demo sprzed 0.43.0
 i bootstrap pierwszych prawdziwych kont słusznie odmawiał.

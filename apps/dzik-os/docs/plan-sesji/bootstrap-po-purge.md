@@ -26,7 +26,7 @@ odmowa na zasianej bazie bez purge — bez zmian).
 ## Mój obszar
 
 - `backend/dzik_os/bootstrap.py` (sam strażnik),
-  `backend/tests/test_pilot_tools.py` (dopisek scenariusza purge→bootstrap);
+  `backend/tests/test_bootstrap_purge.py` (dopisek scenariusza purge→bootstrap);
 - `docs/CHANGELOG.md` (0.52.2), `docs/STAN_PRZEKAZANIA.md`; ten plan.
 
 ## Rezerwacje
