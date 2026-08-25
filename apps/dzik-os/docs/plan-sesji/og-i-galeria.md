@@ -44,8 +44,12 @@ kartę, a strona ma pokazywać prawdziwe ekrany aplikacji.
   rozbudowa to decyzja po feedbacku);
 - nie generuję og.png dynamicznie — statyczny plik, podmienialny ręcznie.
 
-## Weryfikacja (do wypełnienia)
+## Weryfikacja (wypełnione 25.08)
 
-- pełne bramki frontendu + minimalne backendu; uruchomienie na żywo:
-  meta-tagi w źródle strony, galeria przewijalna na telefonie,
-  og.png dostępny pod adresem.
+- Bramki: ruff czysto, backend 813/1 pominięty, Core 275, spójność,
+  mutacje 17/17 i 9/9, frontend tsc+build, helpers 140, **E2E 17/17**
+  (dopisek galerii w strona-publiczna.spec).
+- Uruchomienie na żywo (serve.sh :8151, świeży dist; co uruchomiłem i co
+  zobaczyłem): w źródle `/` komplet tagów og:* i twitter:*;
+  `GET /og.png` → 200 (393 682 B); galeria potwierdzona asercją E2E
+  (nagłówek + zrzut „Dzisiaj" widoczne).

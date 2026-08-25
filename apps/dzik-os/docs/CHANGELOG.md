@@ -1,5 +1,17 @@
 # Changelog — Dzik OS
 
+## 0.50.0 — 2026-08-25
+
+**Karta OG + galeria ekranów** (część pakietu marketingowego).
+
+* Meta-tagi Open Graph/Twitter w `index.html` + statyczny `public/og.png`
+  (1200×630): link do strony wysyłany na Messengerze/WhatsAppie pokazuje
+  markową kartę z ekranami aplikacji zamiast gołego adresu.
+* Sekcja **„Zobacz aplikację"** na stronie marketingowej: pozioma galeria
+  4 zrzutów telefonu z danych demo (Dzisiaj, Plan, Dieta, Postępy),
+  scroll-snap, lazy-loading; pliki w `public/screens/`.
+* E2E strony publicznej sprawdza widoczność galerii.
+
 ## 0.49.0 — 2026-08-25
 
 **Publiczna strona marketingowa + formularz zapytań** (polecenie

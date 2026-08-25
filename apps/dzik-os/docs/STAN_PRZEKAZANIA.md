@@ -1,6 +1,6 @@
 # Stan przekazania — przeczytaj przed rozpoczęciem rundy
 
-**Aktualizacja:** 2026-08-25 · **Wersja w `main`:** 0.49.0
+**Aktualizacja:** 2026-08-25 · **Wersja w `main`:** 0.50.0
 **Tryb pracy:** jeden piszący i jeden PR `[WRITER]` naraz
 (`KOORDYNACJA.md`, zasada nadrzędna).
 
@@ -33,7 +33,10 @@ pierwszy commit, draft PR `[WRITER]`, reszta agentów read-only.
 jednym prawdziwym klientem, **NO-GO na szerszą produkcję** — siedem
 blokerów wypisanych w §5 tamtego dokumentu.
 
-**Ostatnia runda (0.49.0, gałąź `agent/strona-marketingowa`):**
+**Ostatnia runda (0.50.0, gałąź `agent/og-i-galeria`):** meta-tagi
+Open Graph + `og.png` (markowa karta linku na komunikatorach) i galeria
+4 zrzutów demo na stronie marketingowej. **Runda 0.49.0
+(`agent/strona-marketingowa`):**
 publiczna strona marketingowa na `/` dla niezalogowanych (Landing.tsx,
 personalizacja właściciela oznaczona komentarzami) + `POST
 /api/public/lead` — zapytania z formularza trafiają jako powiadomienia
