@@ -17,7 +17,12 @@
 name: Sekrety produkcji (Fly.io)
 
 on:
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      test_email:
+        description: "Adres na testowy e-mail po ustawieniu sekretów (puste = bez testu)"
+        required: false
+        default: "dudsi101@gmail.com"
 
 concurrency:
   group: fly-maintenance
@@ -67,3 +72,10 @@ jobs:
             sleep 5
           done
           echo "::error::Maszyna nie wstała w 150 s"; exit 1
+
+      - name: Testowa wysyłka e-maila (dowód, nie wiara)
+        if: inputs.test_email != ''
+        run: |
+          flyctl ssh console --app "$APP_NAME" -C \
+            "python -m dzik_os.test_poczty ${{ inputs.test_email }}"
+          echo "Sprawdź skrzynkę ${{ inputs.test_email }} — powinna być wiadomość „Dzik OS — test poczty”."

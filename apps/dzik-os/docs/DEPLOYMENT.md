@@ -85,6 +85,20 @@ flyctl ssh console --app dzik-os-panel
 #      DZIK_FILE_KEY, które chcesz włączyć, i uruchom Actions → „Sekrety
 #      produkcji (Fly.io)". Puste są pomijane — można wracać i dokładać.
 #
+# Najkrótsza droga do działającej poczty (Gmail, konto lubelskidzikk@gmail.com):
+#   1. Włącz weryfikację dwuetapową: myaccount.google.com → Bezpieczeństwo.
+#   2. Wygeneruj „hasło do aplikacji": myaccount.google.com/apppasswords
+#      (nazwa dowolna, np. „Dzik OS") — dostaniesz 16 znaków.
+#   3. W repo ustaw sekrety: DZIK_SMTP_HOST=smtp.gmail.com,
+#      DZIK_SMTP_PORT=587, DZIK_SMTP_USER=lubelskidzikk@gmail.com,
+#      DZIK_SMTP_PASSWORD=<16 znaków bez spacji>,
+#      DZIK_SMTP_FROM=Dzik OS <lubelskidzikk@gmail.com>.
+#   4. Actions → „Sekrety produkcji (Fly.io)" → Run workflow (pole
+#      test_email zostaw — po ustawieniu sekretów workflow sam wyśle
+#      testowy e-mail i zrobi się czerwony, jeśli poczta nie działa).
+# Limit Gmaila (~500 e-maili/dobę) w skali pilotażu jest niewyczerpywalny;
+# przy większej skali przejdziemy na dostawcę transakcyjnego z domeną.
+#
 # Limit pilotażu: aplikacja przyjmuje maks. 10 niezakończonych współprac
 # na trenera (DZIK_MAX_CLIENTS w fly.toml; ENDED zwalnia miejsce).
 

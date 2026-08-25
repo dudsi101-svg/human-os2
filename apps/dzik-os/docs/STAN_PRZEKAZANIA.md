@@ -1,7 +1,6 @@
 # Stan przekazania — przeczytaj przed rozpoczęciem rundy
 
-**Aktualizacja:** 2026-08-25 · **Wersja w `main`:** 0.52.2 ·
-**Wersja tej gałęzi (runda w PR #29):** 0.53.0
+**Aktualizacja:** 2026-08-25 · **Wersja w `main`:** 0.53.0
 **Tryb pracy:** jeden piszący i jeden PR `[WRITER]` naraz
 (`KOORDYNACJA.md`, zasada nadrzędna).
 
@@ -34,7 +33,7 @@ pierwszy commit, draft PR `[WRITER]`, reszta agentów read-only.
 jednym prawdziwym klientem, **NO-GO na szerszą produkcję** — siedem
 blokerów wypisanych w §5 tamtego dokumentu.
 
-**Runda 0.53.0 (ta gałąź, `claude/ocena-projektu-dzik-os-76ercy`,
+**Ostatnia runda (0.53.0, gałąź `claude/ocena-projektu-dzik-os-76ercy`,
 PR #29):** głęboki wywiad jako drugi przepływ rozmowy —
 scenariusz `interview_flow.py` (46 pytań/9 modułów wg wzorca właściciela),
 fabryka `build_router(FlowConfig)` w `routers/onboarding.py` (rozmowa
@@ -45,7 +44,14 @@ zakładka „Wywiad" u trenera + **podpowiedzi z rozmów** przy zakładkach
 Plan/Dieta/Harmonogram/Raporty (`coach_hints.py`, `GET /profile/hints`),
 16 testów + E2E. Szczegóły: `plan-sesji/gleboki-wywiad.md` i CHANGELOG.
 
-**Ostatnia runda na main (0.52.2, gałąź `agent/bootstrap-po-purge`):**
+**Runda 0.52.3, gałąź `agent/test-poczty`):** testowa wysyłka
+e-maila (`dzik_os.test_poczty`) wpięta w workflow „Sekrety produkcji" —
+konfiguracja SMTP dowodzona wysyłką; instrukcja hasła aplikacji Gmail
+w DEPLOYMENT. **Konta produkcyjne założone 25.08** (trener
+lubelskidzikk@gmail.com, admin dudsi101+admin@gmail.com — hasła
+jednorazowe w artefakcie runu bootstrapu, ważnym 1 dzień).
+
+**Runda 0.52.2 (dalej: 0.52.2, gałąź `agent/bootstrap-po-purge`):**
 naprawa strażnika bootstrapu (liczy tylko nieodwołane role aktywnych
 kont — sekwencja purge→bootstrap wykonalna; wykryte na produkcji podczas
 zakładania pierwszych prawdziwych kont). **Runda 0.52.1
