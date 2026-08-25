@@ -68,16 +68,26 @@ def bootstrap(
     settings.ensure_dirs()
     run_migrations()
     with db_session() as db:
+        # Liczą się wyłącznie NIEODWOŁANE nadania ról na AKTYWNYCH kontach:
+        # konta demo zawieszone przez purge_demo (SUSPENDED, hasło
+        # unieważnione) nie mogą blokować startu prawdziwej instalacji —
+        # bez tego filtra udokumentowana sekwencja purge→bootstrap była
+        # niewykonalna (wykryte na produkcji 25.08).
         zajete = (
             db.query(RoleGrant)
-            .filter(RoleGrant.role.in_(("COACH", "ADMIN")))
+            .join(User, User.id == RoleGrant.user_id)
+            .filter(
+                RoleGrant.role.in_(("COACH", "ADMIN")),
+                RoleGrant.revoked_at.is_(None),
+                User.status == "ACTIVE",
+            )
             .count()
         )
         if zajete:
             raise ValueError(
-                "W bazie istnieje już konto z rolą COACH albo ADMIN — "
-                "bootstrap działa wyłącznie na pustej bazie. Do zarządzania "
-                "istniejącymi kontami użyj aplikacji."
+                "W bazie istnieje już aktywne konto z rolą COACH albo "
+                "ADMIN — bootstrap działa wyłącznie na pustej bazie. Do "
+                "zarządzania istniejącymi kontami użyj aplikacji."
             )
         wynik: dict[str, str] = {}
         for email, password, name, role in (

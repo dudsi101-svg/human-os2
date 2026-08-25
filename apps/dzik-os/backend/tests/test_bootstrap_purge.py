@@ -37,7 +37,7 @@ def test_bootstrap_creates_first_accounts_and_login_works(client):
 
 
 def test_bootstrap_refuses_on_non_empty_base(seeded):
-    with pytest.raises(ValueError, match="istnieje już konto"):
+    with pytest.raises(ValueError, match="istnieje już aktywne konto"):
         bootstrap(PRAWDZIWY_TRENER, HASLO, PRAWDZIWY_ADMIN, HASLO)
 
 
@@ -79,3 +79,20 @@ def test_purge_disables_demo_after_real_coach_exists(seeded, client):
 
 def test_purge_on_empty_base_is_a_noop(client):
     assert purge_demo() == []
+
+
+def test_purge_force_then_bootstrap_works(seeded):
+    """Udokumentowana sekwencja na bazie z demo (produkcja 25.08):
+    purge --force zawiesza konta demo, po czym bootstrap MUSI umieć
+    założyć pierwsze prawdziwe konta — zawieszone nadania ról nie
+    blokują startu instalacji."""
+    wylaczone = purge_demo(force=True)
+    assert wylaczone  # seed = same konta demo
+
+    wynik = bootstrap(
+        "prawdziwy.trener@example.com", "SilneHaslo#123",
+        "prawdziwy.admin@example.com", "InneHaslo#456",
+    )
+    assert set(wynik) == {
+        "prawdziwy.trener@example.com", "prawdziwy.admin@example.com",
+    }

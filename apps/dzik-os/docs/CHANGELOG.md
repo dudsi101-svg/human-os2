@@ -1,5 +1,14 @@
 # Changelog — Dzik OS
 
+## 0.52.2 — 2026-08-25
+
+* **Naprawa strażnika bootstrapu** (błąd wykryty na produkcji):
+  `purge_demo` zawiesza konta demo, ale ich nadania ról zostają —
+  strażnik liczył wszystkie nadania COACH/ADMIN i po purge odmawiał
+  na zawsze. Teraz liczy wyłącznie nadania nieodwołane na kontach
+  AKTYWNYCH; udokumentowana sekwencja purge→bootstrap działa (test
+  regresji `test_purge_force_then_bootstrap_works`).
+
 ## 0.52.1 — 2026-08-25
 
 * Workflow **„Porządki demo (Fly.io)"**: uruchamia `purge_demo` na
