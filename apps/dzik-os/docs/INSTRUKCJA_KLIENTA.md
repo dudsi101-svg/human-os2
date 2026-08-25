@@ -49,6 +49,21 @@ z krótkim wyjaśnieniem, po co jest potrzebne.
 Wolisz klasyczny formularz? „Wolę formularz" na ekranie Dzisiaj prowadzi
 do **wywiadu startowego** — zapisuje dokładnie te same pola.
 
+## Głęboki wywiad („Więcej → Głęboki wywiad")
+
+Gdy współpraca już ruszy, warto przejść **głęboki wywiad** — dłuższą
+rozmowę (kilkadziesiąt pytań w dziewięciu blokach: motywacja, historia
+treningowa, zdrowie, sen, stres, jedzenie, logistyka tygodnia, punkt
+startu, zasady współpracy). Działa dokładnie jak rozmowa startowa:
+jedno pytanie na raz z wyjaśnieniem „po co", każde można pominąć,
+można przerwać i wrócić, poprawki mają historię, a na końcu sam(a)
+zatwierdzasz podsumowanie, zanim trafi do profilu. Pytania o zdrowie
+i żywienie istnieją wyłącznie w zakresie Twoich zgód, a odpowiedzi
+wskazujące na potrzebę konsultacji lekarskiej dostają spokojną
+informację — nikt niczego nie ocenia. **Nic z tego wywiadu nie jest
+wysyłane do modelu AI** — podsumowanie powstaje zawsze z Twoich
+własnych słów.
+
 Jeśli w rozmowie opiszesz coś, co wykracza poza kompetencje trenera
 (np. ból w klatce piersiowej, omdlenia, duszność, ostry ból po urazie),
 aplikacja pokaże spokojny komunikat kierujący do lekarza. **Niczego nie

@@ -1,5 +1,57 @@
 # Changelog — Dzik OS
 
+## 0.53.0 — 2026-08-25
+
+**Głęboki wywiad — drugi przepływ rozmowy** (polecenie właściciela:
+„wprowadź wywiad do aplikacji"; wzorzec 46 pytań w 9 modułach zatwierdzony
+wcześniej jako dokument).
+
+* **Nowy scenariusz `interview_flow.py`** (46 pytań + intro + rozbicia
+  pytań złożonych = 50 kroków): motywacja trzy warstwy głębiej (scena
+  z życia, „dlaczego nie o dwa niżej", czyj to cel, mapa poprzednich
+  porażek), historia treningowa, przesiew zdrowotny w logice PAR-Q,
+  sen i społeczny jetlag, stres i głowa (z jedzeniem emocjonalnym
+  i relacją z ciałem), żywienie pod lupą (prawdziwy wczorajszy dzień,
+  alkohol „bez wersji odświętnej", historia jo-jo), logistyka tygodnia,
+  punkt startu i zasady współpracy z pytaniem-perłą „co musiałoby się
+  stać, żebyś zrezygnował(a)".
+* **Jeden mechanizm, dwa przepływy.** `routers/onboarding.py`
+  przekształcony w fabrykę `build_router(FlowConfig)` — rozmowa startowa
+  działa bez zmiany zachowania (jej testy przechodzą bez modyfikacji
+  asercji), a `routers/interview.py` to wyłącznie konfiguracja:
+  `/api/clients/{id}/interview` + te same tabele rozróżniane kolumną
+  `flow` (**migracja 26**, addytywna, DEFAULT 'start').
+* **Różnice wywiadu są świadome:** zero AI (podsumowanie zawsze
+  deterministyczne, z jawnym powodem w odpowiedzi), nie tworzy celu
+  (cel powstaje w rozmowie startowej), **flagi wyboru** — nowe pole
+  `Step.flag_options`: odpowiedź flagowa w przesiewie (ból w klatce,
+  omdlenia, zalecenie lekarza) podnosi `safety_flag` sesji spokojnym
+  komunikatem „najpierw lekarz, potem obciążenia", a pytanie o relację
+  z ciałem — łagodniejszym „prowadzimy ostrożniej, bez oceny".
+* **Frontend bez drugiego ekranu:** `Onboarding.tsx` sparametryzowany
+  (`RozmowaPage`), nowy `/wywiad` to cienka konfiguracja; wejście
+  w „Więcej → Głęboki wywiad"; u trenera 11. zakładka **Wywiad** na
+  karcie klienta (ta sama zakładka co Rozmowa startowa, inna ścieżka).
+* **Podpowiedzi z rozmów przy pracy trenera** (dopowiedzenie właściciela:
+  „odpowiedzi z wywiadu mają być podpowiedziami do układania diety,
+  treningu i reszty"): `GET /profile/hints?area=PLAN|DIETA|HARMONOGRAM|
+  WSPOLPRACA` mapuje zatwierdzone pola profilu z OBU rozmów na obszary
+  pracy (`coach_hints.py`; proweniencja — pytanie/moduł/przepływ — brana
+  wprost ze scenariuszy, zero duplikacji etykiet), a zwijana karta
+  „Podpowiedzi z rozmów" stoi u góry zakładek Plan, Dieta, Harmonogram
+  i Raporty karty klienta. To DOSŁOWNE deklaracje podopiecznego
+  z jawnym zastrzeżeniem — nigdy interpretacja ani zalecenie; filtr zgód
+  identyczny jak w profilu (domeny pól wrażliwych spięte ze scenariuszy —
+  jedno źródło prawdy także dla widoku profilu). Test-strażnik: każde
+  pole scenariuszy MUSI mieć świadome mapowanie obszarów, inaczej build
+  czerwienieje.
+* 16 testów `test_wywiad.py` (izolacja 404, zgody wycinają moduły,
+  flagi obu rodzajów, gałąź zmianowości, zapis pól `gw_*` bez celu,
+  niezależność od rozmowy startowej, podpowiedzi per obszar + zgody +
+  strażnik mapowania) + E2E `wywiad.spec.ts`
+  (start → odpowiedź → pominięcie → wznowienie po przeładowaniu)
+  + `/wywiad` w kontroli szerokości 320 px.
+
 ## 0.52.2 — 2026-08-25
 
 * **Naprawa strażnika bootstrapu** (błąd wykryty na produkcji):
@@ -2508,7 +2560,6 @@ Audyt i utwardzenie **całego systemu plików** (bez zmian schematu bazy).
 * Testy: 113 → 134 (magic bytes, podwójne rozszerzenie, path traversal,
   EXIF, limity, cofnięta zgoda, wygasła relacja, baza wiedzy, sieroty,
   soft delete, nagłówki odpowiedzi).
-
 
 ## 0.10.0 — 2026-08-18
 

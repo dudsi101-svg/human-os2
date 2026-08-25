@@ -11,6 +11,7 @@ import MfaSetup from "./pages/MfaSetup";
 import ConsentGate, { ConsentSpinner, usePendingConsents } from "./pages/ConsentGate";
 import Today from "./pages/client/Today";
 import Intake from "./pages/client/Intake";
+import Interview from "./pages/client/Interview";
 import Onboarding from "./pages/client/Onboarding";
 import Plan from "./pages/client/Plan";
 import Nutrition from "./pages/client/Nutrition";
@@ -94,6 +95,7 @@ export default function App() {
           <>
             <Route path="/" element={<Today />} />
             <Route path="/rozmowa" element={<Onboarding />} />
+            <Route path="/wywiad" element={<Interview />} />
             <Route path="/ankieta" element={<Intake />} />
             <Route path="/plan" element={<Plan />} />
             <Route path="/dieta" element={<Nutrition />} />

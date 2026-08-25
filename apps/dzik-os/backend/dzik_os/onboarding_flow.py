@@ -70,6 +70,11 @@ class Step:
     # Krok warunkowy — pojawia się dopiero, gdy reguła adaptacji go odsłoni.
     conditional: bool = False
     max_len: int = 1000
+    # Odpowiedzi wyboru, które podnoszą flagę bezpieczeństwa sesji (ten sam
+    # mechanizm co `scan_safety`, tylko dla kroków CHOICE/BOOL/MULTI —
+    # np. przesiew przed wysiłkiem w głębokim wywiadzie). Pusta krotka =
+    # krok nie flaguje niczego.
+    flag_options: tuple[str, ...] = ()
 
 
 STEPS: tuple[Step, ...] = (
@@ -423,7 +428,11 @@ def _triggered(step_id: str, answers: dict[str, str | None]) -> bool:
 
 
 def plan_steps(
-    answers: dict[str, str | None], *, allowed_domains: set[str]
+    answers: dict[str, str | None],
+    *,
+    allowed_domains: set[str],
+    steps: tuple[Step, ...] = STEPS,
+    triggered=None,
 ) -> list[str]:
     """Lista identyfikatorów kroków dla BIEŻĄCEGO stanu rozmowy.
 
@@ -431,12 +440,18 @@ def plan_steps(
     wartość None i nie odsłania kroków warunkowych). `allowed_domains` to
     domeny danych, na które klient ma aktywną zgodę — krok o danych
     wrażliwych bez zgody nie powstaje w ogóle (minimalizacja: nie pytamy
-    o to, czego nie wolno nam przechowywać)."""
+    o to, czego nie wolno nam przechowywać).
+
+    `steps`/`triggered` parametryzują scenariusz: rozmowa startowa używa
+    domyślnych (STEPS + reguły poniżej), głęboki wywiad przekazuje własne
+    (`interview_flow`). Zachowanie domyślne jest identyczne jak przed
+    uogólnieniem."""
+    is_triggered = triggered or _triggered
     planned: list[str] = []
-    for step in STEPS:
+    for step in steps:
         if step.consent_domain is not None and step.consent_domain not in allowed_domains:
             continue
-        if step.conditional and not _triggered(step.id, answers):
+        if step.conditional and not is_triggered(step.id, answers):
             continue
         planned.append(step.id)
     return planned

@@ -1,6 +1,7 @@
 # Stan przekazania — przeczytaj przed rozpoczęciem rundy
 
-**Aktualizacja:** 2026-08-25 · **Wersja w `main`:** 0.52.2
+**Aktualizacja:** 2026-08-25 · **Wersja w `main`:** 0.52.2 ·
+**Wersja tej gałęzi (runda w PR #29):** 0.53.0
 **Tryb pracy:** jeden piszący i jeden PR `[WRITER]` naraz
 (`KOORDYNACJA.md`, zasada nadrzędna).
 
@@ -33,9 +34,20 @@ pierwszy commit, draft PR `[WRITER]`, reszta agentów read-only.
 jednym prawdziwym klientem, **NO-GO na szerszą produkcję** — siedem
 blokerów wypisanych w §5 tamtego dokumentu.
 
-**Ostatnia runda (0.52.2, gałąź `agent/bootstrap-po-purge`):** naprawa
-strażnika bootstrapu (liczy tylko nieodwołane role aktywnych kont —
-sekwencja purge→bootstrap wykonalna; wykryte na produkcji podczas
+**Runda 0.53.0 (ta gałąź, `claude/ocena-projektu-dzik-os-76ercy`,
+PR #29):** głęboki wywiad jako drugi przepływ rozmowy —
+scenariusz `interview_flow.py` (46 pytań/9 modułów wg wzorca właściciela),
+fabryka `build_router(FlowConfig)` w `routers/onboarding.py` (rozmowa
+startowa bez zmiany zachowania), `/api/clients/{id}/interview`,
+migracja 26 (`onboarding_sessions.flow`), flagi wyboru przesiewu
+(`Step.flag_options`), zero AI w wywiadzie, ekran `/wywiad` +
+zakładka „Wywiad" u trenera + **podpowiedzi z rozmów** przy zakładkach
+Plan/Dieta/Harmonogram/Raporty (`coach_hints.py`, `GET /profile/hints`),
+16 testów + E2E. Szczegóły: `plan-sesji/gleboki-wywiad.md` i CHANGELOG.
+
+**Ostatnia runda na main (0.52.2, gałąź `agent/bootstrap-po-purge`):**
+naprawa strażnika bootstrapu (liczy tylko nieodwołane role aktywnych
+kont — sekwencja purge→bootstrap wykonalna; wykryte na produkcji podczas
 zakładania pierwszych prawdziwych kont). **Runda 0.52.1
 (`agent/porzadki-demo`):** workflow
 „Porządki demo (Fly.io)" — `purge_demo` na produkcji (diagnoza /

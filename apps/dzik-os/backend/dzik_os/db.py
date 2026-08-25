@@ -857,6 +857,17 @@ MIGRATIONS: list[tuple[int, str, list[str]]] = [
             "ON import_snapshots(coach_id)"
         ),
     ]),
+    (26, "rozmowy: kolumna flow (rozmowa startowa vs gleboki wywiad)", [
+        # Addytywna: sesje głębokiego wywiadu żyją w TEJ SAMEJ tabeli co
+        # rozmowa startowa (ten sam mechanizm, drugi scenariusz), a kolumna
+        # `flow` je rozróżnia. Istniejące wiersze dostają DEFAULT 'start',
+        # więc baza sprzed migracji działa bez backfillu; wycofanie =
+        # ignorowanie kolumny (żaden stary kod jej nie czyta).
+        (
+            "ALTER TABLE onboarding_sessions "
+            "ADD COLUMN flow VARCHAR(20) NOT NULL DEFAULT 'start'"
+        ),
+    ]),
 ]
 
 
