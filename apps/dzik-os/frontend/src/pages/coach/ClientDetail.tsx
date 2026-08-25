@@ -57,11 +57,12 @@ import PlanEditor from "./PlanEditor";
 import OcrCapture from "../../OcrCapture";
 import { appendText } from "../../ocrUtils";
 
-type Tab = "profil" | "rozmowa" | "plan" | "dieta" | "harmonogram" | "raporty"
-  | "pomiary" | "monitoring" | "platnosci" | "historia";
+type Tab = "profil" | "rozmowa" | "wywiad" | "plan" | "dieta" | "harmonogram"
+  | "raporty" | "pomiary" | "monitoring" | "platnosci" | "historia";
 
 const TABS: [Tab, string][] = [
-  ["profil", "Profil"], ["rozmowa", "Rozmowa startowa"], ["plan", "Plan"],
+  ["profil", "Profil"], ["rozmowa", "Rozmowa startowa"], ["wywiad", "Wywiad"],
+  ["plan", "Plan"],
   ["dieta", "Dieta"], ["harmonogram", "Harmonogram"], ["raporty", "Raporty"],
   ["pomiary", "Pomiary"], ["monitoring", "Monitoring"], ["platnosci", "Płatności"],
   ["historia", "Historia"],
@@ -122,6 +123,7 @@ export default function ClientDetail() {
       <TabPanel id={tab}>
         {tab === "profil" && <ProfileTab clientId={clientId!} />}
         {tab === "rozmowa" && <OnboardingTab clientId={clientId!} />}
+        {tab === "wywiad" && <OnboardingTab clientId={clientId!} apiPath="interview" />}
         {tab === "plan" && <PlanTab clientId={clientId!} />}
         {tab === "dieta" && <NutritionTab clientId={clientId!} />}
         {tab === "harmonogram" && <ScheduleTab clientId={clientId!} />}
@@ -212,7 +214,12 @@ function ProfileTab({ clientId }: { clientId: string }) {
  * z historią poprawek), podsumowanie, poziom niepewności per pole i pola
  * wymagające potwierdzenia. Trener zatwierdza DOPIERO po kliencie — i
  * dopiero wtedy podsumowanie staje się podstawą planu. */
-function OnboardingTab({ clientId }: { clientId: string }) {
+function OnboardingTab({ clientId, apiPath = "onboarding" }: {
+  clientId: string;
+  // Ta sama zakładka obsługuje rozmowę startową i głęboki wywiad —
+  // różni je wyłącznie ścieżka API (mechanizm i kontrakt są wspólne).
+  apiPath?: "onboarding" | "interview";
+}) {
   const [state, setState] = useState<OnboardingState | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [confirmed, setConfirmed] = useState<Set<string>>(new Set());
@@ -221,10 +228,10 @@ function OnboardingTab({ clientId }: { clientId: string }) {
 
   const load = useCallback(() => {
     setError(null);
-    api.get<OnboardingState>(`/api/clients/${clientId}/onboarding/review`)
+    api.get<OnboardingState>(`/api/clients/${clientId}/${apiPath}/review`)
       .then((d) => { setState(d); setConfirmed(new Set()); })
       .catch((e) => setError(e.message));
-  }, [clientId]);
+  }, [clientId, apiPath]);
   useEffect(load, [load]);
 
   async function approve() {
@@ -233,7 +240,7 @@ function OnboardingTab({ clientId }: { clientId: string }) {
     setError(null);
     try {
       const next = await api.post<OnboardingState>(
-        `/api/clients/${clientId}/onboarding/coach-approve`,
+        `/api/clients/${clientId}/${apiPath}/coach-approve`,
         { confirmed_fields: [...confirmed] },
       );
       setState(next);
@@ -251,12 +258,20 @@ function OnboardingTab({ clientId }: { clientId: string }) {
   if (!session) {
     return (
       <div className="card">
-        <h2>Rozmowa startowa</h2>
-        <p className="dim">
-          Klient nie zaczął jeszcze rozmowy startowej. Może ją przeprowadzić
-          w aplikacji („Porozmawiajmy” na ekranie Dzisiaj) albo wypełnić
-          klasyczny formularz — obie drogi zapisują te same pola profilu.
-        </p>
+        <h2>{apiPath === "interview" ? "Głęboki wywiad" : "Rozmowa startowa"}</h2>
+        {apiPath === "interview" ? (
+          <p className="dim">
+            Klient nie zaczął jeszcze głębokiego wywiadu. Znajdzie go
+            w aplikacji w „Więcej → Głęboki wywiad” — dobry moment to
+            pierwsza konsultacja albo 1–2 tydzień współpracy.
+          </p>
+        ) : (
+          <p className="dim">
+            Klient nie zaczął jeszcze rozmowy startowej. Może ją przeprowadzić
+            w aplikacji („Porozmawiajmy” na ekranie Dzisiaj) albo wypełnić
+            klasyczny formularz — obie drogi zapisują te same pola profilu.
+          </p>
+        )}
       </div>
     );
   }
@@ -429,6 +444,65 @@ const STATUS_LABELS: Record<string, string> = {
   ABANDONED: "porzucona",
 };
 
+interface HintRow {
+  field_key: string;
+  value: string;
+  question: string;
+  topic: string;
+  flow: "start" | "deep";
+  sensitive: boolean;
+}
+
+/** Podpowiedzi z rozmów (rozmowa startowa + głęboki wywiad) przy obszarze
+ * pracy trenera. To DOSŁOWNE deklaracje podopiecznego z pól profilu,
+ * filtrowane zgodami dokładnie jak profil — aplikacja niczego nie
+ * interpretuje ani nie stosuje. Zwijane, żeby nie zasłaniać pracy;
+ * puste = renderuje się nic (klient nie zatwierdził jeszcze rozmów). */
+function HintsCard({ clientId, area }: {
+  clientId: string;
+  area: "PLAN" | "DIETA" | "HARMONOGRAM" | "WSPOLPRACA";
+}) {
+  const [hints, setHints] = useState<HintRow[] | null>(null);
+  const [disclaimer, setDisclaimer] = useState("");
+  const [open, setOpen] = useState(false);
+  useEffect(() => {
+    api.get<{ hints: HintRow[]; disclaimer: string }>(
+      `/api/clients/${clientId}/profile/hints?area=${area}`,
+    )
+      .then((d) => { setHints(d.hints); setDisclaimer(d.disclaimer); })
+      // Podpowiedzi są dodatkiem — ich błąd nie ma prawa zasłonić zakładki.
+      .catch(() => setHints([]));
+  }, [clientId, area]);
+  if (!hints || hints.length === 0) return null;
+  return (
+    <div className="card">
+      <button type="button" className="row row--between" aria-expanded={open}
+        onClick={() => setOpen((o) => !o)}
+        style={{ width: "100%", background: "none", border: "none",
+          color: "inherit", cursor: "pointer", padding: 0, font: "inherit" }}>
+        <h2 style={{ margin: 0 }}>
+          <Icon name="clipboard" /> Podpowiedzi z rozmów ({hints.length})
+        </h2>
+        <Icon name={open ? "chevron-up" : "chevron-down"} label={open ? "Zwiń" : "Rozwiń"} />
+      </button>
+      {open && (
+        <>
+          <p className="dim" style={{ marginTop: 8 }}>{disclaimer}</p>
+          {hints.map((h) => (
+            <div key={h.field_key} style={{ marginBottom: 10 }}>
+              <small className="dim">
+                {h.topic}{h.flow === "deep" ? " · głęboki wywiad" : " · rozmowa startowa"}
+              </small>
+              <div><b>{h.question}</b></div>
+              <div>{h.value}</div>
+            </div>
+          ))}
+        </>
+      )}
+    </div>
+  );
+}
+
 function PlanTab({ clientId }: { clientId: string }) {
   const [plans, setPlans] = useState<TrainingPlan[] | null>(null);
   const [versions, setVersions] = useState<PlanVersion[] | null>(null);
@@ -483,6 +557,7 @@ function PlanTab({ clientId }: { clientId: string }) {
 
   return (
     <>
+      <HintsCard clientId={clientId} area="PLAN" />
       {editing === "new" && (
         <PlanEditor clientId={clientId} existingPlan={null} onSaved={load}
           onCancel={() => setEditing(null)} />
@@ -669,6 +744,7 @@ function NutritionTab({ clientId }: { clientId: string }) {
 
   return (
     <>
+      <HintsCard clientId={clientId} area="DIETA" />
       {!editing && (
         <button className="btn btn--small" style={{ marginBottom: 10 }}
           onClick={() => {
@@ -956,6 +1032,7 @@ function ScheduleTab({ clientId }: { clientId: string }) {
   if (!items) return <Spinner />;
   return (
     <>
+      <HintsCard clientId={clientId} area="HARMONOGRAM" />
       <form className="card" onSubmit={add}>
         <h2>Dodaj element harmonogramu</h2>
         <div className="field-row">
@@ -1095,6 +1172,7 @@ function CheckinsTab({ clientId }: { clientId: string }) {
   if (!checkins) return <Spinner />;
   return (
     <>
+      <HintsCard clientId={clientId} area="WSPOLPRACA" />
       {checkins.length === 0 && <p className="dim">Brak raportów.</p>}
       {checkins.map((c) => {
         const state = ai[c.id];

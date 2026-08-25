@@ -22,14 +22,51 @@ import {
 /** Rozmowa startowa — spokojna, jedno pytanie na krok.
  *
  * Scenariusz, kolejność pytań, reguły adaptacji i lista objawów
- * alarmowych są SERWEROWE (dzik_os/onboarding_flow.py) — ten ekran ich
- * nie zna i nie odtwarza. Dzięki temu rozmowa wygląda tak samo
- * z modelem językowym i bez niego.
+ * alarmowych są SERWEROWE (dzik_os/onboarding_flow.py, interview_flow.py)
+ * — ten ekran ich nie zna i nie odtwarza. Dzięki temu rozmowa wygląda
+ * tak samo z modelem językowym i bez niego.
+ *
+ * Ten sam ekran obsługuje OBA przepływy (rozmowę startową i głęboki
+ * wywiad) — różnią się wyłącznie ścieżką API, tytułem i kartą wstępu
+ * (`RozmowaPage`); patrz Interview.tsx.
  *
  * Dostępność (P10): jedno pytanie ma widoczną etykietę, zmiana kroku jest
  * ogłaszana przez aria-live, a fokus wędruje na nowe pytanie. */
 export default function Onboarding() {
+  return (
+    <RozmowaPage
+      apiPath="onboarding"
+      title="Rozmowa startowa"
+      introTitle="Porozmawiajmy o Tobie"
+      intro={
+        <>
+          <p className="dim">
+            Zadam kilka pytań — jedno po drugim, spokojnie. Przy każdym
+            wyjaśniam, po co jest potrzebne. Każde pytanie możesz pominąć,
+            wrócić do wcześniejszej odpowiedzi albo przerwać i dokończyć
+            później. Na koniec zobaczysz podsumowanie i zdecydujesz, czy
+            trafia do Twojego profilu.
+          </p>
+          <p className="dim">
+            To nie jest wywiad medyczny. Trener nie stawia diagnoz —
+            w sprawach zdrowia decyduje lekarz.
+          </p>
+        </>
+      }
+      formLink
+    />
+  );
+}
+
+export function RozmowaPage({ apiPath, title, introTitle, intro, formLink }: {
+  apiPath: string;
+  title: string;
+  introTitle: string;
+  intro: React.ReactNode;
+  formLink?: boolean;
+}) {
   const user = getUser()!;
+  const base = `/api/clients/${user.id}/${apiPath}`;
   const navigate = useNavigate();
   const [state, setState] = useState<OnboardingState | null>(null);
   const [value, setValue] = useState("");
@@ -54,10 +91,10 @@ export default function Onboarding() {
 
   const load = useCallback(() => {
     setError(null);
-    api.get<OnboardingState>(`/api/clients/${user.id}/onboarding`)
+    api.get<OnboardingState>(base)
       .then(applyState)
       .catch((e) => setError((e as Error).message));
-  }, [user.id, applyState]);
+  }, [base, applyState]);
   useEffect(load, [load]);
 
   // Fokus na nowym pytaniu — czytnik ekranu i klawiatura zaczynają
@@ -102,7 +139,7 @@ export default function Onboarding() {
 
   return (
     <div className="page">
-      <TopBar title="Rozmowa startowa" />
+      <TopBar title={title} />
 
       {/* Ogłoszenie zmiany kroku dla czytników ekranu. */}
       <p className="sr-only" role="status" aria-live="polite">
@@ -111,26 +148,18 @@ export default function Onboarding() {
 
       {!session && (
         <div className="card">
-          <h2>Porozmawiajmy o Tobie</h2>
-          <p className="dim">
-            Zadam kilka pytań — jedno po drugim, spokojnie. Przy każdym
-            wyjaśniam, po co jest potrzebne. Każde pytanie możesz pominąć,
-            wrócić do wcześniejszej odpowiedzi albo przerwać i dokończyć
-            później. Na koniec zobaczysz podsumowanie i zdecydujesz, czy
-            trafia do Twojego profilu.
-          </p>
-          <p className="dim">
-            To nie jest wywiad medyczny. Trener nie stawia diagnoz —
-            w sprawach zdrowia decyduje lekarz.
-          </p>
+          <h2>{introTitle}</h2>
+          {intro}
           <ErrorBox error={error} />
           <button className="btn" disabled={busy}
-            onClick={() => call(`/api/clients/${user.id}/onboarding/start`)}>
+            onClick={() => call(`${base}/start`)}>
             {busy ? "Chwileczkę…" : "Zacznijmy"}
           </button>
-          <Link className="btn btn--ghost" to="/ankieta" style={{ marginTop: 8 }}>
-            Wolę wypełnić formularz
-          </Link>
+          {formLink && (
+            <Link className="btn btn--ghost" to="/ankieta" style={{ marginTop: 8 }}>
+              Wolę wypełnić formularz
+            </Link>
+          )}
         </div>
       )}
 
@@ -162,16 +191,16 @@ export default function Onboarding() {
               canGoBack={state.can_go_back === true}
               questionRef={questionRef}
               onSubmit={() =>
-                call(`/api/clients/${user.id}/onboarding/answer`, {
+                call(`${base}/answer`, {
                   step_id: step.id, value, skipped: false,
                 })}
               onSkip={() =>
-                call(`/api/clients/${user.id}/onboarding/answer`, {
+                call(`${base}/answer`, {
                   step_id: step.id, value: "", skipped: true,
                 })}
-              onBack={() => call(`/api/clients/${user.id}/onboarding/back`)}
+              onBack={() => call(`${base}/back`)}
               onPause={async () => {
-                await api.post(`/api/clients/${user.id}/onboarding/pause`).catch(() => {});
+                await api.post(`${base}/pause`).catch(() => {});
                 navigate("/");
               }}
             />
@@ -186,11 +215,11 @@ export default function Onboarding() {
               </p>
               <ErrorBox error={error} />
               <button className="btn" disabled={busy}
-                onClick={() => call(`/api/clients/${user.id}/onboarding/summary`)}>
+                onClick={() => call(`${base}/summary`)}>
                 {busy ? "Przygotowuję…" : "Pokaż podsumowanie"}
               </button>
               <button className="btn btn--ghost" disabled={busy}
-                onClick={() => call(`/api/clients/${user.id}/onboarding/back`)}>
+                onClick={() => call(`${base}/back`)}>
                 Wróć do ostatniego pytania
               </button>
             </div>
@@ -212,7 +241,7 @@ export default function Onboarding() {
                   return;
                 }
                 const next = await call(
-                  `/api/clients/${user.id}/onboarding/summary`, { items }, "put",
+                  `${base}/summary`, { items }, "put",
                 );
                 if (next) {
                   setEdited({});
@@ -220,10 +249,10 @@ export default function Onboarding() {
                 }
               }}
               onApprove={async () => {
-                const next = await call(`/api/clients/${user.id}/onboarding/approve`);
+                const next = await call(`${base}/approve`);
                 if (next) setSaved("Podsumowanie zatwierdzone i zapisane w profilu.");
               }}
-              onRegenerate={() => call(`/api/clients/${user.id}/onboarding/summary`)}
+              onRegenerate={() => call(`${base}/summary`)}
             />
           )}
 

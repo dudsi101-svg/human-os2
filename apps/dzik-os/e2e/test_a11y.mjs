@@ -306,13 +306,14 @@ try {
   await runAxe(page, "Dzisiaj");
 
   // brak poziomego scrolla na kluczowych szerokościach
-  console.log("4. Szerokości 320/375/768/1024 — Dzisiaj, Raport, Płatności");
+  console.log("4. Szerokości 320/375/768/1024 — Dzisiaj, Raport, Płatności, Wywiad");
   for (const width of [320, 375, 768, 1024]) {
     await page.setViewportSize({ width, height: 850 });
     for (const [path, sel] of [
       ["/", "h1:has-text('Dzisiaj')"],
       ["/raport", "h1:has-text('Raport tygodniowy')"],
       ["/platnosci", "h1:has-text('Płatności')"],
+      ["/wywiad", "h1:has-text('Głęboki wywiad')"],
     ]) {
       await page.goto(`${url}${path}`, { waitUntil: "networkidle" });
       await page.waitForSelector(sel);
