@@ -33,7 +33,12 @@ udowodnić, że poczta działa — testowy e-mail zamiast wiary w konfigurację.
 
 - **Wersja: 0.52.3.** **Migracja: brak.**
 
-## Weryfikacja (do wypełnienia)
+## Weryfikacja (wypełnione 25.08)
 
-- pełne bramki; prawdziwa wysyłka na produkcji — po ustawieniu sekretów
-  przez właściciela (jedno kliknięcie z test_email).
+- Bramki: ruff czysto, backend **821** zaliczonych (4 nowe testy
+  test_poczty na wstrzykniętym fake'u: sukces/odmowa dostawcy/null/
+  walidacja argumentów), Core 275, spójność, mutacje 17/17 i 9/9;
+  YAML workflow zwalidowany.
+- Prawdziwa wysyłka na produkcji — z natury po ustawieniu sekretów
+  przez właściciela (workflow z polem test_email robi ją sam i czerwieni
+  się przy porażce).
