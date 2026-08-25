@@ -1,7 +1,6 @@
 """Kolejne konto trenera na działającej bazie (0.53.1)."""
 
 import pytest
-from conftest import login
 
 from dzik_os.dodaj_trenera import dodaj_trenera, main
 
