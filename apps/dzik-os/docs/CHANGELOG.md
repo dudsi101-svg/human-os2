@@ -1,5 +1,15 @@
 # Changelog — Dzik OS
 
+## 0.52.3 — 2026-08-25
+
+* **`python -m dzik_os.test_poczty ADRES`** — testowa wysyłka przez
+  skonfigurowanego dostawcę (kod wyjścia 0 tylko przy potwierdzonej
+  wysyłce; odmowa przy dostawcy `null`); workflow „Sekrety produkcji"
+  wywołuje ją po ustawieniu sekretów (input `test_email`) — konfiguracja
+  poczty jest odtąd dowodzona, nie przyjmowana na wiarę.
+* `DEPLOYMENT.md`: najkrótsza droga do poczty przez hasło aplikacji
+  Gmail, krok po kroku.
+
 ## 0.52.2 — 2026-08-25
 
 * **Naprawa strażnika bootstrapu** (błąd wykryty na produkcji):

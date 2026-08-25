@@ -1,6 +1,6 @@
 # Stan przekazania — przeczytaj przed rozpoczęciem rundy
 
-**Aktualizacja:** 2026-08-25 · **Wersja w `main`:** 0.52.2
+**Aktualizacja:** 2026-08-25 · **Wersja w `main`:** 0.52.3
 **Tryb pracy:** jeden piszący i jeden PR `[WRITER]` naraz
 (`KOORDYNACJA.md`, zasada nadrzędna).
 
@@ -33,7 +33,13 @@ pierwszy commit, draft PR `[WRITER]`, reszta agentów read-only.
 jednym prawdziwym klientem, **NO-GO na szerszą produkcję** — siedem
 blokerów wypisanych w §5 tamtego dokumentu.
 
-**Ostatnia runda (0.52.2, gałąź `agent/bootstrap-po-purge`):** naprawa
+**Ostatnia runda (0.52.3, gałąź `agent/test-poczty`):** testowa wysyłka
+e-maila (`dzik_os.test_poczty`) wpięta w workflow „Sekrety produkcji" —
+konfiguracja SMTP dowodzona wysyłką; instrukcja hasła aplikacji Gmail
+w DEPLOYMENT. **Konta produkcyjne założone 25.08** (trener
+lubelskidzikk@gmail.com, admin dudsi101+admin@gmail.com — hasła
+jednorazowe w artefakcie runu bootstrapu, ważnym 1 dzień).
+**Runda 0.52.2 (`agent/bootstrap-po-purge`):** naprawa
 strażnika bootstrapu (liczy tylko nieodwołane role aktywnych kont —
 sekwencja purge→bootstrap wykonalna; wykryte na produkcji podczas
 zakładania pierwszych prawdziwych kont). **Runda 0.52.1
