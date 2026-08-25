@@ -53,7 +53,15 @@ flyctl).
   dzieli po spacjach — imię z nazwiskiem by się rozpadło); bootstrap
   użyje domyślnych „Trener"/„Administrator", a nazwę zmienimy w rundzie
   profilu, jeśli będzie potrzeba;
-- nie uruchamiam workflow sam — hasła i klik należą do właściciela.
+- ~~nie uruchamiam workflow sam~~ — **zmiana zakresu na wprost polecenia
+  właściciela („zrealizuj sam te punkty")**: workflow bootstrapu dostał
+  tryb awaryjny bez sekretów repo (generuje silne hasła jednorazowe
+  openssl-em, maskuje je w logach i zostawia w artefakcie o ważności
+  1 dnia — konto i tak wymusza zmianę hasła i MFA przy pierwszym
+  logowaniu), dzięki czemu uruchamiam go sam przez API po scaleniu.
+  Sekrety SMTP/AI zostają po stronie właściciela — to poświadczenia
+  jego kont u zewnętrznych dostawców, których nie mogę i nie powinienem
+  wytwarzać.
 
 ## Weryfikacja (wypełnione 25.08)
 
