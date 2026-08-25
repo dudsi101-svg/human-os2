@@ -107,6 +107,10 @@ CATEGORIES: dict[str, Category] = {
             "PODSUMOWANIE", "Podsumowanie tygodnia",
             "Podsumowanie tygodnia", "/trener/podsumowanie",
         ),
+        # Zapytanie z publicznej strony marketingowej (0.49.0): dane
+        # kontaktowe nadawcy są w title/body, czyli wyłącznie w centrum
+        # za logowaniem — kanały zewnętrzne dostają neutralne wezwanie.
+        Category("ZAPYTANIE", "Zapytanie ze strony", "Nowe zapytanie", "/powiadomienia"),
     ]
 }
 

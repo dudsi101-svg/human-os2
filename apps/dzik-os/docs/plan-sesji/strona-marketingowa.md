@@ -62,8 +62,21 @@ do centrum powiadomień trenera.
 - nie robię osobnej domeny/hostingu — strona żyje pod adresem aplikacji
   (własna domena to `flyctl certs add`, decyzja właściciela).
 
-## Weryfikacja (do wypełnienia)
+## Weryfikacja (wypełnione 25.08)
 
-- pełne bramki; uruchomienie na żywo: gość widzi stronę i wysyła
-  zapytanie → powiadomienie w centrum trenera; zalogowany klient
-  na `/` widzi aplikację bez zmian; honeypot i limiter sprawdzone.
+- Bramki z korzenia: ruff czysto (po `--fix` 2×I001); Core 275;
+  spójność 10 kontroli; mutacje 17/17; bezpieczeństwa 9/9; frontend
+  tsc+build, helpers, **E2E 17/17** (2 nowe: gość widzi wizytówkę
+  i przechodzi do logowania; gość wysyła zapytanie i widzi
+  potwierdzenie); backend — pełny pakiet z 4 nowymi testami
+  public_site (doręczenie, honeypot, walidacja, limiter 429).
+- Poprawka w trakcie rundy: guard `publicPaths` w `App.tsx`
+  przekierowywał gościa z `/` na `/login` zanim router zobaczył trasę —
+  `/` dopisane do ścieżek publicznych (wykryte przez nowy test E2E,
+  nie przez przeklik).
+- Uruchomienie na żywo (serve.sh :8149, świeża baza + seed; co
+  uruchomiłem i co zobaczyłem): zrzuty desktop+telefon strony
+  (przekazane właścicielowi), `POST /api/public/lead` → `{"ok":true}`,
+  po zalogowaniu trenera demo w centrum powiadomień 1 wpis kategorii
+  ZAPYTANIE „Zapytanie od: Żywy Test"; testy E2E przechodzą tę samą
+  ścieżkę przez zbudowany `dist/` serwowany przez backend.

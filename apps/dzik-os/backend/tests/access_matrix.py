@@ -66,6 +66,7 @@ MATRIX: dict[tuple[str, str], Access] = {
     ("GET", "/api/auth/brand"): Access.PUBLIC,
     ("POST", "/api/auth/change-password"): Access.AUTHENTICATED,
     ("POST", "/api/auth/login"): Access.PUBLIC,
+    ("POST", "/api/public/lead"): Access.PUBLIC,
     # Celowo bez current_user — wylogowanie ma działać także dla sesji
     # wygasłej (auth.py). Nie zwraca danych, więc brak tokenu jest bezpieczny.
     ("POST", "/api/auth/logout"): Access.PUBLIC,

@@ -1,6 +1,6 @@
 # Stan przekazania — przeczytaj przed rozpoczęciem rundy
 
-**Aktualizacja:** 2026-08-24 · **Wersja w `main`:** 0.48.0
+**Aktualizacja:** 2026-08-25 · **Wersja w `main`:** 0.49.0
 **Tryb pracy:** jeden piszący i jeden PR `[WRITER]` naraz
 (`KOORDYNACJA.md`, zasada nadrzędna).
 
@@ -33,7 +33,12 @@ pierwszy commit, draft PR `[WRITER]`, reszta agentów read-only.
 jednym prawdziwym klientem, **NO-GO na szerszą produkcję** — siedem
 blokerów wypisanych w §5 tamtego dokumentu.
 
-**Ostatnia runda (0.48.0, gałąź `agent/precyzja-i-baza`):** precyzja
+**Ostatnia runda (0.49.0, gałąź `agent/strona-marketingowa`):**
+publiczna strona marketingowa na `/` dla niezalogowanych (Landing.tsx,
+personalizacja właściciela oznaczona komentarzami) + `POST
+/api/public/lead` — zapytania z formularza trafiają jako powiadomienia
+kategorii `ZAPYTANIE` do kont COACH (honeypot, limiter 5/h per IP,
+zero nowych tabel). **Runda 0.48.0 (`agent/precyzja-i-baza`):** precyzja
 kuchenna i baza ×5 (zgłoszenie właściciela z produkcji) — gramatury
 posiłków zaokrąglane do wielkości mierzalnych (pół sztuki / 5 g / 10 g,
 `units` w odpowiedzi kreatora), wbudowana baza 410 → 2058 pozycji
