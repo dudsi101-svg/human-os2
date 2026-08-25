@@ -1,0 +1,97 @@
+# Kolejne konto trenera na produkcji (0.53.1) — workflow_dispatch.
+#
+# Bootstrap działa tylko na pustej bazie; to workflow zakłada JEDNO
+# dodatkowe konto COACH na działającej bazie (np. konto testowe
+# właściciela albo drugi trener w przyszłości).
+#
+# Hasło: sekret repo DZIK_BOOTSTRAP_COACH_PASSWORD albo — gdy go brak —
+# wygenerowane (maskowane ::add-mask::, artefakt „haslo-trenera" ważny
+# 1 dzień). Droga jak w bootstrapie: chwilowy sekret Fly (env maszyny,
+# nigdy argv), kasowany po użyciu; pierwsze logowanie wymusza zmianę
+# hasła i MFA.
+
+name: Dodaj trenera (Fly.io)
+
+on:
+  workflow_dispatch:
+    inputs:
+      email:
+        description: "E-mail nowego konta trenera"
+        required: true
+        default: "dudsi101+trener@gmail.com"
+
+concurrency:
+  group: fly-maintenance
+  cancel-in-progress: false
+
+jobs:
+  dodaj:
+    runs-on: ubuntu-latest
+    env:
+      FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+      APP_NAME: dzik-os-panel
+    steps:
+      - name: Przygotuj hasło (sekret repo albo wygenerowane)
+        env:
+          COACH_PW: ${{ secrets.DZIK_BOOTSTRAP_COACH_PASSWORD }}
+        run: |
+          mkdir -p /tmp/hasla
+          if [ -n "$COACH_PW" ]; then
+            if [ ${#COACH_PW} -lt 12 ]; then
+              echo "::error::Hasło startowe musi mieć co najmniej 12 znaków."
+              exit 1
+            fi
+            printf '%s' "$COACH_PW" > /tmp/hasla/coach
+            echo "zrodlo=sekrety" >> "$GITHUB_ENV"
+          else
+            openssl rand -base64 18 | tr -d '\n' > /tmp/hasla/coach
+            echo "::add-mask::$(cat /tmp/hasla/coach)"
+            echo "zrodlo=wygenerowane" >> "$GITHUB_ENV"
+            echo "Sekretu repo brak — wygenerowano silne hasło jednorazowe (artefakt ważny 1 dzień)."
+          fi
+
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Wstaw hasło jako chwilowy sekret Fly (restart maszyny)
+        run: |
+          flyctl secrets set --app "$APP_NAME" \
+            DZIK_BOOTSTRAP_COACH_PASSWORD="$(cat /tmp/hasla/coach)"
+
+      - name: Poczekaj, aż maszyna wstanie po restarcie
+        run: |
+          for i in $(seq 1 30); do
+            curl -sfS "https://$APP_NAME.fly.dev/api/health" && exit 0
+            sleep 5
+          done
+          echo "::error::Maszyna nie wstała w 150 s"; exit 1
+
+      - name: Załóż konto trenera
+        run: |
+          flyctl ssh console --app "$APP_NAME" -C \
+            "python -m dzik_os.dodaj_trenera --email ${{ inputs.email }}"
+
+      - name: Usuń chwilowy sekret z Fly
+        if: always()
+        run: |
+          flyctl secrets unset --app "$APP_NAME" \
+            DZIK_BOOTSTRAP_COACH_PASSWORD || true
+
+      - name: Przygotuj artefakt z hasłem (tylko tryb wygenerowany)
+        if: env.zrodlo == 'wygenerowane'
+        run: |
+          {
+            echo "HASŁO STARTOWE — KONTO TRENERA (JEDNORAZOWE)"
+            echo "Ważność artefaktu: 1 dzień."
+            echo
+            echo "Trener (${{ inputs.email }}): $(cat /tmp/hasla/coach)"
+            echo
+            echo "Zaloguj się: https://dzik-os-panel.fly.dev"
+            echo "Aplikacja wymusi zmianę hasła i konfigurację MFA."
+          } > /tmp/hasla/haslo-trenera.txt
+
+      - uses: actions/upload-artifact@v4
+        if: env.zrodlo == 'wygenerowane'
+        with:
+          name: haslo-trenera
+          path: /tmp/hasla/haslo-trenera.txt
+          retention-days: 1
