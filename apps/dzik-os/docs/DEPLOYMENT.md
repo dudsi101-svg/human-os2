@@ -99,6 +99,10 @@ flyctl ssh console --app dzik-os-panel
 # Limit Gmaila (~500 e-maili/dobę) w skali pilotażu jest niewyczerpywalny;
 # przy większej skali przejdziemy na dostawcę transakcyjnego z domeną.
 #
+#   c) Kolejne konto trenera na działającej bazie (np. testowe konto
+#      właściciela): Actions → „Dodaj trenera (Fly.io)" — hasło z sekretu
+#      repo albo wygenerowane do artefaktu (1 dzień), jak w bootstrapie.
+#
 # Limit pilotażu: aplikacja przyjmuje maks. 10 niezakończonych współprac
 # na trenera (DZIK_MAX_CLIENTS w fly.toml; ENDED zwalnia miejsce).
 

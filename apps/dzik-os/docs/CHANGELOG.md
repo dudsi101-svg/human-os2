@@ -1,5 +1,14 @@
 # Changelog — Dzik OS
 
+## 0.53.1 — 2026-08-25
+
+* **`python -m dzik_os.dodaj_trenera`** + workflow „Dodaj trenera
+  (Fly.io)": kolejne konto COACH na działającej bazie (bootstrap działa
+  tylko na pustej; panel admina jest read-only) — hasło z env, konto
+  z wymuszoną zmianą hasła, wpis audytu; workflow z artefaktem hasła
+  jak w bootstrapie. Powód: konto testowe właściciela do przeglądania
+  panelu trenera.
+
 ## 0.53.0 — 2026-08-25
 
 **Głęboki wywiad — drugi przepływ rozmowy** (polecenie właściciela:

@@ -1,6 +1,6 @@
 # Stan przekazania — przeczytaj przed rozpoczęciem rundy
 
-**Aktualizacja:** 2026-08-25 · **Wersja w `main`:** 0.53.0
+**Aktualizacja:** 2026-08-25 · **Wersja w `main`:** 0.53.1
 **Tryb pracy:** jeden piszący i jeden PR `[WRITER]` naraz
 (`KOORDYNACJA.md`, zasada nadrzędna).
 
@@ -33,7 +33,9 @@ pierwszy commit, draft PR `[WRITER]`, reszta agentów read-only.
 jednym prawdziwym klientem, **NO-GO na szerszą produkcję** — siedem
 blokerów wypisanych w §5 tamtego dokumentu.
 
-**Ostatnia runda (0.53.0, gałąź `claude/ocena-projektu-dzik-os-76ercy`,
+**Ostatnia runda (0.53.1, gałąź `agent/dodaj-trenera`):** narzędzie
+`dodaj_trenera` + workflow — kolejne konto COACH na działającej bazie
+(konto testowe właściciela). **Runda 0.53.0 (gałąź `claude/ocena-projektu-dzik-os-76ercy`,
 PR #29):** głęboki wywiad jako drugi przepływ rozmowy —
 scenariusz `interview_flow.py` (46 pytań/9 modułów wg wzorca właściciela),
 fabryka `build_router(FlowConfig)` w `routers/onboarding.py` (rozmowa
