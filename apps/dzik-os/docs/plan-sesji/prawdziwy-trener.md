@@ -56,3 +56,6 @@ jego wiedzą (współpraca zadeklarowana przez właściciela).
   zobaczyłem): zrzut sekcji „O trenerze" z nazwiskiem, opisem
   i linkami social (przekazany właścicielowi); linki tel:/mailto:
   obecne pod formularzem.
+- Dopisek w rundzie: właściciel dostarczył zdjęcia trenera —
+  `public/icons/trener.jpg` (zdjęcie z treningu, 1200 px, ~100 KB)
+  wstawione do sekcji; tsc+build+E2E 17/17 ponownie zielone.

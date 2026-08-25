@@ -594,3 +594,4 @@ table.simple th { color: var(--text-dim); font-weight: 600; font-size: 0.78rem; 
 .landing-about__social a { color: var(--accent); font-weight: 600; font-size: 0.9rem; }
 .landing-form__alt { font-size: 0.88rem; color: var(--text-dim); margin: 0; }
 .landing-form__alt a { color: var(--accent); font-weight: 600; }
+.landing-about__foto { width: 100%; border-radius: 14px; margin-bottom: 16px; display: block; }

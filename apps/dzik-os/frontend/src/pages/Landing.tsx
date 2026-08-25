@@ -186,9 +186,12 @@ export default function Landing() {
       <section className="landing-section" id="o-trenerze">
         <h2>O trenerze</h2>
         <div className="card landing-card landing-about">
-          {/* Zdjęcie trenera: po dodaniu pliku do public/icons/trener.jpg
-              wstaw tu <img src="/icons/trener.jpg" alt="Łukasz Drygiel"
-              className="landing-about__foto" />. */}
+          <img
+            src="/icons/trener.jpg"
+            alt="Łukasz Drygiel na treningu"
+            className="landing-about__foto"
+            loading="lazy"
+          />
           <h3 className="landing-about__imie">
             Łukasz Drygiel — <span className="landing-about__ksywa">Lubelski Dzik</span>
           </h3>
