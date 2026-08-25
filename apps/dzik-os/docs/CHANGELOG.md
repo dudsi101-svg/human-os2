@@ -1,5 +1,21 @@
 # Changelog — Dzik OS
 
+## 0.51.0 — 2026-08-25
+
+**Prawdziwy trener na stronie** (deklaracja właściciela: współpraca
+z Lubelskim Dzikiem; dane z publicznych profili trenera).
+
+* Sekcja „O trenerze": **Łukasz Drygiel — „Lubelski Dzik"** — trener
+  personalny i zawodnik scen sylwetkowych (IFBB PRO), Lublin
+  (RAPTOR GYM) i online, społeczność 30 tys. na Instagramie, autorski
+  przekaz o redukcji bez utraty mięśni; linki do Instagrama/TikToka/
+  YouTube/Facebooka.
+* Kontakt bezpośredni pod formularzem (tel. `tel:`, e-mail `mailto:`)
+  i podpis w stopce; meta-opis i og:description z nazwiskiem
+  i lokalizacją. Miejsce na zdjęcie trenera oznaczone komentarzem
+  (podmiana pliku `public/icons/trener.jpg`).
+* E2E: asercje nazwiska i telefonu na stronie publicznej.
+
 ## 0.50.0 — 2026-08-25
 
 **Karta OG + galeria ekranów** (część pakietu marketingowego).

@@ -28,7 +28,7 @@ jego wiedzą (współpraca zadeklarowana przez właściciela).
    linki do Instagrama/TikToka/YouTube (nofollow noopener).
 3. Meta-opis i og:description wzbogacone o „Lublin/online" i markę
    Lubelski Dzik. Miejsce na zdjęcie trenera zostaje jako komentarz
-   (zdjęcia niedostępne z tego środowiska — CDN социal zablokowany).
+   (zdjęcia niedostępne z tego środowiska — CDN social zablokowany).
 
 ## Mój obszar
 
@@ -47,7 +47,12 @@ jego wiedzą (współpraca zadeklarowana przez właściciela).
 
 - **Wersja: 0.51.0** (ostatnia: 0.50.0). **Migracja: brak.**
 
-## Weryfikacja (do wypełnienia)
+## Weryfikacja (wypełnione 25.08)
 
-- bramki frontendu + minimalne backendu; na żywo: sekcja z nazwiskiem,
-  działające linki tel:/mailto:/social.
+- Bramki: ruff czysto, backend pełny pakiet, Core 275, spójność,
+  mutacje 17/17 i 9/9, frontend tsc+build, helpers 140/0,
+  **E2E 17/17** (nowe asercje: nazwisko + telefon na stronie).
+- Uruchomienie na żywo (serve.sh :8152; co uruchomiłem i co
+  zobaczyłem): zrzut sekcji „O trenerze" z nazwiskiem, opisem
+  i linkami social (przekazany właścicielowi); linki tel:/mailto:
+  obecne pod formularzem.

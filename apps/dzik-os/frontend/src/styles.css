@@ -586,3 +586,11 @@ table.simple th { color: var(--text-dim); font-weight: 600; font-size: 0.78rem; 
   display: block; }
 .landing-gallery figcaption { color: var(--text-dim); font-size: 0.82rem; text-align: center;
   margin-top: 8px; }
+
+/* Sekcja „O trenerze" z prawdziwymi danymi (0.51.0). */
+.landing-about__imie { font-size: 1.15rem; margin-bottom: 12px; }
+.landing-about__ksywa { color: var(--accent); }
+.landing-about__social { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 14px; }
+.landing-about__social a { color: var(--accent); font-weight: 600; font-size: 0.9rem; }
+.landing-form__alt { font-size: 0.88rem; color: var(--text-dim); margin: 0; }
+.landing-form__alt a { color: var(--accent); font-weight: 600; }
