@@ -32,9 +32,23 @@ wcześniej jako dokument).
   (`RozmowaPage`), nowy `/wywiad` to cienka konfiguracja; wejście
   w „Więcej → Głęboki wywiad"; u trenera 11. zakładka **Wywiad** na
   karcie klienta (ta sama zakładka co Rozmowa startowa, inna ścieżka).
-* 12 testów `test_wywiad.py` (izolacja 404, zgody wycinają moduły,
+* **Podpowiedzi z rozmów przy pracy trenera** (dopowiedzenie właściciela:
+  „odpowiedzi z wywiadu mają być podpowiedziami do układania diety,
+  treningu i reszty"): `GET /profile/hints?area=PLAN|DIETA|HARMONOGRAM|
+  WSPOLPRACA` mapuje zatwierdzone pola profilu z OBU rozmów na obszary
+  pracy (`coach_hints.py`; proweniencja — pytanie/moduł/przepływ — brana
+  wprost ze scenariuszy, zero duplikacji etykiet), a zwijana karta
+  „Podpowiedzi z rozmów" stoi u góry zakładek Plan, Dieta, Harmonogram
+  i Raporty karty klienta. To DOSŁOWNE deklaracje podopiecznego
+  z jawnym zastrzeżeniem — nigdy interpretacja ani zalecenie; filtr zgód
+  identyczny jak w profilu (domeny pól wrażliwych spięte ze scenariuszy —
+  jedno źródło prawdy także dla widoku profilu). Test-strażnik: każde
+  pole scenariuszy MUSI mieć świadome mapowanie obszarów, inaczej build
+  czerwienieje.
+* 16 testów `test_wywiad.py` (izolacja 404, zgody wycinają moduły,
   flagi obu rodzajów, gałąź zmianowości, zapis pól `gw_*` bez celu,
-  niezależność od rozmowy startowej) + E2E `wywiad.spec.ts`
+  niezależność od rozmowy startowej, podpowiedzi per obszar + zgody +
+  strażnik mapowania) + E2E `wywiad.spec.ts`
   (start → odpowiedź → pominięcie → wznowienie po przeładowaniu)
   + `/wywiad` w kontroli szerokości 320 px.
 

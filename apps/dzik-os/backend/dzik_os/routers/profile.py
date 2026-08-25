@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from ..authz import (
@@ -12,6 +12,7 @@ from ..authz import (
     deny,
     resolve_client_access,
 )
+from ..coach_hints import AREAS, DISCLAIMER, field_consent_domains, hints_for_area
 from ..db import get_db
 from ..hos_bridge import record_event
 from ..models import Goal, ProfileField, User, new_id, now_iso
@@ -35,6 +36,13 @@ SENSITIVE_FIELD_DOMAINS = {
 
 
 def _sensitive_field_domain(field_key: str) -> str:
+    # Pola ze scenariuszy rozmów niosą domenę wprost z definicji kroku
+    # (jedno źródło prawdy — coach_hints.field_consent_domains); ręczna
+    # mapa wyżej obsługuje pola spoza scenariuszy, a domyślną domeną
+    # pozostaje zdrowie (bezpieczny domysł).
+    scenario = field_consent_domains().get(field_key)
+    if scenario is not None:
+        return scenario
     return SENSITIVE_FIELD_DOMAINS.get(field_key, DOMAIN_HEALTH)
 
 
@@ -88,6 +96,38 @@ def get_profile(
     )
     rows = _visible_fields(db, user, client_id, rows)
     return {"client_id": client_id, "fields": [_field_out(f) for f in rows]}
+
+
+@router.get("/profile/hints")
+def profile_hints(
+    client_id: str,
+    area: str = Query(pattern="^(PLAN|DIETA|HARMONOGRAM|WSPOLPRACA)$"),
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    """Podpowiedzi z rozmów dla obszaru pracy trenera (plan / dieta /
+    harmonogram / współpraca).
+
+    To DOSŁOWNE deklaracje podopiecznego z pól profilu (rozmowa startowa
+    + głęboki wywiad), przefiltrowane dokładnie tą samą ścieżką zgód co
+    widok profilu i zmapowane na obszar (`coach_hints.HINT_AREAS`).
+    Aplikacja niczego nie interpretuje ani nie stosuje — trener czyta
+    i decyduje. Puste = klient jeszcze nie zatwierdził żadnej rozmowy."""
+    resolve_client_access(db, user, client_id, domain=DOMAIN_COLLABORATION)
+    rows = (
+        db.query(ProfileField)
+        .filter(ProfileField.client_id == client_id, ProfileField.is_current.is_(True))
+        .all()
+    )
+    rows = _visible_fields(db, user, client_id, rows)
+    values = {f.field_key: f.value for f in rows if f.value}
+    return {
+        "client_id": client_id,
+        "area": area,
+        "areas": list(AREAS),
+        "hints": hints_for_area(area, values),
+        "disclaimer": DISCLAIMER,
+    }
 
 
 @router.get("/profile/history")

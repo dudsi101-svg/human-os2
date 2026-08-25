@@ -213,6 +213,89 @@ def test_trener_widzi_wywiad_w_review_ale_nie_odpowiada(seeded):
     assert r.status_code == 404
 
 
+def test_podpowiedzi_trafiaja_do_obszarow_pracy_trenera(seeded):
+    """Zatwierdzone odpowiedzi wywiadu widać jako podpowiedzi przy planie
+    i diecie — dosłowne deklaracje z proweniencją, nigdy interpretacja."""
+    ha = login(seeded, CLIENT_A)
+    hc = login(seeded, COACH)
+    id_a = get_user_id(seeded, ha)
+    run_to(seeded, ha, id_a, "gw_b2")
+    answer_ok(seeded, ha, id_a, "gw_b2", "Lubię ciężary, nie znoszę biegania")
+    run_to(seeded, ha, id_a, "gw_f4")
+    answer_ok(seeded, ha, id_a, "gw_f4", "Nie tknę ryb; must-have: pieczywo")
+    seeded.post(BASE.format(id_a) + "/summary", headers=ha)
+    r = seeded.post(BASE.format(id_a) + "/approve", headers=ha)
+    assert r.status_code == 200, r.text
+
+    r = seeded.get(f"/api/clients/{id_a}/profile/hints?area=PLAN", headers=hc)
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert body["disclaimer"]
+    plan = {h["field_key"]: h for h in body["hints"]}
+    assert plan["gw_ruch_preferencje"]["value"] == "Lubię ciężary, nie znoszę biegania"
+    # Proweniencja wprost ze scenariusza: pytanie + moduł + przepływ.
+    assert plan["gw_ruch_preferencje"]["flow"] == "deep"
+    assert plan["gw_ruch_preferencje"]["question"]
+    # Pole żywieniowe nie przecieka do obszaru planu…
+    assert "gw_produkty_preferencje" not in plan
+    # …ale jest w obszarze diety.
+    r = seeded.get(f"/api/clients/{id_a}/profile/hints?area=DIETA", headers=hc)
+    dieta = {h["field_key"] for h in r.json()["hints"]}
+    assert "gw_produkty_preferencje" in dieta
+    # Zły obszar = 422, nie cichy fallback.
+    r = seeded.get(f"/api/clients/{id_a}/profile/hints?area=WSZYSTKO", headers=hc)
+    assert r.status_code == 422
+
+
+def test_podpowiedzi_szanuja_zgody_jak_profil(seeded):
+    """Cofnięcie zgody żywieniowej chowa żywieniowe podpowiedzi diety —
+    dokładnie ta sama ścieżka filtrowania co widok profilu."""
+    ha = login(seeded, CLIENT_A)
+    hc = login(seeded, COACH)
+    id_a = get_user_id(seeded, ha)
+    run_to(seeded, ha, id_a, "gw_f4")
+    answer_ok(seeded, ha, id_a, "gw_f4", "Nie tknę ryb")
+    seeded.post(BASE.format(id_a) + "/summary", headers=ha)
+    seeded.post(BASE.format(id_a) + "/approve", headers=ha)
+    consents = seeded.get("/api/me/consents", headers=ha).json()["consents"]
+    nutrition = next(
+        c
+        for c in consents
+        if c["revoked_at"] is None and c["category"] == "zywienie_alergie"
+    )
+    r = seeded.post(f"/api/me/consents/{nutrition['id']}/revoke", headers=ha)
+    assert r.status_code == 200, r.text
+    r = seeded.get(f"/api/clients/{id_a}/profile/hints?area=DIETA", headers=hc)
+    dieta = {h["field_key"] for h in r.json()["hints"]}
+    assert "gw_produkty_preferencje" not in dieta
+
+
+def test_podpowiedzi_izolacja_cudzy_klient(seeded):
+    hb = login(seeded, CLIENT_B)
+    ha = login(seeded, CLIENT_A)
+    id_a = get_user_id(seeded, ha)
+    r = seeded.get(f"/api/clients/{id_a}/profile/hints?area=PLAN", headers=hb)
+    assert r.status_code == 404
+
+
+def test_kazde_pole_scenariuszy_ma_swiadome_mapowanie_obszarow():
+    """Nowe pytanie bez wpisu w HINT_AREAS ma czerwienić build, a nie po
+    cichu znikać z podpowiedzi trenera."""
+    from dzik_os.coach_hints import AREAS, HINT_AREAS
+    from dzik_os.onboarding_flow import STEPS
+
+    fields = {
+        s.profile_field
+        for s in (*STEPS, *DEEP_STEPS)
+        if s.profile_field is not None
+    }
+    unmapped = fields - set(HINT_AREAS)
+    assert not unmapped, f"pola bez mapowania obszarów: {sorted(unmapped)}"
+    for field, areas in HINT_AREAS.items():
+        assert areas, field
+        assert set(areas) <= set(AREAS), field
+
+
 def test_scenariusz_ma_komplet_uzasadnien_i_pol():
     """Każdy krok pytający ma „dlaczego pytam"; każdy krok wrażliwy ma
     domenę zgody; identyfikatory są unikalne (kontrakt scenariusza)."""

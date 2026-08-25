@@ -50,6 +50,16 @@ Dokumenty: `CHANGELOG.md`, `PERMISSIONS.md`, `INSTRUKCJA_KLIENTA.md`,
 `INSTRUKCJA_TRENERA.md`, `KOORDYNACJA.md` (rezerwacje), ten plan,
 `STAN_PRZEKAZANIA.md` na koniec rundy.
 
+## Rozszerzenie zakresu (25.08, polecenie właściciela w trakcie rundy)
+
+„Odpowiedzi z wywiadu mają stać się podpowiedziami do układania diety,
+treningu i reszty elementów" → `coach_hints.py` (mapowanie pól profilu
+z OBU rozmów na obszary PLAN/DIETA/HARMONOGRAM/WSPOLPRACA, proweniencja
+ze scenariuszy), `GET /profile/hints` w `routers/profile.py` (filtr zgód
+identyczny jak profil; domeny pól wrażliwych spięte ze scenariuszy),
+karta „Podpowiedzi z rozmów" w zakładkach Plan/Dieta/Harmonogram/Raporty
+karty klienta. Dosłowne deklaracje z zastrzeżeniem — zero interpretacji.
+
 ## Czego NIE robię
 
 * nie zmieniam zachowania rozmowy startowej (istniejące testy muszą

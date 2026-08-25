@@ -59,7 +59,12 @@ klientów wymagających uwagi.
   (np. ból w klatce przy wysiłku, wcześniejsze zalecenie lekarza) i
   pytania o relację z ciałem zobaczysz jako sygnał „prowadź ostrożniej /
   najpierw lekarz" — to informacja, nie ocena. Wywiad **nie tworzy celu**
-  i nie korzysta z AI.
+  i nie korzysta z AI. Zatwierdzone odpowiedzi z obu rozmów wracają do
+  Ciebie tam, gdzie podejmujesz decyzje: zwijana karta **„Podpowiedzi
+  z rozmów"** u góry zakładek Plan, Dieta, Harmonogram i Raporty pokazuje
+  dosłowne deklaracje podopiecznego istotne dla danego obszaru (z
+  pytaniem, z którego pochodzą). To punkt wyjścia do Twojej decyzji —
+  aplikacja niczego nie układa i nie zaleca.
 * **Plan** — „+ Nowy plan" lub „Nowa wersja aktualnego planu".
   **Każda zmiana wymaga podania powodu** i tworzy nową wersję — stare
   wersje zostają w historii i są widoczne dla klienta. Dla ćwiczeń możesz
