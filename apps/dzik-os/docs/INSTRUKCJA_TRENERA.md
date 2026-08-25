@@ -49,6 +49,17 @@ klientów wymagających uwagi.
   się sygnał do konsultacji medycznej, zobaczysz go tu wyraźnie —
   wstrzymaj się z obciążaniem tej okolicy do czasu konsultacji.
   Podsumowanie **nie jest planem**: plan układasz Ty.
+* **Wywiad** — głęboki wywiad (46 pytań w 9 modułach: motywacja trzy
+  warstwy głębiej, historia treningowa, przesiew zdrowotny, sen, stres
+  i głowa, żywienie pod lupą, logistyka tygodnia, punkt startu, zasady
+  współpracy). Ta sama mechanika co rozmowa startowa: dane źródłowe,
+  podsumowanie, akceptacja po kliencie. Dobry moment, żeby o niego
+  poprosić, to pierwsza konsultacja albo 1–2 tydzień współpracy — klient
+  znajdzie go w „Więcej → Głęboki wywiad". Odpowiedzi flagowe przesiewu
+  (np. ból w klatce przy wysiłku, wcześniejsze zalecenie lekarza) i
+  pytania o relację z ciałem zobaczysz jako sygnał „prowadź ostrożniej /
+  najpierw lekarz" — to informacja, nie ocena. Wywiad **nie tworzy celu**
+  i nie korzysta z AI.
 * **Plan** — „+ Nowy plan" lub „Nowa wersja aktualnego planu".
   **Każda zmiana wymaga podania powodu** i tworzy nową wersję — stare
   wersje zostają w historii i są widoczne dla klienta. Dla ćwiczeń możesz

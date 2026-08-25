@@ -1172,6 +1172,10 @@ class OnboardingSession(Base):
 
     id: Mapped[str] = mapped_column(String(40), primary_key=True)
     client_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
+    # Który scenariusz prowadzi tę sesję: 'start' (rozmowa startowa,
+    # onboarding_flow.STEPS) albo 'deep' (głęboki wywiad, interview_flow).
+    # Jedna tabela, dwa przepływy — mechanizm jest wspólny (migracja 26).
+    flow: Mapped[str] = mapped_column(String(20), default="start")
     # IN_PROGRESS / SUMMARY_READY / CLIENT_APPROVED / COACH_APPROVED / ABANDONED
     status: Mapped[str] = mapped_column(String(20), default="IN_PROGRESS")
     # Jak powstało ostatnie podsumowanie: FORM (deterministycznie) albo

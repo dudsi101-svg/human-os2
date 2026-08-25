@@ -43,6 +43,12 @@ def test_migration_19_adds_nullable_columns_to_existing_database(tmp_path):
         conn.execute(text(
             "CREATE TABLE food_products (id VARCHAR(40) PRIMARY KEY, "
             "coach_id VARCHAR(40), name VARCHAR(300), kcal_100g FLOAT)"))
+        # Stub dla migracji nr 26 (kolumna `flow` w sesjach rozmów) — jak
+        # wyżej: realna stara baza ma tę tabelę z migracji 17, tu powstaje
+        # ręcznie, bo migracje 1–18 są tylko ostemplowane.
+        conn.execute(text(
+            "CREATE TABLE onboarding_sessions (id VARCHAR(40) PRIMARY KEY, "
+            "client_id VARCHAR(40))"))
 
     applied = run_migrations(eng)
     assert 19 in applied

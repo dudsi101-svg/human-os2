@@ -512,6 +512,12 @@ def test_migracja_22_dodaje_nullable_kolumny_do_starej_bazy(tmp_path):
             "INSERT INTO exercises(id, coach_id, name, muscle_group, how_to, status, "
             "created_by, created_at, updated_at) VALUES "
             "('EXC-1', 'C1', 'Stare ćwiczenie', 'NOGI', 'Opis', 'ACTIVE', 'C1', 'x', 'x')"))
+        # Stub dla migracji nr 26 (kolumna `flow` w sesjach rozmów) —
+        # realna stara baza ma tę tabelę z migracji 17; tu migracje są
+        # tylko ostemplowane, więc tabela musi powstać ręcznie.
+        conn.execute(text(
+            "CREATE TABLE onboarding_sessions (id VARCHAR(40) PRIMARY KEY, "
+            "client_id VARCHAR(40))"))
 
     applied = run_migrations(eng)
     assert 22 in applied

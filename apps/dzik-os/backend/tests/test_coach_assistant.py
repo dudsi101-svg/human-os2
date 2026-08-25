@@ -634,6 +634,11 @@ def test_migracja_23_na_starej_bazie(tmp_path):
         # cały zaległy ogon migracji — tu interesuje nas nr 23.
         conn.execute(text(
             "CREATE TABLE exercises (id VARCHAR(40) PRIMARY KEY, name VARCHAR(200))"))
+        # Migracja nr 26 dokłada kolumnę do `onboarding_sessions` — stub
+        # z tego samego powodu co `exercises` wyżej.
+        conn.execute(text(
+            "CREATE TABLE onboarding_sessions (id VARCHAR(40) PRIMARY KEY, "
+            "client_id VARCHAR(40))"))
 
     applied = run_migrations(eng)
     # Stara baza domyka CAŁY zaległy ogon migracji, nie tylko nr 23 —

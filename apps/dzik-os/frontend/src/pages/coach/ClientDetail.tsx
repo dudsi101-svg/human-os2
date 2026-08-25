@@ -57,11 +57,12 @@ import PlanEditor from "./PlanEditor";
 import OcrCapture from "../../OcrCapture";
 import { appendText } from "../../ocrUtils";
 
-type Tab = "profil" | "rozmowa" | "plan" | "dieta" | "harmonogram" | "raporty"
-  | "pomiary" | "monitoring" | "platnosci" | "historia";
+type Tab = "profil" | "rozmowa" | "wywiad" | "plan" | "dieta" | "harmonogram"
+  | "raporty" | "pomiary" | "monitoring" | "platnosci" | "historia";
 
 const TABS: [Tab, string][] = [
-  ["profil", "Profil"], ["rozmowa", "Rozmowa startowa"], ["plan", "Plan"],
+  ["profil", "Profil"], ["rozmowa", "Rozmowa startowa"], ["wywiad", "Wywiad"],
+  ["plan", "Plan"],
   ["dieta", "Dieta"], ["harmonogram", "Harmonogram"], ["raporty", "Raporty"],
   ["pomiary", "Pomiary"], ["monitoring", "Monitoring"], ["platnosci", "Płatności"],
   ["historia", "Historia"],
@@ -122,6 +123,7 @@ export default function ClientDetail() {
       <TabPanel id={tab}>
         {tab === "profil" && <ProfileTab clientId={clientId!} />}
         {tab === "rozmowa" && <OnboardingTab clientId={clientId!} />}
+        {tab === "wywiad" && <OnboardingTab clientId={clientId!} apiPath="interview" />}
         {tab === "plan" && <PlanTab clientId={clientId!} />}
         {tab === "dieta" && <NutritionTab clientId={clientId!} />}
         {tab === "harmonogram" && <ScheduleTab clientId={clientId!} />}
@@ -212,7 +214,12 @@ function ProfileTab({ clientId }: { clientId: string }) {
  * z historią poprawek), podsumowanie, poziom niepewności per pole i pola
  * wymagające potwierdzenia. Trener zatwierdza DOPIERO po kliencie — i
  * dopiero wtedy podsumowanie staje się podstawą planu. */
-function OnboardingTab({ clientId }: { clientId: string }) {
+function OnboardingTab({ clientId, apiPath = "onboarding" }: {
+  clientId: string;
+  // Ta sama zakładka obsługuje rozmowę startową i głęboki wywiad —
+  // różni je wyłącznie ścieżka API (mechanizm i kontrakt są wspólne).
+  apiPath?: "onboarding" | "interview";
+}) {
   const [state, setState] = useState<OnboardingState | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [confirmed, setConfirmed] = useState<Set<string>>(new Set());
@@ -221,10 +228,10 @@ function OnboardingTab({ clientId }: { clientId: string }) {
 
   const load = useCallback(() => {
     setError(null);
-    api.get<OnboardingState>(`/api/clients/${clientId}/onboarding/review`)
+    api.get<OnboardingState>(`/api/clients/${clientId}/${apiPath}/review`)
       .then((d) => { setState(d); setConfirmed(new Set()); })
       .catch((e) => setError(e.message));
-  }, [clientId]);
+  }, [clientId, apiPath]);
   useEffect(load, [load]);
 
   async function approve() {
@@ -233,7 +240,7 @@ function OnboardingTab({ clientId }: { clientId: string }) {
     setError(null);
     try {
       const next = await api.post<OnboardingState>(
-        `/api/clients/${clientId}/onboarding/coach-approve`,
+        `/api/clients/${clientId}/${apiPath}/coach-approve`,
         { confirmed_fields: [...confirmed] },
       );
       setState(next);
@@ -251,12 +258,20 @@ function OnboardingTab({ clientId }: { clientId: string }) {
   if (!session) {
     return (
       <div className="card">
-        <h2>Rozmowa startowa</h2>
-        <p className="dim">
-          Klient nie zaczął jeszcze rozmowy startowej. Może ją przeprowadzić
-          w aplikacji („Porozmawiajmy” na ekranie Dzisiaj) albo wypełnić
-          klasyczny formularz — obie drogi zapisują te same pola profilu.
-        </p>
+        <h2>{apiPath === "interview" ? "Głęboki wywiad" : "Rozmowa startowa"}</h2>
+        {apiPath === "interview" ? (
+          <p className="dim">
+            Klient nie zaczął jeszcze głębokiego wywiadu. Znajdzie go
+            w aplikacji w „Więcej → Głęboki wywiad” — dobry moment to
+            pierwsza konsultacja albo 1–2 tydzień współpracy.
+          </p>
+        ) : (
+          <p className="dim">
+            Klient nie zaczął jeszcze rozmowy startowej. Może ją przeprowadzić
+            w aplikacji („Porozmawiajmy” na ekranie Dzisiaj) albo wypełnić
+            klasyczny formularz — obie drogi zapisują te same pola profilu.
+          </p>
+        )}
       </div>
     );
   }
