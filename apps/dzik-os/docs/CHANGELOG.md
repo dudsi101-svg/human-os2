@@ -1,5 +1,12 @@
 # Changelog — Dzik OS
 
+## 0.52.1 — 2026-08-25
+
+* Workflow **„Porządki demo (Fly.io)"**: uruchamia `purge_demo` na
+  produkcji (tryb diagnozy bez `--force` / właściwy z `--force`) —
+  baza produkcyjna niosła konta demo sprzed 0.43.0, przez które
+  bootstrap pierwszych prawdziwych kont słusznie odmawiał.
+
 ## 0.52.0 — 2026-08-25
 
 **Pilotaż na 10 podopiecznych + konfiguracja produkcji bez terminala**

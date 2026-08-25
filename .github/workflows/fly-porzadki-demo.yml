@@ -1,0 +1,47 @@
+# Dezaktywacja kont demo na produkcji (0.52.1) — workflow_dispatch.
+#
+# Baza produkcyjna niesie stare konta demo z czasów, gdy seed na Fly był
+# włączony (sprzed 0.43.0) — przez nie bootstrap pierwszych prawdziwych
+# kont odmawia. `python -m dzik_os.purge_demo`:
+#   * bez --force ODMAWIA, gdy nie istnieje aktywne niedemowe konto COACH
+#     (bezpiecznik przed zamknięciem sobie drzwi) — sama odmowa jest
+#     diagnozą: znaczy, że na bazie są wyłącznie konta demo;
+#   * z --force dezaktywuje konta demo (SUSPENDED + losowy hash) — żadne
+#     wiersze nie są kasowane, historia zostaje.
+# Po udanym przebiegu z --force baza nie ma żadnego COACH/ADMIN i można
+# uruchomić workflow „Pierwsze konta (Fly.io)".
+
+name: Porządki demo (Fly.io)
+
+on:
+  workflow_dispatch:
+    inputs:
+      force:
+        description: "true = faktycznie dezaktywuj (--force); false = tylko diagnoza"
+        required: true
+        default: "false"
+
+concurrency:
+  group: fly-maintenance
+  cancel-in-progress: false
+
+jobs:
+  porzadki:
+    runs-on: ubuntu-latest
+    env:
+      FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+      APP_NAME: dzik-os-panel
+    steps:
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Obudź maszynę
+        run: curl -sfS "https://$APP_NAME.fly.dev/api/health"
+
+      - name: Uruchom purge_demo
+        run: |
+          if [ "${{ inputs.force }}" = "true" ]; then
+            flyctl ssh console --app "$APP_NAME" -C "python -m dzik_os.purge_demo --force"
+          else
+            flyctl ssh console --app "$APP_NAME" -C "python -m dzik_os.purge_demo" || true
+            echo "Przebieg diagnostyczny — odmowa powyżej oznacza, że na bazie są wyłącznie konta demo."
+          fi
