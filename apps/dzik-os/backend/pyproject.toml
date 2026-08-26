@@ -23,7 +23,7 @@ dependencies = [
   "openpyxl>=3.1,<4",
   # Przetwarzanie zdjęć na uploadzie: usunięcie EXIF/GPS, limit
   # rozdzielczości, rekompresja (file_safety.process_image).
-  "pillow>=10,<12",
+  "pillow>=12.3,<13",
   "pywebpush>=2,<3",
   # zoneinfo wymaga bazy stref czasowych także na obrazach slim bez tzdata
   "tzdata",

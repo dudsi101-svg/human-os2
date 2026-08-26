@@ -37,7 +37,10 @@ blokerów wypisanych w §5 tamtego dokumentu.
 audyt B2 — akcje po SHA (13. kontrola spójności pilnuje regresu),
 obrazy po digeście, `npm ci`, blokujący `pip-audit`. Aktualizacja
 pinów odtąd = świadoma zmiana w PR (SHA + komentarz wersji); automat
-(dependabot) — decyzja właściciela.
+(dependabot) — decyzja właściciela. Pierwszy przebieg audytu złapał
+podatne pillow (naprawione: `>=12.3,<13`) i pytest 8.4.2 — pytest ma
+jawny wyjątek w CI (dev-only, pin `<9` w pyproject Core); REKOMENDACJA
+DLA SESJI CORE: podnieść pytest do `>=9.0.3,<10` i zdjąć wyjątek.
 **Runda 0.53.7 (`agent/stan-wydania`):**
 audyt B1 — `docs/RELEASE_STATUS.md` (stan produkcji TERAZ), README
 odświeżone (0.4.0→bieżąca), 12. kontrola spójności „wersje dokumentów”.

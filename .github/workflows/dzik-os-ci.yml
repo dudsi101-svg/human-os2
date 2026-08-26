@@ -36,7 +36,12 @@ jobs:
         # potem audyt tego, co faktycznie zainstalowane.
         run: |
           pip install -U pip setuptools wheel pip-audit
-          pip-audit --skip-editable
+          # PYSEC-2026-1845 (pytest<9): jawny wyjątek — pytest to
+          # narzędzie testowe, nie wchodzi do obrazu produkcyjnego
+          # (Dockerfile nie instaluje [dev]); pin <9 narzuca Core
+          # (pyproject.toml korzenia, poza zakresem pracy aplikacyjnej).
+          # Zdjąć wyjątek po podniesieniu pytest>=9.0.3 w Core.
+          pip-audit --skip-editable --ignore-vuln PYSEC-2026-1845
       - name: Kontrola spójności (kolizje między równoległymi rundami)
         # Wykrywa to, czego git nie widzi: powtórzony numer migracji lub
         # wersji, trasę przesłoniętą przez parametr, router bez

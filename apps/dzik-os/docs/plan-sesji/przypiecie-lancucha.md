@@ -59,3 +59,15 @@ ruchomym celem: akcje po pełnym SHA commita, obrazy bazowe po digeście,
 - Budowa obrazu Dockera niemożliwa w tym środowisku — digesty
   zweryfikowane nagłówkiem `Docker-Content-Digest` z rejestru;
   faktyczny build zweryfikuje deploy po scaleniu (smoke health/build).
+
+## Poprawka po pierwszym przebiegu CI
+
+Blokujący pip-audit od razu zarobił: znalazł podatne `pillow 11.3.0`
+(pin `<12` wymuszał starą wersję; lokalnie audyt był czysty, bo tu
+stała już 12.3.0) i `pytest 8.4.2`. Naprawa: pillow podniesione
+naprawdę (`>=12.3,<13`; pełna suita przechodziła lokalnie na 12.3.0,
+testy obrazów potwierdzone ponownie), pytest — jawny, skomentowany
+wyjątek `--ignore-vuln PYSEC-2026-1845` (narzędzie testowe, nie
+wchodzi do obrazu produkcyjnego; pin `<9` narzuca pyproject Core,
+poza zakresem pracy aplikacyjnej — rekomendacja podniesienia
+pytest>=9.0.3 dla sesji Core odnotowana w STAN_PRZEKAZANIA).
