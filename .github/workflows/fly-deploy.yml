@@ -1,18 +1,21 @@
 # Wdrożenie Dzik OS na Fly.io z GitHub Actions.
 #
 # Wymaga sekretu repozytorium FLY_API_TOKEN (Settings → Secrets and
-# variables → Actions → New repository secret). Uruchamia się ręcznie
-# (Run workflow) albo automatycznie po pushu do main zmieniającym
-# apps/dzik-os. Kroki create są idempotentne — pierwszy run tworzy
-# aplikację i wolumen, kolejne tylko wdrażają.
+# variables → Actions → New repository secret). AUDYT P0-2 (25.08):
+# deploy rusza WYŁĄCZNIE po ukończonym, ZIELONYM przebiegu pełnego CI
+# (`dzik-os-ci`) na main — nigdy równolegle z testami. Wdrażany jest
+# dokładnie commit, który przeszedł CI (head_sha z workflow_run).
+# Ręczny workflow_dispatch zostaje na sytuacje awaryjne. Kroki create
+# są idempotentne — pierwszy run tworzy aplikację i wolumen.
 
 name: Deploy Dzik OS (Fly.io)
 
 on:
   workflow_dispatch: {}
-  push:
+  workflow_run:
+    workflows: ["dzik-os-ci"]
+    types: [completed]
     branches: [main]
-    paths: ["apps/dzik-os/**", "hos_engine/**", ".github/workflows/fly-deploy.yml"]
 
 concurrency:
   group: fly-deploy
@@ -20,12 +23,26 @@ concurrency:
 
 jobs:
   deploy:
+    # Dispatch ręczny wchodzi zawsze; workflow_run tylko po sukcesie CI.
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     env:
       FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
       APP_NAME: dzik-os-panel
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Wdrażamy dokładnie commit, który przeszedł CI (nie "aktualny
+          # main", który mógł już uciec do przodu).
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+      - name: Ustal wersję i SHA builda
+        run: |
+          SHA="${{ github.event.workflow_run.head_sha || github.sha }}"
+          WERSJA=$(grep -m1 -oE '^## [0-9]+\.[0-9]+\.[0-9]+' apps/dzik-os/docs/CHANGELOG.md | cut -d' ' -f2)
+          echo "BUILD_SHA=$SHA" >> "$GITHUB_ENV"
+          echo "APP_VERSION=${WERSJA:-dev}" >> "$GITHUB_ENV"
+          echo "Wdrażam wersję $WERSJA, commit $SHA"
 
       - uses: superfly/flyctl-actions/setup-flyctl@master
 
@@ -53,15 +70,28 @@ jobs:
         run: |
           flyctl deploy . --config apps/dzik-os/fly.toml \
             --dockerfile apps/dzik-os/Dockerfile \
-            --app "$APP_NAME" --remote-only --ha=false
+            --app "$APP_NAME" --remote-only --ha=false \
+            --env DZIK_BUILD_SHA="$BUILD_SHA" \
+            --env DZIK_APP_VERSION="$APP_VERSION"
 
       - name: Show app URL
         run: flyctl status --app "$APP_NAME"
 
-      - name: Smoke check (strona i API muszą odpowiadać)
+      - name: Smoke check (odpowiada WŁAŚCIWA wersja, nie jakakolwiek)
         run: |
           sleep 10
-          curl -sfS "https://$APP_NAME.fly.dev/api/health"
+          ODP=$(curl -sfS "https://$APP_NAME.fly.dev/api/health")
+          echo "$ODP"
+          BUILD=$(printf '%s' "$ODP" | jq -r '.build')
+          WERSJA=$(printf '%s' "$ODP" | jq -r '.version')
+          if [ "$BUILD" != "$(printf '%s' "$BUILD_SHA" | cut -c1-12)" ]; then
+            echo "::error::Health zwraca build $BUILD, wdrażano ${BUILD_SHA} — odpowiada nie ta instancja."
+            exit 1
+          fi
+          if [ "$WERSJA" != "$APP_VERSION" ]; then
+            echo "::error::Health zwraca wersję $WERSJA, oczekiwano $APP_VERSION."
+            exit 1
+          fi
           curl -sfS -o /dev/null "https://$APP_NAME.fly.dev/"
           curl -sfS -o /dev/null "https://$APP_NAME.fly.dev/manifest.webmanifest"
-          echo "OK: aplikacja odpowiada"
+          echo "OK: wersja $WERSJA ($BUILD) odpowiada"

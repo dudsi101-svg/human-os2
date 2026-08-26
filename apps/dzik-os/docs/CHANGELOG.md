@@ -1,5 +1,23 @@
 # Changelog — Dzik OS
 
+## 0.53.3 — 2026-08-25
+
+**Audyt P0-2 + P1-5: produkcja dostaje wyłącznie zielony build,
+a health mówi, kim jest.**
+
+* `fly-deploy.yml` przez `workflow_run`: deploy rusza dopiero po
+  UKOŃCZONYM przebiegu `dzik-os-ci` na main z wynikiem success —
+  koniec z wyścigiem „wdrożone 10 minut przed czerwonym testem";
+  wdrażany jest dokładnie commit, który przeszedł CI (`head_sha`).
+  Ręczny `workflow_dispatch` zostaje na awarie.
+* `/api/health` zwraca `version` (z CHANGELOG, wstrzykiwana przy
+  deployu), `build` (SHA) i `migration` (najwyższy zastosowany numer,
+  liczony leniwie z cache); smoke test po deployu PORÓWNUJE build
+  i wersję z oczekiwanymi — rozjazd czerwieni run.
+* Wersje pakietów wyrównane do 0.53.3 (pyproject, `__version__`,
+  package.json) — koniec wiecznego 0.1.0 (P1-2, częściowo; stały
+  mechanizm w Sprincie B).
+
 ## 0.53.2 — 2026-08-25
 
 **Audyt P0-3: utwardzenie inputów workflow** (audyt zewnętrzny 25.08).

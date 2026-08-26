@@ -42,8 +42,13 @@ zaczyna sprawdzać.
 
 - **Wersja: 0.53.3.** **Migracja: brak.**
 
-## Weryfikacja (do wypełnienia)
+## Weryfikacja (wypełnione 25.08)
 
-- pełne bramki; health lokalnie zwraca version/build/migration;
-  po scaleniu: CI main → dopiero potem deploy (kolejność widoczna
-  w Actions), smoke porównuje SHA.
+- Testy: `test_health_version` 2/2 (health zwraca version/build/
+  migration>0; `__version__` != 0.1.0); pierwszy strzał ujawnił błąd
+  liczenia migracji przy tworzeniu appki (przed startem migracji) —
+  naprawione leniwym cache.
+- YAML fly-deploy zwalidowany; spójność czysto (11 kontroli).
+- Pełne bramki repo — wynik w PR. Dowód kolejności CI→deploy oraz
+  smoke z porównaniem SHA — na scaleniu tej rundy (pierwszy deploy
+  nową ścieżką) i dopisany tu po fakcie.

@@ -28,6 +28,10 @@ class Settings:
     # Puste `smtp_host` = dostawca `null`, czyli stan sprzed 0.42.0:
     # aplikacja bez konfiguracji zachowuje się DOKŁADNIE tak jak dotąd
     # i nie wysyła nic. Hasło wyłącznie ze zmiennej środowiskowej.
+    # Identyfikacja builda (audyt P1-5): wstrzykiwane przez deploy
+    # (--env), lokalnie "dev". Health je zwraca, smoke test porównuje.
+    app_version: str = field(default_factory=lambda: _env("DZIK_APP_VERSION", "dev"))
+    build_sha: str = field(default_factory=lambda: _env("DZIK_BUILD_SHA", "dev"))
     # Limit niezakończonych współprac per trener (skala pilotażu, decyzja
     # właściciela 25.08: 10 podopiecznych). ENDED zwalnia miejsce; 0 = bez
     # limitu. Egzekwowany przy zapraszaniu klienta (routers/clients.py).
