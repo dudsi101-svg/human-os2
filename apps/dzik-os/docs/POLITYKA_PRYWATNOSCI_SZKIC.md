@@ -9,6 +9,12 @@
 >
 > Wersje polityki są numerowane; wersje archiwalne pozostają w historii
 > repozytorium. Poprzednia wersja: v0.1 (2026-08-17).
+>
+> **Wersja publiczna (od 0.53.5):** skrócona, opisowa wersja tej treści
+> — z wypełnionym administratorem (LUBELSKI DZIK sp. z o.o.) — żyje w
+> `frontend/src/pages/Privacy.tsx` i jest dostępna pod `/prywatnosc`.
+> Zmiany merytoryczne wprowadzaj w obu miejscach; ten szkic pozostaje
+> pełniejszym dokumentem roboczym do konsultacji prawnej.
 
 ## 1. Administrator danych
 

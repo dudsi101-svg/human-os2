@@ -1,6 +1,6 @@
 # Stan przekazania — przeczytaj przed rozpoczęciem rundy
 
-**Aktualizacja:** 2026-08-25 · **Wersja w `main`:** 0.53.4
+**Aktualizacja:** 2026-08-26 · **Wersja w `main`:** 0.53.5
 **Tryb pracy:** jeden piszący i jeden PR `[WRITER]` naraz
 (`KOORDYNACJA.md`, zasada nadrzędna).
 
@@ -33,7 +33,14 @@ pierwszy commit, draft PR `[WRITER]`, reszta agentów read-only.
 jednym prawdziwym klientem, **NO-GO na szerszą produkcję** — siedem
 blokerów wypisanych w §5 tamtego dokumentu.
 
-**Ostatnia runda (0.53.4, gałąź `agent/reset-uczciwe-zdarzenia`):**
+**Ostatnia runda (0.53.5, gałąź `agent/prywatnosc-publiczna`):**
+audyt P0-1 — publiczna trasa `/prywatnosc` z pełną informacją RODO
+(administrator: LUBELSKI DZIK sp. z o.o., dane jawne z KRS), warstwowa
+notka art. 13 przy formularzu kontaktowym („nie wpisuj danych o
+zdrowiu"), linki na aktywacji i ekranie zgód. **OTWARTE (właściciel,
+W3):** formalne zatwierdzenie treści przez administratora
+danych/prawnika + ewentualne uzupełnienie NIP/KRS w stopce.
+**Runda 0.53.4 (`agent/reset-uczciwe-zdarzenia`):**
 audyt P0-4 — zdarzenia resetu wg faktycznego wyniku wysyłki
 (LINK_SENT/SEND_FAILED + metryka), odpowiedź HTTP dalej generyczna.
 **Runda 0.53.3 (`agent/deploy-po-ci`):** audyt
