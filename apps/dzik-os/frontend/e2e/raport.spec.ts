@@ -45,6 +45,14 @@ test("klient wypełnia i wysyła raport tygodniowy", async ({ page }) => {
   await ocenSkale(page, "4");
   await wyslij.click();
 
+  // Najpierw potwierdzenie na ekranie — przeładowanie strony przerywa
+  // trwające żądanie, więc reload przed komunikatem sukcesu wyścigałby
+  // się z zapisem na serwerze (na obciążonym runnerze CI ten wyścig
+  // realnie przegrywał).
+  await expect(page.getByRole("status")).toContainText(/Raport wysłany/, {
+    timeout: 20_000,
+  });
+
   // Dowód, że raport DOTARŁ na serwer, a nie tylko zniknął z ekranu:
   // po przeładowaniu aplikacja wie, że tydzień jest już zaraportowany,
   // i oferuje poprawkę zamiast nowego raportu.
