@@ -172,9 +172,38 @@ def create_app() -> FastAPI:
             )
         return error_response(404, "Nie znaleziono")
 
+    # Najwyższy zastosowany numer migracji — leniwie przy PIERWSZYM
+    # zapytaniu health (migracje biegną w starcie aplikacji, więc licznik
+    # przy tworzeniu appki byłby pusty) i dalej z pamięci podręcznej
+    # (uptime-check nie może odpytywać bazy przy każdym pingu).
+    _migracja_cache: list[int | None] = []
+
+    def _migracja() -> int | None:
+        if not _migracja_cache:
+            try:
+                with db_session() as _db:
+                    _migracja_cache.append(
+                        _db.execute(
+                            text("SELECT COALESCE(MAX(version), 0) FROM schema_migrations")
+                        ).scalar()
+                    )
+            except Exception:  # noqa: BLE001 — health ma wstać nawet bez tabeli
+                return None
+        return _migracja_cache[0]
+
     @app.get("/api/health")
     def health() -> dict:
-        return {"ok": True, "app": settings.brand_name, "env": settings.env}
+        """Audyt P1-5: health identyfikuje uruchomioną wersję — smoke test
+        po deployu porównuje `build` z wdrażanym SHA zamiast wierzyć,
+        że odpowiada właściwa instancja."""
+        return {
+            "ok": True,
+            "app": settings.brand_name,
+            "env": settings.env,
+            "version": settings.app_version,
+            "build": settings.build_sha[:12],
+            "migration": _migracja(),
+        }
 
     @app.get("/api/ready")
     def ready():
