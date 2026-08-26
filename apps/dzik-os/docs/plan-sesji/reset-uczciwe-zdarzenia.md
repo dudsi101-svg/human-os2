@@ -38,7 +38,10 @@ i błąd SMTP zwracają False, a łańcuch audytu i tak twierdzi, że poszło.
 - **Wersja: 0.53.4.** **Migracja: brak** (nowe akcje to stringi
   w istniejącym dzienniku zdarzeń).
 
-## Weryfikacja (do wypełnienia)
+## Weryfikacja (wypełnione 25.08)
 
-- pełne bramki; trzy scenariusze testowe z asercją identycznej
-  odpowiedzi HTTP.
+- 3 testy zielone: sukces → REQUESTED+LINK_SENT; porażka →
+  SEND_FAILED z ODPOWIEDZIĄ HTTP identyczną jak przy sukcesie;
+  dostawca null → powód `no_provider` w niemutowalnym łańcuchu audytu
+  (odczyt przez `event_store().all()`).
+- Pełne bramki repo — wynik w PR.

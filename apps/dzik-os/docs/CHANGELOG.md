@@ -1,5 +1,18 @@
 # Changelog — Dzik OS
 
+## 0.53.4 — 2026-08-25
+
+**Audyt P0-4 (część): łańcuch audytu mówi prawdę o resecie hasła.**
+
+* `password_reset_request`: zdarzenie żądania bez twierdzeń
+  o doręczeniu + DRUGIE zdarzenie wg faktycznego wyniku wysyłki —
+  `PASSWORD_RESET_LINK_SENT` albo `PASSWORD_RESET_SEND_FAILED`
+  (payload: dostawca i powód — `no_provider` przy braku SMTP,
+  `send_failed` przy błędzie); metryka `password_reset_send_failed`.
+* Odpowiedź HTTP bez zmian — zawsze generyczna (antyenumeracja).
+* 3 testy: sukces, porażka (identyczna odpowiedź!), brak dostawcy
+  z powodem w łańcuchu audytu.
+
 ## 0.53.3 — 2026-08-25
 
 **Audyt P0-2 + P1-5: produkcja dostaje wyłącznie zielony build,

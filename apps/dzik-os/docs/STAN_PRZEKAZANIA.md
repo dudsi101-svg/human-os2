@@ -1,6 +1,6 @@
 # Stan przekazania — przeczytaj przed rozpoczęciem rundy
 
-**Aktualizacja:** 2026-08-25 · **Wersja w `main`:** 0.53.3
+**Aktualizacja:** 2026-08-25 · **Wersja w `main`:** 0.53.4
 **Tryb pracy:** jeden piszący i jeden PR `[WRITER]` naraz
 (`KOORDYNACJA.md`, zasada nadrzędna).
 
@@ -33,7 +33,10 @@ pierwszy commit, draft PR `[WRITER]`, reszta agentów read-only.
 jednym prawdziwym klientem, **NO-GO na szerszą produkcję** — siedem
 blokerów wypisanych w §5 tamtego dokumentu.
 
-**Ostatnia runda (0.53.3, gałąź `agent/deploy-po-ci`):** audyt
+**Ostatnia runda (0.53.4, gałąź `agent/reset-uczciwe-zdarzenia`):**
+audyt P0-4 — zdarzenia resetu wg faktycznego wyniku wysyłki
+(LINK_SENT/SEND_FAILED + metryka), odpowiedź HTTP dalej generyczna.
+**Runda 0.53.3 (`agent/deploy-po-ci`):** audyt
 P0-2+P1-5 — deploy przez workflow_run po zielonym CI (wdrażany head_sha
 z CI), health z version/build/migration, smoke porównujący wersję;
 pakiety wyrównane do 0.53.3. **Runda 0.53.2
