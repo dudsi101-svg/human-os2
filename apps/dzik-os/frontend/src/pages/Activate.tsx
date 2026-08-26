@@ -103,6 +103,10 @@ export default function Activate() {
         <p className="dim" style={{ textAlign: "center", fontSize: "0.8rem" }}>
           Hasło ustawiasz wyłącznie Ty — trener ani nikt inny go nie widzi.
         </p>
+        <p className="dim" style={{ textAlign: "center", fontSize: "0.8rem" }}>
+          Zakładając konto, zapoznaj się z{" "}
+          <a href="/prywatnosc">informacją o przetwarzaniu danych</a>.
+        </p>
       </div>
     </div>
   );

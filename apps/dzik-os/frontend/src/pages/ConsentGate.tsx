@@ -189,8 +189,11 @@ export default function ConsentGate({
             <li>cofnięcie działa natychmiast — trener traci dostęp do danych tej kategorii;</li>
             <li>możesz wyeksportować i usunąć swoje dane;</li>
             <li>
-              dane przetwarzają wyłącznie podmioty opisane w polityce
-              prywatności (m.in. hosting w UE) — szczegóły w opisie każdej
+              dane przetwarzają wyłącznie podmioty opisane w{" "}
+              <a href="/prywatnosc" target="_blank" rel="noreferrer">
+                informacji o przetwarzaniu danych
+              </a>{" "}
+              (m.in. hosting w UE) — szczegóły w opisie każdej
               zgody powyżej.
             </li>
           </ul>

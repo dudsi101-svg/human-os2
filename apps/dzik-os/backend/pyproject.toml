@@ -7,7 +7,7 @@ include = ["dzik_os*"]
 
 [project]
 name = "dzik-os-backend"
-version = "0.53.3"
+version = "0.53.5"
 description = "Dzik OS — Panel Podopiecznego. Backend domenowy zbudowany na fundamentach Human OS (hos_engine)."
 requires-python = ">=3.11"
 license = "Apache-2.0"

@@ -37,3 +37,20 @@ test("gość wysyła zapytanie kontaktowe i widzi potwierdzenie", async ({ page 
 
   await expect(page.getByText("Dziękuję za wiadomość!")).toBeVisible();
 });
+
+test("gość czyta informację o przetwarzaniu danych bez logowania", async ({ page }) => {
+  // Warstwowa notka RODO przy formularzu (0.53.5, audyt P0-1).
+  await page.goto("/#kontakt");
+  await expect(page.getByText(/Nie wpisuj w formularzu informacji o zdrowiu/)).toBeVisible();
+
+  // Link prowadzi na publiczną trasę /prywatnosc — bez przekierowania na /login.
+  await page.getByRole("link", { name: "informacja o przetwarzaniu danych", exact: true }).click();
+  await expect(page).toHaveURL(/\/prywatnosc$/);
+  await expect(page.getByRole("heading", { name: "Informacja o przetwarzaniu danych osobowych" })).toBeVisible();
+  await expect(page.getByText(/LUBELSKI DZIK/)).toBeVisible();
+  await expect(page.getByText(/Prezesa\s+Urzędu Ochrony Danych Osobowych/)).toBeVisible();
+
+  // Wejście bezpośrednie (świeża karta) też jest publiczne.
+  await page.goto("/prywatnosc");
+  await expect(page.getByRole("heading", { name: "Informacja o przetwarzaniu danych osobowych" })).toBeVisible();
+});

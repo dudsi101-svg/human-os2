@@ -296,9 +296,20 @@ export default function Landing() {
             <button className="btn" disabled={busy}>
               {busy ? "Wysyłanie…" : "Wyślij zapytanie"}
             </button>
+            {/* Warstwowa informacja art. 13 RODO (audyt P0-1). */}
             <p className="landing-form__note">
-              Podane dane posłużą wyłącznie do odpowiedzi na Twoje
-              zapytanie. Nie trafiają na żadną listę mailingową.
+              Administratorem danych z formularza jest LUBELSKI DZIK
+              sp. z o.o. (Lublin). Podane dane posłużą wyłącznie do
+              odpowiedzi na Twoje zapytanie — nie trafiają na żadną
+              listę mailingową. Przysługuje Ci prawo dostępu, sprostowania
+              i usunięcia danych. Szczegóły:{" "}
+              <a href="/prywatnosc">informacja o przetwarzaniu danych</a>.
+            </p>
+            <p className="landing-form__note">
+              <b>Nie wpisuj w formularzu informacji o zdrowiu, diagnoz ani
+              dokumentacji medycznej</b> — takie ustalenia prowadzimy
+              bezpiecznie w aplikacji, po założeniu konta i za Twoją
+              wyraźną zgodą.
             </p>
             <p className="landing-form__alt">
               Wolisz bezpośrednio? Zadzwoń:{" "}
@@ -314,7 +325,8 @@ export default function Landing() {
         <p>© {new Date().getFullYear()} Dzik OS · Łukasz Drygiel — Lubelski Dzik · trening personalny Lublin i online</p>
         <p>
           Strona nie używa ciasteczek marketingowych ani narzędzi
-          śledzących.
+          śledzących. <a href="/prywatnosc">Informacja o przetwarzaniu
+          danych osobowych</a>.
         </p>
       </footer>
     </div>

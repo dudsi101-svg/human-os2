@@ -1,5 +1,25 @@
 # Changelog — Dzik OS
 
+## 0.53.5 — 2026-08-26
+
+**Audyt P0-1: publiczna informacja RODO — koniec zbierania danych
+bez informacji.**
+
+* Nowa publiczna trasa `/prywatnosc` (bez logowania): pełna informacja
+  o przetwarzaniu danych — administrator (LUBELSKI DZIK sp. z o.o.,
+  ul. Wschodnia 6/6, 20-015 Lublin; jawne dane rejestrowe), zakres
+  i cele, odbiorcy (Fly.io UE, poczta po włączeniu SMTP), retencja
+  opisana zgodnie z faktycznym działaniem aplikacji, prawa + skarga
+  do PUODO, bezpieczeństwo/cookies/pełnoletniość.
+* Warstwowa notka art. 13 pod formularzem kontaktowym + wyraźne
+  „nie wpisuj informacji o zdrowiu, diagnoz ani dokumentacji
+  medycznej — to ustalimy w aplikacji po założeniu konta".
+* Linki do `/prywatnosc`: stopka Landing, ekran aktywacji, ekran zgód.
+* E2E: trasa dostępna bez logowania (klik z formularza + wejście
+  bezpośrednie), notka widoczna przy formularzu.
+* Formalne zatwierdzenie treści przez administratora danych/prawnika —
+  otwarta pozycja właściciela (W3), odnotowana w STAN_PRZEKAZANIA.
+
 ## 0.53.4 — 2026-08-25
 
 **Audyt P0-4 (część): łańcuch audytu mówi prawdę o resecie hasła.**

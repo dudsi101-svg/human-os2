@@ -576,6 +576,16 @@ table.simple th { color: var(--text-dim); font-weight: 600; font-size: 0.78rem; 
 .landing-footer { margin-top: 44px; padding-top: 18px; border-top: 1px solid var(--border);
   color: var(--text-dim); font-size: 0.82rem; text-align: center; }
 .landing-footer p { margin: 4px 0; }
+.landing-footer a { color: var(--text-dim); text-decoration: underline; }
+
+/* Publiczna informacja o przetwarzaniu danych (/prywatnosc, 0.53.5). */
+.privacy__tytul { font-size: 1.4rem; margin: 0 0 4px; }
+.privacy__blok { margin-bottom: 14px; text-align: left; }
+.privacy__blok h2 { font-size: 1.02rem; margin: 0 0 8px; }
+.privacy__blok p { color: var(--text-dim); line-height: 1.55; margin: 0 0 8px; }
+.privacy__blok p:last-child { margin-bottom: 0; }
+.privacy__blok a { color: var(--accent); }
+.privacy__stopka-notka { color: var(--text-dim); font-size: 0.82rem; margin-top: 18px; }
 
 /* Galeria ekranów na stronie marketingowej (0.50.0). */
 .landing-gallery__intro { color: var(--text-dim); margin: -8px 0 18px; font-size: 0.95rem; }

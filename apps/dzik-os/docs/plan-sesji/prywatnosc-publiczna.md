@@ -45,3 +45,17 @@ przy formularzu i linki tam, gdzie zbierane są dane.
 ## Weryfikacja (do wypełnienia)
 
 - bramki frontendu + minimalne backendu; E2E z asercjami; zrzut strony.
+
+## Weryfikacja (wykonana)
+
+- `npx tsc --noEmit` — czysto; `npm run build` — ✓ (index 570.92 kB gz 168.62 kB).
+- `npm run test:helpers` — czysto; `npm run test:e2e` — **19/19**
+  (nowy test: klik z notki przy formularzu → `/prywatnosc` + wejście
+  bezpośrednie; pierwszy przebieg złapał kolizję strict-mode dwóch
+  linków o tej samej nazwie — naprawione `exact: true`).
+- `ruff` backend/tools — czysto; backend **846 passed, 1 skipped**;
+  Core **275 passed**; `spojnosc.py` — czysto (11 kontroli).
+- Uruchomienie na żywo: `vite preview` + Chromium na
+  `/prywatnosc` — strona renderuje się bez logowania, H1 „Informacja
+  o przetwarzaniu danych osobowych", 6 sekcji, stopka z linkami;
+  zrzut w scratchpadzie (`prywatnosc.png`).

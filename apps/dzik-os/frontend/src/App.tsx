@@ -4,6 +4,7 @@ import { ErrorBoundary, Nav } from "./components";
 import { maskPathIds } from "./errorUtils";
 import Login from "./pages/Login";
 import Landing from "./pages/Landing";
+import Privacy from "./pages/Privacy";
 import ChangePassword from "./pages/ChangePassword";
 import Activate from "./pages/Activate";
 import ResetPassword from "./pages/ResetPassword";
@@ -49,7 +50,7 @@ export default function App() {
   );
   // Ekrany publiczne (bez zalogowania): strona marketingowa, logowanie,
   // aktywacja konta z zaproszenia, reset hasła (żądanie + ustawienie nowego).
-  const publicPaths = ["/", "/login", "/aktywacja", "/reset-hasla"];
+  const publicPaths = ["/", "/login", "/aktywacja", "/reset-hasla", "/prywatnosc"];
   if (!user && !publicPaths.includes(location.pathname)) {
     return <Navigate to="/login" replace />;
   }
@@ -89,6 +90,7 @@ export default function App() {
         <Route path="/login" element={user ? <Navigate to={home} replace /> : <Login />} />
         <Route path="/aktywacja" element={<Activate />} />
         <Route path="/reset-hasla" element={<ResetPassword />} />
+        <Route path="/prywatnosc" element={<Privacy />} />
         {user && <Route path="/haslo" element={<ChangePassword />} />}
         {user && <Route path="/mfa" element={<MfaSetup />} />}
         {roles.includes("CLIENT") && (
