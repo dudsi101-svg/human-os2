@@ -45,3 +45,16 @@ W tej rundzie fontów nie ruszam.
 
 - tsc/build/test:helpers/E2E 19/19; porównanie rozmiarów przed/po;
   strażnik dowiedziony czerwienią przy sztucznie zaniżonym budżecie.
+
+## Weryfikacja (wykonana)
+
+- `tsc` czysto; `npm run build` — wejściowy JS **571→281 kB
+  (gzip 169→88.7 kB)**, 36 chunków; `test:helpers` czysto;
+  **E2E 19/19**; runnery a11y i PWA-offline — wszystkie kontrole
+  przeszły (precache z leniwymi chunkami działa offline).
+- Strażnik budżetu: zielony przy 120 kB, dowiedziony CZERWIENIĄ przy
+  `BUDZET_KB=1`; podpięty do `npm run build` (czerwieni CI).
+- Uruchomienie na żywo: przebiegi Playwright chodzą po zbudowanym
+  `dist/` serwowanym jak na produkcji — nawigacja po leniwych trasach
+  obejrzana w E2E (logowanie→Dzisiaj, panel trenera, raport, wywiad).
+- Spójność czysto (13 kontroli); backend nie zmieniany (wersje tylko).

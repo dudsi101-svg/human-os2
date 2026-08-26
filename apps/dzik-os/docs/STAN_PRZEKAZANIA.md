@@ -1,6 +1,6 @@
 # Stan przekazania — przeczytaj przed rozpoczęciem rundy
 
-**Aktualizacja:** 2026-08-26 · **Wersja w `main`:** 0.53.10
+**Aktualizacja:** 2026-08-26 · **Wersja w `main`:** 0.53.11
 **Tryb pracy:** jeden piszący i jeden PR `[WRITER]` naraz
 (`KOORDYNACJA.md`, zasada nadrzędna).
 
@@ -33,7 +33,10 @@ pierwszy commit, draft PR `[WRITER]`, reszta agentów read-only.
 jednym prawdziwym klientem, **NO-GO na szerszą produkcję** — siedem
 blokerów wypisanych w §5 tamtego dokumentu.
 
-**Ostatnia runda (0.53.10, gałąź `agent/przeglad-wywiadu`):**
+**Ostatnia runda (0.53.11, gałąź `agent/podzial-bundla`):**
+audyt B3 — React.lazy za logowaniem (wejściowy JS 169→89 kB gz),
+strażnik budżetu w buildzie (120 kB).
+**Runda 0.53.10 (`agent/przeglad-wywiadu`):**
 audyt B5 — przegląd krzyżowy wywiadu 0.53.0 (raport w docs/) + domknięte
 4 ustalenia blokujące (sygnały bezpieczeństwa za zgodą, audyt bez treści
 zdrowotnej, gw_i5 wrażliwe, powiadomienie PRZESIEW dla trenera).

@@ -1,4 +1,36 @@
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
+import { lazy, Suspense } from "react";
+// Ekrany za logowaniem ładują się leniwie (audyt B3): klient na
+// telefonie nie pobiera panelu trenera ani admina. Ekrany publiczne
+// i bramki (hasło/MFA/zgody) zostają eager — pierwsza farba bez
+// dodatkowej rundy sieciowej.
+const Today = lazy(() => import("./pages/client/Today"));
+const Intake = lazy(() => import("./pages/client/Intake"));
+const Interview = lazy(() => import("./pages/client/Interview"));
+const Onboarding = lazy(() => import("./pages/client/Onboarding"));
+const Plan = lazy(() => import("./pages/client/Plan"));
+const Nutrition = lazy(() => import("./pages/client/Nutrition"));
+const Checkin = lazy(() => import("./pages/client/Checkin"));
+const Progress = lazy(() => import("./pages/client/Progress"));
+const Payments = lazy(() => import("./pages/client/Payments"));
+const Profile = lazy(() => import("./pages/client/Profile"));
+const Documents = lazy(() => import("./pages/client/Documents"));
+const ClientKnowledge = lazy(() => import("./pages/client/Knowledge"));
+const ClientConsultations = lazy(() => import("./pages/client/Consultations"));
+const ClientChallenges = lazy(() => import("./pages/client/Challenges"));
+const CoachConsultations = lazy(() => import("./pages/coach/Consultations"));
+const CoachChallenges = lazy(() => import("./pages/coach/Challenges"));
+const More = lazy(() => import("./pages/More"));
+const Notifications = lazy(() => import("./pages/Notifications"));
+const Messages = lazy(() => import("./pages/Messages"));
+const Thread = lazy(() => import("./pages/Thread"));
+const Clients = lazy(() => import("./pages/coach/Clients"));
+const ClientDetail = lazy(() => import("./pages/coach/ClientDetail"));
+const Reconciliation = lazy(() => import("./pages/coach/Reconciliation"));
+const WeeklyDigest = lazy(() => import("./pages/coach/WeeklyDigest"));
+const Templates = lazy(() => import("./pages/coach/Templates"));
+const CoachKnowledge = lazy(() => import("./pages/coach/Knowledge"));
+const Admin = lazy(() => import("./pages/Admin"));
 import { getUser } from "./api";
 import { ErrorBoundary, Nav } from "./components";
 import { maskPathIds } from "./errorUtils";
@@ -10,33 +42,6 @@ import Activate from "./pages/Activate";
 import ResetPassword from "./pages/ResetPassword";
 import MfaSetup from "./pages/MfaSetup";
 import ConsentGate, { ConsentSpinner, usePendingConsents } from "./pages/ConsentGate";
-import Today from "./pages/client/Today";
-import Intake from "./pages/client/Intake";
-import Interview from "./pages/client/Interview";
-import Onboarding from "./pages/client/Onboarding";
-import Plan from "./pages/client/Plan";
-import Nutrition from "./pages/client/Nutrition";
-import Checkin from "./pages/client/Checkin";
-import Progress from "./pages/client/Progress";
-import Payments from "./pages/client/Payments";
-import Profile from "./pages/client/Profile";
-import Documents from "./pages/client/Documents";
-import ClientKnowledge from "./pages/client/Knowledge";
-import ClientConsultations from "./pages/client/Consultations";
-import ClientChallenges from "./pages/client/Challenges";
-import CoachConsultations from "./pages/coach/Consultations";
-import CoachChallenges from "./pages/coach/Challenges";
-import More from "./pages/More";
-import Notifications from "./pages/Notifications";
-import Messages from "./pages/Messages";
-import Thread from "./pages/Thread";
-import Clients from "./pages/coach/Clients";
-import ClientDetail from "./pages/coach/ClientDetail";
-import Reconciliation from "./pages/coach/Reconciliation";
-import WeeklyDigest from "./pages/coach/WeeklyDigest";
-import Templates from "./pages/coach/Templates";
-import CoachKnowledge from "./pages/coach/Knowledge";
-import Admin from "./pages/Admin";
 
 export default function App() {
   const user = getUser();
@@ -83,6 +88,7 @@ export default function App() {
       {/* Granica błędów per trasa: key=pathname resetuje ją przy nawigacji,
           więc awaria jednego widoku nie „przykleja się" do kolejnych. */}
       <ErrorBoundary scope={`route:${maskPathIds(location.pathname)}`} key={location.pathname}>
+      <Suspense fallback={<ConsentSpinner />}>
       <Routes>
         {/* Publiczna strona marketingowa: gość na "/" widzi wizytówkę,
             zalogowany — swój ekran startowy jak dotąd. */}
@@ -134,6 +140,7 @@ export default function App() {
         )}
         <Route path="*" element={<Navigate to={user ? home : "/login"} replace />} />
       </Routes>
+      </Suspense>
       </ErrorBoundary>
       </main>
     </>
