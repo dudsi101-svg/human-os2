@@ -71,3 +71,8 @@ wyjątek `--ignore-vuln PYSEC-2026-1845` (narzędzie testowe, nie
 wchodzi do obrazu produkcyjnego; pin `<9` narzuca pyproject Core,
 poza zakresem pracy aplikacyjnej — rekomendacja podniesienia
 pytest>=9.0.3 dla sesji Core odnotowana w STAN_PRZEKAZANIA).
+
+Drugi przebieg: audyt złapał jeszcze `cryptography 46.0.7` (pin `<47`;
+tylko job 3.11 — resolver 3.12 wziął nowszą). Podniesione naprawdę:
+`>=48.0.1,<51` (lokalnie 50.0.1); testy szyfrowania 11/11, pełna suita
+850 passed, Core 275.
