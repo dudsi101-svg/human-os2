@@ -111,6 +111,11 @@ CATEGORIES: dict[str, Category] = {
         # kontaktowe nadawcy są w title/body, czyli wyłącznie w centrum
         # za logowaniem — kanały zewnętrzne dostają neutralne wezwanie.
         Category("ZAPYTANIE", "Zapytanie ze strony", "Nowe zapytanie", "/powiadomienia"),
+        # Przesiew bezpieczeństwa rozmów (0.53.10, przegląd krzyżowy
+        # ustalenie 4): trener dostaje FAKT podniesienia flagi — treść
+        # odpowiedzi zdrowotnej nigdy nie opuszcza centrum za logowaniem,
+        # a i tam podlega zgodom (kanały zewnętrzne: neutralne wezwanie).
+        Category("PRZESIEW", "Przesiew bezpieczeństwa", "Odpowiedź wymaga uwagi", "/klienci"),
     ]
 }
 

@@ -1,5 +1,29 @@
 # Changelog — Dzik OS
 
+## 0.53.10 — 2026-08-26
+
+**Audyt B5: przegląd krzyżowy wywiadu + koniec wycieków danych
+zdrowotnych obok zgód.**
+
+* `docs/PRZEGLAD_KRZYZOWY_WYWIADU_2026-08-26.md` — niezależny przegląd
+  rundy 0.53.0 (PR #29 równoległej sesji): 12 ustaleń, 12 luk
+  testowych, werdykt. Architektura solidna; blokowały wycieki treści
+  zdrowotnej obok bramki zgód.
+* Poprawka 1 (WYSOKA): `safety_signals`/`safety_flagged` w widokach
+  odpowiedzi objęte tym samym filtrem zgód co treść — trener z cofniętą
+  zgodą zdrowotną nie zobaczy już dosłownej odpowiedzi w sygnałach.
+* Poprawka 2 (WYSOKA): zdarzenie `*_SAFETY_FLAGGED` bez treści
+  odpowiedzi (payload: `step_id`, `signal_count`, `source`) —
+  niemutowalny łańcuch audytu nie niesie danych zdrowotnych na zawsze.
+* Poprawka 3 (WYSOKA): `gw_i5` (pytanie otwarte) oznaczone jako
+  wrażliwe z domeną zdrowia — przestaje omijać zgody w podpowiedziach.
+* Poprawka 4: obietnica „zaznaczyliśmy to trenerowi" ma kanał — nowa
+  kategoria powiadomień `PRZESIEW`: trener dostaje fakt podniesienia
+  flagi (raz na sesję, bez danych zdrowotnych; push/e-mail neutralne).
+* 4 testy `test_przeglad_wywiadu.py` — najpierw czerwone na starym
+  kodzie (4/4), zielone po poprawkach. Ustalenia 5–10 i pozostałe luki
+  testowe wypisane w raporcie — do kolejnych rund (część z B6).
+
 ## 0.53.9 — 2026-08-26
 
 **Audyt B4: backup dowodzi odtwarzalności co tydzień.**

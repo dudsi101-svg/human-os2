@@ -56,6 +56,7 @@ from ..models import (
     new_id,
     now_iso,
 )
+from ..notifications import notify_now
 from ..observability import metrics
 from ..onboarding_ai import AnswerForAI
 from ..onboarding_flow import (
@@ -281,8 +282,16 @@ def build_router(cfg: FlowConfig) -> APIRouter:
             "hidden": not allowed,
             "skipped": row.skipped,
             "sensitive": row.sensitive,
-            "safety_flagged": row.safety_flagged,
-            "safety_signals": json.loads(row.safety_signals) if row.safety_signals else [],
+            # Przegląd krzyżowy 2026-08-26, ustalenie 1: sygnały bezpieczeństwa
+            # niosą dosłowną treść odpowiedzi (flag_options), więc podlegają
+            # tej samej bramce zgód co `value` — inaczej cofnięta zgoda
+            # zdrowotna ukrywa odpowiedź, a jej treść i tak widać obok.
+            "safety_flagged": row.safety_flagged and allowed,
+            "safety_signals": (
+                json.loads(row.safety_signals)
+                if (row.safety_signals and allowed)
+                else []
+            ),
             "version": row.version,
             "is_current": row.is_current,
             "created_at": row.created_at,
@@ -473,11 +482,13 @@ def build_router(cfg: FlowConfig) -> APIRouter:
         # (flaga sesji + spokojny komunikat), tylko źródłem jest wybór,
         # nie słowo kluczowe.
         flag_message: str | None = None
+        zrodlo_flagi = "przesiew" if signals else None
         if value and step.flag_options:
             selected = [p.strip() for p in value.split(",")]
             flagged = [o for o in step.flag_options if o in selected]
             if flagged:
                 signals = signals + flagged
+                zrodlo_flagi = "wybor"
                 if cfg.flag_message_for is not None:
                     flag_message = cfg.flag_message_for(step.id)
         current = next((r for r in rows if r.step_id == body.step_id), None)
@@ -507,15 +518,43 @@ def build_router(cfg: FlowConfig) -> APIRouter:
             if not session.safety_flag:
                 session.safety_flag = True
                 session.safety_flag_at = now_iso()
+                # Przegląd krzyżowy 2026-08-26, ustalenie 4: komunikat dla
+                # klienta obiecuje „zaznaczyliśmy to trenerowi" — obietnica
+                # musi mieć kanał. Powiadomienie raz na sesję (dedup po jej
+                # id), BEZ danych zdrowotnych: sam fakt i miejsce, gdzie
+                # trener ma spojrzeć.
+                coach_id = _coach_id(db, client_id)
+                if coach_id is not None:
+                    imie = user.display_name or "Podopieczny"
+                    notify_now(
+                        db,
+                        user_id=coach_id,
+                        category="PRZESIEW",
+                        title=f"{cfg.label_nom}: odpowiedź wymaga Twojej uwagi",
+                        body=(
+                            f"{imie} udzielił(a) w rozmowie odpowiedzi "
+                            "oznaczonej przesiewem bezpieczeństwa. Zajrzyj "
+                            "do zakładki i wstrzymaj się z tą częścią planu "
+                            "do wyjaśnienia."
+                        ),
+                        url=f"/klienci/{client_id}",
+                        source="onboarding",
+                        dedup_key=f"safety:{session.id}",
+                    )
             record_event(
                 db,
                 action=f"{cfg.event_prefix}_SAFETY_FLAGGED",
                 actor_id=user.id,
                 subject_ids=[client_id],
+                # Przegląd krzyżowy 2026-08-26, ustalenie 3: łańcuch audytu
+                # jest niemutowalny i nie podlega usunięciu konta — nie wolno
+                # mu nieść treści odpowiedzi zdrowotnej. Kontekst odtwarza
+                # step_id; treść zostaje w bazie operacyjnej (usuwalnej).
                 payload={
                     "session_id": session.id,
                     "step_id": step.id,
-                    "signals": signals,
+                    "signal_count": len(signals),
+                    "source": zrodlo_flagi,
                 },
                 summary=f"{cfg.label_nom}: odpowiedź skierowana do "
                 "konsultacji medycznej",
