@@ -1,6 +1,6 @@
 # Stan przekazania — przeczytaj przed rozpoczęciem rundy
 
-**Aktualizacja:** 2026-08-26 · **Wersja w `main`:** 0.53.9
+**Aktualizacja:** 2026-08-26 · **Wersja w `main`:** 0.53.10
 **Tryb pracy:** jeden piszący i jeden PR `[WRITER]` naraz
 (`KOORDYNACJA.md`, zasada nadrzędna).
 
@@ -33,7 +33,12 @@ pierwszy commit, draft PR `[WRITER]`, reszta agentów read-only.
 jednym prawdziwym klientem, **NO-GO na szerszą produkcję** — siedem
 blokerów wypisanych w §5 tamtego dokumentu.
 
-**Ostatnia runda (0.53.9, gałąź `agent/proba-odtworzenia`):**
+**Ostatnia runda (0.53.10, gałąź `agent/przeglad-wywiadu`):**
+audyt B5 — przegląd krzyżowy wywiadu 0.53.0 (raport w docs/) + domknięte
+4 ustalenia blokujące (sygnały bezpieczeństwa za zgodą, audyt bez treści
+zdrowotnej, gw_i5 wrażliwe, powiadomienie PRZESIEW dla trenera).
+Otwarte z przeglądu: ustalenia 5–10 + luki testowe (lista w raporcie).
+**Runda 0.53.9 (`agent/proba-odtworzenia`):**
 audyt B4 — cotygodniowa nieniszcząca próba odtworzenia backupu na
 maszynie (moduł `proba_odtworzenia` + workflow z harmonogramem
 pon. 05:00 UTC; czerwień = alarm).

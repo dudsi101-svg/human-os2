@@ -748,6 +748,13 @@ DEEP_STEPS: tuple[Step, ...] = (
         placeholder="cokolwiek uznasz za ważne",
         profile_field="gw_otwarte",
         scan_safety=True,
+        # Przegląd krzyżowy 2026-08-26, ustalenie 2: pytanie otwarte
+        # zaprasza do wyznania czegokolwiek (najczęściej zdrowia) —
+        # traktujemy je jak wrażliwe, żeby nie omijało zgód w kartach
+        # podpowiedzi trenera. Kosztem jest widoczność tego pola dopiero
+        # za zgodą zdrowotną — świadomie: ostrożny domyślny kierunek.
+        sensitive=True,
+        consent_domain=DOMAIN_HEALTH,
         max_len=2000,
     ),
 )

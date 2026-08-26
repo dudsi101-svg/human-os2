@@ -45,3 +45,17 @@ i domyka ustalenia blokujące.
 ## Weryfikacja (do wypełnienia)
 
 - bramki pełne + nowe testy najpierw czerwone na starym kodzie.
+
+## Weryfikacja (wykonana)
+
+- 4 nowe testy `test_przeglad_wywiadu.py` — na starym kodzie **4/4
+  CZERWONE** (stash poprawek), po poprawkach **4/4 zielone**.
+- `ruff` — czysto; backend **856 passed, 1 skipped**; Core **275**;
+  spójność czysto (13 kontroli).
+- Uruchomienie na żywo (uvicorn + prawdziwe HTTP, izolowane środowisko
+  z seedem): klient A przeszedł wywiad do gw_c1, odpowiedź z objawem
+  kardiologicznym → w bazie powstało JEDNO powiadomienie PRZESIEW dla
+  trenera: „Głęboki wywiad: odpowiedź wymaga Twojej uwagi", treść bez
+  objawu (sprawdzone), url do karty klienta. Odczyt powiadomienia
+  przez API trenera w tym środowisku zatrzymał egzekwowany MFA (403)
+  — zgodnie z projektem; dowód domknięty odczytem wiersza z bazy.
