@@ -1,5 +1,23 @@
 # Changelog — Dzik OS
 
+## 0.53.11 — 2026-08-26
+
+**Audyt B3: klient nie pobiera panelu trenera — podział bundla
+per rola + strażnik budżetu.**
+
+* `React.lazy` dla wszystkich ekranów za logowaniem (strony klienta,
+  trenera, Admin, Wiadomości…) z `<Suspense>`; publiczne wejścia
+  (Landing/Login/Prywatność/Aktywacja/Reset) i bramki (hasło/MFA/zgody)
+  zostają eager. Wejściowy JS: **571→281 kB (gzip 169→89 kB)**,
+  36 chunków; precache service workera obejmuje chunki (test PWA
+  offline zielony), więc offline działa jak dotąd.
+* `scripts/sprawdz-budzet.mjs` — po buildzie mierzy gzip wejściowego
+  JS; budżet 120 kB (stan po podziale + zapas); podpięty do
+  `npm run build`, więc czerwieni CI. Dowiedziony czerwienią przy
+  `BUDZET_KB=1`. Podniesienie budżetu = świadoma zmiana w PR.
+* Część fontowa B3 wykonana już wcześniej (importy pełnych wag
+  z `unicode-range` + filtr subsetów w precache) — bez zmian.
+
 ## 0.53.10 — 2026-08-26
 
 **Audyt B5: przegląd krzyżowy wywiadu + koniec wycieków danych

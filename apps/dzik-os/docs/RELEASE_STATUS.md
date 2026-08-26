@@ -1,6 +1,6 @@
 # Stan wydania — Dzik OS
 
-**Wersja:** 0.53.10 · **Data:** 2026-08-26 · **Środowisko:** produkcja
+**Wersja:** 0.53.11 · **Data:** 2026-08-26 · **Środowisko:** produkcja
 (pilotaż) — https://dzik-os-panel.fly.dev
 
 Jedna strona prawdy o tym, co DZIAŁA na produkcji teraz. Aktualizowana
