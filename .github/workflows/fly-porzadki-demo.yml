@@ -41,7 +41,7 @@ jobs:
             exit 1
           fi
 
-      - uses: superfly/flyctl-actions/setup-flyctl@master
+      - uses: superfly/flyctl-actions/setup-flyctl@ed8efb33836e8b2096c7fd3ba1c8afe303ebbff1  # master 2026-08 (tag 1.6)
 
       - name: Obudź maszynę
         run: curl -sfS "https://$APP_NAME.fly.dev/api/health"

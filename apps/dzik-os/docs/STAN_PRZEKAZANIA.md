@@ -1,6 +1,6 @@
 # Stan przekazania — przeczytaj przed rozpoczęciem rundy
 
-**Aktualizacja:** 2026-08-26 · **Wersja w `main`:** 0.53.7
+**Aktualizacja:** 2026-08-26 · **Wersja w `main`:** 0.53.8
 **Tryb pracy:** jeden piszący i jeden PR `[WRITER]` naraz
 (`KOORDYNACJA.md`, zasada nadrzędna).
 
@@ -33,7 +33,12 @@ pierwszy commit, draft PR `[WRITER]`, reszta agentów read-only.
 jednym prawdziwym klientem, **NO-GO na szerszą produkcję** — siedem
 blokerów wypisanych w §5 tamtego dokumentu.
 
-**Ostatnia runda (0.53.7, gałąź `agent/stan-wydania`):**
+**Ostatnia runda (0.53.8, gałąź `agent/przypiecie-lancucha`):**
+audyt B2 — akcje po SHA (13. kontrola spójności pilnuje regresu),
+obrazy po digeście, `npm ci`, blokujący `pip-audit`. Aktualizacja
+pinów odtąd = świadoma zmiana w PR (SHA + komentarz wersji); automat
+(dependabot) — decyzja właściciela.
+**Runda 0.53.7 (`agent/stan-wydania`):**
 audyt B1 — `docs/RELEASE_STATUS.md` (stan produkcji TERAZ), README
 odświeżone (0.4.0→bieżąca), 12. kontrola spójności „wersje dokumentów”.
 **Runda 0.53.6 (`agent/klucz-plikow`):**

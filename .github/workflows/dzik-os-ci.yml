@@ -17,8 +17,8 @@ jobs:
       matrix:
         python-version: ["3.11", "3.12"]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5.6.0
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install hos_engine + backend
@@ -27,6 +27,16 @@ jobs:
           pip install -e "apps/dzik-os/backend[dev]"
       - name: Lint (ruff)
         run: ruff check apps/dzik-os/backend apps/dzik-os/tools
+      # Audyt B2 (25.08): znana podatność w zainstalowanym środowisku
+      # backendu = czerwony build. Wyjątki wyłącznie jawne, tutaj,
+      # z komentarzem dlaczego i do kiedy (--ignore-vuln ID).
+      - name: Audyt zależności (pip-audit, blokujący)
+        # Najpierw aktualny toolchain (setuptools/wheel bywają stare na
+        # runnerze i czerwieniłyby audyt niezależnie od naszych zależności),
+        # potem audyt tego, co faktycznie zainstalowane.
+        run: |
+          pip install -U pip setuptools wheel pip-audit
+          pip-audit --skip-editable
       - name: Kontrola spójności (kolizje między równoległymi rundami)
         # Wykrywa to, czego git nie widzi: powtórzony numer migracji lub
         # wersji, trasę przesłoniętą przez parametr, router bez
@@ -70,8 +80,8 @@ jobs:
           --health-timeout 5s
           --health-retries 5
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5.6.0
         with:
           python-version: "3.12"
       - name: Install hos_engine + backend (z PostgreSQL)
@@ -86,14 +96,14 @@ jobs:
   frontend:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020  # v4.4.0
         with:
           node-version: "22"
       - name: Install and build (includes typecheck via tsc -b)
         working-directory: apps/dzik-os/frontend
         run: |
-          npm install --no-audit --no-fund
+          npm ci --no-audit --no-fund
           npm run build
       - name: Dependency audit (informational)
         working-directory: apps/dzik-os/frontend
@@ -106,11 +116,11 @@ jobs:
   e2e:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5.6.0
         with:
           python-version: "3.12"
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020  # v4.4.0
         with:
           node-version: "22"
       - name: Install backend
@@ -122,7 +132,7 @@ jobs:
         # E2E chodzi po zbudowanym `dist/` serwowanym przez backend,
         # czyli po tej samej ścieżce co produkcja.
         run: |
-          npm install --no-audit --no-fund
+          npm ci --no-audit --no-fund
           npm run build
       - name: Install Chromium
         working-directory: apps/dzik-os/frontend
@@ -155,7 +165,7 @@ jobs:
         run: node e2e/test_pwa_offline.mjs
       - name: Raport z nieudanego przebiegu
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
         with:
           name: playwright-report
           path: |

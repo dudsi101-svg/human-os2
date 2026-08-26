@@ -63,7 +63,7 @@ jobs:
             echo "Sekretu repo brak — wygenerowano świeży klucz AES-256 (artefakt ważny 1 dzień)."
           fi
 
-      - uses: superfly/flyctl-actions/setup-flyctl@master
+      - uses: superfly/flyctl-actions/setup-flyctl@ed8efb33836e8b2096c7fd3ba1c8afe303ebbff1  # master 2026-08 (tag 1.6)
 
       - name: Ustaw klucz jako sekret Fly (restart maszyny)
         run: |
@@ -101,7 +101,7 @@ jobs:
             echo "jest ratunkowa (odtworzenie środowiska, odczyt backupów)."
           } > /tmp/klucz/klucz-plikow.txt
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
         if: env.zrodlo == 'wygenerowane'
         with:
           name: klucz-plikow

@@ -43,3 +43,19 @@ ruchomym celem: akcje po pełnym SHA commita, obrazy bazowe po digeście,
 - bramki + nowa kontrola czerwona→zielona; lokalny `npm ci` przechodzi;
   docker build nie jest możliwy w tym środowisku — smoke po deployu
   zweryfikuje obraz (health/build), odnotować w weryfikacji rundy.
+
+## Weryfikacja (wykonana)
+
+- Nowa kontrola „przypięcie akcji" najpierw CZERWONA (23 nieprzypięte
+  `uses:` w 10 plikach), po przypięciu — czysto (**13 kontroli**).
+- `ruff` — czysto; backend **850 passed, 1 skipped** (jedyna czerwień
+  po drodze: strażnik wersji z B1 złapał niezaktualizowany README przy
+  bumpie 0.53.8 — dokładnie po to istnieje; poprawione); Core **275**.
+- Uruchomienie na żywo: `npm ci --no-audit --no-fund` w frontend/ —
+  „added 78 packages"; `pip-audit --skip-editable` po aktualizacji
+  toolchainu — kod 0 (przed aktualizacją: znane podatności
+  setuptools/urllib3/wheel z systemowego Pythona kontenera — stąd
+  krok aktualizacji w CI przed audytem).
+- Budowa obrazu Dockera niemożliwa w tym środowisku — digesty
+  zweryfikowane nagłówkiem `Docker-Content-Digest` z rejestru;
+  faktyczny build zweryfikuje deploy po scaleniu (smoke health/build).

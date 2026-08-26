@@ -2,14 +2,14 @@
 # Kontekst budowania: KORZEŃ repozytorium (potrzebny pakiet hos_engine):
 #   docker build -f apps/dzik-os/Dockerfile -t dzik-os .
 
-FROM node:22-alpine AS frontend
+FROM node:22-alpine@sha256:c610fcdfb1d5b4740dd70c284ed3cb16bb857e0f7166196e36a5501df7a3aa32 AS frontend
 WORKDIR /build
 COPY apps/dzik-os/frontend/package.json apps/dzik-os/frontend/package-lock.json* ./
-RUN npm install --no-audit --no-fund
+RUN npm ci --no-audit --no-fund
 COPY apps/dzik-os/frontend/ ./
 RUN npm run build
 
-FROM python:3.12-slim AS runtime
+FROM python:3.12-slim@sha256:7a8b475003c4fe15a2cd4e55e5cfc2f3560bdc9333d624f24cdd6d4340fd7a17 AS runtime
 WORKDIR /app
 ENV PYTHONUNBUFFERED=1 PIP_NO_CACHE_DIR=1
 

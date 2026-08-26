@@ -30,7 +30,7 @@ jobs:
       FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
       APP_NAME: dzik-os-panel
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
         with:
           # Wdrażamy dokładnie commit, który przeszedł CI (nie "aktualny
           # main", który mógł już uciec do przodu).
@@ -44,7 +44,7 @@ jobs:
           echo "APP_VERSION=${WERSJA:-dev}" >> "$GITHUB_ENV"
           echo "Wdrażam wersję $WERSJA, commit $SHA"
 
-      - uses: superfly/flyctl-actions/setup-flyctl@master
+      - uses: superfly/flyctl-actions/setup-flyctl@ed8efb33836e8b2096c7fd3ba1c8afe303ebbff1  # master 2026-08 (tag 1.6)
 
       - name: Create app (first run only)
         run: flyctl apps create "$APP_NAME" || true

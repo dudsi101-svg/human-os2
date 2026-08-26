@@ -624,6 +624,36 @@ def sprawdz_wersje_dokumentow(w: Wynik) -> None:
                    f"{biezaca} — dokument wejściowy dryfuje")
 
 
+def sprawdz_przypiecie(w: Wynik) -> None:
+    """Audyt B2 (25.08): akcje w workflow aplikacji muszą być przypięte
+    po pełnym SHA commita.
+
+    Ruchomy tag (`@v4`, `@master`) znaczy: właściciel tagu może podmienić
+    kod wykonywany z sekretami produkcji (FLY_API_TOKEN) bez żadnej
+    zmiany w tym repo. Pin po SHA + komentarz `# vX.Y.Z` czyni podmianę
+    niemożliwą, a aktualizację — świadomą zmianą w PR. Zakres: workflow
+    należące do aplikacji (dzik-os-ci.yml, fly-*.yml); ci.yml/pages.yml
+    to Core — poza zasięgiem pracy aplikacyjnej."""
+    katalog = APP.parents[1] / ".github" / "workflows"
+    wzor = re.compile(r"^\s*-?\s*uses:\s*([^\s#]+)")
+    przypiety = re.compile(r"@[0-9a-f]{40}$")
+    pliki = [katalog / "dzik-os-ci.yml", *sorted(katalog.glob("fly-*.yml"))]
+    for plik in pliki:
+        if not plik.exists():
+            continue
+        for nr, linia in enumerate(plik.read_text().splitlines(), 1):
+            m = wzor.match(linia)
+            if not m or m.group(1).startswith("./"):
+                continue
+            if not przypiety.search(m.group(1)):
+                w.blad(
+                    "przypięcie akcji",
+                    f"{plik.name}:{nr} — `{m.group(1)}` nie jest przypięte "
+                    "po pełnym SHA commita (audyt B2); ruchomy tag = cudzy "
+                    "kod przy sekretach produkcji",
+                )
+
+
 KONTROLE = (
     ("migracje", sprawdz_migracje),
     ("changelog", sprawdz_changelog),
@@ -637,6 +667,7 @@ KONTROLE = (
     ("konsultacje", sprawdz_konsultacje),
     ("workflowy", sprawdz_workflowy),
     ("wersje dokumentów", sprawdz_wersje_dokumentow),
+    ("przypięcie akcji", sprawdz_przypiecie),
 )
 
 
