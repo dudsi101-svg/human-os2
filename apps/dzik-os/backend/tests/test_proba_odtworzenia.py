@@ -5,6 +5,7 @@ raport nie zawiera PII."""
 
 import re
 
+import pytest
 from conftest import CLIENT_A
 
 from dzik_os.proba_odtworzenia import proba
@@ -12,6 +13,14 @@ from dzik_os.proba_odtworzenia import proba
 
 def test_proba_konczy_sie_dowodem_i_bez_pii(seeded, tmp_path):
     # `seeded` (fixture) zapewnia zmigrowaną bazę z kontami i danymi seedu.
+    # Na jobie PostgreSQL próba jawnie odmawia (izolacja katalogiem
+    # tymczasowym istnieje tylko dla SQLite — jak na produkcji); pełne
+    # odtworzenie na PG pokrywa destrukcyjnie test_backup.
+    from dzik_os.config import settings
+    if not settings.database_url.startswith("sqlite:///"):
+        ok, raport = proba(backup_dir=str(tmp_path / "kopie"))
+        assert not ok and "SQLite" in raport[0]
+        pytest.skip("pełna próba tylko na SQLite (jak produkcja)")
     ok, raport = proba(backup_dir=str(tmp_path / "kopie"))
     tekst = "\n".join(raport)
     assert ok, tekst

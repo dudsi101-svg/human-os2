@@ -61,3 +61,13 @@ produkcyjnej — świeże archiwum → odtworzenie do katalogu tymczasowego
   poprawiona, a test zaostrzony: każdy „BRAK TABELI" czerwieni test.
 - Na produkcji workflow wystartuje w najbliższy poniedziałek 05:00 UTC
   (można też ręcznie — Run workflow).
+
+## Poprawka po pierwszym przebiegu CI
+
+Job PostgreSQL czerwony: archiwum na PG to zrzut `pg_dump`, a izolacja
+katalogiem tymczasowym istnieje tylko dla SQLite — podproces próbował
+`psql` na domyślny socket. Naprawa uczciwa, nie udawana: moduł jawnie
+odmawia na bazie innej niż SQLite (produkcja działa na SQLite; pełne
+odtworzenie na PG pokrywa destrukcyjnie `test_backup` na jobie PG,
+ręczna procedura — ODZYSKIWANIE.md), a test na PG sprawdza odmowę
+i skipuje pełną próbę.

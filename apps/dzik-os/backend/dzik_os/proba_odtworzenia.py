@@ -73,6 +73,19 @@ def _licznosci(db_path: Path) -> dict[str, int | None]:
 
 def proba(backup_dir: str | None = None) -> tuple[bool, list[str]]:
     """Pełna próba. Zwraca (wynik, linie raportu bez PII)."""
+    from .config import settings
+
+    if not settings.database_url.startswith("sqlite:///"):
+        # Izolacja przez katalog tymczasowy działa dla SQLite (produkcja).
+        # Odtworzenie zrzutu pg_dump wymaga serwera i osobnej bazy — tę
+        # ścieżkę pokrywa destrukcyjnie test_backup na jobie PostgreSQL,
+        # a na żywym PostgreSQL obowiązuje ręczna procedura
+        # z ODZYSKIWANIE.md. Udawanie dowodu byłoby gorsze niż odmowa.
+        return False, [
+            ("BŁĄD: próba odtworzenia obsługuje bazę SQLite (produkcja); "
+             "dla PostgreSQL użyj procedury ręcznej z ODZYSKIWANIE.md.")
+        ]
+
     raport: list[str] = []
     try:
         archiwum = create_backup(backup_dir=backup_dir)
