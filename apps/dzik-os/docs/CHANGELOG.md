@@ -1,5 +1,25 @@
 # Changelog — Dzik OS
 
+## 0.53.6 — 2026-08-26
+
+**Audyt A6/R-02: szyfrowanie plików włączane jednym klikiem
+i dowodzone na maszynie.**
+
+* `dzik_os/test_szyfrowania.py` — samodowodzący moduł (wzorzec
+  `test_poczty`): plik-sonda przez ścieżkę `LocalStorage`, surowe
+  bajty na dysku muszą zaczynać się od `DZIKENC1`, odszyfrowanie
+  wraca 1:1, sonda sprzątana; kod 0 tylko przy pełnym dowodzie
+  (`no_key`/`bad_key`/`no_header`/`plaintext_leak` — jawna czerwień).
+  4 testy jednostkowe.
+* `fly-klucz-plikow.yml` — klucz z sekretu repo `DZIK_FILE_KEY`
+  (walidacja: base64, 32 bajty) albo świeżo wygenerowany
+  (`::add-mask::`); sekret Fly + dowód sondą po restarcie; kopia
+  WYGENEROWANEGO klucza w artefakcie `klucz-plikow` (1 dzień) do
+  schowania poza repo; potwierdzenie `WLACZ` wymagane (restart
+  produkcji). Klucz z sekretu repo nie jest re-eksportowany.
+* RISK_REGISTER R-02: odnotowana gotowa ścieżka włączenia; faktyczna
+  aktywacja na produkcji pozostaje decyzją właściciela.
+
 ## 0.53.5 — 2026-08-26
 
 **Audyt P0-1: publiczna informacja RODO — koniec zbierania danych

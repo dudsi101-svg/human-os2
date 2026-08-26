@@ -45,3 +45,17 @@ w `storage.py` czeka gotowy od dawna.
 ## Weryfikacja (do wypełnienia)
 
 - bramki pełne + testy modułu sondy; walidacja YAML; spójność.
+
+## Weryfikacja (wykonana)
+
+- `ruff` — czysto; backend **850 passed, 1 skipped** (w tym 4 nowe testy
+  sondy); Core **275 passed**; `spojnosc.py` — czysto (11 kontroli);
+  YAML workflow zwalidowany parserem.
+- Uruchomienie na żywo (`python -m dzik_os.test_szyfrowania`):
+  bez klucza → `BŁĄD: no_key`, kod 1; z kluczem `openssl rand -base64
+  32` → „Szyfrowanie plików działa: nagłówek DZIKENC1 na dysku,
+  odszyfrowanie 1:1", kod 0; ze zepsutym kluczem → jawny `ValueError`
+  przy imporcie storage (tak samo odmówiłaby wstać aplikacja), kod 1.
+- Workflow na produkcji NIE był uruchamiany — włączenie szyfrowania
+  restartuje maszynę i wymaga decyzji właściciela o przechowaniu
+  kopii klucza (krok właściciela w STAN_PRZEKAZANIA).

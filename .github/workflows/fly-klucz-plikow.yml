@@ -1,0 +1,109 @@
+# Włączenie szyfrowania plików at-rest (0.53.6, audyt A6/R-02) —
+# workflow_dispatch.
+#
+# Mechanizm w storage.py (AES-256-GCM, nagłówek DZIKENC1) czeka gotowy;
+# ten workflow wykonuje resztę bez terminala: klucz z sekretu repo
+# DZIK_FILE_KEY albo — gdy go brak — świeżo wygenerowany (maskowany
+# ::add-mask::), ustawiony jako sekret Fly (maszyna restartuje się sama),
+# a potem UDOWODNIONY na maszynie modułem `dzik_os.test_szyfrowania`
+# (surowe bajty pliku-sondy na dysku muszą zaczynać się od DZIKENC1).
+#
+# KOPIA KLUCZA trafia do artefaktu „klucz-plikow" (ważny 1 dzień) —
+# właściciel MUSI go pobrać i schować poza repo (menedżer haseł, sejf):
+# bez klucza zaszyfrowane pliki i ich backupy są nie do odzyskania.
+# Klucz zostaje też na Fly jako sekret aplikacji (to jego miejsce pracy);
+# w przeciwieństwie do haseł startowych NIE jest kasowany po użyciu.
+
+name: Klucz szyfrowania plików (Fly.io)
+
+on:
+  workflow_dispatch:
+    inputs:
+      potwierdzenie:
+        description: "Wpisz WLACZ, aby ustawić klucz (restart maszyny produkcyjnej)"
+        required: true
+        default: ""
+
+concurrency:
+  group: fly-maintenance
+  cancel-in-progress: false
+
+jobs:
+  klucz:
+    runs-on: ubuntu-latest
+    env:
+      FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+      APP_NAME: dzik-os-panel
+      # Input WYŁĄCZNIE przez env (audyt P0-3): nigdy w bloku run.
+      POTWIERDZENIE: ${{ inputs.potwierdzenie }}
+    steps:
+      - name: Zwaliduj potwierdzenie (dokładnie WLACZ)
+        run: |
+          if [ "$POTWIERDZENIE" != "WLACZ" ]; then
+            echo "::error::Ustawienie klucza restartuje produkcję — wpisz WLACZ w polu potwierdzenia."
+            exit 1
+          fi
+
+      - name: Przygotuj klucz (sekret repo albo wygenerowany)
+        env:
+          KLUCZ_REPO: ${{ secrets.DZIK_FILE_KEY }}
+        run: |
+          mkdir -p /tmp/klucz
+          if [ -n "$KLUCZ_REPO" ]; then
+            if ! printf '%s' "$KLUCZ_REPO" | base64 -d 2>/dev/null | wc -c | grep -qx '32'; then
+              echo "::error::Sekret DZIK_FILE_KEY nie jest base64 o długości 32 bajtów po zdekodowaniu."
+              exit 1
+            fi
+            printf '%s' "$KLUCZ_REPO" > /tmp/klucz/klucz
+            echo "zrodlo=sekrety" >> "$GITHUB_ENV"
+          else
+            openssl rand -base64 32 | tr -d '\n' > /tmp/klucz/klucz
+            echo "::add-mask::$(cat /tmp/klucz/klucz)"
+            echo "zrodlo=wygenerowane" >> "$GITHUB_ENV"
+            echo "Sekretu repo brak — wygenerowano świeży klucz AES-256 (artefakt ważny 1 dzień)."
+          fi
+
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Ustaw klucz jako sekret Fly (restart maszyny)
+        run: |
+          flyctl secrets set --app "$APP_NAME" \
+            DZIK_FILE_KEY="$(cat /tmp/klucz/klucz)"
+
+      - name: Poczekaj, aż maszyna wstanie po restarcie
+        run: |
+          for i in $(seq 1 30); do
+            curl -sfS "https://$APP_NAME.fly.dev/api/health" && exit 0
+            sleep 5
+          done
+          echo "::error::Maszyna nie wstała w 150 s"; exit 1
+
+      - name: Udowodnij szyfrowanie na maszynie (sonda DZIKENC1)
+        run: |
+          flyctl ssh console --app "$APP_NAME" -C \
+            "python -m dzik_os.test_szyfrowania"
+
+      # Kopia w artefakcie tylko dla klucza wygenerowanego tutaj — klucz
+      # z sekretu repo właściciel już ma; nie eksportujemy go ponownie.
+      - name: Przygotuj artefakt z kopią klucza (tylko tryb wygenerowany)
+        if: env.zrodlo == 'wygenerowane'
+        run: |
+          {
+            echo "KLUCZ SZYFROWANIA PLIKÓW DZIK OS (DZIK_FILE_KEY)"
+            echo "Ważność artefaktu: 1 dzień — POBIERZ TERAZ."
+            echo
+            echo "DZIK_FILE_KEY=$(cat /tmp/klucz/klucz)"
+            echo
+            echo "Schowaj tę kopię POZA repozytorium (menedżer haseł/sejf)."
+            echo "Bez klucza zaszyfrowane pliki i ich backupy są nie do"
+            echo "odzyskania — utrata klucza = trwała utrata plików."
+            echo "Klucz działa już na Fly jako sekret aplikacji; ta kopia"
+            echo "jest ratunkowa (odtworzenie środowiska, odczyt backupów)."
+          } > /tmp/klucz/klucz-plikow.txt
+
+      - uses: actions/upload-artifact@v4
+        if: env.zrodlo == 'wygenerowane'
+        with:
+          name: klucz-plikow
+          path: /tmp/klucz/klucz-plikow.txt
+          retention-days: 1
