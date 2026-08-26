@@ -9,4 +9,4 @@ Frontend nigdy nie podejmuje decyzji bezpieczeństwa — wszystkie reguły
 uprawnień i zgód egzekwuje ten backend.
 """
 
-__version__ = "0.53.7"
+__version__ = "0.53.8"

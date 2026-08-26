@@ -1,5 +1,26 @@
 # Changelog — Dzik OS
 
+## 0.53.8 — 2026-08-26
+
+**Audyt B2: łańcuch dostaw przypięty, znane podatności blokują CI.**
+
+* Akcje GitHub w `dzik-os-ci.yml` i wszystkich `fly-*.yml` przypięte po
+  pełnym SHA commita (komentarz `# vX.Y.Z`; SHA z `git ls-remote`
+  oficjalnych repo; linie major bez zmian): checkout v4.4.0,
+  setup-python v5.6.0, setup-node v4.4.0, upload-artifact v4.6.2,
+  flyctl-actions master(=1.6). Ruchomy tag przy sekretach produkcji
+  (FLY_API_TOKEN) = cudzy kod bez zmiany w repo — koniec z tym.
+* Obrazy bazowe Dockerfile po digeście (`node:22-alpine@sha256:…`,
+  `python:3.12-slim@sha256:…`).
+* `npm ci` zamiast `npm install` w CI i Dockerfile (lockfile w repo).
+* `pip-audit --skip-editable` jako blokujący krok jobu backend
+  (po aktualizacji toolchainu runnera); wyjątki tylko jawne w workflow.
+* `spojnosc.py` — 13. kontrola „przypięcie akcji": nieprzypięty `uses:`
+  w workflow aplikacji czerwieni bramkę (dowiedziona: 23 czerwienie
+  przed przypięciem, czysto po).
+* Poza zakresem (Core): `ci.yml`, `pages.yml`; automat aktualizacji
+  pinów — decyzja właściciela.
+
 ## 0.53.7 — 2026-08-26
 
 **Audyt B1: dokumentacja wejściowa mówi prawdę i ma strażnika.**
