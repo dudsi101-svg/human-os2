@@ -9,7 +9,7 @@ obserwacji), baza wiedzy (artykuły, know-how ćwiczeń z podziałem na
 partie, baza produktów z makro i kompozytor diety), wiadomości (w tym
 głosowe), dokumenty, płatności i dashboard trenera.
 
-Status: **pilotaż na produkcji (0.53.8)** — bieżący stan wdrożenia,
+Status: **pilotaż na produkcji (0.53.9)** — bieżący stan wdrożenia,
 kont i integracji: [docs/RELEASE_STATUS.md](docs/RELEASE_STATUS.md) ·
 Język: polski · Licencja kodu: Apache-2.0
 

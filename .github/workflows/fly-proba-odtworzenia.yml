@@ -1,0 +1,37 @@
+# Cotygodniowa próba odtworzenia backupu (0.53.9, audyt B4).
+#
+# Backup, którego nikt nigdy nie odtworzył, to nadzieja, nie kopia
+# zapasowa. Ten workflow uruchamia na maszynie produkcyjnej moduł
+# `dzik_os.proba_odtworzenia`: świeże archiwum → odtworzenie do
+# katalogu tymczasowego (izolacja przez env — dane produkcyjne
+# strukturalnie nietykane) → raport WYŁĄCZNIE z liczności (zero PII)
+# + niezależna weryfikacja łańcucha audytu → sprzątanie.
+#
+# Czerwony przebieg = kopia zapasowa NIE dowiodła odtwarzalności —
+# to alarm do obejrzenia od razu, nie do odkładania.
+
+name: Próba odtworzenia backupu (Fly.io)
+
+on:
+  workflow_dispatch: {}
+  schedule:
+    # poniedziałek 05:00 UTC — po nocnym backupie, przed dniem pracy
+    - cron: "0 5 * * 1"
+
+concurrency:
+  group: fly-maintenance
+  cancel-in-progress: false
+
+jobs:
+  proba:
+    runs-on: ubuntu-latest
+    env:
+      FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+      APP_NAME: dzik-os-panel
+    steps:
+      - uses: superfly/flyctl-actions/setup-flyctl@ed8efb33836e8b2096c7fd3ba1c8afe303ebbff1  # master 2026-08 (tag 1.6)
+
+      - name: Próba odtworzenia na maszynie (tylko liczności, zero PII)
+        run: |
+          flyctl ssh console --app "$APP_NAME" -C \
+            "python -m dzik_os.proba_odtworzenia"

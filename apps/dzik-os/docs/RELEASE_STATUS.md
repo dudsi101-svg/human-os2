@@ -1,6 +1,6 @@
 # Stan wydania — Dzik OS
 
-**Wersja:** 0.53.8 · **Data:** 2026-08-26 · **Środowisko:** produkcja
+**Wersja:** 0.53.9 · **Data:** 2026-08-26 · **Środowisko:** produkcja
 (pilotaż) — https://dzik-os-panel.fly.dev
 
 Jedna strona prawdy o tym, co DZIAŁA na produkcji teraz. Aktualizowana
@@ -40,7 +40,7 @@ ponowne uruchomienie odpowiedniego workflow). Limit podopiecznych:
 | SMTP (zaproszenia, resety haseł, digest) | **wyłączone** — dostawca `null`; brak doręczeń jest uczciwie logowany (`PASSWORD_RESET_SEND_FAILED`, powód `no_provider`) | hasło aplikacji Gmail w sekretach repo → workflow „Sekrety produkcji (Fly.io)" (sam dowodzi wysyłką testową) |
 | AI (podsumowania raportów, OCR-AI, onboarding) | **wyłączone** — aplikacja w pełni działa bez AI | `DZIK_AI_API_KEY` + `DZIK_AI_ENABLED` → ten sam workflow sekretów |
 | Szyfrowanie plików at-rest (R-02) | **nieaktywowane** — mechanizm AES-256-GCM gotowy w kodzie | workflow „Klucz szyfrowania plików (Fly.io)" (potwierdzenie `WLACZ`; dowód sondą DZIKENC1; kopię klucza schować poza repo) |
-| Backup (dzienny, rotacja 14) | działa na maszynie | off-site: czeka na poświadczenia właściciela (W4) |
+| Backup (dzienny, rotacja 14) | działa na maszynie; **próba odtworzenia co poniedziałek** (workflow, tylko liczności) | off-site: czeka na poświadczenia właściciela (W4) |
 | Web push | działa (VAPID skonfigurowane) | — |
 
 ## Publiczna część

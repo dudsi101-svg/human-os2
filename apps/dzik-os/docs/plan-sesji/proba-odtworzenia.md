@@ -46,3 +46,18 @@ produkcyjnej — świeże archiwum → odtworzenie do katalogu tymczasowego
 ## Weryfikacja (do wypełnienia)
 
 - bramki pełne; uruchomienie modułu na żywo lokalnie (na bazie z seedu).
+
+## Weryfikacja (wykonana)
+
+- `ruff` — czysto; backend **852 passed, 1 skipped** (2 nowe testy:
+  dowód bez PII + jawna porażka); Core **275**; spójność czysto
+  (13 kontroli); YAML workflow zwalidowany.
+- Uruchomienie na żywo (izolowane środowisko z seedem):
+  `python -m dzik_os.proba_odtworzenia` → archiwum, odtworzenie,
+  users: 7, role_grants: 7, relacje: 5, weekly_checkins: 3, plany: 4,
+  receipts: 45, pliki uploadów: 3, łańcuch audytu OK (dwukrotnie:
+  z procesu odtwarzającego i niezależnie), kod 0. Pierwszy przebieg
+  ujawnił literówkę nazwy tabeli („checkins" → `weekly_checkins`) —
+  poprawiona, a test zaostrzony: każdy „BRAK TABELI" czerwieni test.
+- Na produkcji workflow wystartuje w najbliższy poniedziałek 05:00 UTC
+  (można też ręcznie — Run workflow).

@@ -1,5 +1,21 @@
 # Changelog — Dzik OS
 
+## 0.53.9 — 2026-08-26
+
+**Audyt B4: backup dowodzi odtwarzalności co tydzień.**
+
+* `dzik_os/proba_odtworzenia.py` — nieniszcząca próba: świeże archiwum
+  (`create_backup`) → odtworzenie podprocesem do katalogu tymczasowego
+  (izolacja przez env `DZIK_DATABASE_URL`/`DZIK_AUDIT_DB`/
+  `DZIK_UPLOAD_DIR` — produkcyjne ścieżki niewidoczne dla procesu
+  odtwarzającego) → liczności kluczowych tabel, liczba plików uploadów,
+  niezależna weryfikacja łańcucha audytu na kopii → sprzątanie. Kod 0
+  tylko przy pełnym dowodzie (w tym users ≥ 1). Raport bez PII —
+  test pilnuje regexem, że do logu nie wycieka żaden e-mail.
+* `fly-proba-odtworzenia.yml` — ręcznie + co poniedziałek 05:00 UTC;
+  czerwony przebieg = alarm (ODZYSKIWANIE.md, nowa sekcja).
+* 2 testy jednostkowe (dowód + jawna porażka).
+
 ## 0.53.8 — 2026-08-26
 
 **Audyt B2: łańcuch dostaw przypięty, znane podatności blokują CI.**

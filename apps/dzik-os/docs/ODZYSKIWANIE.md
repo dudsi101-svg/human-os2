@@ -145,3 +145,22 @@ Uczciwa lista — te rzeczy są bezpowrotne z założenia albo z konieczności.
   Eksport jest w formacie importu, więc jest zarazem kopią i drogą powrotu.
 * **Zmiana w `backup.py` albo w układzie `/data`** — powtórz próbę
   odtworzenia z warstwy 4 i dopisz datę w tym dokumencie.
+
+---
+
+## Automatyczna próba odtworzenia (od 0.53.9)
+
+Co poniedziałek 05:00 UTC workflow **„Próba odtworzenia backupu
+(Fly.io)"** wykonuje na maszynie produkcyjnej pełny, nieniszczący cykl:
+świeże archiwum → odtworzenie do katalogu tymczasowego (dane produkcyjne
+strukturalnie nietykane — proces odtwarzający dostaje inne ścieżki przez
+env) → liczności kluczowych tabel + liczba plików uploadów + niezależna
+weryfikacja łańcucha audytu → sprzątanie. Raport w logu Actions zawiera
+wyłącznie nazwy tabel i liczby (zero PII).
+
+**Czerwony przebieg tego workflow to alarm**: kopia zapasowa nie
+dowiodła odtwarzalności. Obejrzyj log, powtórz ręcznie
+(`python -m dzik_os.proba_odtworzenia` przez `flyctl ssh console`)
+i nie odkładaj — do czasu wyjaśnienia realny backup może być bezwartościowy.
+Ręczne odtworzenie NA ŻYWE dane pozostaje procedurą z warstwy 4 tego
+dokumentu (przy zatrzymanej aplikacji).
