@@ -1,6 +1,6 @@
 # Stan przekazania — przeczytaj przed rozpoczęciem rundy
 
-**Aktualizacja:** 2026-08-26 · **Wersja w `main`:** 0.53.11
+**Aktualizacja:** 2026-08-26 · **Wersja w `main`:** 0.53.12
 **Tryb pracy:** jeden piszący i jeden PR `[WRITER]` naraz
 (`KOORDYNACJA.md`, zasada nadrzędna).
 
@@ -33,7 +33,13 @@ pierwszy commit, draft PR `[WRITER]`, reszta agentów read-only.
 jednym prawdziwym klientem, **NO-GO na szerszą produkcję** — siedem
 blokerów wypisanych w §5 tamtego dokumentu.
 
-**Ostatnia runda (0.53.11, gałąź `agent/podzial-bundla`):**
+**Ostatnia runda (0.53.12, gałąź `agent/zaproszenie-wywiad`):**
+audyt B6 — zaproszenie do wywiadu na Dzisiaj po pierwszym raporcie
+(„Później" zamyka), notka o skróconym scenariuszu przy wyłączonych
+zgodach. **SPRINT B AUDYTU ZAKOŃCZONY** (B1–B6); otwarte pozostają
+wyłącznie pozycje właściciela W1–W6 i ustalenia 5–9/luki testowe
+z przeglądu krzyżowego wywiadu (lista w raporcie przeglądu).
+**Runda 0.53.11 (`agent/podzial-bundla`):**
 audyt B3 — React.lazy za logowaniem (wejściowy JS 169→89 kB gz),
 strażnik budżetu w buildzie (120 kB).
 **Runda 0.53.10 (`agent/przeglad-wywiadu`):**

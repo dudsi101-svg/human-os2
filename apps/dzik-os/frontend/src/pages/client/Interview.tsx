@@ -10,6 +10,7 @@ export default function Interview() {
   return (
     <RozmowaPage
       apiPath="interview"
+      healthModuleStepId="gw_c1"
       title="Głęboki wywiad"
       introTitle="Porozmawiajmy głębiej"
       intro={

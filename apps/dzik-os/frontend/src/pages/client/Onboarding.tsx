@@ -58,12 +58,17 @@ export default function Onboarding() {
   );
 }
 
-export function RozmowaPage({ apiPath, title, introTitle, intro, formLink }: {
+export function RozmowaPage({ apiPath, title, introTitle, intro, formLink,
+  healthModuleStepId }: {
   apiPath: string;
   title: string;
   introTitle: string;
   intro: React.ReactNode;
   formLink?: boolean;
+  /** Krok-znacznik modułu zdrowotnego (0.53.12, przegląd ust. 10):
+   * gdy plan rozmowy go nie zawiera, ekran mówi wprost, że scenariusz
+   * jest skrócony i dlaczego — zamiast cicho pomijać połowę pytań. */
+  healthModuleStepId?: string;
 }) {
   const user = getUser()!;
   const base = `/api/clients/${user.id}/${apiPath}`;
@@ -141,6 +146,18 @@ export function RozmowaPage({ apiPath, title, introTitle, intro, formLink }: {
     <div className="page">
       <TopBar title={title} />
 
+      {healthModuleStepId && session && state.planned_steps
+        && !state.planned_steps.includes(healthModuleStepId) && (
+        <div className="card" style={{ marginBottom: 10 }}>
+          <p className="dim" style={{ margin: 0, fontSize: "0.85rem" }}>
+            Ta rozmowa jest skrócona: moduły wymagające zgody (m.in.
+            zdrowie) są wyłączone — bo nie masz jeszcze przypisanego
+            trenera albo zgoda została cofnięta. Włączysz je w{" "}
+            <Link to="/profil">Profil → Dokumenty i zgody</Link>; rozmowa
+            dopyta wtedy o pominięte moduły.
+          </p>
+        </div>
+      )}
       {/* Ogłoszenie zmiany kroku dla czytników ekranu. */}
       <p className="sr-only" role="status" aria-live="polite">
         {progressAnnouncement(state)}

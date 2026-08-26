@@ -1,5 +1,22 @@
 # Changelog — Dzik OS
 
+## 0.53.12 — 2026-08-26
+
+**Audyt B6: wywiad przestaje być niewykrywalny — zaproszenie po
+pierwszym raporcie + szczerość o skróconym scenariuszu.**
+
+* Kafelek na Dzisiaj: po pierwszym wysłanym raporcie tygodniowym,
+  gdy wywiad nigdy nie ruszył (kolejność wdrażania: rozmowa startowa →
+  raport → wywiad). Zaproszenie, nie przymus — „Później" zamyka kartę;
+  wzorzec opcjonalnej podpowiedzi (awaria fetcha = brak karty).
+* Notka o skróconym scenariuszu (przegląd krzyżowy, ustalenie 10):
+  gdy plan wywiadu nie zawiera modułu zdrowotnego, ekran mówi wprost
+  dlaczego (brak przypisanego trenera / cofnięta zgoda) i prowadzi do
+  Profil → Dokumenty i zgody — koniec cichego skracania rozmowy.
+* E2E: kafelek widoczny po wysłaniu raportu, „Później" go chowa.
+* Nawigacja klienta bez zmian — funkcje poboczne były już pod „Więcej"
+  (założenie audytu o narzucaniu wywiadu odwrócone przez przegląd).
+
 ## 0.53.11 — 2026-08-26
 
 **Audyt B3: klient nie pobiera panelu trenera — podział bundla
