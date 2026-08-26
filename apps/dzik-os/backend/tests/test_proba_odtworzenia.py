@@ -37,7 +37,12 @@ def test_proba_konczy_sie_dowodem_i_bez_pii(seeded, tmp_path):
 
 
 def test_proba_zawodzi_jawnie_gdy_backup_niemozliwy(client, tmp_path, monkeypatch):
-    # Wymuszamy porażkę już na etapie tworzenia archiwum.
+    # Wymuszamy porażkę już na etapie tworzenia archiwum. Na PostgreSQL
+    # strażnica SQLite odmawia wcześniej — ścieżka porażki backupu jest
+    # osiągalna tylko na SQLite (jak na produkcji).
+    from dzik_os.config import settings
+    if not settings.database_url.startswith("sqlite:///"):
+        pytest.skip("ścieżka porażki backupu osiągalna tylko na SQLite")
     import dzik_os.proba_odtworzenia as m
 
     def _pad(**kwargs):
