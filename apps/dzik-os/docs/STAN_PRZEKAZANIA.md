@@ -1,6 +1,6 @@
 # Stan przekazania — przeczytaj przed rozpoczęciem rundy
 
-**Aktualizacja:** 2026-08-25 · **Wersja w `main`:** 0.53.1
+**Aktualizacja:** 2026-08-25 · **Wersja w `main`:** 0.53.2
 **Tryb pracy:** jeden piszący i jeden PR `[WRITER]` naraz
 (`KOORDYNACJA.md`, zasada nadrzędna).
 
@@ -33,7 +33,12 @@ pierwszy commit, draft PR `[WRITER]`, reszta agentów read-only.
 jednym prawdziwym klientem, **NO-GO na szerszą produkcję** — siedem
 blokerów wypisanych w §5 tamtego dokumentu.
 
-**Ostatnia runda (0.53.1, gałąź `agent/dodaj-trenera`):** narzędzie
+**Ostatnia runda (0.53.2, gałąź `agent/utwardzenie-workflow`):**
+audyt P0-3 — inputy workflow przez env + walidacja, strażnik regresji
+w spójności. **Trwa Sprint A audytu zewnętrznego z 25.08** (plan
+poprawek u właściciela; kolejne: deploy-po-CI + wersje w health,
+zdarzenia resetu wg faktycznej wysyłki, /prywatnosc, DZIK_FILE_KEY).
+**Runda 0.53.1 (`agent/dodaj-trenera`):** narzędzie
 `dodaj_trenera` + workflow — kolejne konto COACH na działającej bazie
 (konto testowe właściciela). **Runda 0.53.0 (gałąź `claude/ocena-projektu-dzik-os-76ercy`,
 PR #29):** głęboki wywiad jako drugi przepływ rozmowy —

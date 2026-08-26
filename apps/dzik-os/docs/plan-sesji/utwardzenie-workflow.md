@@ -41,8 +41,14 @@ ale skutek potencjalnie wysoki (token Fly, produkcja).
 
 - **Wersja: 0.53.2.** **Migracja: brak.**
 
-## Weryfikacja (do wypełnienia)
+## Weryfikacja (wypełnione 25.08)
 
-- strażnik wykrywa stary wzorzec (dowód czerwieni przed naprawą);
-  po naprawie spójność czysto; YAML zwalidowany; test negatywny
-  walidacji (wartość z średnikiem odrzucona) udokumentowany lokalnie.
+- TDD strażnika: przed naprawą kontrola `workflowy` wykryła **8 miejsc**
+  (bootstrap ×3, dodaj-trenera ×2, sekrety ×2, porzadki ×1) i spójność
+  była czerwona; po naprawie **czysto (11 kontroli)**.
+- YAML wszystkich czterech workflow zwalidowany.
+- Test negatywny wzorca: `a@b.pl; rm -rf /`, `x@y.pl$(id)`,
+  `` `whoami`@x.pl ``, adres ze spacją — wszystkie ODRZUCONE;
+  poprawny adres przechodzi.
+- Pełne bramki repo — wynik w PR (backend/Core bez zmian kodu
+  aplikacji; zmienione tylko workflowy + narzędzie spójności).
