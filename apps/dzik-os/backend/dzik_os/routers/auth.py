@@ -22,6 +22,7 @@ from ..models import (
     now_iso,
 )
 from ..notifications_provider import provider as notifications
+from ..observability import metrics
 from ..schemas import (
     ActivateAccountIn,
     ActivationInspectIn,
@@ -535,12 +536,12 @@ def password_reset_request(
             actor_id=user.id,
             subject_ids=[user.id],
             payload={"delivery": notifications.name},
-            summary="Żądanie resetu hasła (link wysłany e-mailem)",
+            summary="Żądanie resetu hasła (doręczenie odnotowane osobno)",
         )
         db.commit()
         # Treść bez danych zdrowotnych i bez tokenu w logach (link tylko
         # w treści e-maila; NullProvider niczego nie wysyła ani nie loguje).
-        notifications.send_email(
+        wyslano = notifications.send_email(
             to=user.email,
             subject=f"{settings.brand_name}: ustaw nowe hasło",
             body=(
@@ -551,6 +552,26 @@ def password_reset_request(
                 "bez zmian."
             ),
         )
+        # Audyt P0-4: łańcuch zdarzeń mówi prawdę o doręczeniu. Odpowiedź
+        # HTTP pozostaje generyczna (antyenumeracja) — uczciwy jest stan
+        # WEWNĘTRZNY, nie komunikat dla świata.
+        if wyslano:
+            record_event(
+                db, action="PASSWORD_RESET_LINK_SENT", actor_id=user.id,
+                subject_ids=[user.id],
+                payload={"delivery": notifications.name},
+                summary="Link resetu hasła doręczony do dostawcy poczty",
+            )
+        else:
+            powod = "no_provider" if notifications.name == "null" else "send_failed"
+            metrics.inc("password_reset_send_failed")
+            record_event(
+                db, action="PASSWORD_RESET_SEND_FAILED", actor_id=user.id,
+                subject_ids=[user.id],
+                payload={"delivery": notifications.name, "reason": powod},
+                summary="Wysyłka linku resetu hasła NIE powiodła się",
+            )
+        db.commit()
     return _RESET_GENERIC_RESPONSE
 
 
