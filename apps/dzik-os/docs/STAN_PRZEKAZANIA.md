@@ -1,6 +1,6 @@
 # Stan przekazania — przeczytaj przed rozpoczęciem rundy
 
-**Aktualizacja:** 2026-08-26 · **Wersja w `main`:** 0.53.6
+**Aktualizacja:** 2026-08-26 · **Wersja w `main`:** 0.53.7
 **Tryb pracy:** jeden piszący i jeden PR `[WRITER]` naraz
 (`KOORDYNACJA.md`, zasada nadrzędna).
 
@@ -33,7 +33,10 @@ pierwszy commit, draft PR `[WRITER]`, reszta agentów read-only.
 jednym prawdziwym klientem, **NO-GO na szerszą produkcję** — siedem
 blokerów wypisanych w §5 tamtego dokumentu.
 
-**Ostatnia runda (0.53.6, gałąź `agent/klucz-plikow`):**
+**Ostatnia runda (0.53.7, gałąź `agent/stan-wydania`):**
+audyt B1 — `docs/RELEASE_STATUS.md` (stan produkcji TERAZ), README
+odświeżone (0.4.0→bieżąca), 12. kontrola spójności „wersje dokumentów”.
+**Runda 0.53.6 (`agent/klucz-plikow`):**
 audyt A6/R-02 — workflow „Klucz szyfrowania plików (Fly.io)” + moduł
 sondy `test_szyfrowania` (dowód DZIKENC1 na maszynie). **KROK
 WŁAŚCICIELA:** Actions → „Klucz szyfrowania plików (Fly.io)” → Run

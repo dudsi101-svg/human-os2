@@ -39,3 +39,13 @@ a jedynego dokumentu „co właściwie działa na produkcji TERAZ" brak.
 
 - bramki backend/tools + spójność (nowa kontrola najpierw czerwona
   na starym README — dowód, że działa — potem zielona po poprawce).
+
+## Weryfikacja (wykonana)
+
+- Nowa kontrola najpierw CZERWONA na starym stanie (README bez 0.53.6,
+  brak RELEASE_STATUS — dokładnie 2 błędy, kod 1), po poprawkach
+  spójność czysto (**12 kontroli**).
+- `ruff` — czysto; backend **850 passed, 1 skipped** (w tym
+  test_spojnosc 37); Core **275 passed**.
+- Uruchomienie na żywo: `python apps/dzik-os/tools/spojnosc.py`
+  obejrzane w obu stanach (czerwień → zieleń) — patrz wyżej.
