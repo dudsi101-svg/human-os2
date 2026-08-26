@@ -14,6 +14,10 @@ export default function Today() {
   const [markingSchedule, setMarkingSchedule] = useState<string | null>(null);
   const [needsIntake, setNeedsIntake] = useState(false);
   const [nextConsult, setNextConsult] = useState<ConsultSlotRow | null>(null);
+  // Zaproszenie do głębokiego wywiadu (0.53.12, audyt B6): dopiero po
+  // pierwszym wysłanym raporcie i tylko, jeśli wywiad nigdy nie ruszył.
+  const [inviteInterview, setInviteInterview] = useState(false);
+  const [interviewDismissed, setInterviewDismissed] = useState(false);
   const user = getUser();
 
   const load = () => {
@@ -32,6 +36,16 @@ export default function Today() {
         .catch(() => undefined);
       api.get<{ booked: ConsultSlotRow[] }>("/api/me/consult-slots")
         .then((d) => setNextConsult(d.booked[0] ?? null))
+        .catch(() => undefined);
+      // Kolejność wdrażania: rozmowa startowa → pierwszy raport → wywiad.
+      // Oba zapytania to podpowiedź — awaria któregokolwiek = brak karty.
+      Promise.all([
+        api.get<{ checkins: unknown[] }>(`/api/clients/${user.id}/checkins`),
+        api.get<{ session: unknown | null }>(`/api/clients/${user.id}/interview`),
+      ])
+        .then(([c, i]) =>
+          setInviteInterview(c.checkins.length > 0 && i.session === null)
+        )
         .catch(() => undefined);
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -89,6 +103,23 @@ export default function Today() {
             <Link to="/ankieta" className="btn btn--ghost btn--small">
               Wolę formularz
             </Link>
+          </div>
+        </div>
+      )}
+      {!needsIntake && inviteInterview && !interviewDismissed && (
+        <div className="card card--accent" style={{ marginBottom: 10 }}>
+          <b style={{ color: "var(--text)" }}>🎯 Pierwszy raport za Tobą — czas na głęboki wywiad</b>
+          <p className="dim" style={{ margin: "4px 0 8px", fontSize: "0.85rem" }}>
+            Dłuższa rozmowa o motywacji, śnie, stresie i historii — dzięki
+            niej plan przestaje być uniwersalny. Każde pytanie możesz
+            pominąć, a rozmowę przerwać i dokończyć kiedy indziej.
+          </p>
+          <div className="row">
+            <Link to="/wywiad" className="btn btn--small">Zacznijmy</Link>
+            <button className="btn btn--ghost btn--small"
+              onClick={() => setInterviewDismissed(true)}>
+              Później
+            </button>
           </div>
         </div>
       )}

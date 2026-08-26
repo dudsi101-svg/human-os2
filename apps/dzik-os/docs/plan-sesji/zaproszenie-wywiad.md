@@ -41,3 +41,15 @@ zaproszenia we właściwym momencie + szczerości o skróconym scenariuszu
 ## Weryfikacja (do wypełnienia)
 
 - tsc/build/helpers/E2E; zrzut kafelka.
+
+## Weryfikacja (wykonana)
+
+- `tsc` czysto; `npm run build` — budżet rozmiaru OK (88.7 kB gz);
+  `test:helpers` czysto; **E2E 19/19** — w tym nowy scenariusz:
+  po wysłaniu raportu na Dzisiaj widać kafelek „czas na głęboki
+  wywiad", a „Później" go zamyka (obejrzane w prawdziwej przeglądarce
+  na zbudowanym dist/ — to jest uruchomienie na żywo tej rundy).
+- Notka o skróconym scenariuszu: logika renderu pokryta typami
+  i warunkiem na `planned_steps`; scenariusz E2E z cofniętą zgodą —
+  odnotowany jako luka do domknięcia razem z lukami z przeglądu.
+- Spójność czysto (13 kontroli); backend nietknięty (tylko wersje).

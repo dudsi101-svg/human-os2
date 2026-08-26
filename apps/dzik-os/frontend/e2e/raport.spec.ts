@@ -60,6 +60,16 @@ test("klient wypełnia i wysyła raport tygodniowy", async ({ page }) => {
   await expect(page.getByRole("button", { name: "Wyślij poprawkę" })).toBeVisible({
     timeout: 20_000,
   });
+
+  // Zaproszenie do głębokiego wywiadu (0.53.12, audyt B6): po pierwszym
+  // wysłanym raporcie ekran Dzisiaj proponuje wywiad — dotąd był schowany
+  // pod „Więcej" i klient nie miał szansy go znaleźć. „Później" zamyka
+  // kartę bez śladu przymusu.
+  await page.goto("/");
+  const zaproszenie = page.getByText(/czas na głęboki wywiad/);
+  await expect(zaproszenie).toBeVisible();
+  await page.getByRole("button", { name: "Później" }).click();
+  await expect(zaproszenie).not.toBeVisible();
 });
 
 test("raport nie wychodzi, dopóki każda skala nie ma świadomej odpowiedzi", async ({ page }) => {
