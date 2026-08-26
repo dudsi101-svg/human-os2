@@ -599,6 +599,31 @@ def sprawdz_workflowy(w: Wynik) -> None:
             )
 
 
+def sprawdz_wersje_dokumentow(w: Wynik) -> None:
+    """Audyt B1 (25.08): dokumentacja wejściowa nie może dryfować.
+
+    README tkwił na 0.4.0 przy realnych 0.53.x — dokument, od którego
+    każdy zaczyna, kłamał przez ~50 wydań i nikt tego nie zauważył, bo
+    żadna bramka go nie czytała. Ta kontrola robi dla README
+    i RELEASE_STATUS dokładnie to, co `przekazanie` robi dla
+    STAN_PRZEKAZANIA: bieżąca wersja z CHANGELOG-a musi występować
+    w treści. Wąsko i weryfikowalnie — numer, nie „sensowność"."""
+    changelog = DOCS / "CHANGELOG.md"
+    wersje = re.findall(r"^## (\d+\.\d+\.\d+)", changelog.read_text(encoding="utf-8"), re.MULTILINE)
+    if not wersje:
+        return  # brakiem wersji zajmuje się kontrola `changelog`
+    biezaca = wersje[0]
+    for plik in (APP / "README.md", DOCS / "RELEASE_STATUS.md"):
+        if not plik.exists():
+            w.blad("wersje dokumentów",
+                   f"brak {plik.relative_to(APP)} — dokumentacja wejściowa niepełna")
+            continue
+        if biezaca not in plik.read_text(encoding="utf-8"):
+            w.blad("wersje dokumentów",
+                   f"{plik.relative_to(APP)} nie wspomina bieżącej wersji "
+                   f"{biezaca} — dokument wejściowy dryfuje")
+
+
 KONTROLE = (
     ("migracje", sprawdz_migracje),
     ("changelog", sprawdz_changelog),
@@ -611,6 +636,7 @@ KONTROLE = (
     ("przekazanie", sprawdz_przekazanie),
     ("konsultacje", sprawdz_konsultacje),
     ("workflowy", sprawdz_workflowy),
+    ("wersje dokumentów", sprawdz_wersje_dokumentow),
 )
 
 

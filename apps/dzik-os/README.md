@@ -9,7 +9,9 @@ obserwacji), baza wiedzy (artykuły, know-how ćwiczeń z podziałem na
 partie, baza produktów z makro i kompozytor diety), wiadomości (w tym
 głosowe), dokumenty, płatności i dashboard trenera.
 
-Status: **MVP + monitoring + baza wiedzy + know-how + dashboard (0.4.0)** · Język: polski · Licencja kodu: Apache-2.0
+Status: **pilotaż na produkcji (0.53.7)** — bieżący stan wdrożenia,
+kont i integracji: [docs/RELEASE_STATUS.md](docs/RELEASE_STATUS.md) ·
+Język: polski · Licencja kodu: Apache-2.0
 
 ## Zasada uruchomienia
 
@@ -51,7 +53,12 @@ docker compose -f apps/dzik-os/docker-compose.yml up --build
 docker compose -f apps/dzik-os/docker-compose.yml run --rm seed   # dane demo
 ```
 
-## Konta demonstracyjne (tylko lokalnie/staging!)
+## Konta demonstracyjne (tylko lokalny seed!)
+
+Poniższe konta tworzy `python -m dzik_os.seed` na LOKALNEJ bazie.
+Na produkcji nie istnieją: konta demo sprzed pilotażu zostały
+zdezaktywowane (`purge_demo`), a prawdziwe konta wymieniono
+w `docs/RELEASE_STATUS.md`.
 
 | Rola   | E-mail                | Hasło            |
 |--------|-----------------------|------------------|
@@ -63,19 +70,34 @@ docker compose -f apps/dzik-os/docker-compose.yml run --rm seed   # dane demo
 | Klient E (zaległości) | `piotr.zajac@example.com` | `KlientE#2026!x` |
 | Admin  | `admin@example.com`   | `DzikAdmin#2026` |
 
-## Testy
+## Testy i bramki
 
 ```bash
-pytest apps/dzik-os/backend/tests -q   # 92 testy API/uprawnień/audytu
-pytest tests/ -q                       # 275 testów regresyjnych Core
-pytest apps/dzik-os/e2e -q             # 3 testy E2E w przeglądarce (po npm run build)
-ruff check apps/dzik-os/backend
+# z korzenia repozytorium
+ruff check apps/dzik-os/backend apps/dzik-os/tools
+pytest apps/dzik-os/backend/tests -q     # ~850 testów API/uprawnień/audytu
+pytest tests/ -q                         # 275 testów regresyjnych Core
+python apps/dzik-os/tools/spojnosc.py    # kontrole spójności (wersje, trasy, workflowy…)
+python apps/dzik-os/tools/mutacje.py     # testy mutacyjne logiki
+python apps/dzik-os/tools/mutacje_bezpieczenstwa.py
+
+# frontend (w apps/dzik-os/frontend)
+npx tsc --noEmit && npm run build
+npm run test:helpers
+npm run test:e2e                         # Playwright, telefon + desktop trenera
 ```
+
+Dokładne liczby testów zmieniają się co rundę — źródłem prawdy jest
+przebieg CI (`.github/workflows/dzik-os-ci.yml`), który uruchamia
+wszystkie powyższe bramki na każdym PR.
 
 ## Dokumentacja
 
 | Dokument | Zawartość |
 |---|---|
+| [docs/RELEASE_STATUS.md](docs/RELEASE_STATUS.md) | **Stan produkcji TERAZ**: wersja, konta, integracje, kroki właściciela |
+| [docs/STAN_PRZEKAZANIA.md](docs/STAN_PRZEKAZANIA.md) | Stan prac między sesjami (gdzie jesteśmy, co w toku) |
+| [docs/BRAMKA_GO_NOGO.md](docs/BRAMKA_GO_NOGO.md) | Decyzja jakościowa GO/NO-GO z listą blokerów |
 | [docs/PRODUCT_BRIEF.md](docs/PRODUCT_BRIEF.md) | Cel produktu, role, zakres MVP |
 | [docs/REQUIREMENTS_MAP.md](docs/REQUIREMENTS_MAP.md) | Mapa wymagań → implementacja → testy |
 | [docs/ACCEPTANCE_CRITERIA.md](docs/ACCEPTANCE_CRITERIA.md) | Kryteria ukończenia ze statusem weryfikacji |

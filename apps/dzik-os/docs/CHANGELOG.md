@@ -1,5 +1,21 @@
 # Changelog — Dzik OS
 
+## 0.53.7 — 2026-08-26
+
+**Audyt B1: dokumentacja wejściowa mówi prawdę i ma strażnika.**
+
+* `docs/RELEASE_STATUS.md` (nowy) — jedna strona prawdy o produkcji:
+  ścieżka wydania, konta i role, limit podopiecznych, stan integracji
+  (SMTP/AI/szyfrowanie plików/backup/push), część publiczna, otwarte
+  kroki właściciela W1–W6.
+* README: status 0.4.0→bieżący (dryf ~50 wydań), realny zestaw bramek
+  zamiast „92 testów", tabela dokumentów z RELEASE_STATUS/
+  STAN_PRZEKAZANIA/BRAMKA_GO_NOGO, konta demo jawnie oznaczone jako
+  lokalny seed (na produkcji zdezaktywowane).
+* `spojnosc.py` — 12. kontrola „wersje dokumentów": README
+  i RELEASE_STATUS muszą wspominać bieżącą wersję z CHANGELOG-a
+  (najpierw dowiedziona czerwienią na starym README, potem zieleń).
+
 ## 0.53.6 — 2026-08-26
 
 **Audyt A6/R-02: szyfrowanie plików włączane jednym klikiem
