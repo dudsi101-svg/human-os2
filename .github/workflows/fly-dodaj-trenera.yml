@@ -30,7 +30,16 @@ jobs:
     env:
       FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
       APP_NAME: dzik-os-panel
+      # Input WYŁĄCZNIE przez env (audyt P0-3): nigdy w bloku run.
+      TRENER_EMAIL: ${{ inputs.email }}
     steps:
+      - name: Zwaliduj input (twardy wzorzec — zero metaznaków powłoki)
+        run: |
+          if ! printf '%s' "$TRENER_EMAIL" | grep -qE '^[A-Za-z0-9._+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$'; then
+            echo "::error::Input email nie wygląda jak adres e-mail — odmowa."
+            exit 1
+          fi
+
       - name: Przygotuj hasło (sekret repo albo wygenerowane)
         env:
           COACH_PW: ${{ secrets.DZIK_BOOTSTRAP_COACH_PASSWORD }}
@@ -68,7 +77,7 @@ jobs:
       - name: Załóż konto trenera
         run: |
           flyctl ssh console --app "$APP_NAME" -C \
-            "python -m dzik_os.dodaj_trenera --email ${{ inputs.email }}"
+            "python -m dzik_os.dodaj_trenera --email $TRENER_EMAIL"
 
       - name: Usuń chwilowy sekret z Fly
         if: always()
@@ -83,7 +92,7 @@ jobs:
             echo "HASŁO STARTOWE — KONTO TRENERA (JEDNORAZOWE)"
             echo "Ważność artefaktu: 1 dzień."
             echo
-            echo "Trener (${{ inputs.email }}): $(cat /tmp/hasla/coach)"
+            echo "Trener ($TRENER_EMAIL): $(cat /tmp/hasla/coach)"
             echo
             echo "Zaloguj się: https://dzik-os-panel.fly.dev"
             echo "Aplikacja wymusi zmianę hasła i konfigurację MFA."

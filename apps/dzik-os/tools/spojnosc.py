@@ -571,6 +571,34 @@ def sprawdz_przekazanie(w: Wynik) -> None:
                "dokument jest nieaktualny, a następna sesja mu zaufa")
 
 
+
+
+def sprawdz_workflowy(w: Wynik) -> None:
+    """Audyt P0-3 (25.08): `${{ inputs.* }}` interpolowane w bloku `run`
+    to script injection — wartość z metaznakami zmienia wykonywane
+    polecenie (GitHub: Script injections). Dozwolone użycia inputów:
+    mapowanie w `env:`/`with:` (linia w formie `NAZWA: ${{ inputs.x }}`)
+    i warunki `if:`. Wszystko inne w linii skryptu jest błędem."""
+    import re
+
+    wzor = re.compile(r"\$\{\{\s*inputs\.")
+    mapowanie = re.compile(r"^[A-Za-z_][A-Za-z0-9_-]*:\s*['\"]?\$\{\{\s*inputs\.")
+    katalog = APP.parents[1] / ".github" / "workflows"
+    for plik in sorted(katalog.glob("*.yml")):
+        for nr, linia in enumerate(plik.read_text().splitlines(), 1):
+            goła = linia.strip()
+            if not wzor.search(goła):
+                continue
+            if goła.startswith(("if:", "- if:")) or mapowanie.match(goła):
+                continue
+            w.blad(
+                "workflowy",
+                f"{plik.name}:{nr} — `${{{{ inputs.* }}}}` w bloku run "
+                "(script injection, audyt P0-3); mapuj input do env "
+                "i używaj \"$ZMIENNA\" po walidacji",
+            )
+
+
 KONTROLE = (
     ("migracje", sprawdz_migracje),
     ("changelog", sprawdz_changelog),
@@ -582,6 +610,7 @@ KONTROLE = (
     ("pliki poza gitem", sprawdz_pliki_poza_gitem),
     ("przekazanie", sprawdz_przekazanie),
     ("konsultacje", sprawdz_konsultacje),
+    ("workflowy", sprawdz_workflowy),
 )
 
 

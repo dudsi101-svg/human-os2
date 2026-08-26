@@ -1,5 +1,22 @@
 # Changelog — Dzik OS
 
+## 0.53.2 — 2026-08-25
+
+**Audyt P0-3: utwardzenie inputów workflow** (audyt zewnętrzny 25.08).
+
+* Cztery workflow operacyjne (`fly-bootstrap`, `fly-dodaj-trenera`,
+  `fly-sekrety`, `fly-porzadki-demo`): inputy mapowane do `env` na
+  poziomie joba, pierwszy krok waliduje twardym wzorcem (e-mail bez
+  metaznaków powłoki; `force` dokładnie true/false), w blokach `run`
+  wyłącznie `"$ZMIENNA"` — koniec z interpolacją `${{ inputs.* }}`
+  w skryptach.
+* **Strażnik regresji** w bramce spójności (11. kontrola): skan
+  `.github/workflows/*.yml` czerwieni build, gdy `${{ inputs.` pojawia
+  się w linii skryptu (dozwolone: mapowanie env/with i warunki if).
+  TDD: kontrola najpierw wykryła 8 miejsc obecnego stanu, naprawa ją
+  zieleni; wartości typu `a@b.pl; rm -rf /` odrzucane (dowód w planie
+  sesji).
+
 ## 0.53.1 — 2026-08-25
 
 * **`python -m dzik_os.dodaj_trenera`** + workflow „Dodaj trenera

@@ -47,7 +47,21 @@ jobs:
     env:
       FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
       APP_NAME: dzik-os-panel
+      # Inputy WYŁĄCZNIE przez env (audyt P0-3): nigdy w bloku run.
+      COACH_EMAIL: ${{ inputs.coach_email }}
+      ADMIN_EMAIL: ${{ inputs.admin_email }}
     steps:
+      - name: Zwaliduj inputy (twardy wzorzec — zero metaznaków powłoki)
+        run: |
+          WZOR='^[A-Za-z0-9._+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$'
+          for para in "coach_email=$COACH_EMAIL" "admin_email=$ADMIN_EMAIL"; do
+            nazwa="${para%%=*}"; wartosc="${para#*=}"
+            if ! printf '%s' "$wartosc" | grep -qE "$WZOR"; then
+              echo "::error::Input $nazwa nie wygląda jak adres e-mail — odmowa."
+              exit 1
+            fi
+          done
+
       - name: Przygotuj hasła (sekrety repo albo wygenerowane)
         env:
           COACH_PW: ${{ secrets.DZIK_BOOTSTRAP_COACH_PASSWORD }}
@@ -93,7 +107,7 @@ jobs:
       - name: Załóż konta (bootstrap czyta hasła z env maszyny)
         run: |
           flyctl ssh console --app "$APP_NAME" -C \
-            "python -m dzik_os.bootstrap --coach-email ${{ inputs.coach_email }} --admin-email ${{ inputs.admin_email }}"
+            "python -m dzik_os.bootstrap --coach-email $COACH_EMAIL --admin-email $ADMIN_EMAIL"
 
       - name: Usuń chwilowe sekrety bootstrapowe z Fly
         if: always()
@@ -108,8 +122,8 @@ jobs:
             echo "HASŁA STARTOWE DZIK OS — JEDNORAZOWE"
             echo "Ważność artefaktu: 1 dzień. Po zalogowaniu hasło i tak musisz zmienić."
             echo
-            echo "Trener  (${{ inputs.coach_email }}): $(cat /tmp/hasla/coach)"
-            echo "Admin   (${{ inputs.admin_email }}): $(cat /tmp/hasla/admin)"
+            echo "Trener  ($COACH_EMAIL): $(cat /tmp/hasla/coach)"
+            echo "Admin   ($ADMIN_EMAIL): $(cat /tmp/hasla/admin)"
             echo
             echo "Zaloguj się: https://dzik-os-panel.fly.dev"
             echo "Aplikacja wymusi zmianę hasła i konfigurację MFA (aplikacja TOTP)."

@@ -31,7 +31,16 @@ jobs:
     env:
       FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
       APP_NAME: dzik-os-panel
+      # Input WYŁĄCZNIE przez env (audyt P0-3): nigdy w bloku run.
+      FORCE: ${{ inputs.force }}
     steps:
+      - name: Zwaliduj input (dokładnie true albo false)
+        run: |
+          if [ "$FORCE" != "true" ] && [ "$FORCE" != "false" ]; then
+            echo "::error::Input force musi być dokładnie 'true' albo 'false'."
+            exit 1
+          fi
+
       - uses: superfly/flyctl-actions/setup-flyctl@master
 
       - name: Obudź maszynę
@@ -39,7 +48,7 @@ jobs:
 
       - name: Uruchom purge_demo
         run: |
-          if [ "${{ inputs.force }}" = "true" ]; then
+          if [ "$FORCE" = "true" ]; then
             flyctl ssh console --app "$APP_NAME" -C "python -m dzik_os.purge_demo --force"
           else
             flyctl ssh console --app "$APP_NAME" -C "python -m dzik_os.purge_demo" || true

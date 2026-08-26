@@ -43,7 +43,16 @@ jobs:
       DZIK_AI_API_KEY: ${{ secrets.DZIK_AI_API_KEY }}
       DZIK_AI_ENABLED: ${{ secrets.DZIK_AI_ENABLED }}
       DZIK_FILE_KEY: ${{ secrets.DZIK_FILE_KEY }}
+      # Input WYŁĄCZNIE przez env (audyt P0-3): nigdy w bloku run.
+      TEST_EMAIL: ${{ inputs.test_email }}
     steps:
+      - name: Zwaliduj input (pusty = bez testu; inaczej twardy wzorzec)
+        run: |
+          if [ -n "$TEST_EMAIL" ] && ! printf '%s' "$TEST_EMAIL" | grep -qE '^[A-Za-z0-9._+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$'; then
+            echo "::error::Input test_email nie wygląda jak adres e-mail — odmowa."
+            exit 1
+          fi
+
       - uses: superfly/flyctl-actions/setup-flyctl@master
 
       - name: Ustaw na Fly sekrety, które są wypełnione w repo
@@ -77,5 +86,5 @@ jobs:
         if: inputs.test_email != ''
         run: |
           flyctl ssh console --app "$APP_NAME" -C \
-            "python -m dzik_os.test_poczty ${{ inputs.test_email }}"
-          echo "Sprawdź skrzynkę ${{ inputs.test_email }} — powinna być wiadomość „Dzik OS — test poczty”."
+            "python -m dzik_os.test_poczty $TEST_EMAIL"
+          echo "Sprawdź skrzynkę $TEST_EMAIL — powinna być wiadomość „Dzik OS — test poczty”."
