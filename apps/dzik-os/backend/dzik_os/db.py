@@ -882,8 +882,10 @@ MIGRATIONS.append(
             " created_at VARCHAR(40) NOT NULL,"
             " updated_at VARCHAR(40) NOT NULL)"
         ),
-        "CREATE INDEX IF NOT EXISTS ix_nutrition_templates_coach"
-        " ON nutrition_templates (coach_id)",
+        (
+            "CREATE INDEX IF NOT EXISTS ix_nutrition_templates_coach"
+            " ON nutrition_templates (coach_id)"
+        ),
     ])
 )
 
