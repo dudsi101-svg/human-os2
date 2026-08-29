@@ -1,0 +1,108 @@
+# Awaryjny reset hasła istniejącego konta (0.53.13) — workflow_dispatch.
+#
+# Reset e-mailem wymaga SMTP, hasła startowe z artefaktów wygasają po
+# jednym dniu — ten workflow jest ostatnią deską: ustawia świeże hasło
+# startowe dla ISTNIEJĄCEGO, aktywnego konta. Hasło jest jednorazowe
+# (aplikacja wymusi zmianę, a rola COACH/ADMIN także MFA), wszystkie
+# aktywne sesje konta zostają unieważnione, a reset trafia do audytu.
+#
+# Hasło: sekret repo DZIK_RESET_PASSWORD albo — gdy go brak —
+# wygenerowane (maskowane ::add-mask::, artefakt „haslo-reset" ważny
+# 1 dzień). Droga jak w bootstrapie: chwilowy sekret Fly (env maszyny,
+# nigdy argv), kasowany po użyciu.
+
+name: Reset hasła (Fly.io)
+
+on:
+  workflow_dispatch:
+    inputs:
+      email:
+        description: "E-mail istniejącego konta do zresetowania"
+        required: true
+        default: "lubelskidzikk@gmail.com"
+
+concurrency:
+  group: fly-maintenance
+  cancel-in-progress: false
+
+jobs:
+  reset:
+    runs-on: ubuntu-latest
+    env:
+      FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+      APP_NAME: dzik-os-panel
+      # Input WYŁĄCZNIE przez env (audyt P0-3): nigdy w bloku run.
+      RESET_EMAIL: ${{ inputs.email }}
+    steps:
+      - name: Zwaliduj input (twardy wzorzec — zero metaznaków powłoki)
+        run: |
+          if ! printf '%s' "$RESET_EMAIL" | grep -qE '^[A-Za-z0-9._+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$'; then
+            echo "::error::Input email nie wygląda jak adres e-mail — odmowa."
+            exit 1
+          fi
+
+      - name: Przygotuj hasło (sekret repo albo wygenerowane)
+        env:
+          RESET_PW: ${{ secrets.DZIK_RESET_PASSWORD }}
+        run: |
+          mkdir -p /tmp/hasla
+          if [ -n "$RESET_PW" ]; then
+            if [ ${#RESET_PW} -lt 12 ]; then
+              echo "::error::Hasło startowe musi mieć co najmniej 12 znaków."
+              exit 1
+            fi
+            printf '%s' "$RESET_PW" > /tmp/hasla/reset
+            echo "zrodlo=sekrety" >> "$GITHUB_ENV"
+          else
+            openssl rand -base64 18 | tr -d '\n' > /tmp/hasla/reset
+            echo "::add-mask::$(cat /tmp/hasla/reset)"
+            echo "zrodlo=wygenerowane" >> "$GITHUB_ENV"
+            echo "Sekretu repo brak — wygenerowano silne hasło jednorazowe (artefakt ważny 1 dzień)."
+          fi
+
+      - uses: superfly/flyctl-actions/setup-flyctl@ed8efb33836e8b2096c7fd3ba1c8afe303ebbff1  # master 2026-08 (tag 1.6)
+
+      - name: Wstaw hasło jako chwilowy sekret Fly (restart maszyny)
+        run: |
+          flyctl secrets set --app "$APP_NAME" \
+            DZIK_RESET_PASSWORD="$(cat /tmp/hasla/reset)"
+
+      - name: Poczekaj, aż maszyna wstanie po restarcie
+        run: |
+          for i in $(seq 1 30); do
+            curl -sfS "https://$APP_NAME.fly.dev/api/health" && exit 0
+            sleep 5
+          done
+          echo "::error::Maszyna nie wstała w 150 s"; exit 1
+
+      - name: Zresetuj hasło konta
+        run: |
+          flyctl ssh console --app "$APP_NAME" -C \
+            "python -m dzik_os.resetuj_haslo --email $RESET_EMAIL"
+
+      - name: Usuń chwilowy sekret z Fly
+        if: always()
+        run: |
+          flyctl secrets unset --app "$APP_NAME" \
+            DZIK_RESET_PASSWORD || true
+
+      - name: Przygotuj artefakt z hasłem (tylko tryb wygenerowany)
+        if: env.zrodlo == 'wygenerowane'
+        run: |
+          {
+            echo "HASŁO STARTOWE PO RESECIE (JEDNORAZOWE)"
+            echo "Ważność artefaktu: 1 dzień."
+            echo
+            echo "Konto ($RESET_EMAIL): $(cat /tmp/hasla/reset)"
+            echo
+            echo "Zaloguj się: https://dzik-os-panel.fly.dev"
+            echo "Aplikacja wymusi zmianę hasła (trener/admin: także MFA)."
+            echo "Wszystkie wcześniejsze sesje tego konta zostały unieważnione."
+          } > /tmp/hasla/haslo-reset.txt
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
+        if: env.zrodlo == 'wygenerowane'
+        with:
+          name: haslo-reset
+          path: /tmp/hasla/haslo-reset.txt
+          retention-days: 1

@@ -41,3 +41,17 @@ istniejącym e-mailu. Ta runda domyka lukę raz na zawsze.
 ## Weryfikacja (do wypełnienia)
 
 - bramki pełne; uruchomienie modułu na żywo w izolowanym środowisku.
+
+## Weryfikacja (wykonana)
+
+- `ruff` — czysto; backend **859 passed, 1 skipped** (3 nowe testy:
+  pełny cykl resetu — stara sesja 401, stare hasło 401, nowe hasło
+  loguje z wymuszoną zmianą; odmowy dla nieistniejącego/SUSPENDED/za
+  krótkiego; audyt bez treści hasła); Core **275**; spójność czysto
+  (13 kontroli — w tym przypięcie akcji i workflow-injection dla
+  nowego pliku YAML).
+- Uruchomienie na żywo (izolowane środowisko z seedem):
+  bez env → jawny błąd, kod 1; reset istniejącego konta → komunikat
+  o jednorazowym haśle i unieważnionych sesjach, kod 0; nieistniejące
+  konto → odmowa, kod 1.
+- Workflow na produkcji uruchomi właściciel (czeka na klik).
