@@ -38,3 +38,21 @@ test("trener przegląda katalog i dodaje schemat do swoich szablonów", async ({
     page.locator(".card").filter({ hasText: "Start — całe ciało 2 dni" }).first(),
   ).toBeVisible({ timeout: 15_000 });
 });
+
+test("trener otwiera zakładkę Dieta i dodaje autorski szablon z katalogu", async ({ page }) => {
+  // 0.54.0: szablony diety żyją obok treningowych — jeden ekran, dwie
+  // zakładki. Import z katalogu tworzy własny, edytowalny szablon.
+  await zaloguj(page, KONTA.trener);
+  await page.goto("/trener/szablony");
+
+  await page.getByRole("tab", { name: "Dieta" }).click();
+  await expect(page.getByText("Gotowe szablony diety")).toBeVisible();
+  await expect(page.getByText(/Dieta — Etap I/).first()).toBeVisible();
+
+  await page.getByRole("button", { name: /Dodaj do moich|Dodaj ponownie/ }).first().click();
+  // Szablon pojawia się na liście moich, z podglądem posiłków.
+  await expect(page.getByRole("heading", { name: /Dieta — Etap I/ }).first()).toBeVisible();
+  await page.getByRole("button", { name: "Podgląd" }).first().click();
+  await expect(page.getByText("Przekąska (posiłek ruchomy)").first()).toBeVisible();
+  await expect(page.getByText(/Ściąga zamienników/).first()).toBeVisible();
+});

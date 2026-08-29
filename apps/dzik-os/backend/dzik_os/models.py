@@ -316,6 +316,25 @@ class NutritionPlanVersion(Base):
     created_at: Mapped[str] = mapped_column(String(40), default=now_iso)
 
 
+class NutritionTemplate(Base):
+    """Szablon diety trenera (0.54.0): roboczy snapshot BEZ wersjonowania —
+    wersjonowanie (i cała historia) zaczyna się dopiero na planie klienta,
+    do którego szablon jest kopiowany. Świadomie osobna tabela zamiast
+    `NutritionPlan(client_id=NULL)`: zapytania kliencie pozostają nietknięte,
+    a migracja jest czysto addytywna."""
+
+    __tablename__ = "nutrition_templates"
+
+    id: Mapped[str] = mapped_column(String(40), primary_key=True)
+    coach_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
+    title: Mapped[str] = mapped_column(String(300))
+    # Ta sama struktura co NutritionPlanVersion.content_json — kopiowanie
+    # do klienta nie wymaga żadnej translacji.
+    content_json: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[str] = mapped_column(String(40), default=now_iso)
+    updated_at: Mapped[str] = mapped_column(String(40), default=now_iso)
+
+
 class ScheduleItem(Base):
     """Element harmonogramu. System wyłącznie przechowuje i przypomina plan
     świadomie wprowadzony przez człowieka (author_id + author_note) — nigdy

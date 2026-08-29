@@ -81,7 +81,10 @@ def build_days(
                 "tempo": u.get("tempo") if u.get("tempo") != "—" else None,
                 "rest": u.get("rest"),
                 "comment": " ".join(czesci) or None,
-                "video_url": None,
+                # Szablony autorskie (0.54.0) niosą linki do techniki —
+                # wcześniejsze wpisy katalogu nie mają pola `video` i dalej
+                # dają None, więc nic się dla nich nie zmienia.
+                "video_url": u.get("video") or None,
                 "target_rir": u.get("target_rir"),
                 "progression": u.get("progression"),
             }

@@ -25,15 +25,19 @@ def _coach(client):
 def test_katalog_ma_komplet_danych_ze_zrodla():
     """Ubytek w danych to najcichsza możliwa awaria — nikt nie zauważy
     brakującego dnia w szablonie, dopóki klient nie dostanie planu."""
-    assert len(TEMPLATES) == 24
-    assert sum(len(v) for v in UNITS.values()) == 431
+    assert len(TEMPLATES) == 26  # 24 bazowe + 2 autorskie (0.54.0)
+    assert sum(len(v) for v in UNITS.values()) == 490  # 431 bazowych + 59 autorskich (0.54.0)
     assert {t["id"] for t in TEMPLATES} == set(UNITS)
     for tpl in TEMPLATES:
         units = UNITS[str(tpl["id"])]
         assert units, f"{tpl['id']} bez jednostek"
         # Liczba jednostek nie musi równać się dniom w tygodniu (np. obwód
         # 3×/tydz. to jedna jednostka powtarzana), ale nie może jej przekraczać.
-        assert len({u["day"] for u in units}) <= int(tpl["days_per_week"])
+        # Dzień „Wytyczne tygodnia" (0.54.0, szablony autorskie) to
+        # jednostka informacyjna (mobility/cardio/kroki), nie dzień
+        # treningowy — nie liczy się do days_per_week.
+        dni = {u["day"] for u in units if "Wytyczne" not in str(u["day"])}
+        assert len(dni) <= int(tpl["days_per_week"])
 
 
 def test_kazda_pozycja_wskazuje_istniejacy_model_progresji():
@@ -56,7 +60,7 @@ def test_trener_widzi_katalog_z_modelami_progresji(seeded):
     r = seeded.get("/api/coach/plan-templates", headers=_coach(seeded))
     assert r.status_code == 200, r.text
     body = r.json()
-    assert len(body["templates"]) == 24
+    assert len(body["templates"]) == 26  # 24 bazowe + 2 autorskie (0.54.0)
     assert body["progressions"]["PRG-DOUBLE"]["name"] == "Podwójna progresja"
     pierwszy = body["templates"][0]
     for pole in ("id", "name", "level", "goal", "days", "exercises"):
