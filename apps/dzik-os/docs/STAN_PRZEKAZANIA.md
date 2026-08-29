@@ -1,6 +1,6 @@
 # Stan przekazania — przeczytaj przed rozpoczęciem rundy
 
-**Aktualizacja:** 2026-08-26 · **Wersja w `main`:** 0.53.12
+**Aktualizacja:** 2026-08-29 · **Wersja w `main`:** 0.53.13
 **Tryb pracy:** jeden piszący i jeden PR `[WRITER]` naraz
 (`KOORDYNACJA.md`, zasada nadrzędna).
 
@@ -33,7 +33,12 @@ pierwszy commit, draft PR `[WRITER]`, reszta agentów read-only.
 jednym prawdziwym klientem, **NO-GO na szerszą produkcję** — siedem
 blokerów wypisanych w §5 tamtego dokumentu.
 
-**Ostatnia runda (0.53.12, gałąź `agent/zaproszenie-wywiad`):**
+**Ostatnia runda (0.53.13, gałąź `agent/reset-hasla-awaryjny`):**
+awaryjny reset hasła bez SMTP (moduł `resetuj_haslo` + workflow
+„Reset hasła (Fly.io)” z artefaktem 1-dniowym) — zbudowany na żywo,
+gdy właściciel i trener nie mogli się zalogować po wygaśnięciu
+artefaktów.
+**Runda 0.53.12 (`agent/zaproszenie-wywiad`):**
 audyt B6 — zaproszenie do wywiadu na Dzisiaj po pierwszym raporcie
 („Później" zamyka), notka o skróconym scenariuszu przy wyłączonych
 zgodach. **SPRINT B AUDYTU ZAKOŃCZONY** (B1–B6); otwarte pozostają

@@ -164,3 +164,13 @@ dowiodła odtwarzalności. Obejrzyj log, powtórz ręcznie
 i nie odkładaj — do czasu wyjaśnienia realny backup może być bezwartościowy.
 Ręczne odtworzenie NA ŻYWE dane pozostaje procedurą z warstwy 4 tego
 dokumentu (przy zatrzymanej aplikacji).
+
+
+## Utrata hasła konta (bez działającego SMTP)
+
+Actions → **„Reset hasła (Fly.io)”** → Run workflow z e-mailem konta.
+Świeże hasło jednorazowe ląduje w artefakcie `haslo-reset` (ważny
+1 dzień); wszystkie dotychczasowe sesje konta zostają unieważnione,
+a przy logowaniu aplikacja wymusi zmianę hasła (trener/admin: także
+MFA). Reset działa wyłącznie dla kont AKTYWNYCH i zostawia wpis
+w łańcuchu audytu.

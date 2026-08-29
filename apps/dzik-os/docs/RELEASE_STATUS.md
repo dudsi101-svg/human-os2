@@ -1,6 +1,6 @@
 # Stan wydania — Dzik OS
 
-**Wersja:** 0.53.12 · **Data:** 2026-08-26 · **Środowisko:** produkcja
+**Wersja:** 0.53.13 · **Data:** 2026-08-29 · **Środowisko:** produkcja
 (pilotaż) — https://dzik-os-panel.fly.dev
 
 Jedna strona prawdy o tym, co DZIAŁA na produkcji teraz. Aktualizowana
@@ -29,8 +29,9 @@ z oczekiwanymi. Ręczny deploy: tylko awaryjnie (`workflow_dispatch`).
 | dudsi101@gmail.com | CLIENT (właściciel jako podopieczny) | aktywne |
 | 7 kont demo sprzed pilotażu | — | zdezaktywowane (SUSPENDED, losowy hash) |
 
-Hasła startowe: wyłącznie artefakty Actions ważne 1 dzień (po terminie —
-ponowne uruchomienie odpowiedniego workflow). Limit podopiecznych:
+Hasła startowe: wyłącznie artefakty Actions ważne 1 dzień; po terminie —
+workflow **„Reset hasła (Fly.io)”** (świeże hasło jednorazowe dla
+istniejącego konta, sesje unieważniane, wpis w audycie). Limit podopiecznych:
 **10** (`DZIK_MAX_CLIENTS`, fly.toml).
 
 ## Integracje

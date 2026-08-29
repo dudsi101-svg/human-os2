@@ -1,5 +1,26 @@
 # Changelog — Dzik OS
 
+## 0.53.13 — 2026-08-29
+
+**Awaryjny reset hasła bez SMTP — właściciel nie może zostać zamknięty
+poza własnym systemem.**
+
+* Luka wykryta na żywo: hasła startowe wygasły z artefaktami (1 dzień),
+  reset e-mailem czeka na SMTP (W2), bootstrap odmawia na niepustej
+  bazie, `dodaj_trenera` na zajętym e-mailu — zero ścieżek odzyskania
+  dostępu do istniejącego konta.
+* `dzik_os/resetuj_haslo.py` — świeże hasło startowe dla istniejącego,
+  AKTYWNEGO konta: hasło wyłącznie z env `DZIK_RESET_PASSWORD` (nigdy
+  argv), `must_change_password=True` (jednorazowe; trener/admin dostaje
+  też wymuszone MFA), unieważnienie wszystkich sesji konta, zdarzenie
+  `PASSWORD_RESET_BY_OPERATOR` bez treści hasła, odmowa dla SUSPENDED.
+* `fly-reset-hasla.yml` — wzorzec `fly-dodaj-trenera`: e-mail przez env
+  z walidacją, hasło z sekretu repo albo wygenerowane (maskowane),
+  chwilowy sekret Fly kasowany po użyciu, artefakt `haslo-reset`
+  (1 dzień). Akcje przypięte po SHA.
+* 3 testy: pełny cykl (stara sesja martwa, stare hasło nie działa,
+  nowe wymusza zmianę), odmowy, audyt bez hasła.
+
 ## 0.53.12 — 2026-08-26
 
 **Audyt B6: wywiad przestaje być niewykrywalny — zaproszenie po
