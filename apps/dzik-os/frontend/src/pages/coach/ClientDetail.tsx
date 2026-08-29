@@ -669,14 +669,44 @@ function NutritionTab({ clientId }: { clientId: string }) {
   const [allergies, setAllergies] = useState<string | null>(null);
   const [ocrOpen, setOcrOpen] = useState(false);
   const [ocrNote, setOcrNote] = useState<string | null>(null);
+  // „Z szablonu" (0.54.0): kopiowanie szablonu diety jako dieta v1 klienta,
+  // z jawnym ustawieniem makro w momencie kopiowania.
+  const [dietTemplates, setDietTemplates] = useState<{ id: string; title: string }[]>([]);
+  const [dietTplId, setDietTplId] = useState("");
+  const [dietTplMakro, setDietTplMakro] = useState({ kcal: "", protein_g: "", fat_g: "", carbs_g: "" });
+  const [copyingDiet, setCopyingDiet] = useState(false);
 
   const plan = plans?.[0] ?? null;
   const load = useCallback(() => {
     setEditing(false);
     api.get<{ plans: NutritionPlanRow[] }>(`/api/clients/${clientId}/nutrition`)
       .then((d) => setPlans(d.plans)).catch((e) => setError(e.message));
+    api.get<{ templates: { id: string; title: string }[] }>("/api/nutrition-templates")
+      .then((d) => setDietTemplates(d.templates))
+      .catch(() => setDietTemplates([]));
   }, [clientId]);
   useEffect(load, [load]);
+
+  async function copyDietTemplate() {
+    if (!dietTplId) return;
+    setCopyingDiet(true);
+    setError(null);
+    try {
+      const num = (s: string) => (s.trim() === "" ? null : Number(s));
+      await api.post(`/api/nutrition-templates/${dietTplId}/copy-to/${clientId}`, {
+        kcal: num(dietTplMakro.kcal),
+        protein_g: num(dietTplMakro.protein_g),
+        fat_g: num(dietTplMakro.fat_g),
+        carbs_g: num(dietTplMakro.carbs_g),
+      });
+      setDietTplId("");
+      load();
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setCopyingDiet(false);
+    }
+  }
 
   // Zadeklarowane alergie/nietolerancje — pokazywane przy edycji
   // suplementacji, żeby zalecenie nie powstawało w oderwaniu od tego, co
@@ -745,6 +775,39 @@ function NutritionTab({ clientId }: { clientId: string }) {
   return (
     <>
       <HintsCard clientId={clientId} area="DIETA" />
+      {!editing && !plan && dietTemplates.length > 0 && (
+        <div className="card" style={{ marginBottom: 10 }}>
+          <b>Z szablonu</b>
+          <p className="dim" style={{ margin: "4px 0 8px", fontSize: "0.85rem" }}>
+            Skopiuj swój szablon diety jako dietę podopiecznego (v1) —
+            kopia jest niezależna od szablonu. Makro ustawiasz teraz,
+            pod tę osobę; puste pola zostawią makro z szablonu.
+          </p>
+          <label htmlFor="diet-tpl">Szablon</label>
+          <select id="diet-tpl" value={dietTplId}
+            onChange={(e) => setDietTplId(e.target.value)}>
+            <option value="">— wybierz —</option>
+            {dietTemplates.map((tpl) => (
+              <option key={tpl.id} value={tpl.id}>{tpl.title}</option>
+            ))}
+          </select>
+          {dietTplId && (
+            <div className="row" style={{ gap: 6, flexWrap: "wrap", marginTop: 6 }}>
+              {(["kcal", "protein_g", "fat_g", "carbs_g"] as const).map((k) => (
+                <label key={k} style={{ flex: "1 1 90px" }}>
+                  {{ kcal: "kcal", protein_g: "Białko (g)", fat_g: "Tłuszcze (g)", carbs_g: "Węgle (g)" }[k]}
+                  <input inputMode="numeric" value={dietTplMakro[k]}
+                    onChange={(e) => setDietTplMakro({ ...dietTplMakro, [k]: e.target.value })} />
+                </label>
+              ))}
+            </div>
+          )}
+          <button className="btn btn--small" style={{ marginTop: 8 }}
+            disabled={!dietTplId || copyingDiet} onClick={copyDietTemplate}>
+            {copyingDiet ? "Kopiowanie…" : "Skopiuj jako dietę podopiecznego"}
+          </button>
+        </div>
+      )}
       {!editing && (
         <button className="btn btn--small" style={{ marginBottom: 10 }}
           onClick={() => {

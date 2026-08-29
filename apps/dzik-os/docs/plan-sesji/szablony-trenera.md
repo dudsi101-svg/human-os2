@@ -58,3 +58,19 @@ ustawia per klient). Imiona klientów nie pojawiają się nigdzie w repo.
 ## Weryfikacja (do wypełnienia)
 
 - bramki pełne; uruchomienie na żywo z przeklikiem zakładki Dieta.
+
+## Weryfikacja (wykonana)
+
+- `ruff` — czysto; backend **863 passed, 1 skipped** (4 nowe testy
+  szablonów diety + zaktualizowane inwarianty katalogu: 26 szablonów,
+  490 jednostek, dzień „Wytyczne" poza limitem days_per_week);
+  Core **275**; spójność czysto (13 kontroli); macierz dostępów 8/8
+  z 7 nowymi trasami.
+- Frontend: `tsc` czysto, build w budżecie (88.7 kB gz), helpers
+  czysto, **E2E 21/21** — w tym nowy scenariusz w prawdziwej
+  przeglądarce na zbudowanym dist/: przełączenie na zakładkę „Dieta",
+  „Dodaj do moich" z katalogu, podgląd z posiłkami i ściągą
+  zamienników. To jest uruchomienie na żywo tej rundy (ta sama
+  ścieżka serwowania co produkcja).
+- Anonimizacja zweryfikowana grepem: imiona z plików źródłowych
+  (Dominik/Bartek/Bartosz) nie występują nigdzie w repo.

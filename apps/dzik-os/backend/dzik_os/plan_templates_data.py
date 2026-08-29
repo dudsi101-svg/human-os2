@@ -26,6 +26,19 @@ from __future__ import annotations
 #: swojego wiersza — występuje wyłącznie w jednostkach (spacery/nośnia), więc
 #: kod nadano tu, zachowując opis ze źródła bez zmian.
 PROGRESSION_MODELS: dict[str, dict[str, str]] = {
+    "PRG-RIR-CYKL": {
+        "name": "Cykl RIR/RPE (autorski)",
+        "when": "Intensywność steruje tydzień cyklu, nie pojedyncza seria.",
+        "action": (
+            "Tydz. 1: 2 RIR / RPE 8 (adaptacja). Tydz. 2: 1 RIR / RPE 9. "
+            "Tydz. 3-5: 0 RIR / RPE 10 (do upadku). Tydz. 6-7: + serie "
+            "back-off -25% ciezaru do upadku (tam, gdzie zaznaczono). "
+            "Tydz. 7-8: deload - 1 seria robocza, 0-1 RIR."
+        ),
+        "hold": "Ciezar dobierz tak, by zamykac zakres powtorzen z tabeli.",
+        "regress": "Jesli technika siada, wroc do 1-2 RIR niezaleznie od tygodnia.",
+        "note": "RIR = powtorzenia w zapasie; RPE = subiektywna trudnosc (1 RIR ~= RPE 9).",
+    },
     "PRG-AUTO-DOUBLE": {
         "name": "Autoregulowana podwójna progresja",
         "when": "Osiągnij górę zakresu przy docelowym RIR i poprawnej technice.",
@@ -389,6 +402,50 @@ TEMPLATES: list[dict[str, object]] = [
         "split": "Góra siła / Dół siła / Góra sprawność / Dół sprawność",
         "description": "Łączy podstawowe boje z noszeniami i pracą kondycyjną.",
         "deload": "Zmniejsz objętość o 1 serię na ćwiczenie lub ciężar o ok. 5–15%, gdy regeneracja i wyniki wyraźnie spadają. Deload: zwykle -30–50% serii i większy RIR.",
+    },
+    {
+        "id": "TPL-025",
+        "name": "Push / Pull / Legs / Push II — Etap I (autorski)",
+        "level": "Średniozaawansowany",
+        "goal": "Hipertrofia — pełny cykl 8 tygodni",
+        "days_per_week": 4,
+        "duration_min": "60–75",
+        "intensity": "Wysoka (sterowana tygodniem cyklu)",
+        "target_rir": "2→0 wg tygodnia",
+        "split": "Push / Pull / Legs / Push II",
+        "description": (
+            "Autorski plan trenera (Lubelski Dzik), etap I. Układ tygodnia: "
+            "PUSH, PULL, wolne, LEGS, PUSH II, wolne, wolne. Do tego kroki "
+            "8 tys. dziennie, cardio 5×20 min przy tętnie 130–140 (sprzęt "
+            "bez znaczenia — rowerek, orbitrek), brzuch 2× w tygodniu na "
+            "końcu treningu lub w dni nietreningowe (zestawy w wytycznych). "
+            "Serie rozgrzewkowe: 60% ciężaru maksymalnego, tempo 2-1-2, "
+            "6–8 powtórzeń. Serie robocze wg tabeli — jeśli domykasz "
+            "zakres z zapasem, ciężar był za mały."
+        ),
+        "deload": "Tydzień 7–8 cyklu: 1 seria robocza na ćwiczenie, 0–1 RIR (tydzień regeneracyjny).",
+    },
+    {
+        "id": "TPL-026",
+        "name": "FBW A/B/C — pierwsze 5 tygodni (autorski)",
+        "level": "Początkujący",
+        "goal": "Adaptacja przed przejściem na podział partii",
+        "days_per_week": 3,
+        "duration_min": "50–65",
+        "intensity": "Umiarkowana",
+        "target_rir": "1–2",
+        "split": "FBW A / B / C",
+        "description": (
+            "Autorski plan trenera (Lubelski Dzik) na pierwsze 5 tygodni "
+            "współpracy — potem przejście na podział partii. Układ: pon. "
+            "FBW A, śr. FBW B, pt. FBW C (opcjonalnie niedziela FBW A). "
+            "Przed KAŻDYM treningiem: mobility + mobility odcinka "
+            "lędźwiowego + aktywacja core (pozycje w dniu Wytyczne). Po "
+            "treningu cardio 15 min; kroki 7 tys. dziennie (cardio nie "
+            "wlicza się w kroki). Serie rozgrzewkowe: 60% CM, tempo 2-1-2, "
+            "6–8 powtórzeń."
+        ),
+        "deload": "Plan adaptacyjny — bez deloadu; po 5 tygodniach zmiana planu na podział partii.",
     },
 ]
 
@@ -874,5 +931,69 @@ UNITS: dict[str, list[dict[str, object]]] = {
         {"day": "Góra — sprawność", "order": 4, "exercise": "Przyciąganie liny do twarzy", "sets": "3", "reps": "12–20", "target_rir": "2", "rest": "60 s", "tempo": "2-1-2", "coach_note": None, "progression": "PRG-AUTO-DOUBLE"},
         {"day": "Góra — sprawność", "order": 5, "exercise": "Spacer z ciężarem po jednej stronie", "sets": "3", "reps": "30–40 m / strona", "target_rir": "2", "rest": "60 s", "tempo": "—", "coach_note": None, "progression": "PRG-DISTANCE"},
     ],
+    "TPL-025": [
+        {"day": '1. Wytyczne tygodnia', "order": 1, "exercise": 'Mobility przed treningiem (cały zestaw)', "sets": '1', "reps": 'wg nagrania', "target_rir": 'wg tygodnia', "rest": None, "tempo": None, "coach_note": 'Obowiązkowo przed KAŻDYM treningiem oprócz dnia nóg.', "progression": 'PRG-TIME', "video": 'https://www.youtube.com/watch?v=KsG5DICGcWo'},
+        {"day": '1. Wytyczne tygodnia', "order": 2, "exercise": 'Cardio', "sets": '5 / tydz.', "reps": '20 min', "target_rir": 'wg tygodnia', "rest": None, "tempo": None, "coach_note": 'Tętno 130–140; rowerek lub orbitrek — sprzęt bez znaczenia, liczy się tętno.', "progression": 'PRG-TIME', "video": None},
+        {"day": '1. Wytyczne tygodnia', "order": 3, "exercise": 'Kroki', "sets": 'codziennie', "reps": '8000', "target_rir": 'wg tygodnia', "rest": None, "tempo": None, "coach_note": 'Poza cardio.', "progression": 'PRG-TIME', "video": None},
+        {"day": '1. Wytyczne tygodnia', "order": 4, "exercise": 'Brzuch — zestaw 1: deska', "sets": '3', "reps": '60 s', "target_rir": 'wg tygodnia', "rest": '60 s', "tempo": None, "coach_note": 'Brzuch 2× w tygodniu na końcu treningu albo w dni nietreningowe; wybierz zestaw 1 LUB 2.', "progression": 'PRG-TIME', "video": 'https://www.youtube.com/shorts/xe2MXatLTUw'},
+        {"day": '1. Wytyczne tygodnia', "order": 5, "exercise": 'Brzuch — zestaw 1: podciąganie podudzi', "sets": '3', "reps": '20', "target_rir": 'wg tygodnia', "rest": '60 s', "tempo": None, "coach_note": None, "progression": 'PRG-TIME', "video": 'https://www.youtube.com/shorts/UqmbxvOgnX4'},
+        {"day": '1. Wytyczne tygodnia', "order": 6, "exercise": 'Brzuch — zestaw 2: spięcia brzucha (crunch)', "sets": '3', "reps": '20', "target_rir": 'wg tygodnia', "rest": '60 s', "tempo": None, "coach_note": None, "progression": 'PRG-TIME', "video": 'https://www.youtube.com/shorts/ZKw4t23ERuw'},
+        {"day": '1. Wytyczne tygodnia', "order": 7, "exercise": 'Brzuch — zestaw 2: allahy (spięcia klęcząc przy wyciągu)', "sets": '3', "reps": '20/15/12', "target_rir": 'wg tygodnia', "rest": '60 s', "tempo": None, "coach_note": None, "progression": 'PRG-TIME', "video": 'https://www.youtube.com/shorts/6h5lq-b8LCU'},
+        {"day": '2. Push', "order": 1, "exercise": 'Wyciskanie hantli na ławce skośnej dodatniej', "sets": '2–3', "reps": '8-6 / 8-6 / +back-off', "target_rir": 'wg tygodnia', "rest": '120–180 s', "tempo": None, "coach_note": 'Ostatnia seria back-off: -25% ciężaru, do upadku (tydz. 6–7).', "progression": 'PRG-RIR-CYKL', "video": 'https://www.youtube.com/shorts/S3mIwrSW-f4'},
+        {"day": '2. Push', "order": 2, "exercise": 'Hammer chest press', "sets": '3', "reps": '12-10 / 8-6 / 8-6', "target_rir": 'wg tygodnia', "rest": '120–180 s', "tempo": None, "coach_note": None, "progression": 'PRG-RIR-CYKL', "video": 'https://www.youtube.com/shorts/Qu7-ceCvq7w'},
+        {"day": '2. Push', "order": 3, "exercise": 'Butterfly', "sets": '2', "reps": '15-12 / 12-10', "target_rir": 'wg tygodnia', "rest": '120–180 s', "tempo": None, "coach_note": None, "progression": 'PRG-RIR-CYKL', "video": 'https://www.youtube.com/shorts/qTxF0PhK294'},
+        {"day": '2. Push', "order": 4, "exercise": 'Wznosy bokiem (lateral raise)', "sets": '2–3', "reps": '12-10 / 10-8 / +back-off', "target_rir": 'wg tygodnia', "rest": '120–180 s', "tempo": None, "coach_note": None, "progression": 'PRG-RIR-CYKL', "video": 'https://www.youtube.com/shorts/iK22GwXJji0'},
+        {"day": '2. Push', "order": 5, "exercise": 'Arnold press', "sets": '2', "reps": '12-10 / 10-8', "target_rir": 'wg tygodnia', "rest": '120–180 s', "tempo": None, "coach_note": None, "progression": 'PRG-RIR-CYKL', "video": 'https://www.youtube.com/shorts/YvUbI5wbxr4'},
+        {"day": '2. Push', "order": 6, "exercise": 'Uginanie hantli na ławce skośnej (incline curl)', "sets": '2–3', "reps": '12-10 / 10-8 / +back-off', "target_rir": 'wg tygodnia', "rest": '120–180 s', "tempo": None, "coach_note": None, "progression": 'PRG-RIR-CYKL', "video": 'https://www.youtube.com/shorts/iwyO2nJuG5Y'},
+        {"day": '2. Push', "order": 7, "exercise": 'Modlitewnik', "sets": '2', "reps": '12-10 / 10-8', "target_rir": 'wg tygodnia', "rest": '120–180 s', "tempo": None, "coach_note": None, "progression": 'PRG-RIR-CYKL', "video": 'https://www.youtube.com/shorts/7ixqAPO6JvU'},
+        {"day": '3. Pull', "order": 1, "exercise": 'Ściąganie drążka z podparciem klatki (lat pulldown chest supported)', "sets": '3', "reps": '12-10 / 10-8 / 10-8', "target_rir": 'wg tygodnia', "rest": '120–180 s', "tempo": None, "coach_note": None, "progression": 'PRG-RIR-CYKL', "video": 'https://www.youtube.com/watch?v=Qed5O9toqT8'},
+        {"day": '3. Pull', "order": 2, "exercise": 'Wiosłowanie hantlem jednorącz', "sets": '2–3', "reps": '8-6 / 8-6 / +back-off', "target_rir": 'wg tygodnia', "rest": '120–180 s', "tempo": None, "coach_note": None, "progression": 'PRG-RIR-CYKL', "video": 'https://www.youtube.com/shorts/bY3UIv9My9s'},
+        {"day": '3. Pull', "order": 3, "exercise": 'Wiosłowanie jednorącz z podparciem klatki (cable low / hammer row)', "sets": '3–4', "reps": '12-10 / 8-6 / 8-6 / +back-off', "target_rir": 'wg tygodnia', "rest": '120–180 s', "tempo": None, "coach_note": 'Łopatkę wbijaj, łokieć prowadź w dół; pochyl się w przód i nie odginaj do tyłu.', "progression": 'PRG-RIR-CYKL', "video": 'https://www.youtube.com/watch?v=0pGi67ADMRg'},
+        {"day": '3. Pull', "order": 4, "exercise": 'Ściąganie drążka nachwytem', "sets": '2', "reps": '12-10 / 8-10', "target_rir": 'wg tygodnia', "rest": '120–180 s', "tempo": None, "coach_note": None, "progression": 'PRG-RIR-CYKL', "video": 'https://www.youtube.com/shorts/5s6KGLTMgoI'},
+        {"day": '3. Pull', "order": 5, "exercise": 'Face pull', "sets": '2–3', "reps": '15-12 / 12-10 / +back-off', "target_rir": 'wg tygodnia', "rest": '120–180 s', "tempo": None, "coach_note": None, "progression": 'PRG-RIR-CYKL', "video": 'https://www.youtube.com/shorts/IeOqdw9WI90'},
+        {"day": '3. Pull', "order": 6, "exercise": 'Prostowanie ramion z liną (long rope extensions)', "sets": '2–3', "reps": '15-12 / 12-10 / +back-off', "target_rir": 'wg tygodnia', "rest": '120–180 s', "tempo": None, "coach_note": None, "progression": 'PRG-RIR-CYKL', "video": 'https://www.youtube.com/shorts/u36jNfqh8_U'},
+        {"day": '3. Pull', "order": 7, "exercise": 'Wyciskanie francuskie hantlami', "sets": '3', "reps": '12-10 / 10-8 / 8-6', "target_rir": 'wg tygodnia', "rest": '120–180 s', "tempo": None, "coach_note": None, "progression": 'PRG-RIR-CYKL', "video": 'https://www.youtube.com/shorts/QDCdW1FNRBA'},
+        {"day": '4. Legs', "order": 1, "exercise": 'Prostowanie nóg na maszynie', "sets": '2', "reps": '12-10 / 8-10', "target_rir": 'wg tygodnia', "rest": '120–180 s', "tempo": None, "coach_note": None, "progression": 'PRG-RIR-CYKL', "video": 'https://www.youtube.com/shorts/uM86QE59Tgc'},
+        {"day": '4. Legs', "order": 2, "exercise": 'Przysiad high bar', "sets": '3', "reps": '12-10 / 8-6 / 8-6', "target_rir": 'wg tygodnia', "rest": '150–220 s', "tempo": None, "coach_note": 'Do potwierdzenia z trenerem, czy wykonujesz przysiad — alternatywnie sama suwnica.', "progression": 'PRG-RIR-CYKL', "video": 'https://www.youtube.com/shorts/dW3zj79xfrc'},
+        {"day": '4. Legs', "order": 3, "exercise": 'Suwnica', "sets": '2–3', "reps": '8-6 / 8-6 / +back-off', "target_rir": 'wg tygodnia', "rest": '120–180 s', "tempo": None, "coach_note": None, "progression": 'PRG-RIR-CYKL', "video": 'https://www.youtube.com/shorts/EotSw18oR9w'},
+        {"day": '4. Legs', "order": 4, "exercise": 'Wykroki chodzone', "sets": '3', "reps": '12-10 / 10-8 / 10-8', "target_rir": 'wg tygodnia', "rest": '120–180 s', "tempo": None, "coach_note": None, "progression": 'PRG-RIR-CYKL', "video": 'https://www.youtube.com/shorts/f7Aw2yiqmVs'},
+        {"day": '4. Legs', "order": 5, "exercise": 'Uginanie nóg na maszynie', "sets": '2', "reps": '12-10 / 10-8', "target_rir": 'wg tygodnia', "rest": '120–180 s', "tempo": None, "coach_note": None, "progression": 'PRG-RIR-CYKL', "video": 'https://www.youtube.com/shorts/_lgE0gPvbik'},
+        {"day": '4. Legs', "order": 6, "exercise": 'Wspięcia na palce (calf raises)', "sets": '3', "reps": '20-18 / 18-15 / 15-12', "target_rir": 'wg tygodnia', "rest": '90–120 s', "tempo": None, "coach_note": None, "progression": 'PRG-RIR-CYKL', "video": 'https://www.youtube.com/shorts/wdOkFomQNp8'},
+        {"day": '5. Push II', "order": 1, "exercise": 'Wyciskanie na barki na maszynie Smitha', "sets": '3', "reps": '12-10 / 8-6 / 8-6', "target_rir": 'wg tygodnia', "rest": '120–180 s', "tempo": None, "coach_note": None, "progression": 'PRG-RIR-CYKL', "video": 'https://www.youtube.com/shorts/E7ngsffMPR0'},
+        {"day": '5. Push II', "order": 2, "exercise": 'Wznosy bokiem leżąc', "sets": '2–3', "reps": '15-12 / 12-10 / +back-off', "target_rir": 'wg tygodnia', "rest": '120–180 s', "tempo": None, "coach_note": None, "progression": 'PRG-RIR-CYKL', "video": 'https://www.youtube.com/shorts/JQFH5yheIaU'},
+        {"day": '5. Push II', "order": 3, "exercise": 'Wyciskanie na klatkę na maszynie Smitha', "sets": '3', "reps": '12-10 / 8-6 / 8-6', "target_rir": 'wg tygodnia', "rest": '120–180 s', "tempo": None, "coach_note": None, "progression": 'PRG-RIR-CYKL', "video": 'https://www.youtube.com/shorts/gQ3afio08V8'},
+        {"day": '5. Push II', "order": 4, "exercise": 'Rozpiętki stojąc na bramie (standing chest fly)', "sets": '2–3', "reps": '12-10 / 10-8 / +back-off', "target_rir": 'wg tygodnia', "rest": '120–180 s', "tempo": None, "coach_note": None, "progression": 'PRG-RIR-CYKL', "video": 'https://www.youtube.com/shorts/I-Ue34qLxc4'},
+        {"day": '5. Push II', "order": 5, "exercise": 'Unoszenie liny przodem (front rope raise)', "sets": '2–3', "reps": '12-10 / 10-8 / +back-off', "target_rir": 'wg tygodnia', "rest": '120–180 s', "tempo": None, "coach_note": None, "progression": 'PRG-RIR-CYKL', "video": 'https://www.youtube.com/shorts/nWMmjOm25mc'},
+        {"day": '5. Push II', "order": 6, "exercise": 'Prostowanie ramienia zza głowy z hantlem', "sets": '2', "reps": '10-12 / 8-10', "target_rir": 'wg tygodnia', "rest": '120–180 s', "tempo": None, "coach_note": None, "progression": 'PRG-RIR-CYKL', "video": 'https://www.youtube.com/shorts/zEEVymXq6c4'},
+        {"day": '5. Push II', "order": 7, "exercise": 'Uginanie ramion na wyciągu z rączką D', "sets": '2', "reps": '12-10 / 8-10', "target_rir": 'wg tygodnia', "rest": '120–180 s', "tempo": None, "coach_note": None, "progression": 'PRG-RIR-CYKL', "video": 'https://www.youtube.com/watch?v=soiKUs_iRdY'},
+    ],
+    "TPL-026": [
+        {"day": '1. Wytyczne tygodnia', "order": 1, "exercise": 'Mobility przed treningiem (cały zestaw)', "sets": '1', "reps": 'wg nagrania', "target_rir": 'wg tygodnia', "rest": None, "tempo": None, "coach_note": 'Zawsze przed treningiem.', "progression": 'PRG-TIME', "video": 'https://www.youtube.com/watch?v=KsG5DICGcWo'},
+        {"day": '1. Wytyczne tygodnia', "order": 2, "exercise": 'Mobility odcinka lędźwiowego — zestaw 1', "sets": '1', "reps": '3×10 na stronę', "target_rir": 'wg tygodnia', "rest": None, "tempo": None, "coach_note": 'Przed każdym treningiem.', "progression": 'PRG-TIME', "video": 'https://www.youtube.com/shorts/wZVdqBBnZWQ'},
+        {"day": '1. Wytyczne tygodnia', "order": 3, "exercise": 'Mobility odcinka lędźwiowego — zestaw 2', "sets": '1', "reps": '10 na stronę / ćwiczenie', "target_rir": 'wg tygodnia', "rest": None, "tempo": None, "coach_note": None, "progression": 'PRG-TIME', "video": 'https://www.youtube.com/shorts/l9X5QlLOTks'},
+        {"day": '1. Wytyczne tygodnia', "order": 4, "exercise": 'Aktywacja core: deska', "sets": '3', "reps": '60 s', "target_rir": 'wg tygodnia', "rest": '60 s', "tempo": None, "coach_note": 'Przed każdym treningiem — deska ALBO dead bug.', "progression": 'PRG-TIME', "video": 'https://www.youtube.com/shorts/xe2MXatLTUw'},
+        {"day": '1. Wytyczne tygodnia', "order": 5, "exercise": 'Aktywacja core: dead bug', "sets": '3', "reps": '20 na nogę', "target_rir": 'wg tygodnia', "rest": '60 s', "tempo": None, "coach_note": None, "progression": 'PRG-TIME', "video": 'https://www.youtube.com/watch?v=AIuf6LGHUJ8'},
+        {"day": '1. Wytyczne tygodnia', "order": 6, "exercise": 'Cardio po treningu', "sets": 'po każdym treningu', "reps": '15 min', "target_rir": 'wg tygodnia', "rest": None, "tempo": None, "coach_note": None, "progression": 'PRG-TIME', "video": None},
+        {"day": '1. Wytyczne tygodnia', "order": 7, "exercise": 'Kroki', "sets": 'codziennie', "reps": '7000', "target_rir": 'wg tygodnia', "rest": None, "tempo": None, "coach_note": 'Cardio nie wlicza się w kroki.', "progression": 'PRG-TIME', "video": None},
+        {"day": '2. FBW A', "order": 1, "exercise": 'Wykroki statyczne', "sets": '2', "reps": '12-10 / 10-8', "target_rir": 'wg tygodnia', "rest": '120–180 s', "tempo": None, "coach_note": None, "progression": 'PRG-RIR-CYKL', "video": 'https://www.youtube.com/shorts/mJilHWIBWO8'},
+        {"day": '2. FBW A', "order": 2, "exercise": 'Ściąganie drążka do klatki', "sets": '2', "reps": '12-10 / 10-8', "target_rir": 'wg tygodnia', "rest": '120–180 s', "tempo": None, "coach_note": None, "progression": 'PRG-RIR-CYKL', "video": 'https://www.youtube.com/shorts/bNmvKpJSWKM'},
+        {"day": '2. FBW A', "order": 3, "exercise": 'Wyciskanie hantli leżąc', "sets": '2', "reps": '12-10 / 10-8', "target_rir": 'wg tygodnia', "rest": '120–180 s', "tempo": None, "coach_note": None, "progression": 'PRG-RIR-CYKL', "video": 'https://www.youtube.com/shorts/2AopA8XXMDw'},
+        {"day": '2. FBW A', "order": 4, "exercise": 'Wznosy bokiem', "sets": '2', "reps": '15-12 / 12-10', "target_rir": 'wg tygodnia', "rest": '120–180 s', "tempo": None, "coach_note": None, "progression": 'PRG-RIR-CYKL', "video": 'https://www.youtube.com/shorts/iK22GwXJji0'},
+        {"day": '2. FBW A', "order": 5, "exercise": 'Uginanie ramion ze sztangą stojąc', "sets": '2', "reps": '12-10 / 10-8', "target_rir": 'wg tygodnia', "rest": '120–180 s', "tempo": None, "coach_note": None, "progression": 'PRG-RIR-CYKL', "video": 'https://www.youtube.com/shorts/54x2WF1_Suc'},
+        {"day": '2. FBW A', "order": 6, "exercise": 'Prostowanie ramion z warkoczem', "sets": '2', "reps": '12-10 / 10-8', "target_rir": 'wg tygodnia', "rest": '120–180 s', "tempo": None, "coach_note": None, "progression": 'PRG-RIR-CYKL', "video": 'https://www.youtube.com/shorts/4NWWB0f0vzQ'},
+        {"day": '3. FBW B', "order": 1, "exercise": 'Glute bridge', "sets": '3', "reps": '12-10 / 10-8 / 10-8', "target_rir": 'wg tygodnia', "rest": '120–180 s', "tempo": None, "coach_note": None, "progression": 'PRG-RIR-CYKL', "video": 'https://www.youtube.com/shorts/DrZdxtfEgik'},
+        {"day": '3. FBW B', "order": 2, "exercise": 'Ściąganie do brzucha rączką V', "sets": '2', "reps": '12-10 / 10-8', "target_rir": 'wg tygodnia', "rest": '120–180 s', "tempo": None, "coach_note": None, "progression": 'PRG-RIR-CYKL', "video": 'https://www.youtube.com/shorts/qD1WZ5pSuvk'},
+        {"day": '3. FBW B', "order": 3, "exercise": 'Wyciskanie hantli na skosie dodatnim', "sets": '2', "reps": '12-10 / 10-8', "target_rir": 'wg tygodnia', "rest": '120–180 s', "tempo": None, "coach_note": None, "progression": 'PRG-RIR-CYKL', "video": 'https://www.youtube.com/shorts/8fXfwG4ftaQ'},
+        {"day": '3. FBW B', "order": 4, "exercise": 'Wyciskanie na barki siedząc', "sets": '2', "reps": '12-10 / 10-8', "target_rir": 'wg tygodnia', "rest": '120–180 s', "tempo": None, "coach_note": None, "progression": 'PRG-RIR-CYKL', "video": 'https://www.youtube.com/shorts/t0rDU50nZpA'},
+        {"day": '3. FBW B', "order": 5, "exercise": 'Wyprosty ramion hantlami leżąc', "sets": '2', "reps": '15-12 / 12-10', "target_rir": 'wg tygodnia', "rest": '120–180 s', "tempo": None, "coach_note": None, "progression": 'PRG-RIR-CYKL', "video": 'https://www.youtube.com/shorts/XqqEEBKYv-0'},
+        {"day": '3. FBW B', "order": 6, "exercise": 'Uginanie hantli na ławce skośnej (incline curl)', "sets": '2', "reps": '15-12 / 12-10', "target_rir": 'wg tygodnia', "rest": '120–180 s', "tempo": None, "coach_note": None, "progression": 'PRG-RIR-CYKL', "video": 'https://www.youtube.com/shorts/fXFN8_1Bh6k'},
+        {"day": '4. FBW C', "order": 1, "exercise": 'Suwnica', "sets": '2', "reps": '12-10 / 10-8', "target_rir": 'wg tygodnia', "rest": '120–180 s', "tempo": None, "coach_note": None, "progression": 'PRG-RIR-CYKL', "video": 'https://www.youtube.com/shorts/EotSw18oR9w'},
+        {"day": '4. FBW C', "order": 2, "exercise": 'Wiosłowanie hantlem jednorącz', "sets": '2', "reps": '12-10 / 10-8', "target_rir": 'wg tygodnia', "rest": '120–180 s', "tempo": None, "coach_note": None, "progression": 'PRG-RIR-CYKL', "video": 'https://www.youtube.com/shorts/jpi4reqwiKY'},
+        {"day": '4. FBW C', "order": 3, "exercise": 'Butterfly', "sets": '2', "reps": '12-10 / 10-8', "target_rir": 'wg tygodnia', "rest": '120–180 s', "tempo": None, "coach_note": None, "progression": 'PRG-RIR-CYKL', "video": 'https://www.youtube.com/shorts/a9vQ_hwIksU'},
+        {"day": '4. FBW C', "order": 4, "exercise": 'Arnold press', "sets": '2', "reps": '12-10 / 10-8', "target_rir": 'wg tygodnia', "rest": '120–180 s', "tempo": None, "coach_note": None, "progression": 'PRG-RIR-CYKL', "video": 'https://www.youtube.com/shorts/YvUbI5wbxr4'},
+        {"day": '4. FBW C', "order": 5, "exercise": 'Prostowanie ramion z warkoczem zza głowy', "sets": '2', "reps": '12-10 / 10-8', "target_rir": 'wg tygodnia', "rest": '120–180 s', "tempo": None, "coach_note": None, "progression": 'PRG-RIR-CYKL', "video": 'https://www.youtube.com/shorts/9Ark9S11uXw'},
+        {"day": '4. FBW C', "order": 6, "exercise": 'Modlitewnik', "sets": '2', "reps": '12-10 / 10-8', "target_rir": 'wg tygodnia', "rest": '120–180 s', "tempo": None, "coach_note": None, "progression": 'PRG-RIR-CYKL', "video": 'https://www.youtube.com/shorts/7ixqAPO6JvU'},
+    ],
+
 }
 

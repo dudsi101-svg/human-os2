@@ -870,6 +870,23 @@ MIGRATIONS: list[tuple[int, str, list[str]]] = [
     ]),
 ]
 
+MIGRATIONS.append(
+    (27, "szablony diety trenera (nutrition_templates)", [
+        # Addytywna: nowa tabela, żadna istniejąca ścieżka jej nie czyta.
+        (
+            "CREATE TABLE IF NOT EXISTS nutrition_templates ("
+            " id VARCHAR(40) PRIMARY KEY,"
+            " coach_id VARCHAR(40) NOT NULL REFERENCES users(id),"
+            " title VARCHAR(300) NOT NULL,"
+            " content_json TEXT NOT NULL,"
+            " created_at VARCHAR(40) NOT NULL,"
+            " updated_at VARCHAR(40) NOT NULL)"
+        ),
+        "CREATE INDEX IF NOT EXISTS ix_nutrition_templates_coach"
+        " ON nutrition_templates (coach_id)",
+    ])
+)
+
 
 def run_migrations(target_engine=None) -> list[int]:
     eng = target_engine or engine

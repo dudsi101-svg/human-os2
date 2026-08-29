@@ -1,5 +1,33 @@
 # Changelog — Dzik OS
 
+## 0.54.0 — 2026-08-29
+
+**Autorskie szablony trenera + zakładka „Dieta" w Szablonach.**
+
+* Właściciel dostarczył trzy autorskie materiały trenera (dwa plany
+  treningowe i dietę w PPTX) — do aplikacji weszły w wersjach
+  ZANONIMIZOWANYCH (bez imion klientów, osobistych wtrętów i cudzego
+  makra).
+* Trening: TPL-025 „Push/Pull/Legs + Push II — Etap I" i TPL-026
+  „FBW A/B/C — pierwsze 5 tygodni" we wbudowanym katalogu; jednostki
+  z linkami do techniki (`Unit.video` → `video_url` w treści planu —
+  dotąd katalog zawsze dawał None); wytyczne tygodnia (mobility,
+  cardio, kroki, brzuch) jako dzień „1. Wytyczne tygodnia"; nowy model
+  progresji `PRG-RIR-CYKL` (periodyzacja RIR/RPE 8 tygodni).
+* Dieta — nowy byt: tabela `nutrition_templates` (migracja 27,
+  addytywna), wbudowany katalog z „Dieta — Etap I (autorska)":
+  4 posiłki z opcjami wymiennymi, sekcje (jak korzystać / proporcje /
+  dodatkowe pomysły / ściągi zamienników 1:1 / suplementacja jako
+  tekst), makro celowo puste — ustawia je trener przy kopiowaniu.
+  Router: katalog → dodaj-do-moich → CRUD moich → `copy-to/{client}`
+  (dieta klienta v1 istniejącą ścieżką; kopia niezależna od szablonu).
+* Frontend: ekran Szablony z zakładkami „Trening"/„Dieta"; w karcie
+  klienta (Dieta) karta „Z szablonu" z jawnym ustawieniem makro.
+* Testy: 4 nowe (katalog/import, kopiowanie + niezależność kopii,
+  izolacja między trenerami, usunięcie bez wpływu na diety klientów),
+  macierz dostępów rozszerzona o 7 tras; E2E: zakładka Dieta + import
+  + podgląd (21/21).
+
 ## 0.53.13 — 2026-08-29
 
 **Awaryjny reset hasła bez SMTP — właściciel nie może zostać zamknięty

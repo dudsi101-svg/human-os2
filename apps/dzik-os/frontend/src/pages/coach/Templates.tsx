@@ -5,6 +5,7 @@ import { ErrorBox, SheetImportPanel, Spinner, TopBar } from "../../components";
 import { TrainingPlan } from "../../types";
 import BuiltinTemplates from "./BuiltinTemplates";
 import PlanEditor from "./PlanEditor";
+import DietTemplatesTab from "./DietTemplates";
 
 export default function Templates() {
   const [templates, setTemplates] = useState<TrainingPlan[] | null>(null);
@@ -19,12 +20,28 @@ export default function Templates() {
   };
   useEffect(load, []);
 
+  // Zakładka Dieta (0.54.0): szablony diety żyją obok treningowych —
+  // jeden ekran „Szablony", dwie zakładki, wybór trzymany lokalnie.
+  const [tab, setTab] = useState<"TRENING" | "DIETA">("TRENING");
+
   if (error) return <div className="page"><ErrorBox error={error} onRetry={load} /></div>;
   if (!templates) return <div className="page"><Spinner /></div>;
 
   return (
     <div className="page page--wide">
-      <TopBar title="Szablony planów" />
+      <TopBar title="Szablony" />
+      <div className="row" role="tablist" aria-label="Rodzaj szablonów"
+        style={{ gap: 6, marginBottom: 12 }}>
+        {(["TRENING", "DIETA"] as const).map((k) => (
+          <button key={k} type="button" role="tab" aria-selected={tab === k}
+            className={`btn btn--small ${tab === k ? "" : "btn--ghost"}`}
+            onClick={() => setTab(k)}>
+            {k === "TRENING" ? "Trening" : "Dieta"}
+          </button>
+        ))}
+      </div>
+      {tab === "DIETA" && <DietTemplatesTab />}
+      {tab === "TRENING" && (<>
       {!creating && (
         <AddTemplate onManual={() => setCreating(true)} onImported={load} />
       )}
@@ -55,6 +72,7 @@ export default function Templates() {
           </small>
         </div>
       ))}
+      </>)}
     </div>
   );
 }

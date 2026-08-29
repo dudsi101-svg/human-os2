@@ -1,6 +1,6 @@
 # Stan przekazania — przeczytaj przed rozpoczęciem rundy
 
-**Aktualizacja:** 2026-08-29 · **Wersja w `main`:** 0.53.13
+**Aktualizacja:** 2026-08-29 · **Wersja w `main`:** 0.54.0
 **Tryb pracy:** jeden piszący i jeden PR `[WRITER]` naraz
 (`KOORDYNACJA.md`, zasada nadrzędna).
 
@@ -33,7 +33,14 @@ pierwszy commit, draft PR `[WRITER]`, reszta agentów read-only.
 jednym prawdziwym klientem, **NO-GO na szerszą produkcję** — siedem
 blokerów wypisanych w §5 tamtego dokumentu.
 
-**Ostatnia runda (0.53.13, gałąź `agent/reset-hasla-awaryjny`):**
+**Ostatnia runda (0.54.0, gałąź `agent/szablony-trenera`):**
+autorskie szablony trenera z materiałów właściciela (zanonimizowane):
+TPL-025/026 w katalogu treningowym (z wideo) + NOWY byt szablonów
+diety (migracja 27, katalog „Dieta — Etap I", zakładka „Dieta"
+w Szablonach, „Z szablonu" w karcie klienta). Po deployu Łukasz
+w Szablonach → zakładki: Trening (schematy TPL-025/026 w „Weź gotowy
+schemat") i Dieta („Dodaj do moich").
+**Runda 0.53.13 (`agent/reset-hasla-awaryjny`):**
 awaryjny reset hasła bez SMTP (moduł `resetuj_haslo` + workflow
 „Reset hasła (Fly.io)” z artefaktem 1-dniowym) — zbudowany na żywo,
 gdy właściciel i trener nie mogli się zalogować po wygaśnięciu
