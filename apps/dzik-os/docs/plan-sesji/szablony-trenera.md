@@ -72,5 +72,5 @@ ustawia per klient). Imiona klientów nie pojawiają się nigdzie w repo.
   „Dodaj do moich" z katalogu, podgląd z posiłkami i ściągą
   zamienników. To jest uruchomienie na żywo tej rundy (ta sama
   ścieżka serwowania co produkcja).
-- Anonimizacja zweryfikowana grepem: imiona z plików źródłowych
-  (Dominik/Bartek/Bartosz) nie występują nigdzie w repo.
+- Anonimizacja zweryfikowana grepem: imiona klientów z plików źródłowych
+  nie występują w kodzie, danych ani dokumentacji aplikacji.
