@@ -1,6 +1,6 @@
 # Stan wydania — Dzik OS
 
-**Wersja:** 0.54.0 · **Data:** 2026-08-29 · **Środowisko:** produkcja
+**Wersja:** 0.54.1 · **Data:** 2026-08-29 · **Środowisko:** produkcja
 (pilotaż) — https://dzik-os-panel.fly.dev
 
 Jedna strona prawdy o tym, co DZIAŁA na produkcji teraz. Aktualizowana
@@ -23,11 +23,13 @@ z oczekiwanymi. Ręczny deploy: tylko awaryjnie (`workflow_dispatch`).
 
 | Konto | Rola | Stan |
 |---|---|---|
-| lubelskidzikk@gmail.com | COACH (trener — Łukasz) | aktywne; 1. logowanie wymusza zmianę hasła + MFA |
+| lubelskidzikk@gmail.com | COACH (trener — Łukasz) | aktywne; 1. logowanie wymusza zmianę hasła (MFA opcjonalne na pilotaż) |
 | dudsi101+admin@gmail.com | ADMIN (właściciel) | jw. |
 | dudsi101+trener@gmail.com | COACH (konto testowe właściciela) | jw. |
 | dudsi101@gmail.com | CLIENT (właściciel jako podopieczny) | aktywne |
 | 7 kont demo sprzed pilotażu | — | zdezaktywowane (SUSPENDED, losowy hash) |
+
+**Logowanie (pilotaż, decyzja właściciela 29.08):** login + hasło; wymuszanie MFA zdjęte (`DZIK_MFA_REQUIRED_ROLES=""`), MFA dostępne opt-in; przywrócenie przymusu = wpisanie `"COACH,ADMIN"` w fly.toml. Reset operatorski hasła czyści też TOTP (konto wraca do logowania hasłem).
 
 Hasła startowe: wyłącznie artefakty Actions ważne 1 dzień; po terminie —
 workflow **„Reset hasła (Fly.io)”** (świeże hasło jednorazowe dla

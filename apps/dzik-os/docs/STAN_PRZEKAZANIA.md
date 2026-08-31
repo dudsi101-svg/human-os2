@@ -1,6 +1,6 @@
 # Stan przekazania — przeczytaj przed rozpoczęciem rundy
 
-**Aktualizacja:** 2026-08-29 · **Wersja w `main`:** 0.54.0
+**Aktualizacja:** 2026-08-29 · **Wersja w `main`:** 0.54.1
 **Tryb pracy:** jeden piszący i jeden PR `[WRITER]` naraz
 (`KOORDYNACJA.md`, zasada nadrzędna).
 
@@ -33,7 +33,12 @@ pierwszy commit, draft PR `[WRITER]`, reszta agentów read-only.
 jednym prawdziwym klientem, **NO-GO na szerszą produkcję** — siedem
 blokerów wypisanych w §5 tamtego dokumentu.
 
-**Ostatnia runda (0.54.0, gałąź `agent/szablony-trenera`):**
+**Ostatnia runda (0.54.1, gałąź `agent/pilotaz-bez-mfa`):**
+decyzja właściciela (29.08): pilotaż na loginie i haśle — wymuszanie
+MFA zdjęte (`DZIK_MFA_REQUIRED_ROLES=""` w fly.toml; przywrócenie =
+`"COACH,ADMIN"`); reset operatorski czyści też TOTP. Konta z już
+ustawionym MFA sprowadza do hasła workflow „Reset hasła".
+**Runda 0.54.0 (`agent/szablony-trenera`):**
 autorskie szablony trenera z materiałów właściciela (zanonimizowane):
 TPL-025/026 w katalogu treningowym (z wideo) + NOWY byt szablonów
 diety (migracja 27, katalog „Dieta — Etap I", zakładka „Dieta"

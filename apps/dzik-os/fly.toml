@@ -22,6 +22,9 @@ primary_region = "fra"   # Frankfurt (najbliższy region Fly dla Polski)
   DZIK_ENV = "production"
   # Skala pilotażu (decyzja właściciela 25.08): maks. 10 podopiecznych.
   DZIK_MAX_CLIENTS = "10"
+  # Pilotaż (decyzja właściciela 2026-08-29): logowanie samym hasłem —
+  # wymuszanie MFA zdjęte. Przywrócenie po pilotażu: "COACH,ADMIN".
+  DZIK_MFA_REQUIRED_ROLES = ""
   # Publiczny adres aplikacji — z niego budują się linki w e-mailach
   # (aktywacja konta nowego klienta, reset hasła). Bez tej zmiennej link
   # powstaje z request.base_url, czyli za proxy Fly jako http://.

@@ -44,3 +44,18 @@ to jedna zmienna środowiskowa.
 ## Weryfikacja (do wypełnienia)
 
 - bramki pełne; test resetu z TOTP na żywo w izolowanym środowisku.
+
+## Weryfikacja (wykonana)
+
+- `ruff` — czysto; backend **865 passed, 1 skipped** (2 nowe testy
+  MFA/resetu + naprawiona bomba zegarowa w test_checkins: WEEK był
+  zapisany na sztywno „2026-08-24" i dziś — w poniedziałek 31.08 —
+  zderzył się z seedowym raportem poprzedniego tygodnia; teraz WEEK
+  to dynamiczny bieżący poniedziałek); Core **275**; spójność czysto
+  (13 kontroli); frontend tsc/build w budżecie; **E2E 21/21**.
+- Uruchomienie na żywo (izolowane środowisko z seedem,
+  `DZIK_MFA_REQUIRED_ROLES=""`): login trenera hasłem → token od razu,
+  `mfa_required: False`, `mfa_setup_required: False` — dokładnie
+  zachowanie zamówione przez właściciela.
+- Produkcję przestawi deploy tej rundy (fly.toml); konta z już
+  skonfigurowanym MFA sprowadza do hasła workflow „Reset hasła".
