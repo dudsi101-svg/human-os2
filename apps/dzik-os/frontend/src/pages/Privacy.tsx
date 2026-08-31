@@ -87,8 +87,9 @@ export default function Privacy() {
 
         <div className="card landing-card privacy__blok">
           <h2>6. Bezpieczeństwo, cookies, małoletni</h2>
-          <p>Połączenie jest szyfrowane (HTTPS), konta trenera i admina
-          mają obowiązkową weryfikację dwuetapową, dostęp do danych
+          <p>Połączenie jest szyfrowane (HTTPS), konta mogą włączyć
+          weryfikację dwuetapową (na czas pilotażu nieobowiązkową),
+          dostęp do danych
           wymaga aktywnej współpracy i zgody, a operacje na danych są
           rejestrowane w niemodyfikowalnym dzienniku audytu. Strona
           i aplikacja <b>nie używają ciasteczek marketingowych ani

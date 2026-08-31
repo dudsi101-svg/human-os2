@@ -1,5 +1,29 @@
 # Changelog — Dzik OS
 
+## 0.54.1 — 2026-08-29
+
+**Pilotaż na loginie i haśle — wymuszanie MFA zdjęte (decyzja
+właściciela).**
+
+* Logowanie okazało się zbyt czasochłonne na start pilotażu —
+  `fly.toml` ustawia `DZIK_MFA_REQUIRED_ROLES=""`: trener i admin
+  logują się samym hasłem, MFA pozostaje dostępne opcjonalnie
+  (mechanizm w kodzie nietknięty; przywrócenie przymusu =
+  `"COACH,ADMIN"`). Wymuszona zmiana jednorazowego hasła startowego
+  zostaje.
+* Reset operatorski (`resetuj_haslo` / workflow „Reset hasła") czyści
+  też TOTP i unieważnia kody zapasowe — konto z już skonfigurowanym
+  authenticatorem (albo z utraconym telefonem) wraca do logowania
+  hasłem jednym przebiegiem; fakt w zdarzeniu audytowym
+  (`mfa_cleared`).
+* Uczciwość dokumentów: `/prywatnosc` opisuje MFA jako dostępne
+  (na pilotaż nieobowiązkowe); RISK_REGISTER R-07 z datowaną decyzją
+  i rekomendacją przywrócenia przy >1 kliencie; RELEASE_STATUS
+  zaktualizowany.
+* 2 nowe testy (pusta lista ról = pełna sesja bez wyzwania; reset
+  czyści TOTP/kody, login bez MFA). Domyślne egzekwowanie w testach
+  bez zmian.
+
 ## 0.54.0 — 2026-08-29
 
 **Autorskie szablony trenera + zakładka „Dieta" w Szablonach.**

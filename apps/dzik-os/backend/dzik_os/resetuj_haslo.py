@@ -36,7 +36,7 @@ from .bootstrap import MIN_PASSWORD_LEN
 from .config import settings
 from .db import db_session, run_migrations
 from .hos_bridge import record_event
-from .models import User
+from .models import MfaRecoveryCode, User, now_iso
 from .security import hash_password, revoke_other_sessions
 
 
@@ -59,11 +59,26 @@ def resetuj_haslo(email: str, password: str) -> str:
             )
         user.password_hash = hash_password(password)
         user.must_change_password = True
+        # Reset operatorski przywraca konto do logowania hasłem: czyścimy
+        # TOTP i kody zapasowe (0.54.1) — inaczej konto z utraconym
+        # telefonem albo z MFA sprzed zdjęcia przymusu zostaje zamknięte.
+        # Jeśli rola ma MFA obowiązkowe, aplikacja i tak wymusi ponowną
+        # konfigurację przy pierwszym logowaniu.
+        mialo_mfa = user.totp_confirmed_at is not None
+        user.totp_secret = None
+        user.totp_confirmed_at = None
+        user.totp_last_counter = None
+        for kod in db.query(MfaRecoveryCode).filter(
+            MfaRecoveryCode.user_id == user.id,
+            MfaRecoveryCode.used_at.is_(None),
+        ):
+            kod.used_at = now_iso()
         uniewaznione = revoke_other_sessions(db, user.id, keep_token=None)
         record_event(
             db, action="PASSWORD_RESET_BY_OPERATOR", actor_id="resetuj_haslo",
             subject_ids=[user.id],
             payload={"sessions_revoked": uniewaznione,
+                     "mfa_cleared": mialo_mfa,
                      "delivery": "workflow_artifact"},
             summary=f"Awaryjny reset hasła startowego ({email}); "
             "unieważniono aktywne sesje",

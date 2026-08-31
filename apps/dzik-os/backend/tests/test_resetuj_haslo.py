@@ -60,3 +60,48 @@ def test_zdarzenie_audytowe_bez_tresci_hasla(seeded):
         surowe = _json.dumps(e, ensure_ascii=False)
         assert NOWE not in surowe
         assert e["payload"].get("sessions_revoked") is not None
+
+
+def test_pusta_lista_rol_wylacza_przymus_mfa(seeded, monkeypatch):
+    """Pilotaż (0.54.1): DZIK_MFA_REQUIRED_ROLES="" = logowanie samym
+    hasłem także dla trenera; MFA zostaje opcjonalne (disable dostępny)."""
+    from dzik_os.config import settings as cfg
+    monkeypatch.setattr(cfg, "mfa_required_roles", "")
+
+    from conftest import COACH
+    r = seeded.post("/api/auth/login", json=COACH)
+    assert r.status_code == 200, r.text
+    body = r.json()
+    # Pełna sesja od razu — bez wyzwania MFA i bez wymuszenia konfiguracji.
+    assert "token" in body and not body.get("mfa_required")
+    assert body["user"]["mfa_setup_required"] is False
+
+
+def test_reset_czysci_totp_i_kody_zapasowe(seeded, monkeypatch):
+    """Konto z już skonfigurowanym MFA po resecie operatorskim wraca do
+    logowania hasłem (0.54.1) — inaczej utrata telefonu zamyka konto."""
+    from dzik_os.db import db_session
+    from dzik_os.models import MfaRecoveryCode, User
+
+    # Symulujemy konto z aktywnym TOTP (bez przechodzenia pełnego setupu).
+    with db_session() as db:
+        u = db.query(User).filter(User.email == CLIENT_A["email"]).one()
+        u.totp_secret = "SEKRETTESTOWY234"
+        u.totp_confirmed_at = "2026-08-29T00:00:00Z"
+        db.add(MfaRecoveryCode(id="RC-TEST-1", user_id=u.id, code_hash="x" * 64))
+        db.commit()
+
+    resetuj_haslo(CLIENT_A["email"], NOWE)
+
+    with db_session() as db:
+        u = db.query(User).filter(User.email == CLIENT_A["email"]).one()
+        assert u.totp_secret is None and u.totp_confirmed_at is None
+        kody = db.query(MfaRecoveryCode).filter(
+            MfaRecoveryCode.user_id == u.id, MfaRecoveryCode.used_at.is_(None)
+        ).count()
+        assert kody == 0
+    # Login nowym hasłem: bez wyzwania MFA, od razu wymuszona zmiana hasła.
+    r = seeded.post("/api/auth/login",
+                    json={"email": CLIENT_A["email"], "password": NOWE})
+    assert r.status_code == 200, r.text
+    assert not r.json().get("mfa_required")

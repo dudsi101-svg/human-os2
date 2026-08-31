@@ -1,7 +1,14 @@
+# Tydzień inny niż raport z seedu (uniknięcie kolizji z REVIEWED).
+# Bieżący poniedziałek, nie data zapisana na sztywno: seed tworzy oceniony
+# raport klienta A dla POPRZEDNIEGO tygodnia, więc stała data koliduje
+# z nim raz na zawsze w tygodniu, w którym poprzedni tydzień == ta stała
+# (wykryte 2026-08-31, gdy poniedziałek-7 trafił w zapisane 2026-08-24).
+from datetime import UTC, datetime, timedelta
+
 from conftest import CLIENT_A, COACH, get_user_id, login
 
-# Tydzień inny niż raport z seedu (uniknięcie kolizji z REVIEWED).
-WEEK = "2026-08-24"
+_dzis = datetime.now(tz=UTC).date()
+WEEK = (_dzis - timedelta(days=_dzis.weekday())).isoformat()
 
 
 def _submit(client, headers, **overrides):
