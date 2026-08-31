@@ -1,6 +1,6 @@
 # Stan przekazania — przeczytaj przed rozpoczęciem rundy
 
-**Aktualizacja:** 2026-08-29 · **Wersja w `main`:** 0.54.1
+**Aktualizacja:** 2026-08-31 · **Wersja w `main`:** 0.54.2
 **Tryb pracy:** jeden piszący i jeden PR `[WRITER]` naraz
 (`KOORDYNACJA.md`, zasada nadrzędna).
 
@@ -33,7 +33,12 @@ pierwszy commit, draft PR `[WRITER]`, reszta agentów read-only.
 jednym prawdziwym klientem, **NO-GO na szerszą produkcję** — siedem
 blokerów wypisanych w §5 tamtego dokumentu.
 
-**Ostatnia runda (0.54.1, gałąź `agent/pilotaz-bez-mfa`):**
+**Ostatnia runda (0.54.2, gałąź `agent/dodaj-klienta`):**
+operatorskie konto podopiecznego (`dodaj_klienta` + workflow „Dodaj
+podopiecznego (Fly.io)" z artefaktem) — konto CLIENT z aktywną relacją
+do trenera jednym przebiegiem; użyte od razu dla konta testowego
+właściciela (dudsi101+klient).
+**Runda 0.54.1 (`agent/pilotaz-bez-mfa`):**
 decyzja właściciela (29.08): pilotaż na loginie i haśle — wymuszanie
 MFA zdjęte (`DZIK_MFA_REQUIRED_ROLES=""` w fly.toml; przywrócenie =
 `"COACH,ADMIN"`); reset operatorski czyści też TOTP. Konta z już

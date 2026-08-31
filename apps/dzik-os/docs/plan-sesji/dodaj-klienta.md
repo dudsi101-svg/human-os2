@@ -41,3 +41,14 @@ CLIENT z aktywną relacją do wskazanego trenera — lustrzane do
 
 - bramki pełne; moduł na żywo w izolowanym środowisku; po scaleniu
   uruchomienie workflow na produkcji dla konta właściciela.
+
+## Weryfikacja (wykonana)
+
+- `ruff` — czysto; backend **868 passed, 1 skipped** (3 nowe testy);
+  Core **275**; spójność czysto (13 kontroli — w tym przypięcie akcji
+  i workflow-injection dla nowego YAML); YAML zwalidowany.
+- Uruchomienie na żywo (izolowane środowisko z seedem): moduł założył
+  konto CLIENT z aktywną relacją do trenera, kod 0; imię ograniczone
+  do jednego słowa (spacja rozbiłaby argumenty `ssh -C`).
+- Po scaleniu: workflow uruchomiony na produkcji dla
+  dudsi101+klient@gmail.com → lubelskidzikk@gmail.com (patrz rozmowa).
