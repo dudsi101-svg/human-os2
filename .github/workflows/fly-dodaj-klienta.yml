@@ -1,0 +1,123 @@
+# Konto podopiecznego z zaplecza (0.54.2) — workflow_dispatch.
+#
+# Normalna ścieżka to zaproszenie z panelu trenera; ten workflow jest
+# na przypadki operatorskie (trener niedostępny, konto potrzebne od
+# ręki): tworzy konto CLIENT z AKTYWNĄ relacją do wskazanego trenera.
+#
+# Hasło: sekret repo DZIK_KLIENT_PASSWORD albo — gdy go brak —
+# wygenerowane (maskowane ::add-mask::, artefakt „haslo-klienta" ważny
+# 1 dzień). Droga jak w bootstrapie: chwilowy sekret Fly (env maszyny,
+# nigdy argv), kasowany po użyciu; pierwsze logowanie wymusza zmianę
+# hasła na własne.
+
+name: Dodaj podopiecznego (Fly.io)
+
+on:
+  workflow_dispatch:
+    inputs:
+      email:
+        description: "E-mail nowego konta podopiecznego"
+        required: true
+        default: "dudsi101+klient@gmail.com"
+      coach_email:
+        description: "E-mail trenera, do którego przypisać podopiecznego"
+        required: true
+        default: "lubelskidzikk@gmail.com"
+      name:
+        description: "Wyświetlane imię podopiecznego"
+        required: false
+        default: "Podopieczny"
+
+concurrency:
+  group: fly-maintenance
+  cancel-in-progress: false
+
+jobs:
+  dodaj:
+    runs-on: ubuntu-latest
+    env:
+      FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+      APP_NAME: dzik-os-panel
+      # Inputy WYŁĄCZNIE przez env (audyt P0-3): nigdy w bloku run.
+      KLIENT_EMAIL: ${{ inputs.email }}
+      COACH_EMAIL: ${{ inputs.coach_email }}
+      KLIENT_NAME: ${{ inputs.name }}
+    steps:
+      - name: Zwaliduj inputy (twarde wzorce — zero metaznaków powłoki)
+        run: |
+          for para in "$KLIENT_EMAIL" "$COACH_EMAIL"; do
+            if ! printf '%s' "$para" | grep -qE '^[A-Za-z0-9._+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$'; then
+              echo "::error::Input nie wygląda jak adres e-mail — odmowa."
+              exit 1
+            fi
+          done
+          if ! printf '%s' "$KLIENT_NAME" | grep -qE '^[A-Za-z0-9ąćęłńóśźżĄĆĘŁŃÓŚŹŻ._-]{1,60}$'; then
+            echo "::error::Imię: jedno słowo (litery/cyfry/._-), bez spacji — odmowa."
+            exit 1
+          fi
+
+      - name: Przygotuj hasło (sekret repo albo wygenerowane)
+        env:
+          KLIENT_PW: ${{ secrets.DZIK_KLIENT_PASSWORD }}
+        run: |
+          mkdir -p /tmp/hasla
+          if [ -n "$KLIENT_PW" ]; then
+            if [ ${#KLIENT_PW} -lt 12 ]; then
+              echo "::error::Hasło startowe musi mieć co najmniej 12 znaków."
+              exit 1
+            fi
+            printf '%s' "$KLIENT_PW" > /tmp/hasla/klient
+            echo "zrodlo=sekrety" >> "$GITHUB_ENV"
+          else
+            openssl rand -base64 18 | tr -d '\n' > /tmp/hasla/klient
+            echo "::add-mask::$(cat /tmp/hasla/klient)"
+            echo "zrodlo=wygenerowane" >> "$GITHUB_ENV"
+            echo "Sekretu repo brak — wygenerowano silne hasło jednorazowe (artefakt ważny 1 dzień)."
+          fi
+
+      - uses: superfly/flyctl-actions/setup-flyctl@ed8efb33836e8b2096c7fd3ba1c8afe303ebbff1  # master 2026-08 (tag 1.6)
+
+      - name: Wstaw hasło jako chwilowy sekret Fly (restart maszyny)
+        run: |
+          flyctl secrets set --app "$APP_NAME" \
+            DZIK_KLIENT_PASSWORD="$(cat /tmp/hasla/klient)"
+
+      - name: Poczekaj, aż maszyna wstanie po restarcie
+        run: |
+          for i in $(seq 1 30); do
+            curl -sfS "https://$APP_NAME.fly.dev/api/health" && exit 0
+            sleep 5
+          done
+          echo "::error::Maszyna nie wstała w 150 s"; exit 1
+
+      - name: Załóż konto podopiecznego z relacją do trenera
+        run: |
+          flyctl ssh console --app "$APP_NAME" -C \
+            "python -m dzik_os.dodaj_klienta --email $KLIENT_EMAIL --coach-email $COACH_EMAIL --name $KLIENT_NAME"
+
+      - name: Usuń chwilowy sekret z Fly
+        if: always()
+        run: |
+          flyctl secrets unset --app "$APP_NAME" \
+            DZIK_KLIENT_PASSWORD || true
+
+      - name: Przygotuj artefakt z hasłem (tylko tryb wygenerowany)
+        if: env.zrodlo == 'wygenerowane'
+        run: |
+          {
+            echo "HASŁO STARTOWE — KONTO PODOPIECZNEGO (JEDNORAZOWE)"
+            echo "Ważność artefaktu: 1 dzień."
+            echo
+            echo "Konto ($KLIENT_EMAIL): $(cat /tmp/hasla/klient)"
+            echo
+            echo "Zaloguj się: https://dzik-os-panel.fly.dev"
+            echo "Aplikacja poprosi o ustawienie własnego hasła."
+            echo "Konto jest już przypisane do trenera: $COACH_EMAIL"
+          } > /tmp/hasla/haslo-klienta.txt
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
+        if: env.zrodlo == 'wygenerowane'
+        with:
+          name: haslo-klienta
+          path: /tmp/hasla/haslo-klienta.txt
+          retention-days: 1

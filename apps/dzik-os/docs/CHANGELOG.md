@@ -1,5 +1,22 @@
 # Changelog — Dzik OS
 
+## 0.54.2 — 2026-08-31
+
+**Konto podopiecznego z zaplecza (potrzeba właściciela na żywo).**
+
+* `dzik_os/dodaj_klienta.py` — lustrzane do `dodaj_trenera`: konto
+  CLIENT (ACTIVE) z AKTYWNĄ relacją do trenera wskazanego e-mailem;
+  hasło wyłącznie z env, jednorazowe (wymuszona zmiana), odmowy
+  (zajęty e-mail / trener bez roli COACH / za krótkie hasło), limit
+  `DZIK_MAX_CLIENTS` honorowany, rejestracja i relacja w audycie.
+* `fly-dodaj-klienta.yml` — inputy email/coach_email/name walidowane
+  przez env, hasło z sekretu repo albo wygenerowane (artefakt
+  `haslo-klienta` 1 dzień), chwilowy sekret Fly kasowany po użyciu,
+  akcje po SHA.
+* Normalną ścieżką pozostaje zaproszenie z panelu trenera — narzędzie
+  jest operatorskie (trener niedostępny, konto potrzebne od ręki).
+* 3 testy (konto+relacja+login+audyt bez hasła; odmowy; limit).
+
 ## 0.54.1 — 2026-08-29
 
 **Pilotaż na loginie i haśle — wymuszanie MFA zdjęte (decyzja
