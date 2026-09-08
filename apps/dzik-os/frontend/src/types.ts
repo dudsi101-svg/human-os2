@@ -328,6 +328,9 @@ export interface ConsentCategoryInfo {
 export interface ConsentsResponse {
   document_version: string;
   catalog: ConsentCategoryInfo[];
+  /** Trenerzy z AKTYWNEJ relacji — odbiorcy zgód trenerskich niezależnie
+   *  od historii zgód (konto bez żadnego wpisu też może ich udzielić). */
+  coaches: { id: string; display_name: string }[];
   consents: ConsentRow[];
 }
 

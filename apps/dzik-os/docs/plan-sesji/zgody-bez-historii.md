@@ -47,3 +47,28 @@ potwierdzenia). Dwa ubytki, obie strony do naprawy.
   helpers/E2E; uruchomienie na żywo: konto z `dodaj_klienta` →
   logowanie → bramka zgód; konto bez historii → Profil → „Udziel
   zgody" widoczne i działa (zrzut).
+
+## Weryfikacja (wykonana)
+
+- ruff czysto; **backend 871 passed, 1 skipped** (SQLite); **Core 275
+  passed**; spójność czysto (13 kontroli); `tsc` czysto; `npm run
+  build` — 88.7 kB gz (budżet 120); `test:helpers` 140/140; **E2E
+  21/21**.
+- **Uruchomienie na żywo** (świeży seed, port lokalny, prawdziwa
+  przeglądarka na zbudowanym `dist/`):
+  1. konto z `dodaj_klienta` → logowanie → wymuszona zmiana hasła →
+     **bramka „Twoje dane, Twoja zgoda” pokazuje się** z odbiorcą
+     „Lubelski Dzik” (4 wymagane, 3 opcjonalne); „Potwierdzam
+     warunki wymagane” przenosi na Dzisiaj (zrzut w scratchpadzie);
+  2. stan z produkcji odtworzony: skasowane WSZYSTKIE wpisy zgód tego
+     konta → Profil → Prywatność i zgody: **10 przycisków „Udziel
+     zgody”**, odbiorca „Lubelski Dzik” z relacji; udzielenie
+     współpracy → plakietka „aktywna”; trener w `/api/coach/clients`
+     widzi `consent_active: true` (przed: false).
+- Odkryte przy okazji i poprawione w tej samej rundzie: relacja
+  operatorska nie miała wątku wiadomości (obie strony bez możliwości
+  napisania) — samonaprawa w liście wątków + test bez duplikatów.
+- Korekta własnego założenia z planu (Karta §XII): deklaracja
+  z onboardingu autoryzuje dostęp trenera JUŻ PRZED potwierdzeniem
+  (tak działa zaproszenie z panelu od P7) — test opisuje to
+  zachowanie zamiast wymyślonego „dostęp dopiero po potwierdzeniu”.

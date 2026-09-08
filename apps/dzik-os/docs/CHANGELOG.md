@@ -1,5 +1,33 @@
 # Changelog — Dzik OS
 
+## 0.54.3 — 2026-09-08
+
+**Zgody dla trenera bez wcześniejszej historii (usterka z pilotażu).**
+
+Konto podopiecznego założone operatorsko (0.54.2) nie miało żadnych
+wpisów zgód, a Profil → Prywatność i zgody odgadywał odbiorcę zgód
+trenerskich wyłącznie z historii — bez historii przyciski „Udziel
+zgody” dla kategorii trenerskich nie renderowały się, bramka zgód przy
+pierwszym logowaniu też się nie pokazywała, a trener widział „brak
+zgody” bez możliwości naprawy po stronie klienta.
+
+* `GET /api/me/consents` zwraca `coaches` — trenerów z AKTYWNEJ relacji
+  podmiotu (id + nazwa); Profil bierze odbiorcę z relacji, historia
+  zgód zostaje źródłem zapasowym (konto po zakończonej współpracy).
+  Bez relacji zamiast przycisku jest jasny komunikat.
+* `dodaj_klienta` rejestruje deklaracje z onboardingu
+  (`ONBOARDING_CATEGORIES`, źródło `ONBOARDING_DECLARATION`,
+  niepotwierdzone — do decyzji klienta przy pierwszym logowaniu) i
+  wątek wiadomości — dokładnie jak zaproszenie z panelu.
+* Lista wątków dokłada brakujący wątek dla każdej aktywnej relacji
+  (relacje operatorskie sprzed 0.54.3 nie miały go — obie strony
+  widziały pustą listę bez możliwości napisania). Nic nie jest usuwane
+  ani dublowane.
+* Testy: `coaches` z relacji i bez relacji; zgoda współpracy udzielona
+  przez konto BEZ historii → trener widzi `consent_active`; konto
+  z `dodaj_klienta` ma po zalogowaniu 7 deklaracji oczekujących
+  i wątek; samonaprawa brakującego wątku bez duplikatów.
+
 ## 0.54.2 — 2026-08-31
 
 **Konto podopiecznego z zaplecza (potrzeba właściciela na żywo).**

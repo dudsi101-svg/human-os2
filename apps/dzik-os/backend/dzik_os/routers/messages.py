@@ -30,7 +30,7 @@ from ..authz import (
 )
 from ..config import settings
 from ..db import db_session, get_db
-from ..models import Message, MessageThread, User, new_id, now_iso
+from ..models import CoachClientRelationship, Message, MessageThread, User, new_id, now_iso
 from ..realtime import bus, sse_format
 from ..schemas import MessageIn
 from ..security import (
@@ -112,6 +112,38 @@ def _publish_read_receipts(thread: MessageThread, reader_id: str, rows: list[Mes
     )
 
 
+def _ensure_threads(db: Session, user_id: str, *, as_coach: bool) -> None:
+    """Wątek istnieje dla każdej AKTYWNEJ relacji trener–klient.
+
+    Zaproszenie z panelu zakłada wątek od razu; relacje powstałe inną
+    drogą (operatorsko przed 0.54.3) mogły go nie mieć — wtedy obie
+    strony widziały pustą listę bez możliwości napisania. Dokładamy
+    brakujący wątek przy wejściu na listę; nic nie usuwamy ani nie
+    zmieniamy istniejących. Dostęp i tak przechodzi przez tę samą
+    bramkę zgód co dotąd."""
+    kolumna = (
+        CoachClientRelationship.coach_id if as_coach else CoachClientRelationship.client_id
+    )
+    rels = (
+        db.query(CoachClientRelationship)
+        .filter(kolumna == user_id, CoachClientRelationship.status == "ACTIVE")
+        .all()
+    )
+    if not rels:
+        return
+    istniejace = {
+        (t.coach_id, t.client_id)
+        for t in db.query(MessageThread)
+        .filter((MessageThread.coach_id == user_id) | (MessageThread.client_id == user_id))
+        .all()
+    }
+    nowe = [r for r in rels if (r.coach_id, r.client_id) not in istniejace]
+    for rel in nowe:
+        db.add(MessageThread(id=new_id("THR"), coach_id=rel.coach_id, client_id=rel.client_id))
+    if nowe:
+        db.commit()
+
+
 @router.get("/threads")
 def my_threads(user: User = Depends(current_user), db: Session = Depends(get_db)):
     """Lista wątków ze wskaźnikiem nieprzeczytanych.
@@ -121,6 +153,7 @@ def my_threads(user: User = Depends(current_user), db: Session = Depends(get_db)
     o zgodę, ostatnią wiadomość, licznik nieprzeczytanych i rozmówcę.
     """
     roles = active_roles(db, user.id)
+    _ensure_threads(db, user.id, as_coach="COACH" in roles)
     if "COACH" in roles:
         all_threads = db.query(MessageThread).filter(MessageThread.coach_id == user.id).all()
         # Lista wątków trenera podlega TEJ SAMEJ bramce co otwarcie wątku

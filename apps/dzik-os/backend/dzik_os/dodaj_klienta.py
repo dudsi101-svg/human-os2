@@ -15,6 +15,13 @@ potrzeba właściciela na żywo). Lustrzane do `dodaj_trenera`:
   sens tego narzędzia); trener wskazany e-mailem musi istnieć, być
   aktywny i mieć rolę COACH.
 * Limit `DZIK_MAX_CLIENTS` honorowany tak samo jak w panelu trenera.
+* Deklaracje zgód z onboardingu (`ONBOARDING_CATEGORIES`) rejestrowane
+  DOKŁADNIE jak przy zaproszeniu z panelu: niepotwierdzone, każda
+  kategoria osobno — klient potwierdza albo odmawia przy pierwszym
+  logowaniu (bramka zgód). Nic nie jest potwierdzone za podmiot (0.54.3;
+  wcześniej konto nie miało żadnych wpisów, więc bramka się nie
+  pokazywała, a Profil nie znał odbiorcy zgód trenerskich).
+* Wątek wiadomości trener–klient jak w panelu (0.54.3).
 * Rejestracja konta i relacji w dzienniku zdarzeń (bez hasła).
 
 Użycie (na maszynie Fly przez `flyctl ssh console` albo lokalnie):
@@ -32,9 +39,10 @@ import sys
 
 from .bootstrap import MIN_PASSWORD_LEN
 from .config import settings
+from .consent_catalog import ONBOARDING_CATEGORIES
 from .db import db_session, run_migrations
-from .hos_bridge import record_event
-from .models import CoachClientRelationship, RoleGrant, User, new_id
+from .hos_bridge import ConsentService, record_event
+from .models import CoachClientRelationship, MessageThread, RoleGrant, User, new_id
 from .security import hash_password
 
 
@@ -83,6 +91,14 @@ def dodaj_klienta(email: str, coach_email: str, password: str,
             created_by="dodaj_klienta",
         )
         db.add(rel)
+        db.add(MessageThread(id=new_id("THR"), coach_id=coach.id, client_id=user.id))
+        for category_key in ONBOARDING_CATEGORIES:
+            ConsentService.grant_category(
+                db, subject_id=user.id, category_key=category_key,
+                grantee_id=coach.id, actions="read,write",
+                source="ONBOARDING_DECLARATION", confirmed=False,
+                actor_id="dodaj_klienta",
+            )
         record_event(
             db, action="IDENTITY_REGISTERED", actor_id="dodaj_klienta",
             subject_ids=[user.id],
@@ -94,7 +110,8 @@ def dodaj_klienta(email: str, coach_email: str, password: str,
         record_event(
             db, action="RELATIONSHIP_CREATED", actor_id="dodaj_klienta",
             subject_ids=[coach.id, user.id],
-            payload={"relationship_id": rel.id, "status": "ACTIVE"},
+            payload={"relationship_id": rel.id, "status": "ACTIVE",
+                     "consent_collected_via": "onboarding_declaration"},
             summary="Relacja trener-podopieczny utworzona operatorsko",
         )
         db.commit()

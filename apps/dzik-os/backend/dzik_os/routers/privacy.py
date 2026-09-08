@@ -103,9 +103,27 @@ def my_consents(user: User = Depends(current_user), db: Session = Depends(get_db
             continue
         grantee = db.get(User, r.grantee_id)
         grantee_names[r.grantee_id] = grantee.display_name if grantee else r.grantee_id
+    # Odbiorcy zgód trenerskich z AKTYWNEJ relacji — niezależnie od
+    # historii zgód. Konto bez żadnego wpisu (założone operatorsko,
+    # 0.54.2) nie miało dotąd skąd wziąć id trenera, więc UI nie
+    # renderował „Udziel zgody" dla kategorii trenerskich (0.54.3).
+    coaches = []
+    for rel in (
+        db.query(CoachClientRelationship)
+        .filter(
+            CoachClientRelationship.client_id == user.id,
+            CoachClientRelationship.status == "ACTIVE",
+        )
+        .order_by(CoachClientRelationship.started_at)
+        .all()
+    ):
+        coach = db.get(User, rel.coach_id)
+        if coach is not None and coach.status == "ACTIVE":
+            coaches.append({"id": coach.id, "display_name": coach.display_name})
     return {
         "document_version": consent_catalog.CONSENT_DOC_VERSION,
         "catalog": consent_catalog.catalog_payload(),
+        "coaches": coaches,
         "consents": [
             {
                 "id": r.id,
