@@ -29,6 +29,7 @@ export default function Profile() {
   const [goals, setGoals] = useState<GoalRow[]>([]);
   const [consents, setConsents] = useState<ConsentRow[]>([]);
   const [catalog, setCatalog] = useState<ConsentCategoryInfo[]>([]);
+  const [coaches, setCoaches] = useState<ConsentsResponse["coaches"]>([]);
   const [error, setError] = useState<string | null>(null);
   const [ok, setOk] = useState<string | null>(null);
   const [edits, setEdits] = useState<Record<string, string>>({});
@@ -46,7 +47,9 @@ export default function Profile() {
       .then((d) => setGoals(d.goals))
       .catch((e) => setError(`Nie udało się wczytać celów. ${e.message}`));
     api.get<ConsentsResponse>(`/api/me/consents`)
-      .then((d) => { setConsents(d.consents); setCatalog(d.catalog); })
+      .then((d) => {
+        setConsents(d.consents); setCatalog(d.catalog); setCoaches(d.coaches ?? []);
+      })
       .catch((e) => setError(`Nie udało się wczytać zgód. ${e.message}`));
   };
   useEffect(() => { load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -198,6 +201,7 @@ export default function Profile() {
       <ConsentsCard
         consents={consents}
         catalog={catalog}
+        coaches={coaches}
         onRevoke={revoke}
         onGrant={grantCategory}
       />
@@ -249,21 +253,26 @@ export default function Profile() {
 function ConsentsCard({
   consents,
   catalog,
+  coaches,
   onRevoke,
   onGrant,
 }: {
   consents: ConsentRow[];
   catalog: ConsentCategoryInfo[];
+  coaches: ConsentsResponse["coaches"];
   onRevoke: (c: ConsentRow, label: string) => void;
   onGrant: (categoryKey: string, granteeId: string | null) => void;
 }) {
-  // Domyślny odbiorca zgód trenerskich: trener z ostatniego wiersza
-  // kategorii trenerskiej (onboarding zawsze go zostawia w historii).
+  // Odbiorca zgód trenerskich: trener z AKTYWNEJ relacji (backend), a
+  // dopiero w drugiej kolejności trener z historii zgód (konto po
+  // zakończonej współpracy). Samo poleganie na historii zostawiało
+  // konto bez żadnego wpisu (założone operatorsko) bez przycisku
+  // „Udziel zgody" — 0.54.3.
   const coachRow = [...consents].reverse().find(
     (c) => c.grantee_id !== "SYSTEM"
   );
-  const coachId = coachRow?.grantee_id ?? null;
-  const coachName = coachRow?.grantee_name ?? coachId;
+  const coachId = coaches[0]?.id ?? coachRow?.grantee_id ?? null;
+  const coachName = coaches[0]?.display_name ?? coachRow?.grantee_name ?? coachId;
 
   const rowsFor = (key: string) => consents.filter((c) => c.category === key);
   const activeFor = (key: string) =>
@@ -331,7 +340,7 @@ function ConsentsCard({
                   Cofnij
                 </button>
               ) : (
-                (cat.grantee_kind === "SYSTEM" || coachId) && (
+                (cat.grantee_kind === "SYSTEM" || coachId) ? (
                   <button
                     className="btn btn--ghost btn--small"
                     onClick={() =>
@@ -340,6 +349,10 @@ function ConsentsCard({
                   >
                     {history.length > 0 ? "Udziel ponownie" : "Udziel zgody"}
                   </button>
+                ) : (
+                  <small className="dim">
+                    Brak przypisanego trenera — zgodę udzielisz po rozpoczęciu współpracy.
+                  </small>
                 )
               )}
             </div>

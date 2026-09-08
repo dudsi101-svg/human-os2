@@ -144,3 +144,44 @@ def test_consents_response_carries_catalog(seeded):
     assert catalog["prowadzenie_konta"]["required"] is True
     assert catalog["marketing"]["required"] is False
     assert catalog["dane_zdrowotne"]["required"] is False
+
+
+def test_coaches_from_relationship_allow_grant_without_history(seeded):
+    """0.54.3: odbiorcę zgód trenerskich niesie relacja, nie historia zgód.
+    Konto bez ŻADNEGO wpisu zgód (jak założone operatorsko przed 0.54.3)
+    udziela zgody współpracy trenerowi z `coaches` — i trener widzi
+    consent_active. Konto bez aktywnej relacji dostaje pustą listę."""
+    from dzik_os.db import db_session
+    from dzik_os.models import ConsentRecord, User
+
+    ha = login(seeded, CLIENT_A)
+    with db_session() as db:
+        me = db.query(User).filter(User.email == CLIENT_A["email"]).one()
+        db.query(ConsentRecord).filter(ConsentRecord.subject_id == me.id).delete()
+        db.commit()
+        client_id = me.id
+    body = seeded.get("/api/me/consents", headers=ha).json()
+    assert body["consents"] == []
+    assert len(body["coaches"]) == 1 and body["coaches"][0]["display_name"]
+    coach_id = body["coaches"][0]["id"]
+
+    hc = login(seeded, COACH)
+    wpis = next(c for c in seeded.get("/api/coach/clients", headers=hc).json()["clients"]
+                if c["client_id"] == client_id)
+    assert wpis["consent_active"] is False
+
+    r = seeded.post("/api/me/consents", headers=ha,
+                    json={"category": "udostepnianie_trenerowi", "grantee_id": coach_id})
+    assert r.status_code == 201, r.text
+    wpis = next(c for c in seeded.get("/api/coach/clients", headers=hc).json()["clients"]
+                if c["client_id"] == client_id)
+    assert wpis["consent_active"] is True
+
+    # Trener bez relacji z tym klientem nie pojawia się w `coaches`.
+    with db_session() as db:
+        from dzik_os.models import CoachClientRelationship
+        db.query(CoachClientRelationship).filter(
+            CoachClientRelationship.client_id == client_id
+        ).update({"status": "ENDED"})
+        db.commit()
+    assert seeded.get("/api/me/consents", headers=ha).json()["coaches"] == []

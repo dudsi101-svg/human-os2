@@ -1,6 +1,6 @@
 # Stan przekazania — przeczytaj przed rozpoczęciem rundy
 
-**Aktualizacja:** 2026-08-31 · **Wersja w `main`:** 0.54.2
+**Aktualizacja:** 2026-09-08 · **Wersja w `main`:** 0.54.3
 **Tryb pracy:** jeden piszący i jeden PR `[WRITER]` naraz
 (`KOORDYNACJA.md`, zasada nadrzędna).
 
@@ -33,7 +33,18 @@ pierwszy commit, draft PR `[WRITER]`, reszta agentów read-only.
 jednym prawdziwym klientem, **NO-GO na szerszą produkcję** — siedem
 blokerów wypisanych w §5 tamtego dokumentu.
 
-**Ostatnia runda (0.54.2, gałąź `agent/dodaj-klienta`):**
+**Ostatnia runda (0.54.3, gałąź `agent/zgody-bez-historii`):**
+usterka z pilotażu (7.09): konto operatorskie bez wpisów zgód nie
+mogło udzielić zgód trenerskich (Profil znał trenera tylko z historii
+zgód), bramka zgód się nie pokazywała. Teraz `GET /api/me/consents`
+niesie `coaches` z aktywnej relacji, `dodaj_klienta` rejestruje
+deklaracje z onboardingu + wątek jak panel, lista wątków dokłada
+brakujący wątek. Konto właściciela (dudsi101+klient) naprawia się
+przez UI po deployu: Profil → Prywatność i zgody → „Udziel zgody”.
+Na liście Łukasza wisi też zaproszenie PENDING dla literówki
+`dudsi101plusklient@gmail.com` (zajmuje miejsce z limitu 10) — do
+anulowania przyciskiem „Anuluj” przez trenera.
+**Runda 0.54.2 (`agent/dodaj-klienta`):**
 operatorskie konto podopiecznego (`dodaj_klienta` + workflow „Dodaj
 podopiecznego (Fly.io)" z artefaktem) — konto CLIENT z aktywną relacją
 do trenera jednym przebiegiem; użyte od razu dla konta testowego

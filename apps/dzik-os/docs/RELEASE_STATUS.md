@@ -1,6 +1,6 @@
 # Stan wydania — Dzik OS
 
-**Wersja:** 0.54.2 · **Data:** 2026-08-31 · **Środowisko:** produkcja
+**Wersja:** 0.54.3 · **Data:** 2026-09-08 · **Środowisko:** produkcja
 (pilotaż) — https://dzik-os-panel.fly.dev
 
 Jedna strona prawdy o tym, co DZIAŁA na produkcji teraz. Aktualizowana
@@ -27,6 +27,8 @@ z oczekiwanymi. Ręczny deploy: tylko awaryjnie (`workflow_dispatch`).
 | dudsi101+admin@gmail.com | ADMIN (właściciel) | jw. |
 | dudsi101+trener@gmail.com | COACH (konto testowe właściciela) | jw. |
 | dudsi101@gmail.com | CLIENT (właściciel jako podopieczny) | aktywne |
+| dudsi101+klient@gmail.com | CLIENT (konto testowe właściciela u Łukasza) | aktywne, relacja ACTIVE z lubelskidzikk (operatorsko, 31.08); zgody trenerskie udziela sam w Profilu (0.54.3) |
+| dudsi101plusklient@gmail.com | CLIENT (PENDING — literówka w zaproszeniu z panelu, 7.09) | do anulowania przez trenera („Anuluj” na liście) — zajmuje miejsce z limitu |
 | 7 kont demo sprzed pilotażu | — | zdezaktywowane (SUSPENDED, losowy hash) |
 
 **Logowanie (pilotaż, decyzja właściciela 29.08):** login + hasło; wymuszanie MFA zdjęte (`DZIK_MFA_REQUIRED_ROLES=""`), MFA dostępne opt-in; przywrócenie przymusu = wpisanie `"COACH,ADMIN"` w fly.toml. Reset operatorski hasła czyści też TOTP (konto wraca do logowania hasłem).
