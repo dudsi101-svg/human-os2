@@ -63,9 +63,20 @@ w Karcie współpracy (~linia 191).
   `apps/dzik-os/backend/dzik_os/__init__.py`,
   `apps/dzik-os/frontend/package.json`.
 
-## Weryfikacja (do wypełnienia)
+## Weryfikacja (wykonana, 12.09)
 
-- ruff, pytest backend, Core 275, spójność; tsc/build/test:helpers
-  (runda dotyka `package.json`); dowód kuracji: naprawione testy
-  uruchomione z zegarem przesuniętym ZA najbliższą sporną datę
-  (np. `local_today` zamockowane na 2026-09-20) — zielone.
+- ruff czysto; **backend 871 passed, 1 skipped**; **Core 275 passed**;
+  `spojnosc.py` czysto (13 kontroli, 2 uwagi informacyjne: wiek gałęzi,
+  otwarta konsultacja K-001); `tsc` czysto; `npm run build` — 88.7 kB gz
+  (budżet 120); `test:helpers` **140/140**. Przeglądy mutacyjne
+  nie wymagane (runda nie dotyka `spojnosc.py`).
+- **Dowód kuracji dat** (uruchomione, nie założone): oba naprawione
+  pliki testów zielone (47 passed, 1 skipped) przy zegarze całego
+  przebiegu przesuniętym przez `time-machine` (tylko piaskownica,
+  zero nowych zależności projektu) na **2026-09-20** (za sporną datą
+  16.09), **2026-12-02** (zima — para DST szukana w kierunku
+  zima→lato) i **2027-03-30** (tuż po wiosennej zmianie czasu).
+- **Dowód izolacji OCR**: atrapa binarki `tesseract` podstawiona na
+  PATH — cały `test_ocr.py` zielony **26/26** (w tym opcjonalny test
+  obecności binarki, dotąd pomijany); przed naprawą dwa testy
+  czerwieniły się w takim środowisku.
