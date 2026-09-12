@@ -25,6 +25,31 @@ def _nastepna_sroda() -> date:
     return d
 
 
+def _niedziela_przyszlego_tygodnia() -> date:
+    """Niedziela zamykająca tydzień, którego poniedziałek jeszcze nie
+    nadszedł — `week_start` raportu ma być w przyszłości niezależnie od
+    dnia uruchomienia testów (jak stałe 14–20.09 przed kuracją)."""
+    d = local_today() + timedelta(days=7)
+    while d.isoweekday() != 7:
+        d += timedelta(days=1)
+    return d
+
+
+def _para_srod_przez_zmiane_czasu() -> tuple[date, date]:
+    """Dwie przyszłe środy po dwóch stronach najbliższej zmiany czasu
+    Europe/Warsaw: offset UTC godziny 08:00 pierwszej różni się od
+    offsetu drugiej. Wyszukane dynamicznie (zoneinfo), żeby test granicy
+    DST nie zależał od dnia uruchomienia ani od konkretnego roku."""
+    pierwsza = _nastepna_sroda()
+    offset = _osma_rano(pierwsza).utcoffset()
+    druga = pierwsza + timedelta(days=7)
+    for _ in range(53):
+        if _osma_rano(druga).utcoffset() != offset:
+            return pierwsza, druga
+        druga += timedelta(days=7)
+    raise AssertionError("rok bez zmiany czasu w Europe/Warsaw?")
+
+
 def _osma_rano(d: date) -> datetime:
     """08:00 czasu Warszawy danego dnia — wystąpienia planują się o 08:00
     lokalnie, a LATE_SEND_MAX to 30 minut; godzina UTC wpisana na sztywno
@@ -96,33 +121,43 @@ def test_schedule_reminder_respects_user_timezone(seeded, monkeypatch):
                    json={"timezone": "America/New_York"})
     assert r.status_code == 200
 
-    # 06:00 UTC = 08:00 Warszawy, ale dopiero 02:00 w NY — nic nie wychodzi.
-    assert _tick(datetime(2026, 9, 16, 6, 0, tzinfo=UTC)) == 0
+    sroda = _nastepna_sroda()
+    # 08:00 Warszawy to dopiero 01:00–03:00 w NY — nic nie wychodzi.
+    assert _tick(_osma_rano(sroda)) == 0
     assert sent == []
-    # 12:00 UTC = 08:00 EDT — przypomnienia z harmonogramu 08:00 wychodzą.
-    assert _tick(datetime(2026, 9, 16, 12, 0, tzinfo=UTC)) >= 1
+    # 08:00 w Nowym Jorku — przypomnienia z harmonogramu 08:00 wychodzą.
+    assert _tick(datetime.combine(sroda, time(8, 0),
+                                  tzinfo=ZoneInfo("America/New_York"))) >= 1
     assert sent
 
 
 def test_dst_transition_europe_warsaw(seeded, monkeypatch):
     """08:00 Europe/Warsaw to 06:00 UTC latem i 07:00 UTC zimą — zoneinfo
-    rozstrzyga przejście DST (2026: zmiana czasu 25 października)."""
+    rozstrzyga przejście DST. Para śród po dwóch stronach najbliższej
+    zmiany czasu jest wyszukiwana dynamicznie, nie wpisana na sztywno."""
     _oplac_seedowe_terminy()
     sent = _capture_push(monkeypatch)
     ha = login(seeded, CLIENT_A)
     seeded.post("/api/push/subscribe", headers=ha, json=SUB)
 
-    # Lato (CEST, UTC+2): środa 2026-09-16.
-    assert _tick(datetime(2026, 9, 16, 6, 0, tzinfo=UTC)) >= 1
-    n_summer = len(sent)
-    assert n_summer >= 1
+    przed, po = _para_srod_przez_zmiane_czasu()
+    # Dowód przekroczenia granicy: 08:00 lokalnie wypada o INNEJ godzinie
+    # UTC po każdej ze stron zmiany czasu.
+    assert _osma_rano(przed).utcoffset() != _osma_rano(po).utcoffset()
+    assert (_osma_rano(przed).astimezone(UTC).time()
+            != _osma_rano(po).astimezone(UTC).time())
 
-    # Zima (CET, UTC+1): środa 2026-10-28 — o 06:00 UTC jest dopiero
-    # 07:00 lokalnie, wysyłka następuje o 07:00 UTC.
-    assert _tick(datetime(2026, 10, 28, 6, 0, tzinfo=UTC)) == 0
-    assert len(sent) == n_summer
-    assert _tick(datetime(2026, 10, 28, 7, 0, tzinfo=UTC)) >= 1
-    assert len(sent) > n_summer
+    # Przed zmianą: wysyłka dokładnie o 08:00 lokalnie.
+    assert _tick(_osma_rano(przed)) >= 1
+    n_przed = len(sent)
+    assert n_przed >= 1
+
+    # Po zmianie: godzinę przed 08:00 lokalnie nic nie wychodzi — pora
+    # wysyłki idzie za zegarem lokalnym, nie za stałą godziną UTC.
+    assert _tick(_osma_rano(po) - timedelta(hours=1)) == 0
+    assert len(sent) == n_przed
+    assert _tick(_osma_rano(po)) >= 1
+    assert len(sent) > n_przed
 
 
 # ---------------------------------------------------------------------------
@@ -138,7 +173,7 @@ def test_no_duplicates_across_process_restart(seeded, monkeypatch):
     sent = _capture_push(monkeypatch)
     ha = login(seeded, CLIENT_A)
     seeded.post("/api/push/subscribe", headers=ha, json=SUB)
-    now = datetime(2026, 9, 16, 6, 0, tzinfo=UTC)
+    now = _osma_rano(_nastepna_sroda())
     assert _tick(now) >= 1
     first = len(sent)
 
@@ -157,7 +192,7 @@ def test_late_delivery_after_downtime_not_lost(seeded, monkeypatch):
     sent = _capture_push(monkeypatch)
     ha = login(seeded, CLIENT_A)
     seeded.post("/api/push/subscribe", headers=ha, json=SUB)
-    assert _tick(datetime(2026, 9, 16, 6, 10, tzinfo=UTC)) >= 1
+    assert _tick(_osma_rano(_nastepna_sroda()) + timedelta(minutes=10)) >= 1
     assert sent
 
 
@@ -167,8 +202,8 @@ def test_very_late_occurrence_is_not_sent(seeded, monkeypatch):
     sent = _capture_push(monkeypatch)
     ha = login(seeded, CLIENT_A)
     seeded.post("/api/push/subscribe", headers=ha, json=SUB)
-    # 10:00 UTC = 12:00 lokalnie — 4 h po porze 08:00.
-    assert _tick(datetime(2026, 9, 16, 10, 0, tzinfo=UTC)) == 0
+    # 12:00 lokalnie — 4 h po porze 08:00.
+    assert _tick(_osma_rano(_nastepna_sroda()) + timedelta(hours=4)) == 0
     assert sent == []
 
 
@@ -186,7 +221,7 @@ def test_quiet_hours_silence_push_but_keep_center(seeded, monkeypatch):
     })
     assert r.status_code == 200
     # 08:00 lokalnie przypada w cichych godzinach (zakres przez północ).
-    assert _tick(datetime(2026, 9, 16, 6, 0, tzinfo=UTC)) >= 1
+    assert _tick(_osma_rano(_nastepna_sroda())) >= 1
     assert sent == []  # push wyciszony
     inbox = _inbox(seeded, ha)
     assert inbox["unread"] >= 1  # centrum dostaje wpis mimo ciszy
@@ -226,15 +261,16 @@ def test_paused_item_cancels_scheduled_notification(seeded, monkeypatch):
     client_id = get_user_id(seeded, ha)
     seeded.post("/api/push/subscribe", headers=ha, json=SUB)
 
-    # 05:30 UTC = 07:30 lokalnie: wystąpienia 08:00 są już zaplanowane
-    # (SCHEDULED), ale jeszcze nie doręczone.
-    assert _tick(datetime(2026, 9, 16, 5, 35, tzinfo=UTC)) == 0
+    sroda = _nastepna_sroda()
+    # 07:35 lokalnie: wystąpienia 08:00 są już zaplanowane (SCHEDULED),
+    # ale jeszcze nie doręczone.
+    assert _tick(_osma_rano(sroda) - timedelta(minutes=25)) == 0
     kreatyna = next(i for i in _client_schedule(seeded, hc, client_id)
                     if "Kreatyna" in i["name"])
     r = seeded.post(f"/api/schedule/{kreatyna['id']}/status?status=PAUSED", headers=hc)
     assert r.status_code == 200
 
-    assert _tick(datetime(2026, 9, 16, 6, 0, tzinfo=UTC)) >= 1
+    assert _tick(_osma_rano(sroda)) >= 1
     inbox = _inbox(seeded, ha)
     assert all("Kreatyna" not in n["title"] for n in inbox["notifications"])
 
@@ -258,15 +294,16 @@ def test_completed_task_suppresses_reminder(seeded, monkeypatch):
     ha = login(seeded, CLIENT_A)
     client_id = get_user_id(seeded, ha)
     seeded.post("/api/push/subscribe", headers=ha, json=SUB)
+    sroda = _nastepna_sroda()
     witamina = next(i for i in _client_schedule(seeded, hc, client_id)
                     if "Witamina" in i["name"])
     r = seeded.post(
         f"/api/clients/{client_id}/schedule/{witamina['id']}/complete",
-        headers=ha, json={"completed_on": "2026-09-16", "status": "DONE"},
+        headers=ha, json={"completed_on": sroda.isoformat(), "status": "DONE"},
     )
     assert r.status_code == 201
 
-    _tick(datetime(2026, 9, 16, 6, 0, tzinfo=UTC))
+    _tick(_osma_rano(sroda))
     inbox = _inbox(seeded, ha)
     titles = [n["title"] for n in inbox["notifications"]]
     assert all("Witamina" not in t for t in titles)  # wykonane → cisza
@@ -277,11 +314,13 @@ def test_submitted_checkin_suppresses_report_reminder(seeded, monkeypatch):
     _capture_push(monkeypatch)
     ha = login(seeded, CLIENT_A)
     seeded.post("/api/push/subscribe", headers=ha, json=SUB)
-    # Raport za tydzień z niedzielą 2026-09-20 (week_start = poniedziałek).
-    r = seeded.post("/api/checkins", headers=ha, json={"week_start": "2026-09-14"})
+    # Raport za przyszły tydzień (week_start = jego poniedziałek).
+    niedziela = _niedziela_przyszlego_tygodnia()
+    r = seeded.post("/api/checkins", headers=ha,
+                    json={"week_start": (niedziela - timedelta(days=6)).isoformat()})
     assert r.status_code == 201
-    # Element harmonogramu "Raport tygodniowy": niedziela 18:00 (16:00 UTC).
-    _tick(datetime(2026, 9, 20, 16, 0, tzinfo=UTC))
+    # Element harmonogramu "Raport tygodniowy": niedziela 18:00 lokalnie.
+    _tick(datetime.combine(niedziela, time(18, 0), tzinfo=WARSAW))
     inbox = _inbox(seeded, ha)
     assert all(n["category"] != "RAPORT" for n in inbox["notifications"])
 
@@ -484,16 +523,21 @@ def test_report_frequency_weekly_vs_daily(seeded, monkeypatch):
     seeded.put("/api/notifications/settings", headers=ha,
                json={"raport_frequency": "WEEKLY"})
 
-    _tick(datetime(2026, 9, 16, 7, 0, tzinfo=UTC))  # środa
-    _tick(datetime(2026, 9, 17, 7, 0, tzinfo=UTC))  # czwartek, ten sam tydzień
+    sroda = _nastepna_sroda()
+
+    def dziewiata(d: date) -> datetime:
+        return datetime.combine(d, time(9, 0), tzinfo=WARSAW)
+
+    _tick(dziewiata(sroda))                        # środa
+    _tick(dziewiata(sroda + timedelta(days=1)))    # czwartek, ten sam tydzień ISO
     inbox = _inbox(seeded, ha)
     raport = [n for n in inbox["notifications"] if n["category"] == "RAPORT"]
     assert len(raport) == 1  # WEEKLY: jedno przypomnienie na tydzień
 
     seeded.put("/api/notifications/settings", headers=ha,
                json={"raport_frequency": "DAILY"})
-    _tick(datetime(2026, 9, 25, 7, 0, tzinfo=UTC))  # piątek, kolejny tydzień
-    _tick(datetime(2026, 9, 26, 7, 0, tzinfo=UTC))  # sobota
+    _tick(dziewiata(sroda + timedelta(days=9)))    # piątek, kolejny tydzień
+    _tick(dziewiata(sroda + timedelta(days=10)))   # sobota
     inbox = _inbox(seeded, ha)
     raport = [n for n in inbox["notifications"] if n["category"] == "RAPORT"]
     assert len(raport) == 3  # DAILY: każdy dzień osobno

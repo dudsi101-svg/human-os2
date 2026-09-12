@@ -1,5 +1,38 @@
 # Changelog — Dzik OS
 
+## 0.54.4 — 2026-09-12
+
+**Mała runda naprawcza testów dat i OCR (pozycja z kolejki
+STAN_PRZEKAZANIA §3; zero zmian w kodzie produkcyjnym).**
+
+Cztery dni przed zaczerwienieniem: `test_notifications.py` niósł
+absolutne daty przyszłe (najbliższa środa 16.09.2026) przy seedzie
+liczonym od prawdziwego `today` — od ~16.09 CI robiłoby się czerwone
+na czystym `main` bez żadnej zmiany kodu, dokładnie jak 23.08
+(naprawa 0.41.0).
+
+* `test_notifications.py`: wszystkie absolutne daty przyszłe
+  (14–26.09, 28.10.2026) zastąpione datami względem
+  `dates.local_today()` — ta sama kuracja co w 0.41.0. Granice zmiany
+  czasu ZOSTAJĄ przetestowane: para przyszłych śród po dwóch stronach
+  najbliższego przejścia DST wyszukiwana dynamicznie (zoneinfo),
+  z asercją, że 08:00 lokalnie wypada o różnych godzinach UTC.
+  Dowód kuracji: oba pliki zielone przy zegarze przesuniętym na
+  20.09.2026, 02.12.2026 i 30.03.2027 (time-machine, tylko
+  w piaskownicy weryfikacyjnej — bez nowych zależności projektu).
+* `test_ocr.py`: dwa testy „bez Tesseracta" wymuszają brak binarki
+  (fixture `bez_silnika` — wzorzec `__missing_tesseract__`), zamiast
+  zakładać środowisko bez niej; z atrapą binarki na PATH cały plik
+  zielony (przedtem oba testy czerwieniły się przy zainstalowanym
+  Tesseractzie).
+* `KARTA_WSPOLPRACY.md`: stara fraza „jedna-sesja-naraz" →
+  „jedna-sesja-pisząca-naraz" (osobny commit, zgodnie z sekcją
+  „Zmiana tej karty").
+* Proces: pierwsza runda w trybie Claude (jedyny piszący) + Codex
+  (niezależny recenzent); gałąź `claude/awesome-sagan-sqd64l` zamiast
+  `agent/…` — jawny wyjątek zatwierdzony przez właściciela (środowisko
+  sesji wymusza tę nazwę), odnotowany w planie sesji.
+
 ## 0.54.3 — 2026-09-08
 
 **Zgody dla trenera bez wcześniejszej historii (usterka z pilotażu).**

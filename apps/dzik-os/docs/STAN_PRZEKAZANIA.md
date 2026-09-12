@@ -1,6 +1,6 @@
 # Stan przekazania — przeczytaj przed rozpoczęciem rundy
 
-**Aktualizacja:** 2026-09-08 · **Wersja w `main`:** 0.54.3
+**Aktualizacja:** 2026-09-12 · **Wersja w `main`:** 0.54.4
 **Tryb pracy:** jeden piszący i jeden PR `[WRITER]` naraz
 (`KOORDYNACJA.md`, zasada nadrzędna).
 
@@ -33,7 +33,19 @@ pierwszy commit, draft PR `[WRITER]`, reszta agentów read-only.
 jednym prawdziwym klientem, **NO-GO na szerszą produkcję** — siedem
 blokerów wypisanych w §5 tamtego dokumentu.
 
-**Ostatnia runda (0.54.3, gałąź `agent/zgody-bez-historii`):**
+**Ostatnia runda (0.54.4, gałąź `claude/awesome-sagan-sqd64l`):**
+mała runda naprawcza testów (pozycja z §3): `test_notifications.py`
+bez absolutnych dat przyszłych (najbliższa 16.09 — 4 dni przed
+zaczerwienieniem CI; kuracja jak 0.41.0, granice DST testowane
+dynamiczną parą śród przez zoneinfo, dowód na trzech przesuniętych
+zegarach), `test_ocr.py` z wymuszonym brakiem binarki (fixture
+`bez_silnika` — zielone też przy zainstalowanym Tesseractzie), fraza
+w Karcie poprawiona osobnym commitem. Zero zmian w kodzie
+produkcyjnym. Pierwsza runda w trybie: Claude jedynym piszącym,
+Codex niezależnym recenzentem; nazwa gałęzi `claude/…` zamiast
+`agent/…` to jawny wyjątek właściciela (wymóg środowiska sesji,
+odnotowany w planie sesji `naprawa-testow-dat.md`).
+**Runda 0.54.3 (`agent/zgody-bez-historii`):**
 usterka z pilotażu (7.09): konto operatorskie bez wpisów zgód nie
 mogło udzielić zgód trenerskich (Profil znał trenera tylko z historii
 zgód), bramka zgód się nie pokazywała. Teraz `GET /api/me/consents`
@@ -211,16 +223,16 @@ scalenie katalogów E2E, Karta 1.0, dziennik K-NNN czytany przez bramkę.
 
 **Znane problemy bramki lokalnej (dług testów, nie regresje):**
 
-* dwa testy OCR nazwane „bez Tesseracta" nie izolują tego założenia
-  i czerwienią się, gdy binarka jest dostępna (obejście:
-  `DZIK_OCR_BINARY=__missing_tesseract__`);
+* ~~dwa testy OCR nazwane „bez Tesseracta"~~ — **naprawione w 0.54.4**
+  (fixture `bez_silnika` wymusza brak binarki; obejście
+  `DZIK_OCR_BINARY=__missing_tesseract__` niepotrzebne);
 * ~~cztery testy zależne od prawdziwej daty~~ — **naprawione w 0.41.0**
   (23.08 prawdziwy zegar dogonił daty wpisane na sztywno i CI zrobiło się
   czerwone na czystym `main`): daty liczone względem `dates.local_today()`
   jak w seedzie, szum terminów płatności wyciszany w testach planowania.
-  **Uwaga:** inne testy z absolutnymi datami przyszłymi (strefy/DST w
-  `test_notifications.py` — 16.09, 25.10.2026) czekają na tę samą kurację,
-  zanim kalendarz je dogoni — dołożone do małej rundy naprawczej.
+  ~~Pozostałe testy z absolutnymi datami przyszłymi (strefy/DST
+  w `test_notifications.py`)~~ — **naprawione w 0.54.4** tą samą kuracją,
+  4 dni przed dogonieniem przez kalendarz (16.09).
 
 **Bramki gałęzi porządkującej:** ruff czysto; backend 760 zaliczonych,
 1 opcjonalny test Tesseracta pominięty; Core 275/275; kontroler spójności
@@ -234,7 +246,6 @@ nie uruchamiano, ponieważ runda nie zmienia kodu ani zasobów frontendu.
 | Rzecz | Stan | Gdzie |
 |---|---|---|
 | **Sekrety SMTP** | kod gotowy (0.42.0); do uruchomienia poczty właściciel ustawia `DZIK_SMTP_HOST`/`USER`/`PASSWORD`/`FROM` jako sekrety Fly — bez nich reset hasła pozostaje martwy (klient bez drogi powrotu, jedyna alternatywa: ponowne zaproszenie od trenera) | `flyctl secrets set` |
-| **Testy OCR** | dwa testy „bez Tesseracta” nie izolują założenia i czerwienią się, gdy binarka jest zainstalowana; poprawić w osobnym małym PR | `backend/tests/test_ocr.py` |
 | **Dostawca AI** | **ZAIMPLEMENTOWANY (0.45.0)** — `AnthropicAIProvider`; do uruchomienia na produkcji brakuje wyłącznie sekretów właściciela (`DZIK_AI_API_KEY` + `DZIK_AI_ENABLED=true`, `DEPLOYMENT.md` §4d); prawdziwe wywołanie modelu nigdy się nie wykonało | `backend/dzik_os/ai_provider.py` |
 | Klucz API | właściciel go ma; **musi trafić do sekretu**, nigdy do czatu ani repozytorium | `DZIK_AI_API_KEY` + `DZIK_AI_ENABLED=true` |
 | Decyzja o `extra="forbid"` | przygotowana analiza, **decyzja należy do właściciela** | `BRAMKA_GO_NOGO.md` §4 |
@@ -255,11 +266,7 @@ Kolejność jest propozycją; właściciel może ją zmienić w dowolnym momenci
    (`BRAMKA_GO_NOGO.md` §6). Decyzje otwarte: dostawca e-maila, magazyn
    kopii poza Fly (S3/B2), `extra="forbid"`, SQLite vs Postgres, R-01
    (ocena prawna danych zdrowotnych).
-2. **Mała runda naprawcza testów:** testy OCR (izolacja założenia „bez
-   Tesseracta") + testy stref/DST z datami absolutnymi (16.09, 25.10.2026)
-   — ta sama kuracja co cztery naprawione w 0.41.0; do tego stara fraza
-   „jedna-sesja-naraz" w `KARTA_WSPOLPRACY.md` (linia ~191).
-3. **Przygotowanie pilotażu** — usunięcie `DZIK_SEED_DEMO` z `fly.toml`
+2. **Przygotowanie pilotażu** — usunięcie `DZIK_SEED_DEMO` z `fly.toml`
    (zasiewa konta ze znanymi hasłami), zmiana haseł, jedno odtworzenie
    kopii **na produkcji**.
 

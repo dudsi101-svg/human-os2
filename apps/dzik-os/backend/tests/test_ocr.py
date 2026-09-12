@@ -1,8 +1,10 @@
 """Przepisywanie tekstu ze zdjęcia (OCR) — dwa tryby, kolejka jednoslotowa,
 propozycja zamiast automatycznego zapisu i twarde bramki prywatności.
 
-Środowisko testowe NIE MA zainstalowanego Tesseracta — i to jest część
-kontraktu: brak silnika ma być czytelnym STANEM, nigdy wyjątkiem ani 500.
+Brak silnika lokalnego jest częścią kontraktu: ma być czytelnym STANEM,
+nigdy wyjątkiem ani 500. Testy tego stanu WYMUSZAJĄ brak binarki
+(fixture `bez_silnika`), zamiast zakładać, że środowisko jej nie ma —
+na maszynie z zainstalowanym Tesseractem mają być równie zielone.
 Prawdziwy przebieg testujemy na atrapie silnika; obecność binarki to
 osobny, pomijany test.
 """
@@ -128,10 +130,19 @@ def stub_engine(monkeypatch):
     return stub
 
 
+@pytest.fixture()
+def bez_silnika(monkeypatch):
+    """Wymusza brak binarki Tesseracta niezależnie od maszyny — założenie
+    „bez silnika" należy do testu, nie do środowiska (dotąd testy
+    czerwieniły się tam, gdzie binarka była zainstalowana; obejściem było
+    DZIK_OCR_BINARY=__missing_tesseract__ — teraz to samo robi fixture)."""
+    monkeypatch.setattr(settings, "ocr_binary", "__missing_tesseract__")
+
+
 # --- Brak silnika lokalnego --------------------------------------------
 
 
-def test_status_reports_engine_unavailable_without_tesseract(seeded):
+def test_status_reports_engine_unavailable_without_tesseract(seeded, bez_silnika):
     """Bez Tesseracta funkcja mówi wprost, że silnik jest niedostępny —
     to stan do pokazania człowiekowi, nie błąd techniczny."""
     ha = login(seeded, CLIENT_A)
@@ -146,7 +157,7 @@ def test_status_reports_engine_unavailable_without_tesseract(seeded):
     assert body["accepted_types"] == ["image/jpeg", "image/png", "image/webp"]
 
 
-def test_missing_engine_gives_readable_state_not_500(seeded):
+def test_missing_engine_gives_readable_state_not_500(seeded, bez_silnika):
     ha = login(seeded, CLIENT_A)
     file_id = upload_png(seeded, ha)
     task = run_task(seeded, ha, {"file_id": file_id, "purpose": "PLAN"})

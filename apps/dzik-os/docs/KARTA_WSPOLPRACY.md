@@ -188,7 +188,7 @@ Nie dzielimy się władzą, tylko mocnymi stronami widocznymi w wynikach:
 produktowa nie zauważy własnych luk. **To jest ta „druga połówka"** — nie
 podział terytorium, tylko wzajemne uzupełnienie.
 
-Przy pracy jedna-sesja-naraz role nie blokują nikogo: jeśli akurat Ty
+Przy pracy jedna-sesja-pisząca-naraz role nie blokują nikogo: jeśli akurat Ty
 pracujesz, robisz wszystko, co runda wymaga — a mocne strony mówią, komu
 właściciel poda następną rundę.
 
