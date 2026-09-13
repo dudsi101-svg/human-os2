@@ -41,3 +41,30 @@ gałąź `agent/szablony-diet`.
 * Test „zakres nigdy nieprzekroczony” dowodzi tego PRZED zaokrągleniem (monkeypatch
   `round_practical`); po zaokrągleniu dopuszczalne odchylenie < 1 krok (tak działa referencja).
 * Pokrycie `silnik.py`: 98 % (pytest-cov lokalnie; CI nie mierzy pokrycia — nie dodaję zależności).
+
+## Etap 3 — API: zrobione
+Router `dzik_os/routers/diet.py` (prefiks `/api/diet`, 404 gdy flaga wyłączona; `features.diet_templates`
+w `/api/health`; seed przy starcie aplikacji, gdy flaga włączona):
+
+| Metoda i trasa | Kto | Co |
+|---|---|---|
+| `GET /profiles` | trener/admin | profile z liczbą opublikowanych odsłon i listą odsłon |
+| `GET /templates/{week_id}` | trener/admin | podgląd odsłony bez gramatur |
+| `GET /templates/{week_id}/meals?slot=` | trener/admin | biblioteka posiłków profilu (ten sam slot) do zamiany |
+| `POST /templates/{week_id}/preview` | trener/admin | pełny wynik silnika; `macro.mode` profile / per_kg / manual; `exclusions`; `overrides` (korekty gramatur „day:meal:ingredient”); `meal_replacements`; `enforce_groups` — bez zapisu; kcal poza zakresem = ostrzeżenie; manual ≠ kcal ±3 % = 422 |
+| `POST /assign` | trener, własny klient (relacja + zgoda żywienie) | migawka + overrides; dzień POZA_TOLERANCJĄ → 409 `DAY_OUT_OF_TOLERANCE`, chyba że `accept_warnings` (fakt zapisany w `overrides.accepted_warnings/accepted_days`); poprzednia dieta → ARCHIVED, `version` +1; tylko odsłony PUBLISHED |
+| `GET /assigned/current` | klient | własna dieta (migawka + korekty) |
+| `GET /clients/{client_id}/current` | klient / trener z dostępem | dieta + historia wersji + historia wymian |
+| `GET /assigned/{id}/swaps?day=&meal=&ingredient=` | właściciel / trener | 1–3 kandydatów (`swap_candidates`, wykluczenia klienta, `swappable`, blokada trenera) |
+| `POST /assigned/{id}/swaps` | właściciel / trener | produkt musi być kandydatem; gramatura z klienta walidowana tolerancją posiłku (422), bez niej — gramatura silnika; `SwapEvent` + override |
+| `PATCH /assigned/{id}` | trener | korekta gramatury (dzień przeliczony), zamiana posiłku z biblioteki (ten sam slot, przeskalowany do celu posiłku), `swaps_enabled` |
+| `GET /products`, `POST /products` (ADMIN) | | baza produktów; nowy produkt tylko admin z `source` (kcal z makro) |
+| `POST/PUT /profiles…`, `POST/PUT /weeks…`, `GET /weeks/{id}/full`, `POST /weeks/{id}/days/{n}/meals`, `PUT/DELETE /meals/{id}`, `POST /meals/{id}/ingredients`, `PUT/DELETE /ingredients/{id}` | trener/admin | panel szablonów (etap 6, backend) |
+| `POST /weeks/{id}/sweep`, `/publish`, `/unpublish`, `POST /weeks/import` | trener/admin | sweep 1400–3200 (flagi per posiłek, brakujące dni), publikacja ≥ 95 % dni OK (409 `SWEEP_BELOW_THRESHOLD`), import JSON jako DRAFT |
+
+Decyzje: `client_id` w ciele `assign` (jak w zadaniu) → klasa dostępu COACH_ONLY w macierzy, a
+własność klienta sprawdza `resolve_client_access` (test: obcy trener 404, klient 403). Panel
+szablonów dostępny dla roli COACH lub ADMIN (szablony nie są danymi klientów; admin nadal nie
+sięga po diety klientów — test). Powiadomień o przypisaniu nie wysyłam (poza zakresem zadania;
+łatwa okazja: wpis „Trener przypisał dietę” przez outbox jak w 0.58.0 — propozycja, nie zrobione).
+Testy: `tests/test_dieta_api.py` (11) + 27 wpisów macierzy dostępu weryfikowanych wykonaniem.

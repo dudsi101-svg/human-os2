@@ -36,6 +36,7 @@ from .routers import (
     checkins,
     clients,
     consultations,
+    diet,
     exercises,
     files,
     food_catalog,
@@ -100,6 +101,17 @@ async def lifespan(app: FastAPI):
     except Exception as exc:  # noqa: BLE001
         log_json("wywiad_migracja_failed", level="error", **exception_fields(exc))
         app.state.wywiad_migracja_error = type(exc).__name__
+    # Szablony diet (0.60.0): seed produktów i odsłony Standard v1 przy
+    # włączonej fladze — idempotentnie; błąd nie zatrzymuje startu.
+    if settings.diet_templates_enabled:
+        try:
+            from .dieta import seed as dieta_seed
+
+            with db_session() as db:
+                dieta_seed.zaseeduj(db)
+        except Exception as exc:  # noqa: BLE001
+            log_json("diet_seed_failed", level="error", **exception_fields(exc))
+            app.state.diet_seed_error = type(exc).__name__
     if os.environ.get("DZIK_SEED_DEMO") == "true":
         # Staging: jednorazowy zasiew danych demo (seed sam pomija
         # niepustą bazę, więc restart maszyny nic nie duplikuje).
@@ -167,7 +179,7 @@ def create_app() -> FastAPI:
         records.router, push.router, consultations.router, telemetry.router,
         challenges.router, notifications_router.router, onboarding.router,
         interview.router, nutrition_templates.router, ocr.router, assistant.router, imports.router,
-        public_site.router, konfigurator.router, kulinaria.router, szkice.router, wywiady.router,
+        public_site.router, konfigurator.router, kulinaria.router, szkice.router, wywiady.router, diet.router,
     ):
         app.include_router(router)
 
@@ -239,6 +251,8 @@ def create_app() -> FastAPI:
             # wyjątku = aplikacja wstała bez treści (patrz lifespan).
             "wiedza_import_error": getattr(app.state, "wiedza_import_error", None),
             "wywiad_migracja_error": getattr(app.state, "wywiad_migracja_error", None),
+            "diet_seed_error": getattr(app.state, "diet_seed_error", None),
+            "features": {"diet_templates": settings.diet_templates_enabled},
         }
 
     @app.get("/api/ready")

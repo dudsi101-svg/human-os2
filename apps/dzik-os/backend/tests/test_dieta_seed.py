@@ -25,7 +25,9 @@ def zaseedowane(client):
 
 
 def test_seed_laduje_142_produkty_i_1_szablon_7x28(zaseedowane):
-    assert zaseedowane["produkty_dodane"] == 142 and zaseedowane["szablon_nowy"] is True
+    # Aplikacja seeduje przy starcie (flaga włączona w testach) — jawne
+    # wywołanie w fixturze niczego nie dokłada; liczby końcowe są stałe.
+    assert zaseedowane["produkty_dodane"] == 0 and zaseedowane["szablon_nowy"] is False
     with SessionLocal() as db:
         assert db.query(DietProduct).count() == 142
         assert db.query(DietTemplateWeek).count() == 1
@@ -35,10 +37,14 @@ def test_seed_laduje_142_produkty_i_1_szablon_7x28(zaseedowane):
         assert week.status == "PUBLISHED" and (week.kcal_min, week.kcal_max, week.base_kcal) == (1400, 3200, 2000)
 
 
-def test_powtorny_seed_nie_dubluje(zaseedowane):
+def test_powtorny_seed_nie_dubluje(client):
+    """Świeża baza z seedem startowym aplikacji + dwa jawne uruchomienia:
+    142 produkty i 1 odsłona, bez duplikatów."""
+    with db_session() as db:
+        r1 = seed.zaseeduj(db)
     with db_session() as db:
         r2 = seed.zaseeduj(db)
-    assert r2["produkty_dodane"] == 0 and r2["szablon_nowy"] is False
+    assert r1["produkty_dodane"] == 0 and r2["produkty_dodane"] == 0 and r2["szablon_nowy"] is False
     with SessionLocal() as db:
         assert db.query(DietProduct).count() == 142 and db.query(DietTemplateWeek).count() == 1
         assert db.query(DietTemplateMeal).count() == 28
