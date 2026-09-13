@@ -53,9 +53,12 @@ def main(argv: list[str] | None = None) -> int:
     if wyslij_test(args[0]):
         print(f"Wysłano testowy e-mail (dostawca: {provider.name}).")
         return 0
+    powod = getattr(provider, "last_failure", None) or "nieznany"
     print(
-        "BŁĄD: dostawca odmówił wysyłki — szczegóły (klasa wyjątku) "
-        "w logu aplikacji.",
+        f"BŁĄD: dostawca odmówił wysyłki — klasa błędu: {powod} "
+        "(SMTPAuthenticationError = złe hasło/użytkownik; TimeoutError, "
+        "ConnectionRefusedError, gaierror = połączenie/host/port; "
+        "SMTPRecipientsRefused = serwer odrzucił adres).",
         file=sys.stderr,
     )
     return 1

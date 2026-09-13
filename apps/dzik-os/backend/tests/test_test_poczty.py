@@ -9,6 +9,7 @@ class FakeProvider:
     def __init__(self, wynik: bool):
         self.wynik = wynik
         self.wyslane: list[dict] = []
+        self.last_failure = None if wynik else "SMTPAuthenticationError"
 
     def send_email(self, *, to: str, subject: str, body: str) -> bool:
         self.wyslane.append({"to": to, "subject": subject, "body": body})
@@ -23,9 +24,25 @@ def test_wysyla_i_zwraca_zero_przy_sukcesie(monkeypatch):
     assert "test poczty" in fake.wyslane[0]["subject"]
 
 
-def test_kod_bledu_gdy_dostawca_odmawia(monkeypatch):
+def test_kod_bledu_gdy_dostawca_odmawia(monkeypatch, capsys):
     monkeypatch.setattr(test_poczty, "provider", FakeProvider(False))
     assert test_poczty.main(["ktos@example.com"]) == 1
+    # Klasa błędu w komunikacie (0.54.5): operator odróżnia złe hasło od
+    # problemu z połączeniem bez grzebania w logach maszyny.
+    assert "SMTPAuthenticationError" in capsys.readouterr().err
+
+
+def test_smtp_provider_zapamietuje_klase_bledu():
+    """Prawdziwy dostawca SMTP na porcie, który odmawia połączenia — bez
+    wyjątku, `False` i klasa błędu (nigdy treść) w `last_failure`."""
+    from dzik_os.notifications_provider import SMTPNotificationProvider
+
+    p = SMTPNotificationProvider(host="127.0.0.1", port=9, user="", password="",
+                                 sender="a@example.com", security="none", timeout=1)
+    assert p.last_failure is None
+    assert p.send_email(to="b@example.com", subject="x", body="y") is False
+    assert p.last_failure and p.last_failure.endswith("Error")
+    assert "b@example.com" not in p.last_failure
 
 
 def test_odmawia_bez_konfiguracji_smtp(monkeypatch):

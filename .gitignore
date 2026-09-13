@@ -30,3 +30,6 @@ apps/dzik-os/frontend/blob-report/
 
 # Lokalne dane uruchomieniowe backendu Dzik OS (baza, wgrane pliki)
 apps/dzik-os/backend/data/
+
+# Katalog roboczy aplikacji tworzony przez uruchomienia z cwd apps/dzik-os (bazy testowe, przesłane pliki, lokalny klucz VAPID) — nigdy do repozytorium
+apps/dzik-os/data/

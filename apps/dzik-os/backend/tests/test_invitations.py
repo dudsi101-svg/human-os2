@@ -25,6 +25,7 @@ def test_invitation_creates_pending_account_without_password(seeded):
     created = invite_client(seeded, hc, "zaproszony@example.com", "Zaproszony Klient")
     inv = created["invitation"]
     assert inv is not None and inv["delivery"] == "manual"
+    assert inv["reason"] == "no_provider"  # 0.54.5: powód, nie tylko fakt
     # NullProvider: link do ręcznego przekazania wraca trenerowi (kompromis
     # opisany w docs); token w URL siedzi we FRAGMENCIE (#) — nie w query.
     assert "#" in inv["activation_link"] and "?" not in inv["activation_link"]
@@ -147,6 +148,7 @@ def test_invitation_email_has_link_and_no_health_data(seeded, monkeypatch):
     created = invite_client(seeded, hc, "emailowy@example.com", "Emailowy Klient")
     inv = created["invitation"]
     assert inv["delivery"] == "email"
+    assert inv["reason"] is None
     assert "activation_link" not in inv  # trener NIE widzi linku
     assert len(sent) == 1 and sent[0]["to"] == "emailowy@example.com"
     assert "/aktywacja#" in sent[0]["body"]

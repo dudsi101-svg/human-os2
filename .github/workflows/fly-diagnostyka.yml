@@ -1,0 +1,30 @@
+# Diagnostyka produkcji TYLKO DO ODCZYTU (0.54.5) — workflow_dispatch.
+#
+# Wypisuje raport `python -m dzik_os.diagnostyka` z maszyny Fly: dostawca
+# poczty z procesu, nazwy ustawionych zmiennych SMTP (nigdy wartości),
+# konta/role/status, relacje ze zgodą współpracy, zaproszenia, liczby
+# planów i zdarzenia doręczeń z 30 dni. Nic nie ustawia, nic nie
+# restartuje. Log widzi wyłącznie właściciel repozytorium.
+
+name: Diagnostyka produkcji (Fly.io)
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: fly-maintenance
+  cancel-in-progress: false
+
+jobs:
+  diagnostyka:
+    runs-on: ubuntu-latest
+    env:
+      FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+      APP_NAME: dzik-os-panel
+    steps:
+      - uses: superfly/flyctl-actions/setup-flyctl@ed8efb33836e8b2096c7fd3ba1c8afe303ebbff1  # master 2026-08 (tag 1.6)
+
+      - name: Raport z maszyny (tylko odczyt)
+        run: |
+          flyctl ssh console --app "$APP_NAME" -C \
+            "python -m dzik_os.diagnostyka"

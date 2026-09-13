@@ -1,6 +1,6 @@
 # Stan przekazania — przeczytaj przed rozpoczęciem rundy
 
-**Aktualizacja:** 2026-09-12 · **Wersja w `main`:** 0.54.4
+**Aktualizacja:** 2026-09-13 · **Wersja w `main`:** 0.54.5
 **Tryb pracy:** jeden piszący i jeden PR `[WRITER]` naraz
 (`KOORDYNACJA.md`, zasada nadrzędna).
 
@@ -33,7 +33,19 @@ pierwszy commit, draft PR `[WRITER]`, reszta agentów read-only.
 jednym prawdziwym klientem, **NO-GO na szerszą produkcję** — siedem
 blokerów wypisanych w §5 tamtego dokumentu.
 
-**Ostatnia runda (0.54.4, gałąź `claude/awesome-sagan-sqd64l`):**
+**Ostatnia runda (0.54.5, gałąź `agent/diagnostyka-produkcji`):**
+zlecenie właściciela (12.09): uruchomić pocztę i trzy konta testowe
+(dudsi101+test1/2/3). Z sesji produkcja jest nieosiągalna (egress
+odrzuca fly.dev), więc powstał workflow „Diagnostyka produkcji”
+(raport tylko do odczytu: dostawca poczty z procesu, nazwy zmiennych
+SMTP, konta, relacje, zaproszenia, zdarzenia doręczeń), input `zakres`
+w „Sekrety produkcji” (domyślnie wyłącznie poczta) i powód
+niedoręczenia zaproszenia w audycie. Fakty do sprawdzenia diagnostyką
+po scaleniu: czy zaproszenie „TEST 01” (dudsi101+test1, wysłane z
+panelu 12.09 przez sesję Codex) w ogóle powstało; workflow sekretów
+nigdy nie był uruchomiony (0 przebiegów) — poczta na produkcji stoi
+na dostawcy `null`, dopóki właściciel nie doda sekretów SMTP w repo.
+**Runda 0.54.4 (`claude/awesome-sagan-sqd64l`):**
 mała runda naprawcza testów (pozycja z §3): `test_notifications.py`
 bez absolutnych dat przyszłych (najbliższa 16.09 — 4 dni przed
 zaczerwienieniem CI; kuracja jak 0.41.0, granice DST testowane
@@ -245,7 +257,7 @@ nie uruchamiano, ponieważ runda nie zmienia kodu ani zasobów frontendu.
 
 | Rzecz | Stan | Gdzie |
 |---|---|---|
-| **Sekrety SMTP** | kod gotowy (0.42.0); do uruchomienia poczty właściciel ustawia `DZIK_SMTP_HOST`/`USER`/`PASSWORD`/`FROM` jako sekrety Fly — bez nich reset hasła pozostaje martwy (klient bez drogi powrotu, jedyna alternatywa: ponowne zaproszenie od trenera) | `flyctl secrets set` |
+| **Sekrety SMTP** | kod gotowy (0.42.0); workflow „Sekrety produkcji” z zakresem `poczta` (0.54.5) — właściciel dodaje `DZIK_SMTP_HOST/PORT/USER/PASSWORD/FROM` w sekretach repo i klika Run workflow; do tego czasu dostawca `null`: zaproszenia wracają trenerowi jako link do przekazania, reset hasła e-mailem martwy | Actions → „Sekrety produkcji” |
 | **Dostawca AI** | **ZAIMPLEMENTOWANY (0.45.0)** — `AnthropicAIProvider`; do uruchomienia na produkcji brakuje wyłącznie sekretów właściciela (`DZIK_AI_API_KEY` + `DZIK_AI_ENABLED=true`, `DEPLOYMENT.md` §4d); prawdziwe wywołanie modelu nigdy się nie wykonało | `backend/dzik_os/ai_provider.py` |
 | Klucz API | właściciel go ma; **musi trafić do sekretu**, nigdy do czatu ani repozytorium | `DZIK_AI_API_KEY` + `DZIK_AI_ENABLED=true` |
 | Decyzja o `extra="forbid"` | przygotowana analiza, **decyzja należy do właściciela** | `BRAMKA_GO_NOGO.md` §4 |
