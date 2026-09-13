@@ -1571,3 +1571,26 @@ class WiedzaUstawienia(Base):
     owner_id: Mapped[str] = mapped_column(ForeignKey("users.id"), primary_key=True)
     personalizacja: Mapped[bool] = mapped_column(Boolean, default=True)
     updated_at: Mapped[str] = mapped_column(String(40), default=now_iso)
+
+
+# --- Kulinaria (0.57.0, migracja 29) ----------------------------------------
+
+
+class KulinariaReceptura(Base):
+    """Stan publikacji receptury z biblioteki 300 wariantów. Sam plik
+    pakietu ma wszystkie receptury jako szkice; publikacja to JAWNA
+    decyzja trenera zapisana tutaj: status, przegląd (test kuchenny,
+    przegląd dietetyczny, recenzent, termin), zatwierdzone warianty
+    porcji. Produkcyjny solver nie widzi niczego innego (D26)."""
+
+    __tablename__ = "kulinaria_receptury"
+    __table_args__ = (UniqueConstraint("recipe_id", "revision"),)
+
+    id: Mapped[str] = mapped_column(String(40), primary_key=True)
+    recipe_id: Mapped[str] = mapped_column(String(80), index=True)
+    revision: Mapped[int] = mapped_column(Integer)
+    status: Mapped[str] = mapped_column(String(20), default="draft")  # draft/published/retired
+    review_json: Mapped[str] = mapped_column(Text, default="{}")
+    validated_variants_json: Mapped[str] = mapped_column(Text, default="[]")
+    updated_by: Mapped[str] = mapped_column(String(40))
+    updated_at: Mapped[str] = mapped_column(String(40), default=now_iso)

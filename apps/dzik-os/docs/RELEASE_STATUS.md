@@ -1,6 +1,6 @@
 # Stan wydania — Dzik OS
 
-**Wersja:** 0.56.0 · **Data:** 2026-09-13 · **Środowisko:** produkcja
+**Wersja:** 0.57.0 · **Data:** 2026-09-13 · **Środowisko:** produkcja
 (pilotaż) — https://dzik-os-panel.fly.dev
 
 Jedna strona prawdy o tym, co DZIAŁA na produkcji teraz. Aktualizowana
@@ -71,6 +71,18 @@ a produkcja ignoruje tryb demonstracyjny. Publikuje trener w zakładce
 przeglądu). „Dlaczego?” działa od razu dla nowych decyzji (plany
 z konfiguratora, nowe wersje planów i diet od trenera); stare plany
 pokazują uczciwy brak zapisanego uzasadnienia (`docs/WIEDZA.md`).
+
+## Kreator dań (P0, 0.57.0)
+
+Trzecia droga „Ułóż z dań” w zakładce Dieta trenera: silnik
+referencyjny właściciela układa menu z całych receptur w zatwierdzonych
+porcjach. **Na produkcji dostępny jest wyłącznie podgląd kulinarny ze
+szkiców (bez wartości odżywczych):** 300 rekordów katalogu to szkice
+wariantów bez testu kuchennego i recenzji; opublikowanych receptur jest
+0, więc tryb produkcyjny z makro uczciwie zwraca „za mało receptur po
+filtrach”. Publikuje trener z jawnymi poświadczeniami w bibliotece
+receptur. Zapis podglądu klientowi wymaga potwierdzenia; klient widzi
+„Dlaczego to danie?” ze śladu decyzji (`docs/KULINARIA.md`).
 
 ## Diagnostyka
 

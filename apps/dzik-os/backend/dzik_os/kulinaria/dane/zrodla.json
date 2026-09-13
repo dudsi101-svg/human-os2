@@ -1,0 +1,93 @@
+{
+  "checked_on": "2026-09-13",
+  "sources": [
+    {
+      "id": "N01",
+      "title": "NHS The vegan diet",
+      "url": "https://www.nhs.uk/live-well/eat-well/how-to-eat-a-balanced-diet/the-vegan-diet/",
+      "used_for": "Weganizm i składniki wymagające uwagi",
+      "access": "opened_or_search_excerpt",
+      "claim": "Nie waliduje autorskich receptur ani całego silnika."
+    },
+    {
+      "id": "N02",
+      "title": "Harvard Paleo Diet Review",
+      "url": "https://nutritionsource.hsph.harvard.edu/healthy-weight/diet-reviews/paleo-diet/",
+      "used_for": "Definicja i ograniczenia wiedzy o paleo",
+      "access": "opened_or_search_excerpt",
+      "claim": "Nie waliduje autorskich receptur ani całego silnika."
+    },
+    {
+      "id": "N03",
+      "title": "Harvard Ketogenic Diet Review",
+      "url": "https://nutritionsource.hsph.harvard.edu/healthy-weight/diet-reviews/ketogenic-diet/",
+      "used_for": "Różne warianty keto i ograniczenia",
+      "access": "opened_or_search_excerpt",
+      "claim": "Nie waliduje autorskich receptur ani całego silnika."
+    },
+    {
+      "id": "N04",
+      "title": "Diabetes UK Low carb diet and meal plan",
+      "url": "https://www.diabetes.org.uk/living-with-diabetes/eating/meal-plans/low-carb",
+      "used_for": "Konsultacja przy cukrzycy i lekach",
+      "access": "opened_or_search_excerpt",
+      "claim": "Nie waliduje autorskich receptur ani całego silnika."
+    },
+    {
+      "id": "N05",
+      "title": "NCEŻ Talerz zdrowego żywienia",
+      "url": "https://ncez.pzh.gov.pl/abc-zywienia/talerz-zdrowego-zywienia/",
+      "used_for": "Ogólny wzorzec żywienia",
+      "access": "opened_or_search_excerpt",
+      "claim": "Nie waliduje autorskich receptur ani całego silnika."
+    },
+    {
+      "id": "N06",
+      "title": "NCEŻ Dieta śródziemnomorska",
+      "url": "https://ncez.pzh.gov.pl/wp-content/uploads/2024/08/zalecenia_dietetycy_dieta-srodziemnomorska.pdf",
+      "used_for": "Wzorzec śródziemnomorski",
+      "access": "opened_or_search_excerpt",
+      "claim": "Nie waliduje autorskich receptur ani całego silnika."
+    },
+    {
+      "id": "N07",
+      "title": "Harvard Emphasizing unsaturated fats on a ketogenic diet",
+      "url": "https://nutritionsource.hsph.harvard.edu/2019/08/16/emphasizing-unsaturated-fats-keto-diet/",
+      "used_for": "Jakość tłuszczów",
+      "access": "opened_or_search_excerpt",
+      "claim": "Nie waliduje autorskich receptur ani całego silnika."
+    },
+    {
+      "id": "N08",
+      "title": "UE 1169/2011 załącznik I",
+      "url": "https://eur-lex.europa.eu/eli/reg/2011/1169/oj",
+      "used_for": "Definicje danych carbohydrate i fibre; nie porada prawna",
+      "access": "opened_or_search_excerpt",
+      "claim": "Nie waliduje autorskich receptur ani całego silnika."
+    },
+    {
+      "id": "C01",
+      "title": "Great British Chefs How to Make Vinaigrette",
+      "url": "https://www.greatbritishchefs.com/how-to-cook/how-to-make-vinaigrette",
+      "used_for": "Praktyczny kontekst dressingu",
+      "access": "opened_or_search_excerpt",
+      "claim": "Nie waliduje autorskich receptur ani całego silnika."
+    },
+    {
+      "id": "C02",
+      "title": "Jamie Oliver Vegetarian chilli",
+      "url": "https://www.jamieoliver.com/recipes/vegetables/veggie-chilli/",
+      "used_for": "Inspiracja rozpoznawalną rodziną dań, bez kopiowania receptury",
+      "access": "opened_or_search_excerpt",
+      "claim": "Nie waliduje autorskich receptur ani całego silnika."
+    },
+    {
+      "id": "F01",
+      "title": "Food Standards Agency Cooking your food",
+      "url": "https://www.food.gov.uk/safety-hygiene/cooking-your-food",
+      "used_for": "Obróbka i ogólne zasady resztek; szczególne produkty wymagają odrębnych reguł",
+      "access": "opened_or_search_excerpt",
+      "claim": "Nie waliduje autorskich receptur ani całego silnika."
+    }
+  ]
+}

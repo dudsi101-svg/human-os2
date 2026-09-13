@@ -1,0 +1,1139 @@
+{
+  "version": "1.0",
+  "status": "unmapped_draft",
+  "foods": [
+    {
+      "id": "oats",
+      "name": "Płatki owsiane",
+      "state": "dry",
+      "groups": [
+        "grain"
+      ],
+      "allergens": [
+        "gluten"
+      ],
+      "allergen_verified": false,
+      "nutrition_verified": false,
+      "source_id": null,
+      "source_version": null,
+      "nutrition_per_100g": null,
+      "carb_definition": null
+    },
+    {
+      "id": "rice",
+      "name": "Ryż",
+      "state": "dry",
+      "groups": [
+        "grain"
+      ],
+      "allergens": [],
+      "allergen_verified": false,
+      "nutrition_verified": false,
+      "source_id": null,
+      "source_version": null,
+      "nutrition_per_100g": null,
+      "carb_definition": null
+    },
+    {
+      "id": "couscous",
+      "name": "Kuskus",
+      "state": "dry",
+      "groups": [
+        "grain"
+      ],
+      "allergens": [
+        "gluten"
+      ],
+      "allergen_verified": false,
+      "nutrition_verified": false,
+      "source_id": null,
+      "source_version": null,
+      "nutrition_per_100g": null,
+      "carb_definition": null
+    },
+    {
+      "id": "pasta",
+      "name": "Makaron pełnoziarnisty",
+      "state": "dry",
+      "groups": [
+        "grain"
+      ],
+      "allergens": [
+        "gluten"
+      ],
+      "allergen_verified": false,
+      "nutrition_verified": false,
+      "source_id": null,
+      "source_version": null,
+      "nutrition_per_100g": null,
+      "carb_definition": null
+    },
+    {
+      "id": "bread",
+      "name": "Pieczywo pełnoziarniste",
+      "state": "ready",
+      "groups": [
+        "grain"
+      ],
+      "allergens": [
+        "gluten"
+      ],
+      "allergen_verified": false,
+      "nutrition_verified": false,
+      "source_id": null,
+      "source_version": null,
+      "nutrition_per_100g": null,
+      "carb_definition": null
+    },
+    {
+      "id": "wrap",
+      "name": "Tortilla pszenna",
+      "state": "ready",
+      "groups": [
+        "grain"
+      ],
+      "allergens": [
+        "gluten"
+      ],
+      "allergen_verified": false,
+      "nutrition_verified": false,
+      "source_id": null,
+      "source_version": null,
+      "nutrition_per_100g": null,
+      "carb_definition": null
+    },
+    {
+      "id": "milk",
+      "name": "Mleko",
+      "state": "ready",
+      "groups": [
+        "dairy"
+      ],
+      "allergens": [
+        "milk"
+      ],
+      "allergen_verified": false,
+      "nutrition_verified": false,
+      "source_id": null,
+      "source_version": null,
+      "nutrition_per_100g": null,
+      "carb_definition": null
+    },
+    {
+      "id": "soy_drink",
+      "name": "Niesłodzony napój sojowy",
+      "state": "ready",
+      "groups": [
+        "legume"
+      ],
+      "allergens": [
+        "soy"
+      ],
+      "allergen_verified": false,
+      "nutrition_verified": false,
+      "source_id": null,
+      "source_version": null,
+      "nutrition_per_100g": null,
+      "carb_definition": null
+    },
+    {
+      "id": "soy_yogurt",
+      "name": "Naturalny jogurt sojowy",
+      "state": "ready",
+      "groups": [
+        "legume"
+      ],
+      "allergens": [
+        "soy"
+      ],
+      "allergen_verified": false,
+      "nutrition_verified": false,
+      "source_id": null,
+      "source_version": null,
+      "nutrition_per_100g": null,
+      "carb_definition": null
+    },
+    {
+      "id": "yogurt",
+      "name": "Jogurt naturalny",
+      "state": "ready",
+      "groups": [
+        "dairy"
+      ],
+      "allergens": [
+        "milk"
+      ],
+      "allergen_verified": false,
+      "nutrition_verified": false,
+      "source_id": null,
+      "source_version": null,
+      "nutrition_per_100g": null,
+      "carb_definition": null
+    },
+    {
+      "id": "skyr",
+      "name": "Skyr naturalny",
+      "state": "ready",
+      "groups": [
+        "dairy"
+      ],
+      "allergens": [
+        "milk"
+      ],
+      "allergen_verified": false,
+      "nutrition_verified": false,
+      "source_id": null,
+      "source_version": null,
+      "nutrition_per_100g": null,
+      "carb_definition": null
+    },
+    {
+      "id": "cottage",
+      "name": "Twaróg",
+      "state": "ready",
+      "groups": [
+        "dairy"
+      ],
+      "allergens": [
+        "milk"
+      ],
+      "allergen_verified": false,
+      "nutrition_verified": false,
+      "source_id": null,
+      "source_version": null,
+      "nutrition_per_100g": null,
+      "carb_definition": null
+    },
+    {
+      "id": "coconut_drink",
+      "name": "Niesłodzony napój kokosowy",
+      "state": "ready",
+      "groups": [
+        "plant"
+      ],
+      "allergens": [],
+      "allergen_verified": false,
+      "nutrition_verified": false,
+      "source_id": null,
+      "source_version": null,
+      "nutrition_per_100g": null,
+      "carb_definition": null
+    },
+    {
+      "id": "eggs",
+      "name": "Jaja bez skorupek",
+      "state": "raw",
+      "groups": [
+        "eggs"
+      ],
+      "allergens": [
+        "eggs"
+      ],
+      "allergen_verified": false,
+      "nutrition_verified": false,
+      "source_id": null,
+      "source_version": null,
+      "nutrition_per_100g": null,
+      "carb_definition": null
+    },
+    {
+      "id": "tofu",
+      "name": "Tofu naturalne",
+      "state": "ready",
+      "groups": [
+        "legume"
+      ],
+      "allergens": [
+        "soy"
+      ],
+      "allergen_verified": false,
+      "nutrition_verified": false,
+      "source_id": null,
+      "source_version": null,
+      "nutrition_per_100g": null,
+      "carb_definition": null
+    },
+    {
+      "id": "chicken",
+      "name": "Pierś kurczaka",
+      "state": "raw",
+      "groups": [
+        "meat"
+      ],
+      "allergens": [],
+      "allergen_verified": false,
+      "nutrition_verified": false,
+      "source_id": null,
+      "source_version": null,
+      "nutrition_per_100g": null,
+      "carb_definition": null
+    },
+    {
+      "id": "turkey",
+      "name": "Pierś indyka",
+      "state": "raw",
+      "groups": [
+        "meat"
+      ],
+      "allergens": [],
+      "allergen_verified": false,
+      "nutrition_verified": false,
+      "source_id": null,
+      "source_version": null,
+      "nutrition_per_100g": null,
+      "carb_definition": null
+    },
+    {
+      "id": "salmon",
+      "name": "Filet z łososia",
+      "state": "raw",
+      "groups": [
+        "fish"
+      ],
+      "allergens": [
+        "fish"
+      ],
+      "allergen_verified": false,
+      "nutrition_verified": false,
+      "source_id": null,
+      "source_version": null,
+      "nutrition_per_100g": null,
+      "carb_definition": null
+    },
+    {
+      "id": "cod",
+      "name": "Filet z dorsza",
+      "state": "raw",
+      "groups": [
+        "fish"
+      ],
+      "allergens": [
+        "fish"
+      ],
+      "allergen_verified": false,
+      "nutrition_verified": false,
+      "source_id": null,
+      "source_version": null,
+      "nutrition_per_100g": null,
+      "carb_definition": null
+    },
+    {
+      "id": "tuna",
+      "name": "Tuńczyk w sosie własnym odsączony",
+      "state": "drained",
+      "groups": [
+        "fish"
+      ],
+      "allergens": [
+        "fish"
+      ],
+      "allergen_verified": false,
+      "nutrition_verified": false,
+      "source_id": null,
+      "source_version": null,
+      "nutrition_per_100g": null,
+      "carb_definition": null
+    },
+    {
+      "id": "beans",
+      "name": "Fasola konserwowa odsączona",
+      "state": "drained",
+      "groups": [
+        "legume"
+      ],
+      "allergens": [],
+      "allergen_verified": false,
+      "nutrition_verified": false,
+      "source_id": null,
+      "source_version": null,
+      "nutrition_per_100g": null,
+      "carb_definition": null
+    },
+    {
+      "id": "chickpeas",
+      "name": "Ciecierzyca konserwowa odsączona",
+      "state": "drained",
+      "groups": [
+        "legume"
+      ],
+      "allergens": [],
+      "allergen_verified": false,
+      "nutrition_verified": false,
+      "source_id": null,
+      "source_version": null,
+      "nutrition_per_100g": null,
+      "carb_definition": null
+    },
+    {
+      "id": "lentils",
+      "name": "Soczewica ugotowana odsączona",
+      "state": "drained",
+      "groups": [
+        "legume"
+      ],
+      "allergens": [],
+      "allergen_verified": false,
+      "nutrition_verified": false,
+      "source_id": null,
+      "source_version": null,
+      "nutrition_per_100g": null,
+      "carb_definition": null
+    },
+    {
+      "id": "red_lentils",
+      "name": "Soczewica czerwona",
+      "state": "dry",
+      "groups": [
+        "legume"
+      ],
+      "allergens": [],
+      "allergen_verified": false,
+      "nutrition_verified": false,
+      "source_id": null,
+      "source_version": null,
+      "nutrition_per_100g": null,
+      "carb_definition": null
+    },
+    {
+      "id": "hummus",
+      "name": "Hummus",
+      "state": "ready",
+      "groups": [
+        "legume",
+        "sesame"
+      ],
+      "allergens": [
+        "sesame"
+      ],
+      "allergen_verified": false,
+      "nutrition_verified": false,
+      "source_id": null,
+      "source_version": null,
+      "nutrition_per_100g": null,
+      "carb_definition": null
+    },
+    {
+      "id": "olive_oil",
+      "name": "Oliwa",
+      "state": "ready",
+      "groups": [
+        "plant_oil"
+      ],
+      "allergens": [],
+      "allergen_verified": false,
+      "nutrition_verified": false,
+      "source_id": null,
+      "source_version": null,
+      "nutrition_per_100g": null,
+      "carb_definition": null
+    },
+    {
+      "id": "lemon",
+      "name": "Sok z cytryny",
+      "state": "ready",
+      "groups": [
+        "fruit"
+      ],
+      "allergens": [],
+      "allergen_verified": false,
+      "nutrition_verified": false,
+      "source_id": null,
+      "source_version": null,
+      "nutrition_per_100g": null,
+      "carb_definition": null
+    },
+    {
+      "id": "lime",
+      "name": "Sok z limonki",
+      "state": "ready",
+      "groups": [
+        "fruit"
+      ],
+      "allergens": [],
+      "allergen_verified": false,
+      "nutrition_verified": false,
+      "source_id": null,
+      "source_version": null,
+      "nutrition_per_100g": null,
+      "carb_definition": null
+    },
+    {
+      "id": "water",
+      "name": "Woda",
+      "state": "ready",
+      "groups": [],
+      "allergens": [],
+      "allergen_verified": false,
+      "nutrition_verified": false,
+      "source_id": null,
+      "source_version": null,
+      "nutrition_per_100g": null,
+      "carb_definition": null
+    },
+    {
+      "id": "tomato_can",
+      "name": "Pomidory z puszki",
+      "state": "ready",
+      "groups": [
+        "vegetable"
+      ],
+      "allergens": [],
+      "allergen_verified": false,
+      "nutrition_verified": false,
+      "source_id": null,
+      "source_version": null,
+      "nutrition_per_100g": null,
+      "carb_definition": null
+    },
+    {
+      "id": "coconut_milk",
+      "name": "Mleczko kokosowe",
+      "state": "ready",
+      "groups": [
+        "plant"
+      ],
+      "allergens": [],
+      "allergen_verified": false,
+      "nutrition_verified": false,
+      "source_id": null,
+      "source_version": null,
+      "nutrition_per_100g": null,
+      "carb_definition": null
+    },
+    {
+      "id": "chia",
+      "name": "Nasiona chia",
+      "state": "dry",
+      "groups": [
+        "seed"
+      ],
+      "allergens": [],
+      "allergen_verified": false,
+      "nutrition_verified": false,
+      "source_id": null,
+      "source_version": null,
+      "nutrition_per_100g": null,
+      "carb_definition": null
+    },
+    {
+      "id": "walnut",
+      "name": "Orzech włoski",
+      "state": "ready",
+      "groups": [
+        "nuts"
+      ],
+      "allergens": [
+        "nuts"
+      ],
+      "allergen_verified": false,
+      "nutrition_verified": false,
+      "source_id": null,
+      "source_version": null,
+      "nutrition_per_100g": null,
+      "carb_definition": null
+    },
+    {
+      "id": "almond",
+      "name": "Migdały",
+      "state": "ready",
+      "groups": [
+        "nuts"
+      ],
+      "allergens": [
+        "nuts"
+      ],
+      "allergen_verified": false,
+      "nutrition_verified": false,
+      "source_id": null,
+      "source_version": null,
+      "nutrition_per_100g": null,
+      "carb_definition": null
+    },
+    {
+      "id": "pumpkin_seed",
+      "name": "Pestki dyni",
+      "state": "ready",
+      "groups": [
+        "seed"
+      ],
+      "allergens": [],
+      "allergen_verified": false,
+      "nutrition_verified": false,
+      "source_id": null,
+      "source_version": null,
+      "nutrition_per_100g": null,
+      "carb_definition": null
+    },
+    {
+      "id": "sunflower",
+      "name": "Pestki słonecznika",
+      "state": "ready",
+      "groups": [
+        "seed"
+      ],
+      "allergens": [],
+      "allergen_verified": false,
+      "nutrition_verified": false,
+      "source_id": null,
+      "source_version": null,
+      "nutrition_per_100g": null,
+      "carb_definition": null
+    },
+    {
+      "id": "potato",
+      "name": "Ziemniak obrany",
+      "state": "raw",
+      "groups": [
+        "vegetable"
+      ],
+      "allergens": [],
+      "allergen_verified": false,
+      "nutrition_verified": false,
+      "source_id": null,
+      "source_version": null,
+      "nutrition_per_100g": null,
+      "carb_definition": null
+    },
+    {
+      "id": "sweet_potato",
+      "name": "Batat obrany",
+      "state": "raw",
+      "groups": [
+        "vegetable"
+      ],
+      "allergens": [],
+      "allergen_verified": false,
+      "nutrition_verified": false,
+      "source_id": null,
+      "source_version": null,
+      "nutrition_per_100g": null,
+      "carb_definition": null
+    },
+    {
+      "id": "onion",
+      "name": "Cebula",
+      "state": "raw",
+      "groups": [
+        "vegetable"
+      ],
+      "allergens": [],
+      "allergen_verified": false,
+      "nutrition_verified": false,
+      "source_id": null,
+      "source_version": null,
+      "nutrition_per_100g": null,
+      "carb_definition": null
+    },
+    {
+      "id": "garlic",
+      "name": "Czosnek",
+      "state": "raw",
+      "groups": [
+        "vegetable"
+      ],
+      "allergens": [],
+      "allergen_verified": false,
+      "nutrition_verified": false,
+      "source_id": null,
+      "source_version": null,
+      "nutrition_per_100g": null,
+      "carb_definition": null
+    },
+    {
+      "id": "apple",
+      "name": "Jabłko część jadalna",
+      "state": "raw",
+      "groups": [
+        "fruit"
+      ],
+      "allergens": [],
+      "allergen_verified": false,
+      "nutrition_verified": false,
+      "source_id": null,
+      "source_version": null,
+      "nutrition_per_100g": null,
+      "carb_definition": null
+    },
+    {
+      "id": "pear",
+      "name": "Gruszka część jadalna",
+      "state": "raw",
+      "groups": [
+        "fruit"
+      ],
+      "allergens": [],
+      "allergen_verified": false,
+      "nutrition_verified": false,
+      "source_id": null,
+      "source_version": null,
+      "nutrition_per_100g": null,
+      "carb_definition": null
+    },
+    {
+      "id": "banana",
+      "name": "Banan część jadalna",
+      "state": "raw",
+      "groups": [
+        "fruit"
+      ],
+      "allergens": [],
+      "allergen_verified": false,
+      "nutrition_verified": false,
+      "source_id": null,
+      "source_version": null,
+      "nutrition_per_100g": null,
+      "carb_definition": null
+    },
+    {
+      "id": "blueberry",
+      "name": "Borówki część jadalna",
+      "state": "raw",
+      "groups": [
+        "fruit"
+      ],
+      "allergens": [],
+      "allergen_verified": false,
+      "nutrition_verified": false,
+      "source_id": null,
+      "source_version": null,
+      "nutrition_per_100g": null,
+      "carb_definition": null
+    },
+    {
+      "id": "raspberry",
+      "name": "Maliny część jadalna",
+      "state": "raw",
+      "groups": [
+        "fruit"
+      ],
+      "allergens": [],
+      "allergen_verified": false,
+      "nutrition_verified": false,
+      "source_id": null,
+      "source_version": null,
+      "nutrition_per_100g": null,
+      "carb_definition": null
+    },
+    {
+      "id": "strawberry",
+      "name": "Truskawki część jadalna",
+      "state": "raw",
+      "groups": [
+        "fruit"
+      ],
+      "allergens": [],
+      "allergen_verified": false,
+      "nutrition_verified": false,
+      "source_id": null,
+      "source_version": null,
+      "nutrition_per_100g": null,
+      "carb_definition": null
+    },
+    {
+      "id": "peach",
+      "name": "Brzoskwinia część jadalna",
+      "state": "raw",
+      "groups": [
+        "fruit"
+      ],
+      "allergens": [],
+      "allergen_verified": false,
+      "nutrition_verified": false,
+      "source_id": null,
+      "source_version": null,
+      "nutrition_per_100g": null,
+      "carb_definition": null
+    },
+    {
+      "id": "plum",
+      "name": "Śliwka część jadalna",
+      "state": "raw",
+      "groups": [
+        "fruit"
+      ],
+      "allergens": [],
+      "allergen_verified": false,
+      "nutrition_verified": false,
+      "source_id": null,
+      "source_version": null,
+      "nutrition_per_100g": null,
+      "carb_definition": null
+    },
+    {
+      "id": "kiwi",
+      "name": "Kiwi część jadalna",
+      "state": "raw",
+      "groups": [
+        "fruit"
+      ],
+      "allergens": [],
+      "allergen_verified": false,
+      "nutrition_verified": false,
+      "source_id": null,
+      "source_version": null,
+      "nutrition_per_100g": null,
+      "carb_definition": null
+    },
+    {
+      "id": "orange",
+      "name": "Pomarańcza część jadalna",
+      "state": "raw",
+      "groups": [
+        "fruit"
+      ],
+      "allergens": [],
+      "allergen_verified": false,
+      "nutrition_verified": false,
+      "source_id": null,
+      "source_version": null,
+      "nutrition_per_100g": null,
+      "carb_definition": null
+    },
+    {
+      "id": "zucchini",
+      "name": "Cukinia część jadalna",
+      "state": "raw",
+      "groups": [
+        "vegetable"
+      ],
+      "allergens": [],
+      "allergen_verified": false,
+      "nutrition_verified": false,
+      "source_id": null,
+      "source_version": null,
+      "nutrition_per_100g": null,
+      "carb_definition": null
+    },
+    {
+      "id": "pepper",
+      "name": "Papryka część jadalna",
+      "state": "raw",
+      "groups": [
+        "vegetable"
+      ],
+      "allergens": [],
+      "allergen_verified": false,
+      "nutrition_verified": false,
+      "source_id": null,
+      "source_version": null,
+      "nutrition_per_100g": null,
+      "carb_definition": null
+    },
+    {
+      "id": "broccoli",
+      "name": "Brokuł część jadalna",
+      "state": "raw",
+      "groups": [
+        "vegetable"
+      ],
+      "allergens": [],
+      "allergen_verified": false,
+      "nutrition_verified": false,
+      "source_id": null,
+      "source_version": null,
+      "nutrition_per_100g": null,
+      "carb_definition": null
+    },
+    {
+      "id": "carrot",
+      "name": "Marchew część jadalna",
+      "state": "raw",
+      "groups": [
+        "vegetable"
+      ],
+      "allergens": [],
+      "allergen_verified": false,
+      "nutrition_verified": false,
+      "source_id": null,
+      "source_version": null,
+      "nutrition_per_100g": null,
+      "carb_definition": null
+    },
+    {
+      "id": "mushroom",
+      "name": "Pieczarki część jadalna",
+      "state": "raw",
+      "groups": [
+        "vegetable"
+      ],
+      "allergens": [],
+      "allergen_verified": false,
+      "nutrition_verified": false,
+      "source_id": null,
+      "source_version": null,
+      "nutrition_per_100g": null,
+      "carb_definition": null
+    },
+    {
+      "id": "spinach",
+      "name": "Szpinak część jadalna",
+      "state": "raw",
+      "groups": [
+        "vegetable"
+      ],
+      "allergens": [],
+      "allergen_verified": false,
+      "nutrition_verified": false,
+      "source_id": null,
+      "source_version": null,
+      "nutrition_per_100g": null,
+      "carb_definition": null
+    },
+    {
+      "id": "tomato",
+      "name": "Pomidor część jadalna",
+      "state": "raw",
+      "groups": [
+        "vegetable"
+      ],
+      "allergens": [],
+      "allergen_verified": false,
+      "nutrition_verified": false,
+      "source_id": null,
+      "source_version": null,
+      "nutrition_per_100g": null,
+      "carb_definition": null
+    },
+    {
+      "id": "green_beans",
+      "name": "Fasolka szparagowa część jadalna",
+      "state": "raw",
+      "groups": [
+        "vegetable",
+        "legume"
+      ],
+      "allergens": [],
+      "allergen_verified": false,
+      "nutrition_verified": false,
+      "source_id": null,
+      "source_version": null,
+      "nutrition_per_100g": null,
+      "carb_definition": null
+    },
+    {
+      "id": "cucumber",
+      "name": "Ogórek część jadalna",
+      "state": "raw",
+      "groups": [
+        "vegetable"
+      ],
+      "allergens": [],
+      "allergen_verified": false,
+      "nutrition_verified": false,
+      "source_id": null,
+      "source_version": null,
+      "nutrition_per_100g": null,
+      "carb_definition": null
+    },
+    {
+      "id": "radish",
+      "name": "Rzodkiewka część jadalna",
+      "state": "raw",
+      "groups": [
+        "vegetable"
+      ],
+      "allergens": [],
+      "allergen_verified": false,
+      "nutrition_verified": false,
+      "source_id": null,
+      "source_version": null,
+      "nutrition_per_100g": null,
+      "carb_definition": null
+    },
+    {
+      "id": "lettuce",
+      "name": "Sałata część jadalna",
+      "state": "raw",
+      "groups": [
+        "vegetable"
+      ],
+      "allergens": [],
+      "allergen_verified": false,
+      "nutrition_verified": false,
+      "source_id": null,
+      "source_version": null,
+      "nutrition_per_100g": null,
+      "carb_definition": null
+    },
+    {
+      "id": "cabbage",
+      "name": "Kapusta część jadalna",
+      "state": "raw",
+      "groups": [
+        "vegetable"
+      ],
+      "allergens": [],
+      "allergen_verified": false,
+      "nutrition_verified": false,
+      "source_id": null,
+      "source_version": null,
+      "nutrition_per_100g": null,
+      "carb_definition": null
+    },
+    {
+      "id": "cauliflower",
+      "name": "Kalafior część jadalna",
+      "state": "raw",
+      "groups": [
+        "vegetable"
+      ],
+      "allergens": [],
+      "allergen_verified": false,
+      "nutrition_verified": false,
+      "source_id": null,
+      "source_version": null,
+      "nutrition_per_100g": null,
+      "carb_definition": null
+    },
+    {
+      "id": "cinnamon",
+      "name": "Cynamon",
+      "state": "dry",
+      "groups": [
+        "spice"
+      ],
+      "allergens": [],
+      "allergen_verified": false,
+      "nutrition_verified": false,
+      "source_id": null,
+      "source_version": null,
+      "nutrition_per_100g": null,
+      "carb_definition": null
+    },
+    {
+      "id": "cocoa",
+      "name": "Kakao bez cukru",
+      "state": "dry",
+      "groups": [
+        "spice"
+      ],
+      "allergens": [],
+      "allergen_verified": false,
+      "nutrition_verified": false,
+      "source_id": null,
+      "source_version": null,
+      "nutrition_per_100g": null,
+      "carb_definition": null
+    },
+    {
+      "id": "oregano",
+      "name": "Oregano",
+      "state": "dry",
+      "groups": [
+        "spice"
+      ],
+      "allergens": [],
+      "allergen_verified": false,
+      "nutrition_verified": false,
+      "source_id": null,
+      "source_version": null,
+      "nutrition_per_100g": null,
+      "carb_definition": null
+    },
+    {
+      "id": "basil",
+      "name": "Bazylia",
+      "state": "dry",
+      "groups": [
+        "spice"
+      ],
+      "allergens": [],
+      "allergen_verified": false,
+      "nutrition_verified": false,
+      "source_id": null,
+      "source_version": null,
+      "nutrition_per_100g": null,
+      "carb_definition": null
+    },
+    {
+      "id": "dill",
+      "name": "Koperek suszony",
+      "state": "dry",
+      "groups": [
+        "spice"
+      ],
+      "allergens": [],
+      "allergen_verified": false,
+      "nutrition_verified": false,
+      "source_id": null,
+      "source_version": null,
+      "nutrition_per_100g": null,
+      "carb_definition": null
+    },
+    {
+      "id": "parsley",
+      "name": "Natka suszona",
+      "state": "dry",
+      "groups": [
+        "spice"
+      ],
+      "allergens": [],
+      "allergen_verified": false,
+      "nutrition_verified": false,
+      "source_id": null,
+      "source_version": null,
+      "nutrition_per_100g": null,
+      "carb_definition": null
+    },
+    {
+      "id": "cumin",
+      "name": "Kumin",
+      "state": "dry",
+      "groups": [
+        "spice"
+      ],
+      "allergens": [],
+      "allergen_verified": false,
+      "nutrition_verified": false,
+      "source_id": null,
+      "source_version": null,
+      "nutrition_per_100g": null,
+      "carb_definition": null
+    },
+    {
+      "id": "paprika",
+      "name": "Papryka słodka",
+      "state": "dry",
+      "groups": [
+        "spice"
+      ],
+      "allergens": [],
+      "allergen_verified": false,
+      "nutrition_verified": false,
+      "source_id": null,
+      "source_version": null,
+      "nutrition_per_100g": null,
+      "carb_definition": null
+    },
+    {
+      "id": "turmeric",
+      "name": "Kurkuma",
+      "state": "dry",
+      "groups": [
+        "spice"
+      ],
+      "allergens": [],
+      "allergen_verified": false,
+      "nutrition_verified": false,
+      "source_id": null,
+      "source_version": null,
+      "nutrition_per_100g": null,
+      "carb_definition": null
+    },
+    {
+      "id": "ginger",
+      "name": "Imbir mielony",
+      "state": "dry",
+      "groups": [
+        "spice"
+      ],
+      "allergens": [],
+      "allergen_verified": false,
+      "nutrition_verified": false,
+      "source_id": null,
+      "source_version": null,
+      "nutrition_per_100g": null,
+      "carb_definition": null
+    }
+  ]
+}

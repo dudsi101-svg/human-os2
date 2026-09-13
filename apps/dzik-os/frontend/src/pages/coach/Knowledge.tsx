@@ -54,6 +54,7 @@ import {
   muscleLabels,
 } from "../../types";
 import WiedzaRedakcja from "./WiedzaRedakcja";
+import KreatorDan from "./KreatorDan";
 
 type Tab = "artykuly" | "karty" | "cwiczenia" | "produkty" | "dieta";
 // „Karty wiedzy” na końcu: kolejność pierwszych zakładek jest częścią
@@ -1495,7 +1496,7 @@ function ProductsTab() {
   );
 }
 
-type DietWay = "kreator" | "kompozytor";
+type DietWay = "kreator" | "kompozytor" | "dania";
 const DIET_WAYS: [DietWay, string, string][] = [
   ["kreator", "Wygeneruj propozycję",
    "Podajesz zasady i proporcje (makro %, posiłki, dni, wykluczenia, "
@@ -1503,6 +1504,10 @@ const DIET_WAYS: [DietWay, string, string][] = [
   ["kompozytor", "Ułóż sam z produktów",
    "Sam zaznaczasz produkty i podajesz cele gramowe — dostajesz "
    + "rozkład porcji do ręcznego ułożenia diety."],
+  ["dania", "Ułóż z dań",
+   "Całe receptury w zatwierdzonych porcjach (kreator dań 0.57.0): podgląd "
+   + "kulinarny ze szkiców albo — po publikacji receptur — menu z makro "
+   + "w granicach celów klienta."],
 ];
 
 function DietTab() {
@@ -1512,7 +1517,7 @@ function DietTab() {
       <div className="card card--accent">
         <h2>Ułóż dietę</h2>
         <p className="dim" style={{ marginTop: -6, fontSize: "0.85rem" }}>
-          Jedno zadanie, dwie drogi — obie są propozycją: przeglądasz,
+          Jedno zadanie, trzy drogi — każda jest propozycją: przeglądasz,
           dostosowujesz i dopiero wtedy trafia do klienta.
         </p>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -1529,7 +1534,7 @@ function DietTab() {
           {DIET_WAYS.find(([id]) => id === way)?.[2]}
         </p>
       </div>
-      {way === "kreator" ? <DietWizardTab /> : <DietComposerTab />}
+      {way === "kreator" ? <DietWizardTab /> : way === "dania" ? <KreatorDan /> : <DietComposerTab />}
     </>
   );
 }

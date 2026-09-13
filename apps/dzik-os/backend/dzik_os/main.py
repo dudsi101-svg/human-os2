@@ -43,6 +43,7 @@ from .routers import (
     interview,
     knowledge,
     konfigurator,
+    kulinaria,
     measurements,
     messages,
     monitoring,
@@ -144,7 +145,7 @@ def create_app() -> FastAPI:
         records.router, push.router, consultations.router, telemetry.router,
         challenges.router, notifications_router.router, onboarding.router,
         interview.router, nutrition_templates.router, ocr.router, assistant.router, imports.router,
-        public_site.router, konfigurator.router,
+        public_site.router, konfigurator.router, kulinaria.router,
     ):
         app.include_router(router)
 

@@ -1,0 +1,29 @@
+{
+  "mode": "preview",
+  "days": 28,
+  "meal_count": 3,
+  "animal_policy": "vegan",
+  "pattern": "balanced",
+  "carb_policy": "standard",
+  "carb_limit_g": null,
+  "carb_basis": null,
+  "screening_status": "cleared",
+  "start_date": "2026-09-14",
+  "max_total_minutes": 30,
+  "max_active_minutes": 20,
+  "max_family_uses_per_week": 2,
+  "excluded_ingredient_ids": [],
+  "allergens": [],
+  "equipment": [
+    "scale",
+    "pot",
+    "hob",
+    "bowl",
+    "pan",
+    "lid"
+  ],
+  "preferred_cuisines": [],
+  "daily_bounds": {},
+  "required_nutrients": [],
+  "targets_reference": null
+}

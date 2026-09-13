@@ -996,6 +996,26 @@ MIGRATIONS.append(
     ])
 )
 
+MIGRATIONS.append(
+    (29, "kulinaria: stan publikacji receptur (kulinaria_receptury)", [
+        # Addytywna: jedna tabela; biblioteka receptur pozostaje w pliku
+        # pakietu, tu tylko decyzje publikacji trenera.
+        (
+            "CREATE TABLE IF NOT EXISTS kulinaria_receptury ("
+            " id VARCHAR(40) PRIMARY KEY,"
+            " recipe_id VARCHAR(80) NOT NULL,"
+            " revision INTEGER NOT NULL,"
+            " status VARCHAR(20) NOT NULL DEFAULT 'draft',"
+            " review_json TEXT NOT NULL DEFAULT '{}',"
+            " validated_variants_json TEXT NOT NULL DEFAULT '[]',"
+            " updated_by VARCHAR(40) NOT NULL,"
+            " updated_at VARCHAR(40) NOT NULL,"
+            " UNIQUE (recipe_id, revision))"
+        ),
+        "CREATE INDEX IF NOT EXISTS ix_kulinaria_receptury_recipe_id ON kulinaria_receptury (recipe_id)",
+    ])
+)
+
 
 def run_migrations(target_engine=None) -> list[int]:
     eng = target_engine or engine

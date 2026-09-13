@@ -1,0 +1,46 @@
+{
+  "mode": "production",
+  "days": 28,
+  "meal_count": 3,
+  "animal_policy": "omnivore",
+  "pattern": "balanced",
+  "carb_policy": "standard",
+  "carb_limit_g": null,
+  "carb_basis": null,
+  "screening_status": "cleared",
+  "start_date": "2026-09-14",
+  "max_total_minutes": 30,
+  "max_active_minutes": 20,
+  "max_family_uses_per_week": 2,
+  "excluded_ingredient_ids": [],
+  "allergens": [],
+  "equipment": [
+    "scale",
+    "pot",
+    "hob",
+    "bowl",
+    "pan",
+    "lid"
+  ],
+  "preferred_cuisines": [],
+  "daily_bounds": {
+    "energy_kcal": [
+      1900,
+      2100
+    ],
+    "protein_g": [
+      90,
+      130
+    ],
+    "fat_g": [
+      60,
+      85
+    ],
+    "carbs_available_g": [
+      200,
+      280
+    ]
+  },
+  "required_nutrients": [],
+  "targets_reference": "DEMO_ONLY: arbitrary software example, not individual nutrition advice; replace with an authorised target record"
+}

@@ -104,16 +104,45 @@ export default function Nutrition() {
           ))}
           {v.content.meals.length > 0 && (
             <div className="card">
-              <h2>Przykładowe posiłki</h2>
+              <h2>{v.content.kulinaria ? "Menu z kreatora dań" : "Przykładowe posiłki"}</h2>
+              {v.content.kulinaria?.mode === "preview" && (
+                <p className="dim" style={{ marginTop: 0, fontSize: "0.85rem" }}>
+                  Podgląd kulinarny: receptury są szkicami bez testu kuchennego i bez policzonych
+                  wartości odżywczych — posiłki nie mają kalorii ani makro, a cele dzienne nie
+                  zostały sprawdzone względem tego menu.
+                </p>
+              )}
               {v.content.meals.map((m, i) => (
                 <div className="exercise" key={i}>
-                  <div>
-                    <b>{m.name}</b>
+                  <div style={{ width: "100%" }}>
+                    <div className="row row--between">
+                      <b>{m.name}</b>
+                      {m.draft && <span className="badge badge--warn">szkic</span>}
+                    </div>
                     {m.description && <div className="meta">{m.description}</div>}
                     {m.swaps && <div className="meta"><Icon name="swap" size={14} label="zamienniki" /> {m.swaps}</div>}
+                    {/* Kreator dań (0.57.0): ślad wyboru dania zapisany razem z wersją
+                        planu — panel pokazuje zapisaną decyzję, nie generuje powodu. */}
+                    {m.trace_target && (
+                      <div className="row" style={{ marginTop: 6 }}>
+                        <Dlaczego etykieta="Dlaczego to danie?" naglowek="Wybór dania"
+                          cel={{ plan_kind: "nutrition", plan_id: plan.id, plan_revision: v.version_no,
+                            target_type: "meal", target_id: m.trace_target }} />
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}
+              {v.content.kulinaria && v.content.kulinaria.shopping_list.length > 0 && (
+                <details style={{ marginTop: 8 }}>
+                  <summary>Lista zakupów ({v.content.kulinaria.shopping_list.length} pozycji)</summary>
+                  <ul style={{ fontSize: "0.85rem", paddingLeft: 18 }}>
+                    {v.content.kulinaria.shopping_list.map((z) => (
+                      <li key={z.food_id}>{z.name} — {Math.round(z.edible_grams)} g ({z.state})</li>
+                    ))}
+                  </ul>
+                </details>
+              )}
             </div>
           )}
           {v.content.supplements.length > 0 && (
