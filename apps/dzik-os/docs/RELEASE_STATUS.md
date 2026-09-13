@@ -1,6 +1,6 @@
 # Stan wydania — Dzik OS
 
-**Wersja:** 0.54.5 · **Data:** 2026-09-13 · **Środowisko:** produkcja
+**Wersja:** 0.55.0 · **Data:** 2026-09-13 · **Środowisko:** produkcja
 (pilotaż) — https://dzik-os-panel.fly.dev
 
 Jedna strona prawdy o tym, co DZIAŁA na produkcji teraz. Aktualizowana
@@ -47,6 +47,13 @@ istniejącego konta, sesje unieważniane, wpis w audycie). Limit podopiecznych:
 | Szyfrowanie plików at-rest (R-02) | **nieaktywowane** — mechanizm AES-256-GCM gotowy w kodzie | workflow „Klucz szyfrowania plików (Fly.io)" (potwierdzenie `WLACZ`; dowód sondą DZIKENC1; kopię klucza schować poza repo) |
 | Backup (dzienny, rotacja 14) | działa na maszynie; **próba odtworzenia co poniedziałek** (workflow, tylko liczności) | off-site: czeka na poświadczenia właściciela (W4) |
 | Web push | działa (VAPID skonfigurowane) | — |
+
+## Konfigurator 28 dni (K1, 0.55.0)
+
+Silnik i API trenera są w kodzie (bez ekranu — K1b). Trener może
+wygenerować i zapisać szkic przez API; katalog ma status „do przeglądu
+trenera”, a heurystyki H nie są walidacją kliniczną
+(`docs/KONFIGURATOR.md`).
 
 ## Diagnostyka
 

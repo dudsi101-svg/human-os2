@@ -1,0 +1,262 @@
+{
+  "version": "1.0",
+  "review_date": "2026-09-13",
+  "scope": "Targeted evidence review, not systematic review or clinical validation.",
+  "sources": [
+    {
+      "id": "S01",
+      "authors": "Currier i wsp.",
+      "year": "2026",
+      "title": "ACSM Resistance Training Prescription",
+      "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC12965823/",
+      "doi": "10.1249/MSS.0000000000003897",
+      "type": "position_stand",
+      "access_scope": "full_text",
+      "used_for": "Ogólne korzyści i organizacja treningu; nie waliduje dokładnych progów aplikacji.",
+      "checked_on": "2026-09-13"
+    },
+    {
+      "id": "S02",
+      "authors": "Schoenfeld i wsp.",
+      "year": "2021",
+      "title": "IUSCA Resistance Training Recommendations to Maximize Muscle Hypertrophy",
+      "url": "https://journal.iusca.org/index.php/Journal/article/view/81",
+      "doi": "10.47206/ijsc.v1i1.81",
+      "type": "position_stand",
+      "access_scope": "full_text",
+      "used_for": "Praktyka hipertrofii w populacji sportowej; ograniczona przenoszalność na pierwsze sesje.",
+      "checked_on": "2026-09-13"
+    },
+    {
+      "id": "S03",
+      "authors": "Pelland i wsp.",
+      "year": "2025 online / 2026 issue",
+      "title": "The Resistance Training Dose Response",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/41343037/",
+      "doi": "10.1007/s40279-025-02344-w",
+      "type": "meta_regression",
+      "access_scope": "abstract",
+      "used_for": "Malejące przyrosty korzyści i model pracy pośredniej; nie wyznacza indywidualnego optimum.",
+      "checked_on": "2026-09-13"
+    },
+    {
+      "id": "S04",
+      "authors": "Robinson i wsp.",
+      "year": "2024",
+      "title": "Exploring the Dose-Response Relationship Between Estimated Resistance Training Proximity to Failure Strength Gain and Muscle Hypertrophy",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/38970765/",
+      "doi": null,
+      "type": "meta_regression",
+      "access_scope": "abstract_search_excerpt",
+      "used_for": "Kierunek związku wysiłku z hipertrofią; RIR szacowany.",
+      "checked_on": "2026-09-13"
+    },
+    {
+      "id": "S05",
+      "authors": "Murphy i Koehler",
+      "year": "2022",
+      "title": "Energy deficiency impairs resistance training gains in lean mass but not strength",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/34623696/",
+      "doi": "10.1111/sms.14075",
+      "type": "meta_analysis",
+      "access_scope": "abstract",
+      "used_for": "Kontekst deficytu; 500 kcal nie jest uniwersalnym progiem bezpieczeństwa.",
+      "checked_on": "2026-09-13"
+    },
+    {
+      "id": "S06",
+      "authors": "Roth Schoenfeld Behringer",
+      "year": "2022",
+      "title": "Lean mass sparing in resistance-trained athletes during caloric restriction",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/35146569/",
+      "doi": "10.1007/s00421-022-04896-5",
+      "type": "review",
+      "access_scope": "abstract",
+      "used_for": "Niepewność optymalnej objętości na redukcji.",
+      "checked_on": "2026-09-13"
+    },
+    {
+      "id": "S07",
+      "authors": "WHO",
+      "year": "2020 guidelines / current fact sheet",
+      "title": "Physical activity",
+      "url": "https://www.who.int/news-room/fact-sheets/detail/physical-activity",
+      "doi": null,
+      "type": "public_health_guideline",
+      "access_scope": "full_text",
+      "used_for": "Cele zdrowotne aktywności, stopniowe wdrażanie.",
+      "checked_on": "2026-09-13"
+    },
+    {
+      "id": "S08",
+      "authors": "Greg Nuckols",
+      "year": "materiał aktualizowany",
+      "title": "The Hypertrophy Rep Range Fact or Fiction",
+      "url": "https://www.strongerbyscience.com/hypertrophy-range-fact-fiction/",
+      "doi": null,
+      "type": "coach_education",
+      "access_scope": "full_text",
+      "used_for": "Praktyczna interpretacja zakresów powtórzeń.",
+      "checked_on": "2026-09-13"
+    },
+    {
+      "id": "S09",
+      "authors": "Iversen i wsp.",
+      "year": "2021",
+      "title": "No Time to Lift Designing Time-Efficient Training Programs for Strength and Hypertrophy",
+      "url": "https://link.springer.com/article/10.1007/s40279-021-01490-1",
+      "doi": "10.1007/s40279-021-01490-1",
+      "type": "narrative_review",
+      "access_scope": "full_text",
+      "used_for": "Oszczędność czasu, nie dowód przewagi minimalnego programu.",
+      "checked_on": "2026-09-13"
+    },
+    {
+      "id": "S10",
+      "authors": "Adrian Drężek",
+      "year": "2019-06-07",
+      "title": "Trening 5 × 5 metoda treningowa na poprawę siły",
+      "url": "https://www.fabrykasily.pl/treningi/trening-5-5-metoda-treningowa-na-poprawe-sily-i-rozbudowe-masy-miesniowej",
+      "doi": null,
+      "type": "polish_coach_education",
+      "access_scope": "full_text",
+      "used_for": "Kontekst prostoty układu; planów nie kopiowano.",
+      "checked_on": "2026-09-13"
+    },
+    {
+      "id": "S11",
+      "authors": "Kamil Warżała",
+      "year": "2020-02-15",
+      "title": "Periodyzacja treningu fazy treningowe",
+      "url": "https://www.fabrykasily.pl/treningi/periodyzacja-treningu-fazy-treningowe",
+      "doi": null,
+      "type": "polish_coach_education",
+      "access_scope": "full_text",
+      "used_for": "Kontekst etapów i indywidualizacji; nie podstawa obowiązkowego odciążenia.",
+      "checked_on": "2026-09-13"
+    },
+    {
+      "id": "S12",
+      "authors": "Riebe i wsp.",
+      "year": "2015",
+      "title": "Updating ACSM Recommendations for Exercise Preparticipation Health Screening",
+      "url": "https://journals.lww.com/acsm-msse/fulltext/2015/11000/updating_acsm_s_recommendations_for_exercise.28.aspx",
+      "doi": null,
+      "type": "screening_recommendations",
+      "access_scope": "search_excerpt",
+      "used_for": "Kierunek screeningu; wymagana ocena aktualności klinicznej przy wdrożeniu.",
+      "checked_on": "2026-09-13"
+    },
+    {
+      "id": "S13",
+      "authors": "Armes i wsp.",
+      "year": "2020",
+      "title": "Just One More Rep Ability to Predict Proximity to Task Failure in Resistance Trained Persons",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/33424678/",
+      "doi": "10.3389/fpsyg.2020.565416",
+      "type": "experimental_study",
+      "access_scope": "abstract",
+      "used_for": "Dwa eksperymenty u osób z co najmniej rocznym stażem; niepewność samodzielnej oceny RIR.",
+      "checked_on": "2026-09-13"
+    },
+    {
+      "id": "S14",
+      "authors": "Morton i wsp.",
+      "year": "2018",
+      "title": "Protein supplementation and resistance training gains",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/28698222/",
+      "doi": "10.1136/bjsports-2017-097608",
+      "type": "meta_analysis",
+      "access_scope": "abstract",
+      "used_for": "Ogólne żywienie zdrowych dorosłych, nie indywidualna dieta.",
+      "checked_on": "2026-09-13"
+    }
+  ],
+  "rules": [
+    {
+      "id": "H_LAYOUT",
+      "classification": "product_heuristic",
+      "informed_by": [
+        "S01",
+        "S07",
+        "S09",
+        "S10"
+      ],
+      "description": "Układ 1–6 dni, routing początkujących i definicja minimum.",
+      "validated": false
+    },
+    {
+      "id": "H_VOLUME",
+      "classification": "product_heuristic",
+      "informed_by": [
+        "S01",
+        "S02",
+        "S03",
+        "S06"
+      ],
+      "description": "Pasma startowe, limity i adaptacja liczby serii.",
+      "validated": false
+    },
+    {
+      "id": "H_PROGRESS",
+      "classification": "product_heuristic",
+      "informed_by": [
+        "S01",
+        "S02",
+        "S04",
+        "S13"
+      ],
+      "description": "RIR tygodniowy, podwójna progresja i dobór kg.",
+      "validated": false
+    },
+    {
+      "id": "H_FATIGUE",
+      "classification": "product_heuristic",
+      "informed_by": [
+        "S02"
+      ],
+      "description": "Dokładne progi zmęczenia i odciążenie: własna heurystyka, brak walidacji klinicznej.",
+      "validated": false
+    },
+    {
+      "id": "H_SCREEN",
+      "classification": "product_heuristic",
+      "informed_by": [
+        "S12"
+      ],
+      "description": "Stany i bramki MVP wymagają oceny medycznej; nie są pełnym algorytmem ACSM.",
+      "validated": false
+    },
+    {
+      "id": "H_TIME",
+      "classification": "product_heuristic",
+      "informed_by": [
+        "S09"
+      ],
+      "description": "Dokładny estymator czasu jest autorski i wymaga kalibracji.",
+      "validated": false
+    },
+    {
+      "id": "H_CATALOG",
+      "classification": "product_heuristic",
+      "informed_by": [
+        "S02",
+        "S03"
+      ],
+      "description": "Ćwiczenia i mapy udziałów są autorskim katalogiem do przeglądu.",
+      "validated": false
+    },
+    {
+      "id": "H_GOAL",
+      "classification": "product_heuristic",
+      "informed_by": [
+        "S05",
+        "S06",
+        "S07",
+        "S14"
+      ],
+      "description": "Kontekst redukcji, cardio i edukacji żywieniowej.",
+      "validated": false
+    }
+  ]
+}

@@ -222,6 +222,10 @@ MATRIX: dict[tuple[str, str], Access] = {
     # zero danych osób. Import tworzy szablon TEGO trenera (identyfikator
     # z sesji), więc nie ma tu zasobu cudzego właściciela.
     ("GET", "/api/coach/plan-templates"): Access.COACH_ONLY,
+    ("GET", "/api/coach/konfigurator/katalog"): Access.COACH_ONLY,
+    ("POST", "/api/coach/konfigurator/podglad"): Access.COACH_ONLY,
+    # client_id w ciele, nie w ścieżce: relację i zgodę sprawdza resolve_client_access w środku.
+    ("POST", "/api/coach/konfigurator/zapisz"): Access.COACH_ONLY,
     ("GET", "/api/coach/plan-templates/export-file"): Access.COACH_ONLY,
     ("POST", "/api/coach/plan-templates/import-file"): Access.COACH_ONLY,
     ("GET", "/api/coach/plan-templates/import-example"): Access.COACH_ONLY,

@@ -1,5 +1,34 @@
 # Changelog — Dzik OS
 
+## 0.55.0 — 2026-09-13
+
+**Konfigurator miesięcznych planów treningowych — K1: silnik (pakiet
+właściciela 1.0 z 13.09; narzędzie trenera, propose-only).**
+
+* `dzik_os/konfigurator/` — deterministyczny silnik planu 28 dni
+  (§6–§13 specyfikacji): bramka zdrowotna (`null` = brak odpowiedzi,
+  objawy alarmowe ponad zgodą), wybór układu 1–6 dni z zamiennikami
+  sprzętowymi (ten sam wzorzec i mięśnie główne), dawka startowa
+  z historii lub konserwatywna, regeneracja i powrót po przerwie,
+  priorytet mięśniowy bez wzrostu pracy, dopasowanie do limitu czasu,
+  limity 18/8 serii, pokrycie grup, kalendarz w strefie użytkownika
+  z odstępem 48 h liczonym jako czas rzeczywisty, tryb kalendarzowy
+  28–31 dni, RIR na tygodnie. Osobny walidator liczy czas i sumy od
+  nowa. Bez LLM; ciężary zawsze `null`.
+* Katalog konfiguratora (31 ćwiczeń, 11 jednostek, 7 układów), schematy
+  Draft 2020-12 i rejestr 14 źródeł jako dane pakietu; status „do
+  przeglądu trenera”. Specyfikacja i testy akceptacyjne w
+  `docs/konfigurator/`; przewodnik `docs/KONFIGURATOR.md`.
+* API trenera: `GET …/katalog`, `POST …/podglad` (bez zapisu),
+  `POST …/zapisz` (plan v1 podopiecznego z treścią dni/ćwiczeń +
+  kalendarz i uwagi pod kluczem `konfigurator`; blok zdrowotny nie
+  jest zapisywany ani audytowany).
+* Testy: 7 scenariuszy referencyjnych **co do bajta**, T01–T21 i
+  T40–T48, 648 kombinacji parametrów (determinizm, walidator, zakazy,
+  sprzęt), API i macierz dostępu.
+* Świadomie nie w tej rundzie: ekran (K1b), dziennik serii z RIR,
+  adaptacja i zamienniki (K2), przegląd trenerski i medyczny.
+
 ## 0.54.5 — 2026-09-13
 
 **Diagnostyka produkcji tylko do odczytu + poczta pod kontrolą

@@ -68,3 +68,26 @@ wszystko zgodne.
 - ruff, backend, Core, spójność, frontend (tylko wersja); uruchomienie
   na żywo: API na lokalnym seedzie (podgląd → zapis → plan w karcie
   klienta → klient widzi).
+
+## Weryfikacja (wykonana, 13.09)
+
+- ruff czysto; **backend 1573 passed, 1 skipped** (7:05; w tym 8 testów
+  referencyjnych, 685 akceptacyjnych/właściwości, 5 API, macierz
+  dostępu z trzema nowymi operacjami); **Core 275**; spójność czysto
+  (13 kontroli); `tsc` czysto; `npm run build` 88.7 kB gz; helpers
+  140/140 (frontend bez zmian poza wersją).
+- **7 scenariuszy referencyjnych pakietu odtworzone co do bajta**
+  (JSON kanoniczny) za pierwszym uruchomieniem silnika; determinizm.
+- **Uruchomienie na żywo** (świeży seed, lokalny serwer na zbudowanym
+  `dist/`): trener → `podglad` (E3: średni, budowa, 4 dni → `ready`,
+  16 sesji) → `zapisz` dla klient.a → plan v1 „Konfigurator 28 dni (E3)”
+  z 4 jednostkami (U1/L1/U2/L2, ~64/55/62/65 min) i kalendarzem 28 dni;
+  treść bez bloku zdrowotnego; klient widzi plan na ekranie Plan
+  (jednostki, RIR 3/2/2/2 w komentarzu — zrzut w scratchpadzie);
+  klient B na cudzych planach dostaje 404; `verify_chain` prawdziwy.
+- Niezależna kontrola danych pakietu przed implementacją: schematy
+  Draft 2020-12, ciągłość 28 dat, wzór czasu odtworzony dla 92 sesji,
+  sprzęt i wykluczenia, odstępy 48 h, limity — zgodne z `09_KONTROLA`.
+- Poza zakresem i NIE wykonane: ekran trenera (K1b), dziennik serii
+  z RIR i adaptacja (K2), przegląd trenerski katalogu, przegląd
+  medyczny screeningu, pilotaż zrozumiałości.
