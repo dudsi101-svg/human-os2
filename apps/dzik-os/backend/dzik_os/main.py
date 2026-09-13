@@ -76,8 +76,17 @@ async def lifespan(app: FastAPI):
     # (id, rewizja) — nigdy nie nadpisują zmian redakcyjnych.
     from .wiedza import tresci as wiedza_tresci
 
-    with db_session() as db:
-        wiedza_tresci.zaimportuj_startowe(db)
+    try:
+        with db_session() as db:
+            wiedza_tresci.zaimportuj_startowe(db)
+    # Świadomie łapiemy każdy wyjątek: brak albo uszkodzenie pliku treści
+    # startowych nie może położyć całej aplikacji (13.09.2026: obraz bez
+    # plików JSON → 10 restartów → maszyna zatrzymana → produkcja
+    # niedostępna). Biblioteka Wiedzy zostaje wtedy pusta, a błąd jest
+    # zalogowany strukturalnie i widoczny w /api/health (wiedza_import).
+    except Exception as exc:  # noqa: BLE001
+        log_json("wiedza_import_failed", level="error", **exception_fields(exc))
+        app.state.wiedza_import_error = type(exc).__name__
     if os.environ.get("DZIK_SEED_DEMO") == "true":
         # Staging: jednorazowy zasiew danych demo (seed sam pomija
         # niepustą bazę, więc restart maszyny nic nie duplikuje).
@@ -213,6 +222,9 @@ def create_app() -> FastAPI:
             "version": settings.app_version,
             "build": settings.build_sha[:12],
             "migration": _migracja(),
+            # None = import treści startowych Wiedzy przeszedł; nazwa
+            # wyjątku = aplikacja wstała bez treści (patrz lifespan).
+            "wiedza_import_error": getattr(app.state, "wiedza_import_error", None),
         }
 
     @app.get("/api/ready")

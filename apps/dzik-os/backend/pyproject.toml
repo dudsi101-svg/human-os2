@@ -5,9 +5,21 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools.packages.find]
 include = ["dzik_os*"]
 
+# Pliki danych pakietów właściciela (konfigurator, Wiedza, kreator dań)
+# leżą obok kodu jako JSON. Bez tej deklaracji instalacja NIE-edytowalna
+# (obraz produkcyjny: `pip install ./apps/dzik-os/backend`) pomija je —
+# 13.09.2026 start aplikacji na Fly zatrzymał się na
+# `FileNotFoundError: wiedza/dane/tresci_startowe.json` (10 restartów,
+# maszyna zatrzymana). Testy chodzą na instalacji edytowalnej, więc nie
+# widziały braku; strażnik: tests/test_pakietowanie.py.
+[tool.setuptools.package-data]
+"dzik_os.konfigurator" = ["dane/*.json"]
+"dzik_os.kulinaria" = ["dane/*.json"]
+"dzik_os.wiedza" = ["dane/*.json"]
+
 [project]
 name = "dzik-os-backend"
-version = "0.57.0"
+version = "0.57.1"
 description = "Dzik OS — Panel Podopiecznego. Backend domenowy zbudowany na fundamentach Human OS (hos_engine)."
 requires-python = ">=3.11"
 license = "Apache-2.0"
