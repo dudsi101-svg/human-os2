@@ -19,6 +19,12 @@ export default defineConfig({
     baseURL: `http://127.0.0.1:${process.env.DZIK_E2E_PORT || 8099}`,
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
+    // Ta sama strefa co serwer (seed liczy „bieżący tydzień” wg Europe/Warsaw):
+    // na runnerze w UTC między 22:00 a 24:00 w niedzielę przeglądarka
+    // widziała jeszcze poprzedni tydzień, a seed już nowy — formularz raportu
+    // trafiał na zeszłotygodniowy, oceniony raport i był zablokowany.
+    timezoneId: "Europe/Warsaw",
+    locale: "pl-PL",
   },
   // DWA PROJEKTY, NIE JEDEN — a podział między nimi nie jest kosmetyczny.
   //
