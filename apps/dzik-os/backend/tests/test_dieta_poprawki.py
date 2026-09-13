@@ -229,7 +229,7 @@ def test_panel_walidacja_odslony_skladnika_i_importu(dieta):
 def test_migawka_niesie_round_step_a_wymiana_dyskretnego_pokazuje_gramy(dieta):
     c = dieta["c"]
     a = _assign(dieta)
-    m, kur = _obiad(a)
+    _m, kur = _obiad(a)
     assert kur["round_step"] == 5 and "unit_g" not in kur
     sn = a["plan"]["days"][0]["meals"][0]
     banan = next(i for i in sn["ingredients"] if i["product"] == "Banan")

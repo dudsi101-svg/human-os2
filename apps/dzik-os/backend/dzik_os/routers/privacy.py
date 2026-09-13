@@ -24,6 +24,8 @@ from ..models import (
     ConsentRecord,
     ConsultSlot,
     DailyNutritionLog,
+    DietAssigned,
+    DietSwapEvent,
     Document,
     Goal,
     IdempotencyKey,
@@ -57,8 +59,6 @@ from ..models import (
     WorkoutEntry,
     WorkoutSession,
     now_iso,
-    DietAssigned,
-    DietSwapEvent,
 )
 from ..schemas import ConsentDeclineIn, ConsentGrantIn, DeletionRequestIn
 from ..security import current_user, revoke_other_sessions, verify_password

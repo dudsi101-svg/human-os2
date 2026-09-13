@@ -195,7 +195,7 @@ def test_stale_silnika_identyczne_z_prototypem():
     drzewo = ast.parse(zrodlo)
     # Prototyp zapisuje stałe przez `dict(...)` — wartościujemy sam fragment
     # przypisania w pustej przestrzeni nazw (bez importów i bez CSV).
-    stale = {n.targets[0].id: eval(ast.get_source_segment(zrodlo, n.value), {"__builtins__": {"dict": dict}})  # noqa: S307
+    stale = {n.targets[0].id: eval(ast.get_source_segment(zrodlo, n.value), {"__builtins__": {"dict": dict}})
              for n in drzewo.body if isinstance(n, ast.Assign) and isinstance(n.targets[0], ast.Name)
              and n.targets[0].id in ("CLASS_DEFAULTS", "TOL_MEAL", "TOL_DAY")}
     przebiegi = {n.name: ast.literal_eval(n.args.defaults[-1]) for n in drzewo.body

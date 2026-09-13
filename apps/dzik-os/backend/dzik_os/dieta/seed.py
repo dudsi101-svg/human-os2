@@ -101,7 +101,7 @@ def waliduj_szablon(dane: Any) -> None:
     obowiązkowe, typy, zakresy, unikalne dni 1–7, klasy i role, limity
     rozmiaru. Błąd = `ValueError` z miejscem i powodem."""
     if not isinstance(dane, dict):
-        raise ValueError("odsłona musi być obiektem JSON")
+        raise TypeError("odsłona musi być obiektem JSON")
     for k in ("profile", "variant", "macro_pct", "days"):
         if k not in dane:
             raise ValueError(f"brak pola {k}")
@@ -138,7 +138,7 @@ def waliduj_szablon(dane: Any) -> None:
             raise ValueError(f"{gdzie}: 1–{LIMITY['posilki_na_dzien']} posiłków")
         for m in d["meals"]:
             if not isinstance(m, dict):
-                raise ValueError(f"{gdzie}: posiłek musi być obiektem")
+                raise TypeError(f"{gdzie}: posiłek musi być obiektem")
             for k in ("slot", "name", "kcal_share", "ingredients"):
                 if k not in m:
                     raise ValueError(f"{gdzie}: posiłek bez pola {k}")
