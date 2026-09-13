@@ -1,6 +1,6 @@
 # Stan przekazania — przeczytaj przed rozpoczęciem rundy
 
-**Aktualizacja:** 2026-09-13 · **Wersja w `main`:** 0.56.0
+**Aktualizacja:** 2026-09-13 · **Wersja w `main`:** 0.57.0
 **Tryb pracy:** jeden piszący i jeden PR `[WRITER]` naraz
 (`KOORDYNACJA.md`, zasada nadrzędna).
 
@@ -33,7 +33,19 @@ pierwszy commit, draft PR `[WRITER]`, reszta agentów read-only.
 jednym prawdziwym klientem, **NO-GO na szerszą produkcję** — siedem
 blokerów wypisanych w §5 tamtego dokumentu.
 
-**Ostatnia runda (0.56.0, gałąź `agent/wiedza-v2`):** modernizacja
+**Ostatnia runda (0.57.0, gałąź `agent/kreator-kulinarny`):** kreator
+dań z pakietów właściciela (13.09) — silnik referencyjny `engine.py`
+bez modyfikacji (27 testów 1:1), adapter żywieniowy na wbudowanej bazie
+(66/73 produktów z wartościami, 7 jawnie nieznanych), publikacja
+receptur w bazie (migracja 29; opublikowanych 0 → produkcja = brak
+pokrycia, podgląd ze szkiców bez makro), bramki serwera (screening
+z poświadczeń trenera, cele z planu klienta), API trenera (11 operacji),
+ślad decyzji `meal`/`CURATED_VARIANT_SELECTION` w transakcji wersji,
+ekran „Ułóż z dań” + biblioteka receptur, klient „Dlaczego to danie?”.
+Raport i pokrycie diet: `docs/KULINARIA.md`. Następne w kolejce: panel
+trenera — pełna edycja/usuwanie/szkice/publikacja zmian (specyfikacja
+właściciela 13.09).
+**Poprzednia runda (0.56.0, gałąź `agent/wiedza-v2`):** modernizacja
 zakładki Wiedza (P0 pakietu właściciela z 13.09) — pięć części, karty
 i atlas ze szkiców (48, niepublikowane), wyszukiwanie, zapisane,
 historia zmian, panel „Dlaczego?” czytający niezmienny ślad decyzji
@@ -45,7 +57,7 @@ publikacji biblioteka jest pusta. Raport i braki: `docs/WIEDZA.md`.
 Właściciel 13.09: „po każdym wykonanym zadaniu scalaj PR, chyba że
 znalazłeś istotne błędy”. Następne w kolejce: pakiet „kreator diety
 kulinarnej” (dostarczy ślad wyboru dania/porcji dla Wiedzy).
-**Poprzednia runda (0.55.0, gałąź `agent/konfigurator-28-dni`):**
+**Runda 0.55.0 (gałąź `agent/konfigurator-28-dni`):**
 konfigurator miesięcznych planów treningowych z pakietu właściciela
 (13.09) — K1: deterministyczny silnik + walidator + bramka zdrowotna
 + kalendarz + API trenera (`podglad`/`zapisz`), 7 scenariuszy

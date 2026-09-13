@@ -93,9 +93,41 @@ export interface NutritionContent {
   fat_g?: number | null;
   carbs_g?: number | null;
   sections: { title: string; body: string }[];
-  meals: { name: string; description?: string; swaps?: string }[];
+  meals: NutritionMealRow[];
   /** Wersje planu sprzed wprowadzenia suplementacji: pusta lista z API. */
   supplements: SupplementEntry[];
+  /** Kreator dań (0.57.0): metadane menu z całych receptur — tylko wersje z kreatora. */
+  kulinaria?: KulinariaMetaWersji;
+}
+
+export interface NutritionMealRow {
+  name: string;
+  description?: string;
+  swaps?: string;
+  /** Pola kreatora dań (0.57.0) — brak = posiłek wpisany ręcznie albo ze starego kreatora. */
+  day?: string;
+  slot?: string;
+  recipe_id?: string;
+  portion_variant?: string;
+  draft?: boolean;
+  /** Cel śladu decyzji „d{dzień}:m{i}” — pod „Dlaczego to danie?”. */
+  trace_target?: string;
+  nutrition?: Record<string, number> | null;
+}
+
+export interface KulinariaMetaWersji {
+  engine_version: string;
+  plan_id: string;
+  mode: "preview" | "production";
+  status: string;
+  issues: unknown[];
+  config: Record<string, unknown>;
+  screening_status: string;
+  targets_reference: string | null;
+  shopping_list: KulinariaZakup[];
+  versions: Record<string, string>;
+  carb_compliance_verified: boolean;
+  nutrition_scope: string[];
 }
 
 export interface NutritionVersion {
@@ -1207,3 +1239,113 @@ export const WIEDZA_TYP_ELEMENTU: Record<string, string> = {
   load: "Ciężar",
   meal: "Posiłek",
 };
+
+// --- Kreator dań (0.57.0) ------------------------------------------------------
+
+export type KulinariaStatus =
+  | "draft_preview" | "ready_within_declared_bounds" | "needs_input" | "needs_review"
+  | "nutrition_unverified" | "insufficient_catalog" | "search_exhausted" | "validation_failed";
+
+export interface KulinariaZakup {
+  food_id: string;
+  name: string;
+  state: string;
+  edible_grams: number;
+}
+
+export interface KulinariaPosilek {
+  slot: string;
+  slot_label: string;
+  recipe_id: string;
+  recipe_revision: number;
+  recipe_name: string;
+  family_id: string;
+  portion_variant: string;
+  factor: number;
+  ingredients: { food_id: string; grams: number; state: string; role: string }[];
+  steps: string[];
+  skladniki: string[];
+  kroki: string[];
+  draft: boolean;
+  nutrition: Record<string, number> | null;
+}
+
+export interface KulinariaDzien {
+  date: string;
+  meals: KulinariaPosilek[];
+  nutrition: Record<string, number> | null;
+}
+
+export interface KulinariaPlan {
+  id: string;
+  mode: "preview" | "production";
+  days: KulinariaDzien[];
+  limitations: string[];
+  carb_compliance_verified: boolean;
+  nutrition_scope: string[];
+}
+
+export interface KulinariaPokrycie {
+  slots: Record<string, { recipes: number; families: number }>;
+  rejected: Record<string, number>;
+}
+
+export interface KulinariaWynik {
+  status: KulinariaStatus;
+  issues: unknown[];
+  plan: KulinariaPlan | null;
+  engine_version: string;
+  shopping_list?: KulinariaZakup[];
+  coverage?: KulinariaPokrycie | null;
+  config: Record<string, unknown> & { targets_reference?: string | null; daily_bounds?: Record<string, [number, number]> };
+  meta: { screening_status: string; targets_source: { version_id: string; targets: Record<string, number> } | null };
+  versions: Record<string, string>;
+}
+
+export interface KulinariaReceptura {
+  id: string;
+  revision: number;
+  name: string;
+  family_id: string;
+  meal_slots: string[];
+  cuisine: string;
+  status: "draft" | "published" | "retired";
+  total_minutes: number;
+  active_minutes: number;
+  review: { kitchen: boolean; dietitian: boolean; reviewer_id: string | null; expires_on: string | null };
+  portion_variants: { id: string; factor: number; validated: boolean }[];
+  ingredients: { food_id: string; grams: number; state: string; role: string }[];
+}
+
+export interface KulinariaRecepturaPelna extends KulinariaReceptura {
+  steps: string[];
+  equipment: string[];
+  skladniki_opis: { skladniki: string[]; kroki: string[] };
+  nutrition_base: Record<string, number> | null;
+  nutrition_problem: string | null;
+  source: string | null;
+}
+
+export interface KulinariaProfil {
+  osie: Record<string, string[]>;
+  alergeny: string[];
+  sprzet: { id: string; label: string }[];
+  rodziny: { id: string; name?: string }[];
+  sloty: Record<string, string>;
+  receptury: { razem: number; wg_statusu: Record<string, number> };
+  produkty: { id: string; name: string; state: string; groups: string[]; nutrition_verified: boolean }[];
+  mapowanie: { produkty: number; z_wartosciami: number; bez_wartosci: { id: string; name: string; powod: string | null }[];
+    alergeny_zweryfikowane: number; status: string; carb_definition: string };
+  versions: Record<string, string>;
+  zakres_pola: string[];
+}
+
+export interface KulinariaZamianaPodglad {
+  ok: boolean;
+  problemy: string[];
+  przed: { recipe_id: string; name: string; portion_variant: string };
+  po: KulinariaPosilek;
+  dzien: string;
+  meal_index: number;
+  nutrition_day: Record<string, number> | null;
+}

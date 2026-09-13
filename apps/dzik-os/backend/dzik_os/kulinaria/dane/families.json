@@ -1,0 +1,184 @@
+{
+  "families": [
+    {
+      "id": "oats_dairy",
+      "title": "Owsianka mleczna",
+      "kind": "sweet",
+      "variants": 10
+    },
+    {
+      "id": "oats_soy",
+      "title": "Owsianka sojowa",
+      "kind": "sweet",
+      "variants": 10
+    },
+    {
+      "id": "overnight_oats",
+      "title": "Płatki jogurtowe bez gotowania",
+      "kind": "sweet",
+      "variants": 10
+    },
+    {
+      "id": "skyr_bowl",
+      "title": "Skyr z owocami",
+      "kind": "sweet",
+      "variants": 10
+    },
+    {
+      "id": "soy_bowl",
+      "title": "Jogurt sojowy z owocami",
+      "kind": "sweet",
+      "variants": 10
+    },
+    {
+      "id": "chia_bowl",
+      "title": "Pudding chia z owocami",
+      "kind": "sweet",
+      "variants": 10
+    },
+    {
+      "id": "rice_pudding",
+      "title": "Ryż na napoju sojowym",
+      "kind": "sweet",
+      "variants": 10
+    },
+    {
+      "id": "scramble",
+      "title": "Jajecznica warzywna",
+      "kind": "hot",
+      "variants": 10
+    },
+    {
+      "id": "omelette",
+      "title": "Omlet warzywny",
+      "kind": "hot",
+      "variants": 10
+    },
+    {
+      "id": "frittata",
+      "title": "Frittata z patelni",
+      "kind": "hot",
+      "variants": 10
+    },
+    {
+      "id": "hummus_toast",
+      "title": "Kanapki z hummusem",
+      "kind": "cold",
+      "variants": 10
+    },
+    {
+      "id": "cottage_toast",
+      "title": "Kanapki z twarożkiem",
+      "kind": "cold",
+      "variants": 10
+    },
+    {
+      "id": "tuna_wrap",
+      "title": "Tortilla z tuńczykiem",
+      "kind": "cold",
+      "variants": 10
+    },
+    {
+      "id": "chicken_rice",
+      "title": "Kurczak z ryżem",
+      "kind": "hot",
+      "variants": 10
+    },
+    {
+      "id": "turkey_couscous",
+      "title": "Indyk z kuskusem",
+      "kind": "hot",
+      "variants": 10
+    },
+    {
+      "id": "salmon_sweetpotato",
+      "title": "Łosoś z batatem",
+      "kind": "hot",
+      "variants": 10
+    },
+    {
+      "id": "tofu_rice",
+      "title": "Tofu z ryżem",
+      "kind": "hot",
+      "variants": 10
+    },
+    {
+      "id": "chickpea_couscous",
+      "title": "Ciecierzyca z kuskusem",
+      "kind": "hot",
+      "variants": 10
+    },
+    {
+      "id": "lentil_pasta",
+      "title": "Makaron z soczewicą",
+      "kind": "hot",
+      "variants": 10
+    },
+    {
+      "id": "bean_chili",
+      "title": "Chili z fasoli",
+      "kind": "hot",
+      "variants": 10
+    },
+    {
+      "id": "lentil_curry",
+      "title": "Curry z soczewicy",
+      "kind": "hot",
+      "variants": 10
+    },
+    {
+      "id": "chickpea_stew",
+      "title": "Ciecierzyca w pomidorach",
+      "kind": "hot",
+      "variants": 10
+    },
+    {
+      "id": "cod_stew",
+      "title": "Dorsz w pomidorach",
+      "kind": "hot",
+      "variants": 10
+    },
+    {
+      "id": "chickpea_salad",
+      "title": "Sałatka z ciecierzycą",
+      "kind": "cold",
+      "variants": 10
+    },
+    {
+      "id": "egg_salad",
+      "title": "Sałatka z jajkiem",
+      "kind": "cold",
+      "variants": 10
+    },
+    {
+      "id": "tuna_salad",
+      "title": "Sałatka z tuńczykiem",
+      "kind": "cold",
+      "variants": 10
+    },
+    {
+      "id": "tofu_salad",
+      "title": "Sałatka z tofu",
+      "kind": "cold",
+      "variants": 10
+    },
+    {
+      "id": "red_lentil_soup",
+      "title": "Zupa z czerwonej soczewicy",
+      "kind": "hot",
+      "variants": 10
+    },
+    {
+      "id": "bean_soup",
+      "title": "Zupa warzywna z fasolą",
+      "kind": "hot",
+      "variants": 10
+    },
+    {
+      "id": "potato_soup",
+      "title": "Zupa ziemniaczano-warzywna",
+      "kind": "hot",
+      "variants": 10
+    }
+  ]
+}

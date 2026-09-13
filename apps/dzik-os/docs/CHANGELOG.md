@@ -1,5 +1,42 @@
 # Changelog — Dzik OS
 
+## 0.57.0 — 2026-09-13
+
+**Kreator dań — menu z całych receptur (pakiety właściciela „DIETA
+KULINARNA” 1.0 i „IMPLEMENTACJA_KREATORA_DIETY_300” z 13.09).**
+
+* Silnik referencyjny pakietu (`dzik_os/kulinaria/engine.py`, 1.0.0,
+  bez modyfikacji, 27 testów 1:1): dobór CAŁYCH dań w zatwierdzonych
+  wariantach porcji, beam search po dniach, ponowna niezależna kontrola
+  dnia, lista zakupów; tryby `preview` (szkice, bez makro) i `production`
+  (tylko opublikowane receptury, makro z bazy). Bez LLM, bez klucza AI.
+* Adapter żywieniowy: 73 produkty pakietu → wbudowana baza Dzik OS przez
+  jawne mapowanie z kontrolą stanu (surowy/suchy/ugotowany/odsączony);
+  66 z wartościami, 7 jawnie nieznanych (bez zgadywania, bez zera);
+  alergeny „zweryfikowane” tylko dla produktów jednoskładnikowych.
+* Bramki serwera: `screening_status` z jawnych poświadczeń trenera
+  (nie deklaracja klienta), `targets_reference` = aktywna wersja planu
+  diety klienta + tolerancja trenera; zapis podglądu ze szkiców wymaga
+  potwierdzenia (409 `DRAFT_CONFIRMATION_REQUIRED`).
+* API trenera `/api/coach/kulinaria/*` (11 operacji, `COACH_ONLY` +
+  relacja i zgoda `nutrition_data`): profil i raport mapowania,
+  biblioteka receptur z publikacją/wycofaniem (poświadczenia: test
+  kuchenny, dietetyk, alergeny, ważność, zatwierdzone warianty — bez
+  fikcyjnych dat i nazwisk), pokrycie, generowanie bez zapisu, zapis
+  jako nowa wersja planu diety ze śladem decyzji w tej samej transakcji
+  (Wiedza: `meal` → `CURATED_VARIANT_SELECTION`), zamiana dania
+  (podgląd bez mutacji → zatwierdzenie z 409 `STALE_PLAN` i ponowną
+  kontrolą dnia), porównanie ze starym generatorem produktów.
+* Ekrany: trener — trzecia droga „Ułóż z dań” w zakładce Dieta
+  (formularz osi, poświadczenia zakresu, statusy silnika słowami,
+  menu dzień po dniu, receptura, lista zakupów, zapis, zamiana,
+  biblioteka receptur); klient — posiłki z oznaczeniem szkicu, lista
+  zakupów, „Dlaczego to danie?” ze śladu.
+* Migracja 29 (`kulinaria_receptury`). **Katalog 300 rekordów to szkice
+  wariantów, nie przetestowane dania: opublikowanych 0, więc produkcja
+  zwraca brak pokrycia.** Raport (kod / dane zweryfikowane / robocze /
+  braki, pokrycie każdej diety): `docs/KULINARIA.md`.
+
 ## 0.56.0 — 2026-09-13
 
 **Wiedza — modernizacja zakładki, P0 (pakiet właściciela 1.0 z 13.09).**

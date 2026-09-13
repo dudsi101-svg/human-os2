@@ -75,6 +75,18 @@ REGULY: dict[str, Regula] = {
         artykuly=("k-meal",),
         akcje=(("Dlaczego wybrano ten posiłek", "open_article", "k-meal"),),
     ),
+    # Kreator dań (0.57.0): ślad z silnika referencyjnego — wybór całego,
+    # zatwierdzonego wariantu receptury (bez optymalizacji składników).
+    "CURATED_VARIANT_SELECTION": Regula(
+        id="CURATED_VARIANT_SELECTION",
+        wymagane=("animal_policy", "pattern", "time_limit", "recipe_status", "recipe_name",
+                  "family_id", "portion_variant", "slot"),
+        wersje=frozenset({"1.0"}),
+        nieujemne=("time_limit",),
+        artykuly=("k-meal", "k-portion"),
+        akcje=(("Dlaczego wybrano ten posiłek", "open_article", "k-meal"),
+               ("Jak czytać porcję w jadłospisie", "open_article", "k-portion")),
+    ),
 }
 
 #: Szablony dla pochodzenia innego niż silnik (rule_id = null).
@@ -294,6 +306,25 @@ def renderuj(regula: Regula, trace: dict, *, historia: bool) -> tuple[list[str],
             f"Co na nią wpłynęło: metoda „{metoda}”. Założenia: {zal}",
             ("Kiedy to się zmieni: gdy moduł diety lub trener zaktualizuje wartość na "
             "podstawie zapisanych danych."),
+        ], uzyte)
+    if regula.id == "CURATED_VARIANT_SELECTION":
+        nazwa = f("recipe_name")
+        rodzina = f("family_id")
+        wariant = f("portion_variant")
+        polityka = f("animal_policy")
+        wzorzec = f("pattern")
+        limit = f("time_limit")
+        status = f("recipe_status")
+        slot = f("slot")
+        opis_statusu = ("receptura opublikowana po przeglądzie" if status == "published"
+                        else "szkic receptury bez testu kuchennego i przeglądu (tryb demonstracyjny)")
+        return ([
+            (f"{prefiks}Decyzja: na {slot} wybrano „{nazwa}” (rodzina {rodzina}, wariant porcji "
+             f"{wariant}) — całe danie w zatwierdzonej porcji, bez dokładania składników dla makro."),
+            (f"Co na nią wpłynęło: polityka produktów zwierzęcych „{polityka}”, wzorzec „{wzorzec}”, "
+             f"limit czasu {limit} min, kontrola powtórzeń rodzin w tygodniu; {opis_statusu}."),
+            ("Kiedy to się zmieni: przy zamianie dania przez trenera (nowa wersja planu po ponownym "
+             "sprawdzeniu całego dnia) albo po publikacji receptury po testach."),
         ], uzyte)
     if regula.id == "MEAL_PREFERENCE":
         pref = f("preference_label")

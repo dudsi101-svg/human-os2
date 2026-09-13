@@ -1,0 +1,375 @@
+{
+  "version": "1.0",
+  "status": "proposed_requires_dietitian_review",
+  "source_id": "dzik_os_food_catalog",
+  "source_version": "food_catalog_data@0.48.0",
+  "carb_definition": "total_including_fiber",
+  "note": "Mapowanie 73 produktów pakietu na wbudowaną bazę produktów Dzik OS (wartości uśrednione z tabel, na 100 g w podanym stanie). Definicja węglowodanów bazy przyjęta jako „ogółem z błonnikiem” — nie potwierdzona źródłowo; silnik liczy dostępne = ogółem − błonnik i wymaga znanego błonnika. `produkt: null` = brak danych w bazie w zgodnym stanie (nie przybliżamy — D16). `sklad_znany` = alergeny z pakietu uznane za pełne (produkty jednoskładnikowe); produkty złożone wymagają etykiety.",
+  "produkty": {
+    "oats": {
+      "produkt": "Płatki owsiane górskie",
+      "sklad_znany": true,
+      "uwaga": null
+    },
+    "rice": {
+      "produkt": "Ryż biały, suchy",
+      "sklad_znany": true,
+      "uwaga": null
+    },
+    "couscous": {
+      "produkt": "Kasza kuskus, sucha",
+      "sklad_znany": true,
+      "uwaga": null
+    },
+    "pasta": {
+      "produkt": "Makaron pełnoziarnisty penne, suchy",
+      "sklad_znany": true,
+      "uwaga": null
+    },
+    "bread": {
+      "produkt": "Chleb pełnoziarnisty pszenny",
+      "sklad_znany": false,
+      "uwaga": "produkt złożony — pełny skład (soja, sezam) z etykiety"
+    },
+    "wrap": {
+      "produkt": "Tortilla pszenna",
+      "sklad_znany": false,
+      "uwaga": "produkt złożony — pełny skład z etykiety"
+    },
+    "milk": {
+      "produkt": "Mleko 2%",
+      "sklad_znany": true,
+      "uwaga": null
+    },
+    "soy_drink": {
+      "produkt": "Napój sojowy niesłodzony",
+      "sklad_znany": true,
+      "uwaga": null
+    },
+    "soy_yogurt": {
+      "produkt": "Jogurt sojowy naturalny",
+      "sklad_znany": true,
+      "uwaga": null
+    },
+    "yogurt": {
+      "produkt": "Jogurt naturalny 2%",
+      "sklad_znany": true,
+      "uwaga": null
+    },
+    "skyr": {
+      "produkt": "Skyr naturalny",
+      "sklad_znany": true,
+      "uwaga": null
+    },
+    "cottage": {
+      "produkt": "Twaróg półtłusty",
+      "sklad_znany": true,
+      "uwaga": null
+    },
+    "coconut_drink": {
+      "produkt": "Napój kokosowy (do picia)",
+      "sklad_znany": false,
+      "uwaga": "napój złożony — skład i fortyfikacja z etykiety"
+    },
+    "eggs": {
+      "produkt": "Jajo kurze całe, surowe",
+      "sklad_znany": true,
+      "uwaga": null
+    },
+    "tofu": {
+      "produkt": "Tofu naturalne",
+      "sklad_znany": true,
+      "uwaga": null
+    },
+    "chicken": {
+      "produkt": "Pierś z kurczaka, surowa",
+      "sklad_znany": true,
+      "uwaga": null
+    },
+    "turkey": {
+      "produkt": "Pierś z indyka, surowa",
+      "sklad_znany": true,
+      "uwaga": null
+    },
+    "salmon": {
+      "produkt": "Łosoś, surowy",
+      "sklad_znany": true,
+      "uwaga": null
+    },
+    "cod": {
+      "produkt": "Dorsz, surowy",
+      "sklad_znany": true,
+      "uwaga": null
+    },
+    "tuna": {
+      "produkt": "Tuńczyk w wodzie, odsączony",
+      "sklad_znany": true,
+      "uwaga": null
+    },
+    "beans": {
+      "produkt": "Fasola czerwona z puszki, odsączona",
+      "sklad_znany": true,
+      "uwaga": null
+    },
+    "chickpeas": {
+      "produkt": "Ciecierzyca z puszki, odsączona",
+      "sklad_znany": true,
+      "uwaga": null
+    },
+    "lentils": {
+      "produkt": "Soczewica zielona, ugotowana",
+      "sklad_znany": true,
+      "uwaga": null
+    },
+    "red_lentils": {
+      "produkt": "Soczewica czerwona, sucha",
+      "sklad_znany": true,
+      "uwaga": null
+    },
+    "hummus": {
+      "produkt": "Hummus",
+      "sklad_znany": false,
+      "uwaga": "produkt złożony — skład (sezam, inne) z etykiety"
+    },
+    "olive_oil": {
+      "produkt": "Oliwa z oliwek",
+      "sklad_znany": true,
+      "uwaga": null
+    },
+    "lemon": {
+      "produkt": "Sok z cytryny",
+      "sklad_znany": true,
+      "uwaga": null
+    },
+    "lime": {
+      "produkt": null,
+      "sklad_znany": true,
+      "uwaga": "brak soku z limonki w bazie (owoc ≠ sok) — wartości nieznane"
+    },
+    "water": {
+      "produkt": "Woda mineralna",
+      "sklad_znany": true,
+      "uwaga": null
+    },
+    "tomato_can": {
+      "produkt": "Pomidory z puszki, krojone",
+      "sklad_znany": true,
+      "uwaga": null
+    },
+    "coconut_milk": {
+      "produkt": "Mleczko kokosowe",
+      "sklad_znany": true,
+      "uwaga": null
+    },
+    "chia": {
+      "produkt": "Nasiona chia",
+      "sklad_znany": true,
+      "uwaga": null
+    },
+    "walnut": {
+      "produkt": "Orzechy włoskie",
+      "sklad_znany": true,
+      "uwaga": null
+    },
+    "almond": {
+      "produkt": "Migdały",
+      "sklad_znany": true,
+      "uwaga": null
+    },
+    "pumpkin_seed": {
+      "produkt": "Pestki dyni",
+      "sklad_znany": true,
+      "uwaga": null
+    },
+    "sunflower": {
+      "produkt": "Nasiona słonecznika",
+      "sklad_znany": true,
+      "uwaga": null
+    },
+    "potato": {
+      "produkt": null,
+      "sklad_znany": true,
+      "uwaga": "baza ma tylko ziemniaki ugotowane/pieczone — surowy stan bez danych (D16: nie podstawiamy)"
+    },
+    "sweet_potato": {
+      "produkt": "Batat, surowy",
+      "sklad_znany": true,
+      "uwaga": null
+    },
+    "onion": {
+      "produkt": "Cebula, surowa",
+      "sklad_znany": true,
+      "uwaga": null
+    },
+    "garlic": {
+      "produkt": "Czosnek",
+      "sklad_znany": true,
+      "uwaga": null
+    },
+    "apple": {
+      "produkt": "Jabłko",
+      "sklad_znany": true,
+      "uwaga": null
+    },
+    "pear": {
+      "produkt": "Gruszka",
+      "sklad_znany": true,
+      "uwaga": null
+    },
+    "banana": {
+      "produkt": "Banan",
+      "sklad_znany": true,
+      "uwaga": null
+    },
+    "blueberry": {
+      "produkt": "Borówki (jagody amerykańskie)",
+      "sklad_znany": true,
+      "uwaga": null
+    },
+    "raspberry": {
+      "produkt": "Maliny",
+      "sklad_znany": true,
+      "uwaga": null
+    },
+    "strawberry": {
+      "produkt": "Truskawki",
+      "sklad_znany": true,
+      "uwaga": null
+    },
+    "peach": {
+      "produkt": "Brzoskwinia",
+      "sklad_znany": true,
+      "uwaga": null
+    },
+    "plum": {
+      "produkt": "Śliwki",
+      "sklad_znany": true,
+      "uwaga": null
+    },
+    "kiwi": {
+      "produkt": "Kiwi",
+      "sklad_znany": true,
+      "uwaga": null
+    },
+    "orange": {
+      "produkt": "Pomarańcza",
+      "sklad_znany": true,
+      "uwaga": null
+    },
+    "zucchini": {
+      "produkt": "Cukinia, surowa",
+      "sklad_znany": true,
+      "uwaga": null
+    },
+    "pepper": {
+      "produkt": "Papryka czerwona, surowa",
+      "sklad_znany": true,
+      "uwaga": null
+    },
+    "broccoli": {
+      "produkt": "Brokuł, surowy",
+      "sklad_znany": true,
+      "uwaga": null
+    },
+    "carrot": {
+      "produkt": "Marchew, surowa",
+      "sklad_znany": true,
+      "uwaga": null
+    },
+    "mushroom": {
+      "produkt": "Pieczarki, surowe",
+      "sklad_znany": true,
+      "uwaga": null
+    },
+    "spinach": {
+      "produkt": "Szpinak, surowy",
+      "sklad_znany": true,
+      "uwaga": null
+    },
+    "tomato": {
+      "produkt": "Pomidor, surowy",
+      "sklad_znany": true,
+      "uwaga": null
+    },
+    "green_beans": {
+      "produkt": "Fasolka szparagowa mrożona",
+      "sklad_znany": true,
+      "uwaga": "produkt mrożony (stan surowy) — dane mrożonki"
+    },
+    "cucumber": {
+      "produkt": "Ogórek zielony, surowy",
+      "sklad_znany": true,
+      "uwaga": null
+    },
+    "radish": {
+      "produkt": "Rzodkiewka",
+      "sklad_znany": true,
+      "uwaga": null
+    },
+    "lettuce": {
+      "produkt": "Sałata rzymska",
+      "sklad_znany": true,
+      "uwaga": null
+    },
+    "cabbage": {
+      "produkt": "Kapusta biała, surowa",
+      "sklad_znany": true,
+      "uwaga": null
+    },
+    "cauliflower": {
+      "produkt": "Kalafior, surowy",
+      "sklad_znany": true,
+      "uwaga": null
+    },
+    "cinnamon": {
+      "produkt": "Cynamon mielony",
+      "sklad_znany": true,
+      "uwaga": null
+    },
+    "cocoa": {
+      "produkt": "Kakao naturalne, proszek",
+      "sklad_znany": true,
+      "uwaga": null
+    },
+    "oregano": {
+      "produkt": "Oregano suszone",
+      "sklad_znany": true,
+      "uwaga": null
+    },
+    "basil": {
+      "produkt": null,
+      "sklad_znany": true,
+      "uwaga": "brak bazylii suszonej w bazie (jest świeża — inny stan)"
+    },
+    "dill": {
+      "produkt": "Koperek suszony",
+      "sklad_znany": true,
+      "uwaga": null
+    },
+    "parsley": {
+      "produkt": null,
+      "sklad_znany": true,
+      "uwaga": "brak natki suszonej w bazie (jest świeża — inny stan)"
+    },
+    "cumin": {
+      "produkt": "Kmin rzymski mielony",
+      "sklad_znany": true,
+      "uwaga": null
+    },
+    "paprika": {
+      "produkt": "Papryka słodka mielona",
+      "sklad_znany": true,
+      "uwaga": null
+    },
+    "turmeric": {
+      "produkt": "Kurkuma mielona",
+      "sklad_znany": true,
+      "uwaga": null
+    },
+    "ginger": {
+      "produkt": null,
+      "sklad_znany": true,
+      "uwaga": "brak imbiru mielonego w bazie (jest świeży tarty — inny stan)"
+    }
+  }
+}
