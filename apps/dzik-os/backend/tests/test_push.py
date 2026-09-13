@@ -71,7 +71,11 @@ def test_review_triggers_push_to_client(seeded, monkeypatch):
     )
     ha = login(seeded, CLIENT_A)
     seeded.post("/api/push/subscribe", headers=ha, json=SUB)
-    r = seeded.post("/api/checkins", headers=ha, json={"week_start": "2026-09-07"})
+    # Tydzień, którego seed nigdy nie zajmuje (seed tworzy raporty na bieżący
+    # i poprzedni tydzień wg czasu polskiego — sztywna data z września
+    # kolidowała z nim od północy 14.09 i wywracała CI na `main`).
+    r = seeded.post("/api/checkins", headers=ha, json={"week_start": "2026-01-05"})
+    assert r.status_code == 201, r.text
     checkin_id = r.json()["id"]
     hc = login(seeded, COACH)
     r = seeded.post(f"/api/checkins/{checkin_id}/review", headers=hc,
