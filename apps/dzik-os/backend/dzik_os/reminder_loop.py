@@ -34,6 +34,11 @@ def _tick(now_utc: datetime) -> int:
         # (idempotentnie po kluczu tygodnia — tick co minutę nie mnoży).
         notifications.plan_weekly_digest(db, now_utc)
         sent = notifications.dispatch_due(db, now_utc)
+        # Outbox publikacji planów (0.58.0): ponowienie doręczeń, które nie
+        # przeszły od razu po commicie (awaria między publikacją a wpisem).
+        from .publikacja import serwis as publikacja_serwis
+
+        sent = list(sent) + publikacja_serwis.przetworz_outbox(db, now_utc=now_utc)
         payloads = [notifications.realtime_payload(n) for n in sent
                     if "center" in (n.channels or "")]
         user_ids = [n.user_id for n in sent if "center" in (n.channels or "")]

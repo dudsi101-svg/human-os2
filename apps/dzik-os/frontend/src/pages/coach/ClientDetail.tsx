@@ -54,6 +54,7 @@ import {
   summaryModeNote,
 } from "../../onboardingUtils";
 import PlanEditor from "./PlanEditor";
+import PublikacjaPanel from "./PublikacjaPanel";
 import OcrCapture from "../../OcrCapture";
 import { appendText } from "../../ocrUtils";
 
@@ -71,6 +72,7 @@ const TABS: [Tab, string][] = [
 interface NutritionPlanRow {
   id: string;
   title: string;
+  status: string;
   current_version_no: number;
   current_version: NutritionVersion | null;
 }
@@ -512,6 +514,8 @@ function PlanTab({ clientId }: { clientId: string }) {
   const [copying, setCopying] = useState(false);
   const [editing, setEditing] = useState<"new" | "version" | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // 0.58.0: szkice i publikacja zmian; gdy serwer je wyłączy, wraca „Nowa wersja”.
+  const [szkice, setSzkice] = useState(true);
 
   const plan = plans?.find((p) => p.status === "ACTIVE" && !p.is_template) ?? null;
 
@@ -570,7 +574,7 @@ function PlanTab({ clientId }: { clientId: string }) {
       {!editing && (
         <div className="row" style={{ marginBottom: 10, flexWrap: "wrap" }}>
           <button className="btn btn--small" onClick={() => setEditing("new")}>+ Nowy plan</button>
-          {plan && (
+          {plan && !szkice && (
             <button className="btn btn--ghost btn--small" onClick={() => setEditing("version")}>
               Nowa wersja aktualnego planu
             </button>
@@ -591,6 +595,10 @@ function PlanTab({ clientId }: { clientId: string }) {
             </>
           )}
         </div>
+      )}
+      {plan && !editing && (
+        <PublikacjaPanel key={plan.id} planKind="training" planId={plan.id} clientId={clientId}
+          onZmiana={load} onDostepne={setSzkice} />
       )}
       {plan?.current_version && (
         <div className="card">
@@ -676,7 +684,8 @@ function NutritionTab({ clientId }: { clientId: string }) {
   const [dietTplMakro, setDietTplMakro] = useState({ kcal: "", protein_g: "", fat_g: "", carbs_g: "" });
   const [copyingDiet, setCopyingDiet] = useState(false);
 
-  const plan = plans?.[0] ?? null;
+  const plan = plans?.find((p) => p.status === "ACTIVE") ?? null;
+  const [szkiceDiety, setSzkiceDiety] = useState(true);
   const load = useCallback(() => {
     setEditing(false);
     api.get<{ plans: NutritionPlanRow[] }>(`/api/clients/${clientId}/nutrition`)
@@ -808,7 +817,11 @@ function NutritionTab({ clientId }: { clientId: string }) {
           </button>
         </div>
       )}
-      {!editing && (
+      {plan && !editing && (
+        <PublikacjaPanel key={plan.id} planKind="nutrition" planId={plan.id} clientId={clientId}
+          onZmiana={load} onDostepne={setSzkiceDiety} />
+      )}
+      {!editing && (!plan || !szkiceDiety) && (
         <button className="btn btn--small" style={{ marginBottom: 10 }}
           onClick={() => {
             setForm({

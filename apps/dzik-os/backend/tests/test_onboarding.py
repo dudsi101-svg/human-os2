@@ -1040,6 +1040,9 @@ def test_migrations_apply_to_existing_v1_database(tmp_path):
             "client_id VARCHAR(40), file_id VARCHAR(40), title VARCHAR(300), "
             "category VARCHAR(40), uploaded_by VARCHAR(40), "
             "created_at VARCHAR(40), status VARCHAR(20))"))
+        # Stub dla migracji nr 30 (kolumny pochodzenia kopii na wersjach planów).
+        conn.execute(text("CREATE TABLE training_plan_versions (id VARCHAR(40) PRIMARY KEY)"))
+        conn.execute(text("CREATE TABLE nutrition_plan_versions (id VARCHAR(40) PRIMARY KEY)"))
     applied = run_migrations(eng)
     assert applied == [v for v, _, _ in MIGRATIONS if v != 1]
     assert 17 in applied

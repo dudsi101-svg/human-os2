@@ -254,6 +254,10 @@ class TrainingPlanVersion(Base):
     content_json: Mapped[str] = mapped_column(Text)
     created_by: Mapped[str] = mapped_column(String(40))
     created_at: Mapped[str] = mapped_column(String(40), default=now_iso)
+    # Pochodzenie kopii (0.58.0): z jakiego szablonu i jego wersji powstała
+    # ta wersja. Kopia jest niezależna — to tylko zapis, skąd się wzięła.
+    source_template_id: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    source_template_version_no: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
 
 class WorkoutSession(Base):
@@ -314,6 +318,8 @@ class NutritionPlanVersion(Base):
     document_id: Mapped[str | None] = mapped_column(ForeignKey("documents.id"), nullable=True)
     created_by: Mapped[str] = mapped_column(String(40))
     created_at: Mapped[str] = mapped_column(String(40), default=now_iso)
+    source_template_id: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    source_template_version_no: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
 
 class NutritionTemplate(Base):
@@ -1594,3 +1600,81 @@ class KulinariaReceptura(Base):
     validated_variants_json: Mapped[str] = mapped_column(Text, default="[]")
     updated_by: Mapped[str] = mapped_column(String(40))
     updated_at: Mapped[str] = mapped_column(String(40), default=now_iso)
+
+
+# --- Panel trenera: szkice, zestawy zmian, outbox (0.58.0, migracja 30) -------
+
+
+class PlanDraft(Base):
+    """Szkic zmian planu (treningowego albo diety): edycja robocza trenera,
+    której klient NIE widzi. Jeden aktywny szkic na plan; operacje po
+    stabilnych `id` elementów z wymaganą rewizją (konflikt = 409, nigdy
+    ciche nadpisanie). `base_content_json` to migawka wersji bazowej
+    z nadanymi `id` — względem niej liczone są różnice."""
+
+    __tablename__ = "plan_drafts"
+    __table_args__ = (Index("ix_plan_drafts_plan_status", "plan_kind", "plan_id", "status"),)
+
+    id: Mapped[str] = mapped_column(String(40), primary_key=True)
+    plan_kind: Mapped[str] = mapped_column(String(20))  # training / nutrition
+    plan_id: Mapped[str] = mapped_column(String(40), index=True)
+    client_id: Mapped[str | None] = mapped_column(String(40), nullable=True)  # NULL = szablon
+    coach_id: Mapped[str] = mapped_column(String(40), index=True)
+    base_version_no: Mapped[int] = mapped_column(Integer)
+    base_content_json: Mapped[str] = mapped_column(Text)
+    content_json: Mapped[str] = mapped_column(Text)
+    revision: Mapped[int] = mapped_column(Integer, default=1)
+    status: Mapped[str] = mapped_column(String(20), default="ACTIVE")  # ACTIVE/PUBLISHED/DISCARDED
+    created_by: Mapped[str] = mapped_column(String(40))
+    updated_by: Mapped[str] = mapped_column(String(40))
+    created_at: Mapped[str] = mapped_column(String(40), default=now_iso)
+    updated_at: Mapped[str] = mapped_column(String(40), default=now_iso)
+
+
+class ChangeSet(Base):
+    """Opublikowany zestaw zmian: stara i nowa wersja, różnice strukturalne,
+    deterministyczne podsumowanie i notatka trenera. Kolejna publikacja
+    tworzy kolejny wiersz — poprzednie podsumowania zostają."""
+
+    __tablename__ = "change_sets"
+    __table_args__ = (Index("ix_change_sets_plan", "plan_kind", "plan_id"),)
+
+    id: Mapped[str] = mapped_column(String(40), primary_key=True)
+    plan_kind: Mapped[str] = mapped_column(String(20))
+    plan_id: Mapped[str] = mapped_column(String(40), index=True)
+    client_id: Mapped[str | None] = mapped_column(String(40), nullable=True, index=True)
+    old_version_no: Mapped[int] = mapped_column(Integer)
+    new_version_no: Mapped[int] = mapped_column(Integer)
+    diff_json: Mapped[str] = mapped_column(Text)
+    summary: Mapped[str] = mapped_column(Text)
+    note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    author_id: Mapped[str] = mapped_column(String(40))
+    published_at: Mapped[str] = mapped_column(String(40), default=now_iso)
+    # Wpis centrum klienta utworzony z outboxu (NULL = jeszcze nie doręczono
+    # albo plan bez klienta).
+    notification_id: Mapped[str | None] = mapped_column(String(40), nullable=True)
+
+
+class OutboxEvent(Base):
+    """Trwałe zdarzenie do doręczenia (publikacja planu → wpis klienta).
+    Zapisywane w TEJ SAMEJ transakcji co wersja i ChangeSet; procesor
+    ponawia po awarii. UNIQUE(event_type, aggregate_id, recipient_id)
+    = jedno zdarzenie na odbiorcę, a dedup_key powiadomienia = jeden wpis."""
+
+    __tablename__ = "outbox_events"
+    __table_args__ = (
+        UniqueConstraint("event_type", "aggregate_id", "recipient_id"),
+        Index("ix_outbox_events_status_next", "status", "next_attempt_at"),
+    )
+
+    id: Mapped[str] = mapped_column(String(40), primary_key=True)
+    event_type: Mapped[str] = mapped_column(String(40))  # PLAN_PUBLISHED
+    aggregate_id: Mapped[str] = mapped_column(String(40))  # change_set id
+    recipient_id: Mapped[str] = mapped_column(String(40), index=True)
+    payload_json: Mapped[str] = mapped_column(Text)
+    status: Mapped[str] = mapped_column(String(20), default="PENDING")  # PENDING/DELIVERED/FAILED
+    attempts: Mapped[int] = mapped_column(Integer, default=0)
+    next_attempt_at: Mapped[str] = mapped_column(String(40), default=now_iso)
+    last_error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[str] = mapped_column(String(40), default=now_iso)
+    delivered_at: Mapped[str | None] = mapped_column(String(40), nullable=True)

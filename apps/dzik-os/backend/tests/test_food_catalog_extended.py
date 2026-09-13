@@ -50,6 +50,9 @@ def test_migration_18_adds_columns_to_old_database(tmp_path):
             "client_id VARCHAR(40), file_id VARCHAR(40), title VARCHAR(300), "
             "category VARCHAR(40), uploaded_by VARCHAR(40), "
             "created_at VARCHAR(40), status VARCHAR(20))"))
+        # Stub dla migracji nr 30 (kolumny pochodzenia kopii na wersjach planów).
+        conn.execute(text("CREATE TABLE training_plan_versions (id VARCHAR(40) PRIMARY KEY)"))
+        conn.execute(text("CREATE TABLE nutrition_plan_versions (id VARCHAR(40) PRIMARY KEY)"))
         conn.execute(text(
             "INSERT INTO food_products(id, coach_id, name, category, kcal_100g, "
             "protein_100g, fat_100g, carbs_100g, status, created_by, created_at, "

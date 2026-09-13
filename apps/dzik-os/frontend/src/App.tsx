@@ -22,6 +22,7 @@ const CoachConsultations = lazy(() => import("./pages/coach/Consultations"));
 const CoachChallenges = lazy(() => import("./pages/coach/Challenges"));
 const More = lazy(() => import("./pages/More"));
 const Notifications = lazy(() => import("./pages/Notifications"));
+const Zmiany = lazy(() => import("./pages/Zmiany"));
 const Messages = lazy(() => import("./pages/Messages"));
 const Thread = lazy(() => import("./pages/Thread"));
 const Clients = lazy(() => import("./pages/coach/Clients"));
@@ -135,6 +136,7 @@ export default function App() {
             <Route path="/wiadomosci" element={<Messages />} />
             <Route path="/wiadomosci/:threadId" element={<Thread />} />
             <Route path="/powiadomienia" element={<Notifications />} />
+            <Route path="/zmiany/:id" element={<Zmiany />} />
             <Route path="/wiecej" element={<More />} />
           </>
         )}

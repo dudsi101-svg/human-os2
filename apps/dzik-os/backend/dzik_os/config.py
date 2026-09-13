@@ -116,6 +116,12 @@ class Settings:
     wiedza_szkice_flag: bool = field(
         default_factory=lambda: _env("DZIK_WIEDZA_SZKICE", "false") == "true"
     )
+    # Panel trenera (0.58.0): szkice → różnice → publikacja z podsumowaniem
+    # i jednym wpisem klienta. Wyłączenie przywraca poprzedni edytor
+    # „Nowa wersja”; szkice, zestawy zmian i historia zostają w bazie.
+    szkice_publikacja: bool = field(
+        default_factory=lambda: _env("DZIK_SZKICE_PUBLIKACJA", "true") == "true"
+    )
     # AI jest opcjonalne i domyślnie WYŁĄCZONE — aplikacja działa w pełni bez AI.
     ai_enabled: bool = field(default_factory=lambda: _env("DZIK_AI_ENABLED", "false") == "true")
     # Klucz dostawcy WYŁĄCZNIE ze środowiska (sekret Fly) — nigdy w repo.

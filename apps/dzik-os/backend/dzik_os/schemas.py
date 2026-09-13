@@ -72,6 +72,9 @@ class ExerciseIn(BaseModel):
     jest zawsze zapisana w planie, więc zarchiwizowanie ćwiczenia w bazie
     nie psuje istniejących planów — znika tylko link do karty."""
 
+    #: Stabilna tożsamość elementu w szkicach i zestawach zmian (0.58.0);
+    #: brak = wersja sprzed szkiców (identyfikator nada pierwszy szkic).
+    id: str | None = Field(default=None, max_length=40)
     name: str = Field(min_length=1, max_length=300)
     exercise_id: str | None = Field(default=None, max_length=40)
     sets: str | None = Field(default=None, max_length=40)
@@ -92,6 +95,7 @@ class ExerciseIn(BaseModel):
 
 
 class PlanDayIn(BaseModel):
+    id: str | None = Field(default=None, max_length=40)
     name: str = Field(min_length=1, max_length=200)
     weekday: int | None = Field(default=None, ge=1, le=7)
     exercises: list[ExerciseIn] = []
@@ -150,6 +154,7 @@ class SupplementIn(BaseModel):
     # Podstawa zalecenia: kto je wydał i na jakiej podstawie (np. „zalecenie
     # lekarza z 2026-07-12", „wynik badań", „konsultacja dietetyczna").
     source: str = Field(min_length=1, max_length=300)
+    id: str | None = Field(default=None, max_length=40)
     form: str | None = Field(default=None, max_length=60)
     duration: str | None = Field(default=None, max_length=120)
     notes: str | None = Field(default=None, max_length=1000)

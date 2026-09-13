@@ -238,6 +238,9 @@ def copy_template_to_client(
         reason=f"Skopiowano z szablonu „{template.title}”",
         content_json=source_version.content_json,
         created_by=coach.id,
+        # Pochodzenie (0.58.0): kopia jest niezależna, ale wiadomo skąd jest.
+        source_template_id=template.id,
+        source_template_version_no=template.current_version_no,
     )
     db.add(version)
     record_event(
@@ -274,7 +277,9 @@ def list_templates(
 ):
     rows = (
         db.query(TrainingPlan)
-        .filter(TrainingPlan.coach_id == coach.id, TrainingPlan.is_template.is_(True))
+        .filter(TrainingPlan.coach_id == coach.id, TrainingPlan.is_template.is_(True),
+                # 0.58.0: usunięty (zarchiwizowany) szablon znika z listy; historia zostaje.
+                TrainingPlan.status == "ACTIVE")
         .all()
     )
     return {"templates": [_plan_out(db, p) for p in rows]}
@@ -638,3 +643,78 @@ def import_builtin_plan_template(
         # nazwę — plan działa, brakuje tylko instrukcji/filmu przy ćwiczeniu.
         "linked_exercises": powiazane,
     }
+
+
+# --- Panel trenera (0.58.0): archiwizacja ≠ odpięcie; duplikacja ------------------
+
+
+def _plan_do_zmiany(db: Session, coach: User, plan_id: str) -> TrainingPlan:
+    plan = require_owned_resource(db.get(TrainingPlan, plan_id), actor=coach, resource=f"plan:{plan_id}")
+    if plan.client_id is not None:
+        resolve_client_access(db, coach, plan.client_id, action="write", domain=DOMAIN_TRAINING)
+    return plan
+
+
+@router.post("/plans/{plan_id}/archiwizuj")
+def archive_plan(plan_id: str, coach: User = Depends(require_role("COACH")), db: Session = Depends(get_db)):
+    """Archiwizacja: plan znika z aktywnych, historia wersji i wykonań
+    zostaje. To celowe zakończenie planu (nie publikuje się pustego planu)."""
+    plan = _plan_do_zmiany(db, coach, plan_id)
+    if plan.status == "ARCHIVED":
+        return {"ok": True, "status": plan.status}
+    poprzedni = plan.status
+    plan.status = "ARCHIVED"
+    plan.updated_at = now_iso()
+    record_event(db, action="PLAN_ARCHIVED", actor_id=coach.id, subject_ids=[plan.client_id or coach.id],
+                 payload={"plan_id": plan.id, "from": poprzedni, "is_template": plan.is_template},
+                 summary=f"Plan „{plan.title}” zarchiwizowany")
+    db.commit()
+    return {"ok": True, "status": plan.status}
+
+
+@router.post("/plans/{plan_id}/odepnij")
+def unassign_plan(plan_id: str, coach: User = Depends(require_role("COACH")), db: Session = Depends(get_db)):
+    """Odpięcie od klienta: plan przestaje być widoczny podopiecznemu, ale
+    zostaje z pełną historią (client_id zachowany dla wykonań)."""
+    plan = _plan_do_zmiany(db, coach, plan_id)
+    if plan.client_id is None:
+        raise HTTPException(status_code=422, detail="Szablon nie jest przypisany do klienta")
+    poprzedni = plan.status
+    plan.status = "UNASSIGNED"
+    plan.updated_at = now_iso()
+    record_event(db, action="PLAN_UNASSIGNED", actor_id=coach.id, subject_ids=[plan.client_id],
+                 payload={"plan_id": plan.id, "from": poprzedni},
+                 summary=f"Plan „{plan.title}” odpięty od klienta")
+    db.commit()
+    return {"ok": True, "status": plan.status}
+
+
+@router.post("/plans/{plan_id}/duplikuj", status_code=201)
+def duplicate_plan(plan_id: str, coach: User = Depends(require_role("COACH")), db: Session = Depends(get_db)):
+    """Duplikat bieżącej wersji jako nowy plan (v1) tego samego klienta albo
+    nowy szablon — z nowymi identyfikatorami elementów."""
+    from ..publikacja import elementy as _el
+
+    plan = _plan_do_zmiany(db, coach, plan_id)
+    zrodlo = (db.query(TrainingPlanVersion)
+              .filter_by(plan_id=plan.id, version_no=plan.current_version_no).one_or_none())
+    if zrodlo is None:
+        raise HTTPException(status_code=422, detail="Plan nie ma żadnej wersji")
+    tresc = _el.znormalizuj("training", json.loads(zrodlo.content_json))
+    for d in tresc["days"]:
+        d["id"] = _el.nowy_id()
+        for e in d["exercises"]:
+            e["id"] = _el.nowy_id()
+    nowy = TrainingPlan(id=new_id("PLN"), client_id=plan.client_id, coach_id=coach.id,
+                        title=f"{plan.title} (kopia)", current_version_no=1, is_template=plan.is_template)
+    db.add(nowy)
+    db.add(TrainingPlanVersion(id=new_id("PLV"), plan_id=nowy.id, version_no=1,
+                               reason=f"Duplikat planu „{plan.title}” (v{plan.current_version_no})",
+                               content_json=json.dumps(tresc, ensure_ascii=False), created_by=coach.id,
+                               source_template_id=zrodlo.source_template_id,
+                               source_template_version_no=zrodlo.source_template_version_no))
+    record_event(db, action="PLAN_CREATED", actor_id=coach.id, subject_ids=[plan.client_id or coach.id],
+                 payload={"plan_id": nowy.id, "title": nowy.title, "version_no": 1, "duplicated_from": plan.id},
+                 summary=f"Plan „{nowy.title}” utworzony jako duplikat")
+    db.commit()
+    return {"id": nowy.id, "version_no": 1, "title": nowy.title}

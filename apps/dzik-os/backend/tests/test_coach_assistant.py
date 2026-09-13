@@ -634,6 +634,9 @@ def test_migracja_23_na_starej_bazie(tmp_path):
         # cały zaległy ogon migracji — tu interesuje nas nr 23.
         conn.execute(text(
             "CREATE TABLE exercises (id VARCHAR(40) PRIMARY KEY, name VARCHAR(200))"))
+        # Stub dla migracji nr 30 (kolumny pochodzenia kopii na wersjach planów).
+        conn.execute(text("CREATE TABLE training_plan_versions (id VARCHAR(40) PRIMARY KEY)"))
+        conn.execute(text("CREATE TABLE nutrition_plan_versions (id VARCHAR(40) PRIMARY KEY)"))
         # Migracja nr 26 dokłada kolumnę do `onboarding_sessions` — stub
         # z tego samego powodu co `exercises` wyżej.
         conn.execute(text(
