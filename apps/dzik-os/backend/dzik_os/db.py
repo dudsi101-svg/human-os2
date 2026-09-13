@@ -1269,3 +1269,139 @@ MIGRATIONS.append(
         "CREATE INDEX IF NOT EXISTS ix_plan_review_tasks_plan ON plan_review_tasks (plan_kind, plan_id, status)",
     ])
 )
+
+MIGRATIONS.append(
+    (32, "szablony diet ze skalowaniem: produkty, profile, odsłony, dni, posiłki, składniki, przypisania, wymiany", [
+        # Addytywna; moduł za flagą DZIK_DIET_TEMPLATES_ENABLED. Seed danych
+        # (142 produkty + odsłona Standard v1) robi dieta.seed idempotentnie.
+        (
+            "CREATE TABLE IF NOT EXISTS diet_products ("
+            " id VARCHAR(40) PRIMARY KEY,"
+            " name_pl VARCHAR(200) NOT NULL UNIQUE,"
+            " category VARCHAR(60) NOT NULL,"
+            " substitution_group VARCHAR(80) NOT NULL DEFAULT '',"
+            " kcal_100 FLOAT NOT NULL,"
+            " kcal_usda FLOAT,"
+            " protein_100 FLOAT NOT NULL,"
+            " fat_100 FLOAT NOT NULL,"
+            " carbs_100 FLOAT NOT NULL,"
+            " fiber_100 FLOAT NOT NULL DEFAULT 0,"
+            " cooking_tags VARCHAR(200) NOT NULL DEFAULT '',"
+            " allergens VARCHAR(200) NOT NULL DEFAULT '',"
+            " diet_exclusions VARCHAR(200) NOT NULL DEFAULT '',"
+            " default_scaling VARCHAR(20) NOT NULL DEFAULT 'LINIOWY',"
+            " source VARCHAR(120) NOT NULL DEFAULT '',"
+            " source_id VARCHAR(80),"
+            " source_desc TEXT,"
+            " created_at VARCHAR(40) NOT NULL)"
+        ),
+        (
+            "CREATE TABLE IF NOT EXISTS diet_profiles ("
+            " id VARCHAR(40) PRIMARY KEY,"
+            " name VARCHAR(120) NOT NULL UNIQUE,"
+            " description TEXT NOT NULL DEFAULT '',"
+            " base_p_pct FLOAT NOT NULL,"
+            " base_f_pct FLOAT NOT NULL,"
+            " base_c_pct FLOAT NOT NULL,"
+            " diet_tags VARCHAR(200) NOT NULL DEFAULT '',"
+            " created_at VARCHAR(40) NOT NULL)"
+        ),
+        (
+            "CREATE TABLE IF NOT EXISTS diet_template_weeks ("
+            " id VARCHAR(40) PRIMARY KEY,"
+            " profile_id VARCHAR(40) NOT NULL,"
+            " variant_no INTEGER NOT NULL DEFAULT 1,"
+            " name VARCHAR(200) NOT NULL DEFAULT '',"
+            " base_kcal INTEGER NOT NULL DEFAULT 2000,"
+            " kcal_min INTEGER NOT NULL DEFAULT 1400,"
+            " kcal_max INTEGER NOT NULL DEFAULT 3200,"
+            " status VARCHAR(20) NOT NULL DEFAULT 'DRAFT',"
+            " created_by VARCHAR(40),"
+            " created_at VARCHAR(40) NOT NULL,"
+            " updated_at VARCHAR(40) NOT NULL,"
+            " UNIQUE (profile_id, variant_no))"
+        ),
+        "CREATE INDEX IF NOT EXISTS ix_diet_template_weeks_profile_id ON diet_template_weeks (profile_id)",
+        (
+            "CREATE TABLE IF NOT EXISTS diet_template_days ("
+            " id VARCHAR(40) PRIMARY KEY,"
+            " week_id VARCHAR(40) NOT NULL,"
+            " day_no INTEGER NOT NULL,"
+            " UNIQUE (week_id, day_no))"
+        ),
+        "CREATE INDEX IF NOT EXISTS ix_diet_template_days_week_id ON diet_template_days (week_id)",
+        (
+            "CREATE TABLE IF NOT EXISTS diet_template_meals ("
+            " id VARCHAR(40) PRIMARY KEY,"
+            " day_id VARCHAR(40) NOT NULL,"
+            " position INTEGER NOT NULL DEFAULT 0,"
+            " slot VARCHAR(40) NOT NULL,"
+            " name VARCHAR(200) NOT NULL,"
+            " kcal_share FLOAT NOT NULL,"
+            " flexible BOOLEAN NOT NULL DEFAULT false,"
+            " recipe_steps TEXT NOT NULL DEFAULT '',"
+            " prep_minutes INTEGER,"
+            " tags VARCHAR(200) NOT NULL DEFAULT '')"
+        ),
+        "CREATE INDEX IF NOT EXISTS ix_diet_template_meals_day_id ON diet_template_meals (day_id)",
+        (
+            "CREATE TABLE IF NOT EXISTS diet_template_ingredients ("
+            " id VARCHAR(40) PRIMARY KEY,"
+            " meal_id VARCHAR(40) NOT NULL,"
+            " position INTEGER NOT NULL DEFAULT 0,"
+            " product_id VARCHAR(40) NOT NULL,"
+            " base_grams FLOAT NOT NULL,"
+            " scaling_class VARCHAR(20),"
+            " macro_role VARCHAR(8) NOT NULL DEFAULT 'NONE',"
+            " min_factor FLOAT,"
+            " max_factor FLOAT,"
+            " round_step FLOAT,"
+            " unit_g FLOAT,"
+            " unit_step FLOAT,"
+            " group_name VARCHAR(60),"
+            " swappable BOOLEAN NOT NULL DEFAULT true)"
+        ),
+        "CREATE INDEX IF NOT EXISTS ix_diet_template_ingredients_meal_id ON diet_template_ingredients (meal_id)",
+        "CREATE INDEX IF NOT EXISTS ix_diet_template_ingredients_product_id ON diet_template_ingredients (product_id)",
+        (
+            "CREATE TABLE IF NOT EXISTS diet_assigned ("
+            " id VARCHAR(40) PRIMARY KEY,"
+            " client_id VARCHAR(40) NOT NULL,"
+            " coach_id VARCHAR(40) NOT NULL,"
+            " week_id VARCHAR(40) NOT NULL,"
+            " target_kcal INTEGER NOT NULL,"
+            " target_p FLOAT NOT NULL,"
+            " target_f FLOAT NOT NULL,"
+            " target_c FLOAT NOT NULL,"
+            " body_weight FLOAT,"
+            " macro_mode VARCHAR(20) NOT NULL DEFAULT 'profile',"
+            " exclusions_json TEXT NOT NULL DEFAULT '[]',"
+            " computed_plan_json TEXT NOT NULL,"
+            " overrides_json TEXT NOT NULL DEFAULT '{}',"
+            " status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',"
+            " version INTEGER NOT NULL DEFAULT 1,"
+            " swaps_enabled BOOLEAN NOT NULL DEFAULT true,"
+            " created_at VARCHAR(40) NOT NULL,"
+            " updated_at VARCHAR(40) NOT NULL)"
+        ),
+        "CREATE INDEX IF NOT EXISTS ix_diet_assigned_client_id ON diet_assigned (client_id)",
+        "CREATE INDEX IF NOT EXISTS ix_diet_assigned_coach_id ON diet_assigned (coach_id)",
+        "CREATE INDEX IF NOT EXISTS ix_diet_assigned_week_id ON diet_assigned (week_id)",
+        "CREATE INDEX IF NOT EXISTS ix_diet_assigned_client_status ON diet_assigned (client_id, status)",
+        (
+            "CREATE TABLE IF NOT EXISTS diet_swap_events ("
+            " id VARCHAR(40) PRIMARY KEY,"
+            " assigned_diet_id VARCHAR(40) NOT NULL,"
+            " day_no INTEGER NOT NULL,"
+            " meal_id VARCHAR(40) NOT NULL,"
+            " ingredient_id VARCHAR(40) NOT NULL,"
+            " from_product_id VARCHAR(40) NOT NULL,"
+            " to_product_id VARCHAR(40) NOT NULL,"
+            " from_grams FLOAT NOT NULL,"
+            " to_grams FLOAT NOT NULL,"
+            " actor_id VARCHAR(40) NOT NULL,"
+            " created_at VARCHAR(40) NOT NULL)"
+        ),
+        "CREATE INDEX IF NOT EXISTS ix_diet_swap_events_assigned_diet_id ON diet_swap_events (assigned_diet_id)",
+    ])
+)

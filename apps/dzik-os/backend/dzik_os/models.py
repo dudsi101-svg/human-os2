@@ -1824,3 +1824,171 @@ class PlanReviewTask(Base):
     resolved_at: Mapped[str | None] = mapped_column(String(40), nullable=True)
     resolved_by: Mapped[str | None] = mapped_column(String(40), nullable=True)
     resolution_note: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+
+# ---------------------------------------------------------------------------
+# Szablony diet ze skalowaniem (0.60.0, migracja 32) — moduł równoległy do
+# planów żywieniowych; tabele z prefiksem diet_. Specyfikacja:
+# docs/diet-module/instrukcja_szablony_diet.md §8.
+# ---------------------------------------------------------------------------
+
+
+class DietProduct(Base):
+    """Produkt bazy modułu diet: makro na 100 g, grupa zamienników, tagi
+    przygotowania, alergeny, wykluczenia dietetyczne, domyślna klasa
+    skalowania. `kcal_100` = 4·P + 9·F + 4·W; wartość źródłowa w `kcal_usda`.
+    Produkty spoza seeda dodaje wyłącznie admin z jawnym `source`."""
+
+    __tablename__ = "diet_products"
+
+    id: Mapped[str] = mapped_column(String(40), primary_key=True)
+    name_pl: Mapped[str] = mapped_column(String(200), unique=True)
+    category: Mapped[str] = mapped_column(String(60))
+    substitution_group: Mapped[str] = mapped_column(String(80), default="")
+    kcal_100: Mapped[float] = mapped_column(Float)
+    kcal_usda: Mapped[float | None] = mapped_column(Float, nullable=True)
+    protein_100: Mapped[float] = mapped_column(Float)
+    fat_100: Mapped[float] = mapped_column(Float)
+    carbs_100: Mapped[float] = mapped_column(Float)
+    fiber_100: Mapped[float] = mapped_column(Float, default=0.0)
+    cooking_tags: Mapped[str] = mapped_column(String(200), default="")  # CSV: smażenie,pieczenie,*
+    allergens: Mapped[str] = mapped_column(String(200), default="")
+    diet_exclusions: Mapped[str] = mapped_column(String(200), default="")  # meat,dairy,lactose,…
+    default_scaling: Mapped[str] = mapped_column(String(20), default="LINIOWY")
+    source: Mapped[str] = mapped_column(String(120), default="")
+    source_id: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    source_desc: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[str] = mapped_column(String(40), default=now_iso)
+
+
+class DietProfile(Base):
+    """Profil diety (np. „Standard zbilansowana”) z makro bazowym w % kcal."""
+
+    __tablename__ = "diet_profiles"
+
+    id: Mapped[str] = mapped_column(String(40), primary_key=True)
+    name: Mapped[str] = mapped_column(String(120), unique=True)
+    description: Mapped[str] = mapped_column(Text, default="")
+    base_p_pct: Mapped[float] = mapped_column(Float)
+    base_f_pct: Mapped[float] = mapped_column(Float)
+    base_c_pct: Mapped[float] = mapped_column(Float)
+    diet_tags: Mapped[str] = mapped_column(String(200), default="")
+    created_at: Mapped[str] = mapped_column(String(40), default=now_iso)
+
+
+class DietTemplateWeek(Base):
+    """Odsłona tygodnia profilu (variant_no 1–5): kaloryczność bazowa,
+    zakres ważności, status DRAFT / PUBLISHED. Edycja odsłony nigdy nie
+    zmienia przypisanych diet (migawka w `DietAssigned`)."""
+
+    __tablename__ = "diet_template_weeks"
+    __table_args__ = (UniqueConstraint("profile_id", "variant_no"),)
+
+    id: Mapped[str] = mapped_column(String(40), primary_key=True)
+    profile_id: Mapped[str] = mapped_column(ForeignKey("diet_profiles.id"), index=True)
+    variant_no: Mapped[int] = mapped_column(Integer, default=1)
+    name: Mapped[str] = mapped_column(String(200), default="")
+    base_kcal: Mapped[int] = mapped_column(Integer, default=2000)
+    kcal_min: Mapped[int] = mapped_column(Integer, default=1400)
+    kcal_max: Mapped[int] = mapped_column(Integer, default=3200)
+    status: Mapped[str] = mapped_column(String(20), default="DRAFT")  # DRAFT / PUBLISHED
+    created_by: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    created_at: Mapped[str] = mapped_column(String(40), default=now_iso)
+    updated_at: Mapped[str] = mapped_column(String(40), default=now_iso)
+
+
+class DietTemplateDay(Base):
+    __tablename__ = "diet_template_days"
+    __table_args__ = (UniqueConstraint("week_id", "day_no"),)
+
+    id: Mapped[str] = mapped_column(String(40), primary_key=True)
+    week_id: Mapped[str] = mapped_column(ForeignKey("diet_template_weeks.id"), index=True)
+    day_no: Mapped[int] = mapped_column(Integer)
+
+
+class DietTemplateMeal(Base):
+    """Posiłek szablonu: slot, udział kcal dnia (ułamek), elastyczny (domyka
+    resztę dnia), przepis, tagi."""
+
+    __tablename__ = "diet_template_meals"
+
+    id: Mapped[str] = mapped_column(String(40), primary_key=True)
+    day_id: Mapped[str] = mapped_column(ForeignKey("diet_template_days.id"), index=True)
+    position: Mapped[int] = mapped_column(Integer, default=0)
+    slot: Mapped[str] = mapped_column(String(40))  # śniadanie / obiad / przekąska / kolacja
+    name: Mapped[str] = mapped_column(String(200))
+    kcal_share: Mapped[float] = mapped_column(Float)
+    flexible: Mapped[bool] = mapped_column(Boolean, default=False)
+    recipe_steps: Mapped[str] = mapped_column(Text, default="")
+    prep_minutes: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    tags: Mapped[str] = mapped_column(String(200), default="")
+
+
+class DietTemplateIngredient(Base):
+    """Składnik posiłku z regułami skalowania. NULL = „użyj domyślnych klasy”
+    (`CLASS_DEFAULTS` silnika); `scaling_class` NULL = domyślna klasa
+    produktu. `unit_g` obowiązkowe dla DYSKRETNY."""
+
+    __tablename__ = "diet_template_ingredients"
+
+    id: Mapped[str] = mapped_column(String(40), primary_key=True)
+    meal_id: Mapped[str] = mapped_column(ForeignKey("diet_template_meals.id"), index=True)
+    position: Mapped[int] = mapped_column(Integer, default=0)
+    product_id: Mapped[str] = mapped_column(ForeignKey("diet_products.id"), index=True)
+    base_grams: Mapped[float] = mapped_column(Float)
+    scaling_class: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    macro_role: Mapped[str] = mapped_column(String(8), default="NONE")  # P / C / F / NONE
+    min_factor: Mapped[float | None] = mapped_column(Float, nullable=True)
+    max_factor: Mapped[float | None] = mapped_column(Float, nullable=True)
+    round_step: Mapped[float | None] = mapped_column(Float, nullable=True)
+    unit_g: Mapped[float | None] = mapped_column(Float, nullable=True)
+    unit_step: Mapped[float | None] = mapped_column(Float, nullable=True)
+    group_name: Mapped[str | None] = mapped_column(String(60), nullable=True)
+    swappable: Mapped[bool] = mapped_column(Boolean, default=True)
+
+
+class DietAssigned(Base):
+    """Dieta przypisana klientowi: cel, MIGAWKA wyniku silnika
+    (`computed_plan_json`) i `overrides_json` (korekty trenera, wymiany
+    klienta, „przypisz mimo ostrzeżeń”). Ponowne przypisanie = nowy wiersz
+    z kolejnym `version`; poprzedni ARCHIVED."""
+
+    __tablename__ = "diet_assigned"
+    __table_args__ = (Index("ix_diet_assigned_client_status", "client_id", "status"),)
+
+    id: Mapped[str] = mapped_column(String(40), primary_key=True)
+    client_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
+    coach_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
+    week_id: Mapped[str] = mapped_column(ForeignKey("diet_template_weeks.id"), index=True)
+    target_kcal: Mapped[int] = mapped_column(Integer)
+    target_p: Mapped[float] = mapped_column(Float)
+    target_f: Mapped[float] = mapped_column(Float)
+    target_c: Mapped[float] = mapped_column(Float)
+    body_weight: Mapped[float | None] = mapped_column(Float, nullable=True)
+    macro_mode: Mapped[str] = mapped_column(String(20), default="profile")
+    exclusions_json: Mapped[str] = mapped_column(Text, default="[]")
+    computed_plan_json: Mapped[str] = mapped_column(Text)
+    overrides_json: Mapped[str] = mapped_column(Text, default="{}")
+    status: Mapped[str] = mapped_column(String(20), default="ACTIVE")  # ACTIVE / ARCHIVED
+    version: Mapped[int] = mapped_column(Integer, default=1)
+    swaps_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[str] = mapped_column(String(40), default=now_iso)
+    updated_at: Mapped[str] = mapped_column(String(40), default=now_iso)
+
+
+class DietSwapEvent(Base):
+    """Wymiana produktu przez klienta (historia dla trenera)."""
+
+    __tablename__ = "diet_swap_events"
+
+    id: Mapped[str] = mapped_column(String(40), primary_key=True)
+    assigned_diet_id: Mapped[str] = mapped_column(ForeignKey("diet_assigned.id"), index=True)
+    day_no: Mapped[int] = mapped_column(Integer)
+    meal_id: Mapped[str] = mapped_column(String(40))
+    ingredient_id: Mapped[str] = mapped_column(String(40))
+    from_product_id: Mapped[str] = mapped_column(String(40))
+    to_product_id: Mapped[str] = mapped_column(String(40))
+    from_grams: Mapped[float] = mapped_column(Float)
+    to_grams: Mapped[float] = mapped_column(Float)
+    actor_id: Mapped[str] = mapped_column(String(40))
+    created_at: Mapped[str] = mapped_column(String(40), default=now_iso)

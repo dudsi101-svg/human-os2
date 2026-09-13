@@ -122,6 +122,12 @@ class Settings:
     szkice_publikacja: bool = field(
         default_factory=lambda: _env("DZIK_SZKICE_PUBLIKACJA", "true") == "true"
     )
+    # Szablony diet ze skalowaniem (0.60.0): cały moduł za flagą, domyślnie
+    # WYŁĄCZONY (produkcja); dev/test włączają przez env. Wyłączenie = 404
+    # na /api/diet/* i brak modułu w interfejsie; dane w bazie zostają.
+    diet_templates_enabled: bool = field(
+        default_factory=lambda: _env("DZIK_DIET_TEMPLATES_ENABLED", "false") == "true"
+    )
     # AI jest opcjonalne i domyślnie WYŁĄCZONE — aplikacja działa w pełni bez AI.
     ai_enabled: bool = field(default_factory=lambda: _env("DZIK_AI_ENABLED", "false") == "true")
     # Klucz dostawcy WYŁĄCZNIE ze środowiska (sekret Fly) — nigdy w repo.

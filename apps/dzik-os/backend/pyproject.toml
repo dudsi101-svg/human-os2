@@ -16,6 +16,7 @@ include = ["dzik_os*"]
 "dzik_os.konfigurator" = ["dane/*.json"]
 "dzik_os.kulinaria" = ["dane/*.json"]
 "dzik_os.wiedza" = ["dane/*.json"]
+"dzik_os.dieta" = ["dane/*.json", "dane/*.csv"]
 
 [project]
 name = "dzik-os-backend"
