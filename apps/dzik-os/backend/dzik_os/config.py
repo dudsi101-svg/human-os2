@@ -218,6 +218,13 @@ class Settings:
         default_factory=lambda: int(_env("DZIK_SSE_KEEPALIVE_S", "25"))
     )
 
+    # Poczta (Brevo SMTP, moduł `mailer.py`): endpoint testowy
+    # `POST /api/admin/mail/test` włączany jawnie — na produkcji domyślnie
+    # WYŁĄCZONY (właściciel włącza sekretem po podpięciu skrzynki).
+    mail_test_endpoint_enabled: bool = field(
+        default_factory=lambda: _env("DZIK_MAIL_TEST_ENDPOINT_ENABLED", "false").lower() in ("1", "true", "yes")
+    )
+
     ALLOWED_UPLOAD_TYPES: ClassVar[dict[str, str]] = {
         "image/jpeg": ".jpg",
         "image/png": ".png",

@@ -1,0 +1,44 @@
+# Diagnostyka poczty TYLKO DO ODCZYTU: uruchamia `python smtp_check.py` na maszynie Fly
+# (połączenie, STARTTLS, logowanie, nadawca — cztery linie zakończone OK). Skrypt nie
+# wypisuje hasła; log widzi wyłącznie właściciel repozytorium. Nic nie ustawia.
+
+name: Sprawdzenie SMTP (Fly.io)
+
+on:
+  workflow_dispatch:
+    inputs:
+      test_email:
+        description: "Adres na testowy e-mail po kontroli (puste = tylko kontrola, bez wysyłki)"
+        required: false
+        default: ""
+
+concurrency:
+  group: fly-maintenance
+  cancel-in-progress: false
+
+jobs:
+  smtp-check:
+    runs-on: ubuntu-latest
+    env:
+      FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+      APP_NAME: dzik-os-panel
+      # Input WYŁĄCZNIE przez env (audyt P0-3): nigdy w bloku run.
+      TEST_EMAIL: ${{ inputs.test_email }}
+    steps:
+      - name: Zwaliduj input (pusty = bez wysyłki; inaczej twardy wzorzec adresu)
+        run: |
+          if [ -n "$TEST_EMAIL" ] && ! printf '%s' "$TEST_EMAIL" | grep -qE '^[A-Za-z0-9._+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$'; then
+            echo "::error::Input test_email nie wygląda jak adres e-mail — odmowa."
+            exit 1
+          fi
+
+      - uses: superfly/flyctl-actions/setup-flyctl@ed8efb33836e8b2096c7fd3ba1c8afe303ebbff1  # master 2026-08 (tag 1.6)
+
+      - name: smtp_check.py z maszyny (tylko odczyt, bez wysyłki)
+        run: |
+          flyctl ssh console --app "$APP_NAME" -C "python smtp_check.py"
+
+      - name: Testowa wysyłka (ta sama ścieżka co POST /api/admin/mail/test)
+        if: env.TEST_EMAIL != ''
+        run: |
+          flyctl ssh console --app "$APP_NAME" -C "python -m dzik_os.test_poczty_brevo $TEST_EMAIL"

@@ -29,6 +29,7 @@ os.environ["DZIK_WIEDZA_SZKICE"] = "true"
 # Szablony diet (0.60.0): moduł włączony w testach; test wyłączenia flagi
 # przełącza settings punktowo.
 os.environ["DZIK_DIET_TEMPLATES_ENABLED"] = "true"
+os.environ["DZIK_MAIL_TEST_ENDPOINT_ENABLED"] = "true"
 
 import pytest
 from fastapi.testclient import TestClient

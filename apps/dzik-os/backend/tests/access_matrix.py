@@ -62,6 +62,7 @@ MATRIX: dict[tuple[str, str], Access] = {
     ("GET", "/api/admin/audit/verify"): Access.ADMIN_ONLY,
     ("GET", "/api/admin/receipts"): Access.ADMIN_ONLY,
     ("GET", "/api/admin/users"): Access.ADMIN_ONLY,
+    ("POST", "/api/admin/mail/test"): Access.COACH_OR_ADMIN,
     ("POST", "/api/auth/activate"): Access.PUBLIC,
     # Ekran aktywacji działa PRZED zalogowaniem; jednolite 404 dla każdego
     # nieważnego tokenu (auth.py: bez rozróżniania wygasły/użyty/nieistniejący).

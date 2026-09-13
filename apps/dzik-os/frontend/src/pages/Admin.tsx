@@ -19,6 +19,11 @@ export default function Admin() {
   const [receipts, setReceipts] = useState<ReceiptRow[]>([]);
   const [chain, setChain] = useState<boolean | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Poczta Brevo (0.61.0): karta testu wysyłki tylko, gdy endpoint jest włączony flagą.
+  const [pocztaTest, setPocztaTest] = useState(false);
+  const [adres, setAdres] = useState("");
+  const [wynikPoczty, setWynikPoczty] = useState<string | null>(null);
+  const [wysylanie, setWysylanie] = useState(false);
 
   const load = () => {
     setError(null);
@@ -30,6 +35,20 @@ export default function Admin() {
       .catch((e) => setError(`Nie udało się wczytać pokwitowań audytu. ${e.message}`));
   };
   useEffect(() => { load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    api.get<{ features?: { mail_test_endpoint?: boolean } }>("/api/health")
+      .then((h) => setPocztaTest(!!h.features?.mail_test_endpoint)).catch(() => setPocztaTest(false));
+  }, []);
+
+  async function wyslijTest() {
+    setWysylanie(true); setWynikPoczty(null);
+    try {
+      const r = await api.post<{ message_id: string; to_domain: string }>("/api/admin/mail/test", { to: adres.trim() });
+      setWynikPoczty(`Zakolejkowano wysyłkę do @${r.to_domain}. Identyfikator: ${r.message_id}. Wynik w logach Fly (wpis „Wysłano do”).`);
+    } catch (e) {
+      setWynikPoczty(`Nie udało się: ${(e as Error).message}`);
+    } finally { setWysylanie(false); }
+  }
 
   async function verify() {
     try {
@@ -69,6 +88,18 @@ export default function Admin() {
           </table>
         </div>
       </div>
+      {pocztaTest && (
+        <div className="card">
+          <h2>Poczta (Brevo SMTP) — test wysyłki</h2>
+          <p className="dim">Wysyła „Test wysyłki Dzik OS” na podany adres przez skonfigurowany kanał SMTP. Zdarzenie trafia do audytu (bez adresu, tylko domena).</p>
+          <label htmlFor="mail-test-to">Adres odbiorcy</label>
+          <input id="mail-test-to" type="email" inputMode="email" value={adres} onChange={(e) => setAdres(e.target.value)} placeholder="adres@example.com" />
+          <button type="button" className="btn btn--small" style={{ marginTop: 8 }} disabled={wysylanie || !adres.includes("@")} onClick={() => void wyslijTest()}>
+            {wysylanie ? "Wysyłam…" : "Wyślij testowy e-mail"}
+          </button>
+          {wynikPoczty && <p role="status" className={`alert ${wynikPoczty.startsWith("Nie udało") ? "alert--error" : "alert--info"}`} style={{ marginTop: 8 }}>{wynikPoczty}</p>}
+        </div>
+      )}
       <div className="card">
         <div className="row row--between">
           <h2>Łańcuch audytu Human OS</h2>
