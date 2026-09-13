@@ -26,6 +26,9 @@ os.environ["DZIK_MFA_REQUIRED_ROLES"] = ""
 # Wiedza: szkice pakietu widoczne w testach (tryb demonstracyjny); testy
 # produkcyjnego ukrycia szkiców przełączają settings.env punktowo.
 os.environ["DZIK_WIEDZA_SZKICE"] = "true"
+# Szablony diet (0.60.0): moduł włączony w testach; test wyłączenia flagi
+# przełącza settings punktowo.
+os.environ["DZIK_DIET_TEMPLATES_ENABLED"] = "true"
 
 import pytest
 from fastapi.testclient import TestClient

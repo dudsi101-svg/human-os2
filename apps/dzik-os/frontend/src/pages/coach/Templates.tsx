@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { api } from "../../api";
 import { plDate } from "../../dates";
 import { ErrorBox, SheetImportPanel, Spinner, TopBar } from "../../components";
@@ -24,6 +25,11 @@ export default function Templates() {
   // Zakładka Dieta (0.54.0): szablony diety żyją obok treningowych —
   // jeden ekran „Szablony", dwie zakładki, wybór trzymany lokalnie.
   const [tab, setTab] = useState<"TRENING" | "DIETA">("TRENING");
+  // Szablony diet ze skalowaniem (0.60.0): link do panelu tylko, gdy moduł włączony.
+  const [szablonyDiet, setSzablonyDiet] = useState(false);
+  useEffect(() => {
+    api.get<{ profiles: unknown[] }>("/api/diet/profiles").then(() => setSzablonyDiet(true)).catch(() => setSzablonyDiet(false));
+  }, []);
 
   if (error) return <div className="page"><ErrorBox error={error} onRetry={load} /></div>;
   if (!templates) return <div className="page"><Spinner /></div>;
@@ -41,6 +47,14 @@ export default function Templates() {
           </button>
         ))}
       </div>
+      {tab === "DIETA" && szablonyDiet && (
+        <div className="card" style={{ marginBottom: 10 }}>
+          <div className="row row--between">
+            <div><b>Szablony diet ze skalowaniem</b><div className="dim" style={{ fontSize: "0.85rem" }}>Profile, odsłony tygodnia, test skalowania 1400–3200 kcal, publikacja, import JSON.</div></div>
+            <Link className="btn btn--small" to="/trener/szablony-diet">Otwórz panel</Link>
+          </div>
+        </div>
+      )}
       {tab === "DIETA" && <DietTemplatesTab />}
       {tab === "TRENING" && (<>
       {!creating && (

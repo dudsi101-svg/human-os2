@@ -55,6 +55,7 @@ import {
 } from "../../onboardingUtils";
 import PlanEditor from "./PlanEditor";
 import PublikacjaPanel from "./PublikacjaPanel";
+import PrzypiszDiete, { PrzypisanaDietaTrenera } from "./PrzypiszDiete";
 import WywiadTab from "./WywiadTab";
 import OcrCapture from "../../OcrCapture";
 import { appendText } from "../../ocrUtils";
@@ -692,6 +693,15 @@ function NutritionTab({ clientId }: { clientId: string }) {
 
   const plan = plans?.find((p) => p.status === "ACTIVE") ?? null;
   const [szkiceDiety, setSzkiceDiety] = useState(true);
+  // Szablony diet ze skalowaniem (0.60.0): moduł za flagą — 404 na
+  // /api/diet/profiles = brak modułu, bez błędu w zakładce.
+  const [szablonyDiet, setSzablonyDiet] = useState(false);
+  const [przypisywanie, setPrzypisywanie] = useState(false);
+  const [dietaTick, setDietaTick] = useState(0);
+  const [dietaInfo, setDietaInfo] = useState<string | null>(null);
+  useEffect(() => {
+    api.get<{ profiles: unknown[] }>("/api/diet/profiles").then(() => setSzablonyDiet(true)).catch(() => setSzablonyDiet(false));
+  }, []);
   const load = useCallback(() => {
     setEditing(false);
     api.get<{ plans: NutritionPlanRow[] }>(`/api/clients/${clientId}/nutrition`)
@@ -787,9 +797,29 @@ function NutritionTab({ clientId }: { clientId: string }) {
   if (!plans) return <Spinner />;
   const v = plan?.current_version;
 
+  if (przypisywanie) {
+    return (
+      <PrzypiszDiete clientId={clientId} onAnuluj={() => setPrzypisywanie(false)}
+        onPrzypisano={(a) => { setPrzypisywanie(false); setDietaTick((t) => t + 1);
+          setDietaInfo(`Przypisano dietę z szablonu (v${a.version}, ${a.target.kcal} kcal) — klient widzi ją od razu w zakładce Dieta.`); }} />
+    );
+  }
+
   return (
     <>
       <HintsCard clientId={clientId} area="DIETA" />
+      {dietaInfo && <p className="alert alert--info" role="status">{dietaInfo} <button type="button" className="btn btn--ghost btn--small" aria-label="Zamknij komunikat" onClick={() => setDietaInfo(null)}>×</button></p>}
+      {szablonyDiet && (
+        <>
+          <PrzypisanaDietaTrenera key={dietaTick} clientId={clientId} onZmiana={() => setDietaTick((t) => t + 1)} />
+          <div className="card" style={{ marginBottom: 10 }}>
+            <div className="row row--between">
+              <div><b>Dieta z szablonu</b><div className="dim" style={{ fontSize: "0.85rem" }}>Gotowy tydzień przeliczony na kcal i makro klienta; klient może wymieniać produkty.</div></div>
+              <button type="button" className="btn btn--small" onClick={() => setPrzypisywanie(true)}>Przypisz dietę</button>
+            </div>
+          </div>
+        </>
+      )}
       {!editing && !plan && dietTemplates.length > 0 && (
         <div className="card" style={{ marginBottom: 10 }}>
           <b>Z szablonu</b>

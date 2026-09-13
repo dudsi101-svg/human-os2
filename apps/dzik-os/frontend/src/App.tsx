@@ -28,6 +28,7 @@ const Messages = lazy(() => import("./pages/Messages"));
 const Thread = lazy(() => import("./pages/Thread"));
 const Clients = lazy(() => import("./pages/coach/Clients"));
 const ClientDetail = lazy(() => import("./pages/coach/ClientDetail"));
+const SzablonyDiet = lazy(() => import("./pages/coach/SzablonyDiet"));
 const Reconciliation = lazy(() => import("./pages/coach/Reconciliation"));
 const WeeklyDigest = lazy(() => import("./pages/coach/WeeklyDigest"));
 const Templates = lazy(() => import("./pages/coach/Templates"));
@@ -133,6 +134,8 @@ export default function App() {
           </>
         )}
         {roles.includes("ADMIN") && <Route path="/admin" element={<Admin />} />}
+        {/* Biblioteka szablonów diet: trener albo administrator (jak _edytor w API). */}
+        {(roles.includes("COACH") || roles.includes("ADMIN")) && <Route path="/trener/szablony-diet" element={<SzablonyDiet />} />}
         {user && (
           <>
             <Route path="/wiadomosci" element={<Messages />} />

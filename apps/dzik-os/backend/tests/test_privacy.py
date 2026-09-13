@@ -20,6 +20,7 @@ def test_export_contains_all_sections(seeded):
         "payment_schedules", "payment_records", "consents",
         "observations", "daily_nutrition_logs", "schedule_completions",
         "consult_slots", "push_subscriptions", "audit_receipts",
+        "diet_assigned", "diet_swap_events",
     ):
         assert section in body, section
     # Zgody w eksporcie niosą pełny kontekst kategorii.
