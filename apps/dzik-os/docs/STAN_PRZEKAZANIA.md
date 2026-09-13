@@ -1,6 +1,6 @@
 # Stan przekazania — przeczytaj przed rozpoczęciem rundy
 
-**Aktualizacja:** 2026-09-13 · **Wersja w `main`:** 0.60.0
+**Aktualizacja:** 2026-09-14 · **Wersja w `main`:** 0.61.0 (po scaleniu rundy poczty)
 **Tryb pracy:** jeden piszący i jeden PR `[WRITER]` naraz
 (`KOORDYNACJA.md`, zasada nadrzędna).
 
@@ -33,7 +33,15 @@ pierwszy commit, draft PR `[WRITER]`, reszta agentów read-only.
 jednym prawdziwym klientem, **NO-GO na szerszą produkcję** — siedem
 blokerów wypisanych w §5 tamtego dokumentu.
 
-**Ostatnia runda (0.60.0, gałąź `agent/szablony-diet`):** szablony diet ze
+**Ostatnia runda (0.61.0, gałąź `agent/poczta-brevo`):** poczta Brevo SMTP
+— moduł właściciela `mailer.py` 1:1, inicjalizacja przy starcie
+(`MAIL_ENABLED=0` bez zmiennych), `POST /api/admin/mail/test` za flagą
+`DZIK_MAIL_TEST_ENDPOINT_ENABLED`, `smtp_check.py` z maszyny (workflow
+„Sprawdzenie SMTP”), karta testu w panelu admina; hotfix PR #59 (test push
+na tydzień spoza seeda, E2E w strefie Europe/Warsaw). Plan i odstępstwa:
+`docs/plan-sesji/poczta-brevo.md`.
+
+**Poprzednia runda (0.60.0, gałąź `agent/szablony-diet`):** szablony diet ze
 skalowaniem wg zadania właściciela — silnik 1:1 z prototypem (golden
 tydzień, sweep 131/133), model danych (migracja 32), seed 142 produktów +
 odsłona Standard v1, API `/api/diet`, przepływ trenera „Przypisz dietę”,

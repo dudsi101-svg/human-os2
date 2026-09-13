@@ -56,6 +56,31 @@
    ADRES`, jeśli skrypt to obsługuje; inaczej właściciel wywołuje endpoint z panelu).
 6. Raport: ścieżki, pytest, pełny wynik `smtp_check.py`, fragment logu, kody SMTP.
 
+## Odstępstwa i decyzje
+
+* `mailer.py` nie ma `MailConfig.from_env()` — jest `load_config(env)`; używam
+  go bez zmian w module. Brak zmiennych → obiekt `MailConfig(enabled=False)`
+  zbudowany w aplikacji (dataclass bez walidacji) + lista brakujących nazw.
+* Message-ID: `send_email` buduje wiadomość wewnątrz i nie przyjmuje własnych
+  nagłówków, więc identyfikator zwracany przez endpoint (`make_msgid`, domena
+  nadawcy) jest identyfikatorem korelacji aplikacji — w treści wiadomości,
+  audycie i logach; nagłówek nadaje serwer Brevo.
+* Endpoint nie jest za flagą diet (`DIET_TEMPLATES_ENABLED`) — inny moduł,
+  inny cykl życia; osobna `DZIK_MAIL_TEST_ENDPOINT_ENABLED` (domyślnie
+  wyłączona na produkcji, jak wymaga zadanie dla repo bez flag).
+* Test wysyłki z produkcji: `POST /api/admin/mail/test` wymaga sesji
+  admina/trenera — bez hasła w czacie wywołuje go właściciel z karty w
+  panelu admina; niezależnie workflow „Sprawdzenie SMTP” wysyła tą samą
+  ścieżką z maszyny (`test_poczty_brevo`) i pokazuje wynik w logu joba.
+* `test_mailer.py` ma 10 testów (zadanie mówi o 8) — wszystkie przechodzą.
+
 ## Weryfikacja wykonana
 
-(uzupełnię po rundzie)
+- `pytest tests/test_mailer.py`: 10 passed; `tests/test_mail_admin.py`: 5
+  passed; macierz dostępu i pakietowanie zielone; pełny zestaw backendu —
+  patrz PR.
+- ruff (konfiguracja backendu, ta sama co CI) czysty; `tsc` czysty;
+  build w budżecie; E2E 28/28 (na hotfixie z tą samą strefą czasową).
+- Start bez zmiennych SMTP: `health.features.mail_test_endpoint` = true w
+  testach, konfiguracja wyłączona z listą brakujących nazw (test
+  `test_start_bez_zmiennych_daje_konfiguracje_wylaczona`).
