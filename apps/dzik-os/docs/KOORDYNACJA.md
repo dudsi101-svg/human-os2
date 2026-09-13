@@ -1,5 +1,28 @@
 # Koordynacja rund — jedna sesja pisząca naraz
 
+## 0. Zarządzenie właściciela z 14.09.2026: wiele zadań jednego piszącego
+
+Reguła „jeden PR `[WRITER]` naraz” przestaje obowiązywać, **dopóki piszący jest
+jeden** (ta sama sesja). Równoległe zadania tego samego piszącego idą według
+systemu koordynacji:
+
+1. **Jedna gałąź i jeden PR `[WRITER]` na zadanie**, każda od bieżącego `main`,
+   praca w osobnych katalogach roboczych (`git worktree`).
+2. **Rezerwacje w planie sesji** każdego zadania: numer migracji, numer wersji,
+   lista plików współdzielonych (`models.py`, `db.py`, `main.py`,
+   `access_matrix.py`, `CHANGELOG.md`, nawigacja) — dwa zadania nie edytują
+   tej samej sekcji tego samego pliku.
+3. **Kolejność scalania ustalona z góry** (starsze zadanie pierwsze); po każdym
+   scaleniu pozostałe gałęzie dociągają `main` i przechodzą CI ponownie.
+4. **Hotfixy mają pierwszeństwo** i idą osobną, minimalną gałęzią.
+5. **Jeden wpis stanu**: `STAN_PRZEKAZANIA.md` §2 — tabela gałąź → wersja →
+   migracja → etap → co blokuje.
+6. Zasady pracy w. 2.0 (`ZASADY_pracy_agentow.md`: plan przed startem, praca
+   wsadowa, deduplikacja, bezpiecznik 3× planu) obowiązują per zadanie.
+
+Gdy pojawi się drugi piszący, wraca reguła jednego PR-a i wszystko poniżej.
+
+
 ## ZASADA NADRZĘDNA (decyzja właściciela produktu, 2026-08-18)
 
 > **W jednym momencie zapisuje JEDNA sesja.** Kończy rundę, scala do `main`,

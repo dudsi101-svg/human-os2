@@ -341,6 +341,13 @@ nie uruchamiano, ponieważ runda nie zmienia kodu ani zasobów frontendu.
 
 ## 2. Co jest w toku — NIE ZACZYNAJ OD NOWA
 
+**Równoległe gałęzie jednego piszącego (zarządzenie 14.09, `KOORDYNACJA.md` §0):**
+
+| Gałąź | Wersja | Migracja | Etap | Co blokuje | Kolejność scalania |
+|---|---|---|---|---|---|
+| `agent/wywiad-zapotrzebowanie` | 0.62.0 | 33 | plan → etap 1 | dokument właściciela `wywiad_zapotrzebowanie_kaloryczne.md` (pracuję na założeniach) | 1 |
+| `agent/monitoring-postepy` | 0.63.0 | 34 | etap 0 — STOP (brak flagi rozgrzewki i wariantów ćwiczeń, decyzje właściciela) | decyzje z `docs/monitoring-tab/00_rozpoznanie.md`; flaga `ZABURZENIA_ODZYWIANIA` z 0.62.0 | 2 |
+
 | Rzecz | Stan | Gdzie |
 |---|---|---|
 | **Sekrety SMTP** | kod gotowy (0.42.0); workflow „Sekrety produkcji” z zakresem `poczta` (0.54.5) — właściciel dodaje `DZIK_SMTP_HOST/PORT/USER/PASSWORD/FROM` w sekretach repo i klika Run workflow; do tego czasu dostawca `null`: zaproszenia wracają trenerowi jako link do przekazania, reset hasła e-mailem martwy | Actions → „Sekrety produkcji” |
