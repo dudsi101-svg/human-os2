@@ -3,11 +3,16 @@
 # raport klienta A dla POPRZEDNIEGO tygodnia, więc stała data koliduje
 # z nim raz na zawsze w tygodniu, w którym poprzedni tydzień == ta stała
 # (wykryte 2026-08-31, gdy poniedziałek-7 trafił w zapisane 2026-08-24).
-from datetime import UTC, datetime, timedelta
+# Zegar TEN SAM co seed (`local_today`, Europe/Warsaw), nie UTC: między
+# 22:00 a 24:00 UTC w niedzielę UTC ma jeszcze stary tydzień, a seed już
+# nowy — „bieżący” tydzień testu trafiał w oceniony raport (wykryte 13.09).
+from datetime import timedelta
 
 from conftest import CLIENT_A, COACH, get_user_id, login
 
-_dzis = datetime.now(tz=UTC).date()
+from dzik_os.dates import local_today
+
+_dzis = local_today()
 WEEK = (_dzis - timedelta(days=_dzis.weekday())).isoformat()
 
 
