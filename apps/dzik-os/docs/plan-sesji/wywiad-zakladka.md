@@ -182,4 +182,21 @@ Migracja nr **31**, wersja **0.59.0**, pliki: `backend/dzik_os/wywiad/**`,
 
 ## Weryfikacja wykonana
 
-(uzupełnię po rundzie)
+Lokalnie 13.09 (przed PR gotowym do przeglądu): ruff czysto (nowe
+moduły `dzik_os/wywiad/**`, `routers/wywiady.py`, `migruj_wywiad.py`,
+zmienione pliki; 13 zastanych uwag w starych plikach bez zmian);
+backend **1701 passed, 1 skipped** (+ naprawa: `DEFAULT 1/0` → `true/false`
+w migracji 31 po strażniku przenośności; `test_aggregates` uzupełniony
+o nową flagę); `test_wywiad_zakladka.py` **18 passed** (T1–T18);
+`test_access_matrix.py` 8 passed z 16 nowymi wpisami; Core 275;
+frontend tsc + build (89,5 kB / 120 kB) + test:helpers 140; E2E
+Playwright **27 passed** (26 + `wywiad-zakladka.spec.ts`;
+`wywiad.spec.ts` przeprowadzony przez nową zakładkę);
+`e2e/test_a11y.mjs` czysto po poprawce (opcje odpowiedzi zawijają się
+na 320 px — pierwszy przebieg wykrył 4 px poziomego scrolla);
+`tools/spojnosc.py` 13/13. Przeklik na żywo (Pixel 7 + desktop 1280 px):
+karty → formularz z autozapisem → przesłanie → lista trenera z odznaką →
+Przejrzyj → Poproś o uzupełnienie → wpis klienta i prośba przy pytaniu.
+Rozstrzygnięcie w trakcie: przyczyna 5 diagnozy (zgody dla istniejącego
+konta) nie jest „naprawiana” po stronie bazy — stan jest jawny (decyzja
+w §Decyzje pkt 9). CI i scalenie — po PR #56 (uzupełnię).
