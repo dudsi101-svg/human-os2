@@ -34,6 +34,12 @@ from typing import Protocol
 
 class NotificationProvider(Protocol):
     name: str
+    # Klasa ostatniego błędu wysyłki (np. "SMTPAuthenticationError",
+    # "TimeoutError") albo "no_provider"; None po udanej wysyłce. Tylko
+    # nazwa klasy — nigdy treść (komunikat serwera potrafi zawierać
+    # adres odbiorcy). Pozwala rozróżnić brak konfiguracji od błędu
+    # logowania/połączenia bez grzebania w logach (0.54.5).
+    last_failure: str | None
 
     def send_email(self, *, to: str, subject: str, body: str) -> bool: ...
 
@@ -42,6 +48,7 @@ class NullNotificationProvider:
     """Nie wysyła nic — bezpieczny domyślny provider dla dev/staging."""
 
     name = "null"
+    last_failure: str | None = "no_provider"
 
     def send_email(self, *, to: str, subject: str, body: str) -> bool:
         # Log strukturalny BEZ adresu, tematu i treści (temat potrafi
@@ -85,6 +92,7 @@ class SMTPNotificationProvider:
         self._sender = sender or user
         self._security = security
         self._timeout = timeout
+        self.last_failure: str | None = None
 
     def send_email(self, *, to: str, subject: str, body: str) -> bool:
         import smtplib
@@ -112,8 +120,10 @@ class SMTPNotificationProvider:
         except Exception as exc:  # noqa: BLE001 - patrz zasada 1 w docstringu
             # Nazwa klasy wyjątku, nie jego treść: komunikat serwera SMTP
             # potrafi zawierać adres odbiorcy.
-            log_json("email_send_failed", level="warning", reason=type(exc).__name__)
+            self.last_failure = type(exc).__name__
+            log_json("email_send_failed", level="warning", reason=self.last_failure)
             return False
+        self.last_failure = None
         log_json("email_sent", level="info")
         return True
 

@@ -93,9 +93,14 @@ flyctl ssh console --app dzik-os-panel
 #      DZIK_SMTP_PORT=587, DZIK_SMTP_USER=lubelskidzikk@gmail.com,
 #      DZIK_SMTP_PASSWORD=<16 znaków bez spacji>,
 #      DZIK_SMTP_FROM=Dzik OS <lubelskidzikk@gmail.com>.
-#   4. Actions → „Sekrety produkcji (Fly.io)" → Run workflow (pole
-#      test_email zostaw — po ustawieniu sekretów workflow sam wyśle
-#      testowy e-mail i zrobi się czerwony, jeśli poczta nie działa).
+#   4. Actions → „Sekrety produkcji (Fly.io)" → Run workflow z zakresem
+#      `poczta` (domyślny; AI i klucz szyfrowania to osobne zakresy —
+#      nic nie włączy się „przy okazji"). Pole test_email zostaw — po
+#      ustawieniu sekretów workflow sam wyśle testowy e-mail i zrobi
+#      się czerwony, jeśli poczta nie działa (w logu klasa błędu:
+#      SMTPAuthenticationError = złe hasło aplikacji).
+#   Stan „co faktycznie działa" bez zgadywania: Actions → „Diagnostyka
+#   produkcji (Fly.io)" (raport tylko do odczytu, 0.54.5).
 # Limit Gmaila (~500 e-maili/dobę) w skali pilotażu jest niewyczerpywalny;
 # przy większej skali przejdziemy na dostawcę transakcyjnego z domeną.
 #

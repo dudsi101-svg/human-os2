@@ -90,6 +90,14 @@ def _issue_invitation(
         "id": invitation.id,
         "expires_at": invitation.expires_at,
         "delivery": delivery,
+        # Powód, dla którego e-mail NIE wyszedł (audyt P0-4, jak reset
+        # hasła): "no_provider" = brak konfiguracji SMTP;
+        # "send_failed:<Klasa>" = dostawca skonfigurowany, ale odmówił
+        # (np. SMTPAuthenticationError, TimeoutError). Klasa, nie treść.
+        "reason": None if sent else (
+            "no_provider" if notifications.name == "null"
+            else f"send_failed:{getattr(notifications, 'last_failure', None) or 'unknown'}"
+        ),
     }
     if not sent:
         # Brak skonfigurowanego dostawcy e-mail: jedyny kanał doręczenia to
@@ -246,6 +254,7 @@ def create_client(
                 "invitation_id": invitation["id"],
                 "expires_at": invitation["expires_at"],
                 "delivery": invitation["delivery"],
+                "reason": invitation["reason"],
             },
             summary=f"Zaproszenie do aktywacji konta dla {client.display_name}",
         )
@@ -290,6 +299,7 @@ def resend_invitation(
             "invitation_id": invitation["id"],
             "expires_at": invitation["expires_at"],
             "delivery": invitation["delivery"],
+            "reason": invitation["reason"],
         },
         summary=f"Ponowne zaproszenie do aktywacji konta dla {client.display_name}",
     )

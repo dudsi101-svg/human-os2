@@ -1,6 +1,6 @@
 # Stan wydania — Dzik OS
 
-**Wersja:** 0.54.4 · **Data:** 2026-09-12 · **Środowisko:** produkcja
+**Wersja:** 0.54.5 · **Data:** 2026-09-13 · **Środowisko:** produkcja
 (pilotaż) — https://dzik-os-panel.fly.dev
 
 Jedna strona prawdy o tym, co DZIAŁA na produkcji teraz. Aktualizowana
@@ -42,11 +42,19 @@ istniejącego konta, sesje unieważniane, wpis w audycie). Limit podopiecznych:
 
 | Integracja | Stan | Co je włącza |
 |---|---|---|
-| SMTP (zaproszenia, resety haseł, digest) | **wyłączone** — dostawca `null`; brak doręczeń jest uczciwie logowany (`PASSWORD_RESET_SEND_FAILED`, powód `no_provider`) | hasło aplikacji Gmail w sekretach repo → workflow „Sekrety produkcji (Fly.io)" (sam dowodzi wysyłką testową) |
+| SMTP (zaproszenia, resety haseł, digest) | **wyłączone** — dostawca `null`; brak doręczeń jest uczciwie logowany (`PASSWORD_RESET_SEND_FAILED` i od 0.54.5 `CLIENT_INVITED.reason`, powód `no_provider`); bez poczty zaproszenie wraca trenerowi jako link do przekazania | hasło aplikacji Gmail w sekretach repo → workflow „Sekrety produkcji (Fly.io)” z zakresem `poczta` (sam dowodzi wysyłką testową; klasa błędu w logu przy odmowie) |
 | AI (podsumowania raportów, OCR-AI, onboarding) | **wyłączone** — aplikacja w pełni działa bez AI | `DZIK_AI_API_KEY` + `DZIK_AI_ENABLED` → ten sam workflow sekretów |
 | Szyfrowanie plików at-rest (R-02) | **nieaktywowane** — mechanizm AES-256-GCM gotowy w kodzie | workflow „Klucz szyfrowania plików (Fly.io)" (potwierdzenie `WLACZ`; dowód sondą DZIKENC1; kopię klucza schować poza repo) |
 | Backup (dzienny, rotacja 14) | działa na maszynie; **próba odtworzenia co poniedziałek** (workflow, tylko liczności) | off-site: czeka na poświadczenia właściciela (W4) |
 | Web push | działa (VAPID skonfigurowane) | — |
+
+## Diagnostyka
+
+Workflow **„Diagnostyka produkcji (Fly.io)”** (0.54.5) wypisuje raport
+tylko do odczytu prosto z maszyny: dostawca poczty w procesie, nazwy
+ustawionych zmiennych SMTP, konta/role/status, relacje ze zgodą
+współpracy, zaproszenia, liczby planów, zdarzenia doręczeń z 30 dni.
+Nic nie zmienia; log widzi tylko właściciel repozytorium.
 
 ## Publiczna część
 

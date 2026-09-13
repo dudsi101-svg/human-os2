@@ -1,5 +1,31 @@
 # Changelog — Dzik OS
 
+## 0.54.5 — 2026-09-13
+
+**Diagnostyka produkcji tylko do odczytu + poczta pod kontrolą
+(zlecenie właściciela: uruchomić pocztę i konta testowe).**
+
+* `dzik_os/diagnostyka.py` + workflow **„Diagnostyka produkcji
+  (Fly.io)”** — raport JSON z maszyny: dostawca poczty faktycznie
+  działający w procesie, NAZWY ustawionych/brakujących zmiennych SMTP
+  (nigdy wartości), wersja/migracja/URL, konta (e-mail, status, role,
+  wymuszona zmiana hasła, MFA), relacje ze zgodą współpracy,
+  zaproszenia (aktywne/użyte/anulowane), liczby planów/diet/raportów,
+  zdarzenia doręczeń z 30 dni. Zero hashy, tokenów i treści; nic nie
+  zapisuje (test: audyt bez nowych zdarzeń).
+* Workflow **„Sekrety produkcji”** dostaje input `zakres`
+  (`poczta` domyślnie / `ai` / `szyfrowanie` / `wszystko`) — dotąd
+  przenosił każdy niepusty sekret repo, więc uruchomienie „dla poczty”
+  mogłoby po cichu włączyć AI albo klucz szyfrowania. Test wysyłki
+  tylko przy zakresie obejmującym pocztę.
+* Powód niedoręczenia zaproszenia: odpowiedź API i zdarzenia
+  `CLIENT_INVITED`/`CLIENT_INVITATION_RESENT` niosą `reason`
+  (`no_provider` = brak konfiguracji SMTP; `send_failed:<Klasa>` =
+  dostawca odmówił, np. `SMTPAuthenticationError`, `TimeoutError`) —
+  jak reset hasła (P0-4). Dostawca SMTP zapamiętuje klasę ostatniego
+  błędu (`last_failure`, nigdy treść); `test_poczty` wypisuje ją
+  z podpowiedzią, co znaczy.
+
 ## 0.54.4 — 2026-09-12
 
 **Mała runda naprawcza testów dat i OCR (pozycja z kolejki
