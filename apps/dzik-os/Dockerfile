@@ -27,6 +27,8 @@ COPY pyproject.toml README.md LICENSE ./
 COPY hos_engine/ ./hos_engine/
 RUN pip install .
 COPY apps/dzik-os/backend/ ./apps/dzik-os/backend/
+# Diagnostyka SMTP z maszyny: `flyctl ssh console -C "python smtp_check.py"` (WORKDIR /app)
+COPY apps/dzik-os/backend/smtp_check.py ./smtp_check.py
 RUN pip install ./apps/dzik-os/backend[postgres]
 
 # Zbudowany frontend serwowany przez FastAPI (main.py wykrywa dist/)

@@ -45,6 +45,7 @@ from .routers import (
     knowledge,
     konfigurator,
     kulinaria,
+    mail_admin,
     measurements,
     messages,
     monitoring,
@@ -112,6 +113,16 @@ async def lifespan(app: FastAPI):
         except Exception as exc:  # noqa: BLE001
             log_json("diet_seed_failed", level="error", **exception_fields(exc))
             app.state.diet_seed_error = type(exc).__name__
+    # Poczta Brevo (0.61.0, `dzik_os.mailer`): jedna konfiguracja na proces;
+    # brak zmiennych SMTP = MAIL_ENABLED=0 z ostrzeżeniem, aplikacja wstaje.
+    try:
+        from . import poczta_start
+
+        poczta_start.zainicjalizuj(app)
+    except Exception as exc:  # noqa: BLE001 - poczta nie może wywrócić startu
+        log_json("mail_init_failed", level="error", **exception_fields(exc))
+        app.state.mail_config = None
+        app.state.mail_missing = []
     if os.environ.get("DZIK_SEED_DEMO") == "true":
         # Staging: jednorazowy zasiew danych demo (seed sam pomija
         # niepustą bazę, więc restart maszyny nic nie duplikuje).
@@ -180,6 +191,7 @@ def create_app() -> FastAPI:
         challenges.router, notifications_router.router, onboarding.router,
         interview.router, nutrition_templates.router, ocr.router, assistant.router, imports.router,
         public_site.router, konfigurator.router, kulinaria.router, szkice.router, wywiady.router, diet.router,
+        mail_admin.router,
     ):
         app.include_router(router)
 
@@ -252,7 +264,8 @@ def create_app() -> FastAPI:
             "wiedza_import_error": getattr(app.state, "wiedza_import_error", None),
             "wywiad_migracja_error": getattr(app.state, "wywiad_migracja_error", None),
             "diet_seed_error": getattr(app.state, "diet_seed_error", None),
-            "features": {"diet_templates": settings.diet_templates_enabled},
+            "features": {"diet_templates": settings.diet_templates_enabled,
+                         "mail_test_endpoint": settings.mail_test_endpoint_enabled},
         }
 
     @app.get("/api/ready")

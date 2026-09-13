@@ -1,5 +1,35 @@
 # Changelog — Dzik OS
 
+## 0.61.0 — 2026-09-14
+
+**Poczta Brevo SMTP na Fly (zadanie właściciela z 13.09; pliki
+`docs/mail/` 1:1).**
+
+* **Moduł** `dzik_os/mailer.py` (bez zmian logiki), testy
+  `tests/test_mailer.py` (10, bez sieci), `smtp_check.py` w katalogu
+  backendu i w `/app` obrazu (`python smtp_check.py` z `flyctl ssh
+  console`). Lint: wyjątki per plik dla plików właściciela.
+* **Inicjalizacja przy starcie** (`dzik_os/poczta_start.py`): jedna
+  konfiguracja na proces (`app.state.mail_config`); brak zmiennych SMTP
+  (`SMTP_HOST`, `SMTP_USER`, `SMTP_PASSWORD`, `MAIL_FROM`) = `MAIL_ENABLED=0`
+  z ostrzeżeniem wymieniającym nazwy (nigdy wartości) — aplikacja wstaje.
+  Logger `mailer` podpięty do stdout, żeby linie „Wysłano wiadomość do …”
+  trafiały do logów Fly. Osobne zmienne od starego dostawcy `DZIK_SMTP_*`
+  (zaproszenia/resety nadal przez niego — przepięcie to osobne zadanie).
+* **`POST /api/admin/mail/test`** `{to}` (admin/trener) → 202 z
+  identyfikatorem (format Message-ID, domena nadawcy; w treści, audycie i
+  logach — nagłówek nadaje dostawca), wysyłka w tle przez `BackgroundTasks`,
+  temat „Test wysyłki Dzik OS” (tekst + HTML); 503 z nazwami brakujących
+  zmiennych, 422 przy złym adresie; za flagą `DZIK_MAIL_TEST_ENDPOINT_ENABLED`
+  (produkcja: domyślnie WYŁĄCZONA; dev/test/E2E: włączona);
+  `health.features.mail_test_endpoint`. W audycie adres tylko jako domena.
+* **Panel admina**: karta „Poczta — test wysyłki” (widoczna, gdy endpoint
+  włączony). **Workflow** „Sprawdzenie SMTP (Fly.io)”: `smtp_check.py`
+  z maszyny + opcjonalna testowa wysyłka na adres z inputu
+  (`python -m dzik_os.test_poczty_brevo`, ta sama ścieżka co endpoint).
+* Hotfix (PR #59): test push na tydzień spoza seeda; E2E w strefie
+  Europe/Warsaw jak serwer (rozjazd o tydzień między 22:00 a 24:00 UTC).
+
 ## 0.60.0 — 2026-09-13
 
 **Szablony diet ze skalowaniem (zadanie właściciela z 13.09; moduł za
