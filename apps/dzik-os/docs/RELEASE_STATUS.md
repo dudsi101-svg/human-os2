@@ -1,6 +1,6 @@
 # Stan wydania — Dzik OS
 
-**Wersja:** 0.57.0 · **Data:** 2026-09-13 · **Środowisko:** produkcja
+**Wersja:** 0.57.1 · **Data:** 2026-09-13 · **Środowisko:** produkcja
 (pilotaż) — https://dzik-os-panel.fly.dev
 
 Jedna strona prawdy o tym, co DZIAŁA na produkcji teraz. Aktualizowana
@@ -71,6 +71,17 @@ a produkcja ignoruje tryb demonstracyjny. Publikuje trener w zakładce
 przeglądu). „Dlaczego?” działa od razu dla nowych decyzji (plany
 z konfiguratora, nowe wersje planów i diet od trenera); stare plany
 pokazują uczciwy brak zapisanego uzasadnienia (`docs/WIEDZA.md`).
+
+## Incydent 13.09 (0.56.0 → 0.57.1)
+
+Wdrożenie 0.56.0 (09:03 UTC) padło na smoke-teście: aplikacja startowała
+i przerywała się na braku `wiedza/dane/tresci_startowe.json` w obrazie
+(brak `package-data` w `pyproject.toml`; instalacja nie-edytowalna pomija
+JSON). Fly zatrzymał maszynę po 10 restartach — **produkcja niedostępna od
+09:07 UTC do wdrożenia 0.57.1**. Dane na wolumenie nietknięte (migracja 28
+weszła przed błędem; 29 wchodzi z 0.57.1). Poprawka: deklaracja
+`package-data`, odporny start (brak treści = pusta biblioteka + wpis
+w logu i `/api/health`), strażnik `tests/test_pakietowanie.py`.
 
 ## Kreator dań (P0, 0.57.0)
 

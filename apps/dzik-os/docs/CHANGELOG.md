@@ -1,5 +1,25 @@
 # Changelog — Dzik OS
 
+## 0.57.1 — 2026-09-13
+
+**Poprawka awaryjna: pliki danych pakietów w obrazie produkcyjnym.**
+
+* Przyczyna: `pyproject.toml` backendu nie deklarował `package-data`, więc
+  instalacja NIE-edytowalna (Dockerfile: `pip install ./apps/dzik-os/backend`)
+  pomijała pliki JSON pakietów właściciela (`konfigurator/dane`,
+  `wiedza/dane`, `kulinaria/dane`). Lokalnie i w CI instalacja `-e` je
+  widziała. Wersja 0.56.0 wstawała na Fly do momentu importu treści
+  startowych Wiedzy w `lifespan` → `FileNotFoundError` → 10 restartów →
+  maszyna zatrzymana (produkcja niedostępna od 09:07 UTC 13.09).
+  Konfigurator (0.55.0) miał ten sam brak, ale ładował dane leniwie —
+  endpoint zwracałby 500 dopiero przy użyciu.
+* Poprawka: `[tool.setuptools.package-data]` dla trzech pakietów danych;
+  import treści startowych Wiedzy nie zatrzymuje już startu aplikacji
+  (błąd logowany, `wiedza_import_error` w `/api/health`); strażnik
+  `tests/test_pakietowanie.py` buduje koło jak Dockerfile i wymaga w nim
+  każdego pliku spoza `*.py`.
+* Bez zmian funkcjonalnych względem 0.57.0.
+
 ## 0.57.0 — 2026-09-13
 
 **Kreator dań — menu z całych receptur (pakiety właściciela „DIETA
