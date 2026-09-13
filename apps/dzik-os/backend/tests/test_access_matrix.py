@@ -207,13 +207,14 @@ def test_coach_scoped_denied_to_unrelated_coach(seeded, spec, unrelated_coach):
 
 
 def test_coach_only_denied_to_client(seeded, spec):
-    """Klient nie może użyć operacji trenerskich."""
+    """Klient nie może użyć operacji trenerskich (ani trenersko-
+    administracyjnych, jak biblioteka szablonów diet)."""
     headers_a = login(seeded, CLIENT_A)
     client_a_id = _user_id(seeded, headers_a)
 
     leaks = []
     for (method, path), access in sorted(MATRIX.items(), key=lambda i: i[0][1]):
-        if access is not Access.COACH_ONLY:
+        if access not in (Access.COACH_ONLY, Access.COACH_OR_ADMIN):
             continue
         real = _fill_path(path, client_a_id)
         response, had_body = _call(seeded, method, path, headers_a, spec, real)

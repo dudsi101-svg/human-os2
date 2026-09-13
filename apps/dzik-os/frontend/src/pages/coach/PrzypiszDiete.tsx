@@ -3,7 +3,7 @@ import { api, ApiError } from "../../api";
 import { plDateTime } from "../../dates";
 import { ErrorBox, Spinner } from "../../components";
 import {
-  DietAssignedOut, DietDayOut, DietLibraryMeal, DietMacroIn, DietMealOut, DietPlanOut, DietProfileRow,
+  DietAssignedOut, DietDayOut, DietIngredientOut, DietLibraryMeal, DietMacroIn, DietMealOut, DietPlanOut, DietProfileRow,
   DietTemplatePreview, DietWeekRow,
 } from "../../types";
 import { gramatura, KartaDnia, makro, odchylenie, StatusDiety, TagiPosilku } from "../dieta/wspolne";
@@ -41,6 +41,11 @@ export default function PrzypiszDiete({ clientId, onPrzypisano, onAnuluj }: {
   const [mimo, setMimo] = useState(false);
   const [busy, setBusy] = useState(false);
   const timer = useRef<number | null>(null);
+  // Numer ostatniego żądania podglądu / odsłony: starsza odpowiedź, która
+  // wróci po nowszej, nie może nadpisać planu (wyścig przy szybkich edycjach).
+  const zadanie = useRef(0);
+  const wybranaOdslona = useRef<string | null>(null);
+  useEffect(() => () => { if (timer.current) window.clearTimeout(timer.current); }, []);
 
   useEffect(() => {
     api.get<{ profiles: DietProfileRow[] }>("/api/diet/profiles").then((d) => setProfile(d.profiles))
@@ -59,19 +64,22 @@ export default function PrzypiszDiete({ clientId, onPrzypisano, onAnuluj }: {
 
   const przelicz = useCallback(async (ov = overrides, zm = zamiany) => {
     if (!week) return;
+    const nr = ++zadanie.current;
     setLiczenie(true); setError(null);
     try {
       const r = await api.post<DietPlanOut>(`/api/diet/templates/${week.id}/preview`, {
         kcal: Number(kcal), macro: macroBody(), body_weight: masa ? Number(masa) : null,
         exclusions: wykluczenia(), overrides: ov, meal_replacements: zm,
       });
-      setPlan(r);
-    } catch (e) { setError((e as Error).message); } finally { setLiczenie(false); }
+      if (nr === zadanie.current) setPlan(r);
+    } catch (e) {
+      if (nr === zadanie.current) setError((e as Error).message);
+    } finally {
+      if (nr === zadanie.current) setLiczenie(false);
+    }
   }, [week, kcal, macroBody, masa, wykluczenia, overrides, zamiany]);
 
-  function zmienGramature(day: number, m: DietMealOut, ingredientId: string, grams: string) {
-    const g = Number(grams);
-    if (!Number.isFinite(g) || g < 0) return;
+  function zmienGramature(day: number, m: DietMealOut, ingredientId: string, g: number) {
     const next = { ...overrides, [`${day}:${m.meal_id}:${ingredientId}`]: { grams: g } };
     setOverrides(next);
     if (timer.current) window.clearTimeout(timer.current);
@@ -80,9 +88,14 @@ export default function PrzypiszDiete({ clientId, onPrzypisano, onAnuluj }: {
 
   async function otworzBiblioteke(day: number, m: DietMealOut) {
     if (!week) return;
-    const r = await api.get<{ meals: DietLibraryMeal[] }>(`/api/diet/templates/${week.id}/meals`, undefined)
-      .catch(() => ({ meals: [] as DietLibraryMeal[] }));
-    setBiblioteka({ klucz: `${day}:${m.meal_id}`, slot: m.slot, meals: r.meals.filter((x) => x.slot === m.slot && x.meal_id !== m.meal_id) });
+    setError(null);
+    try {
+      const r = await api.get<{ meals: DietLibraryMeal[] }>(`/api/diet/templates/${week.id}/meals?slot=${encodeURIComponent(m.slot)}`);
+      setBiblioteka({ klucz: `${day}:${m.meal_id}`, slot: m.slot, meals: r.meals.filter((x) => x.meal_id !== m.meal_id) });
+    } catch (e) {
+      // Błąd pobrania to nie „pusta biblioteka” — pokazujemy błąd, nie fałszywy komunikat.
+      setError(`Nie udało się pobrać biblioteki posiłków: ${(e as Error).message}`);
+    }
   }
 
   function zamienPosilek(klucz: string, mealId: string | null) {
@@ -152,14 +165,17 @@ export default function PrzypiszDiete({ clientId, onPrzypisano, onAnuluj }: {
                 className={week?.id === w.id ? "btn btn--small" : "btn btn--ghost btn--small"}
                 style={{ whiteSpace: "normal", textAlign: "left", maxWidth: "100%" }}
                 onClick={() => {
-                  setWeek(w); setPlan(null); setOverrides({}); setZamiany({});
-                  api.get<DietTemplatePreview>(`/api/diet/templates/${w.id}`).then(setSzablon).catch((e) => setError((e as Error).message));
+                  setWeek(w); setPlan(null); setOverrides({}); setZamiany({}); setSzablon(null);
+                  wybranaOdslona.current = w.id;
+                  api.get<DietTemplatePreview>(`/api/diet/templates/${w.id}`)
+                    .then((r) => { if (wybranaOdslona.current === w.id) setSzablon(r); })
+                    .catch((e) => { if (wybranaOdslona.current === w.id) setError((e as Error).message); });
                 }}>
                 Odsłona {w.variant_no}{w.name ? ` · ${w.name}` : ""} <small>({w.kcal_min}–{w.kcal_max} kcal)</small>
               </button>
             ))}
           </div>
-          {szablon && (
+          {szablon && szablon.week_id === week?.id && (
             <details style={{ marginTop: 8 }}>
               <summary>Posiłki tygodnia (podgląd bez gramatur)</summary>
               {szablon.days.map((d) => (
@@ -270,8 +286,8 @@ export default function PrzypiszDiete({ clientId, onPrzypisano, onAnuluj }: {
             {!potwierdz ? (
               <button type="button" className="btn" disabled={liczenie || (zleDni.length > 0 && !mimo)} onClick={() => setPotwierdz(true)}>Przypisz</button>
             ) : (
-              <div role="alertdialog" className="alert alert--info">
-                Przypisać dietę „{week.name || `odsłona ${week.variant_no}`}” ({kcal} kcal) klientowi? Poprzednia dieta z szablonu (jeśli była) trafi do archiwum, klient zobaczy nową od razu.
+              <div role="alertdialog" aria-labelledby="pd-potwierdz" className="alert alert--info">
+                <span id="pd-potwierdz">Przypisać dietę „{week.name || `odsłona ${week.variant_no}`}” ({kcal} kcal) klientowi? Poprzednia dieta z szablonu (jeśli była) trafi do archiwum, klient zobaczy nową od razu.</span>
                 <div className="row" style={{ marginTop: 6, gap: 6 }}>
                   <button type="button" className="btn btn--small" disabled={busy} onClick={() => void przypisz()}>{busy ? "Przypisuję…" : "Tak, przypisz"}</button>
                   <button type="button" className="btn btn--ghost btn--small" onClick={() => setPotwierdz(false)}>Wróć</button>
@@ -288,9 +304,17 @@ export default function PrzypiszDiete({ clientId, onPrzypisano, onAnuluj }: {
 
 function PosilekEdycja({ d, m, overrides, zamiana, onGram, onBiblioteka, onCofnij }: {
   d: DietDayOut; m: DietMealOut; overrides: Record<string, { grams: number }>; zamiana?: string;
-  onGram: (ingredientId: string, grams: string) => void; onBiblioteka: () => void; onCofnij: () => void;
+  onGram: (ingredientId: string, grams: number) => void; onBiblioteka: () => void; onCofnij: () => void;
 }) {
   const [otwarte, setOtwarte] = useState(m.status !== "OK");
+  // Surowy tekst pól gramatur: pozwala wpisać „12,5” i chwilowo puste pole,
+  // a do podglądu trafia tylko poprawna liczba > 0.
+  const [tekst, setTekst] = useState<Record<string, string>>({});
+  function wpisz(i: DietIngredientOut, key: string, v: string) {
+    setTekst((t) => ({ ...t, [key]: v }));
+    const g = Number(v.replace(",", "."));
+    if (v.trim() !== "" && Number.isFinite(g) && g > 0) onGram(i.ingredient_id, g);
+  }
   return (
     <div style={{ marginTop: 10, paddingTop: 8, borderTop: "1px solid var(--border)" }}>
       <div className="row row--between">
@@ -314,8 +338,9 @@ function PosilekEdycja({ d, m, overrides, zamiana, onGram, onBiblioteka, onCofni
                   <td>{i.product} <small className="dim">({i.class.toLowerCase()}{i.role !== "NONE" ? `, rola ${i.role}` : ""})</small></td>
                   <td style={{ width: 130 }}>
                     {staly ? <span className="dim">{gramatura(i)}</span> : (
-                      <input inputMode="decimal" aria-label={`${i.product} — gramy`} value={overrides[key]?.grams ?? Math.round(i.grams)}
-                        onChange={(e) => onGram(i.ingredient_id, e.target.value)} style={{ padding: "4px 6px" }} />
+                      <input inputMode="decimal" aria-label={`${i.product} — gramy`}
+                        value={tekst[key] ?? String(overrides[key]?.grams ?? Math.round(i.grams))}
+                        onChange={(e) => wpisz(i, key, e.target.value)} style={{ padding: "4px 6px" }} />
                     )}
                   </td>
                   <td className="dim">{i.units != null ? gramatura(i) : ""}{overrides[key] ? " · korekta" : ""}</td>
@@ -333,6 +358,8 @@ export function PrzypisanaDietaTrenera({ clientId, onZmiana }: { clientId: strin
   const [dane, setDane] = useState<{ assigned: DietAssignedOut | null; history: { id: string; version: number; status: string; kcal: number; created_at: string }[];
     swap_events: { id: string; day: number; from: string; to: string; from_grams: number; to_grams: number; created_at: string }[] } | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [bladZapisu, setBladZapisu] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
   const [dzien, setDzien] = useState(1);
   const zaladuj = useCallback(() => {
     api.get<typeof dane>(`/api/diet/clients/${clientId}/current`).then((d) => setDane(d as NonNullable<typeof dane>)).catch((e) => setError((e as Error).message));
@@ -342,9 +369,14 @@ export function PrzypisanaDietaTrenera({ clientId, onZmiana }: { clientId: strin
   if (!dane || !dane.assigned) return null;
   const a = dane.assigned;
   const d = a.plan.days.find((x) => x.day === dzien) ?? a.plan.days[0];
-  async function przelacz() {
-    await api.patch(`/api/diet/assigned/${a.id}`, { swaps_enabled: !a.swaps_enabled }).catch((e) => setError((e as Error).message));
-    zaladuj(); onZmiana();
+  // Zapis blokady: rodzic przeładowuje komponent (key) dopiero po sukcesie —
+  // inaczej komunikat błędu znikałby razem ze stanem.
+  async function zapisz(body: Record<string, unknown>) {
+    setBusy(true); setBladZapisu(null);
+    try {
+      await api.patch(`/api/diet/assigned/${a.id}`, body);
+      zaladuj(); onZmiana();
+    } catch (e) { setBladZapisu((e as Error).message); } finally { setBusy(false); }
   }
   return (
     <div className="card">
@@ -356,12 +388,16 @@ export function PrzypisanaDietaTrenera({ clientId, onZmiana }: { clientId: strin
       {a.plan.overrides?.accepted_warnings && <p className="alert alert--warn">Przypisano mimo ostrzeżeń (dni: {(a.plan.overrides.accepted_days ?? []).join(", ")}).</p>}
       <div className="row" style={{ gap: 6, marginTop: 8 }}>
         {a.plan.days.map((x) => <button key={x.day} type="button" aria-pressed={x.day === d.day} className={x.day === d.day ? "btn btn--small" : "btn btn--ghost btn--small"} onClick={() => setDzien(x.day)}>D{x.day}</button>)}
-        <button type="button" className="btn btn--ghost btn--small" onClick={() => void przelacz()}>{a.swaps_enabled ? "Zablokuj wymiany klienta" : "Odblokuj wymiany klienta"}</button>
+        <button type="button" className="btn btn--ghost btn--small" disabled={busy} onClick={() => void zapisz({ swaps_enabled: !a.swaps_enabled })}>{a.swaps_enabled ? "Zablokuj wymiany klienta" : "Odblokuj wymiany klienta"}</button>
       </div>
+      <ErrorBox error={bladZapisu} />
       <KartaDnia d={d}>
         {d.meals.map((m) => (
           <div key={m.meal_id} style={{ marginTop: 6, fontSize: "0.9rem" }}>
             <b>{m.slot}: {m.name}</b> <StatusDiety s={m.status} /> <small className="dim">{makro(m.macros)}</small>
+            {m.swaps_locked && <span className="badge badge--warn" style={{ marginLeft: 4 }}>wymiany zablokowane</span>}{" "}
+            <button type="button" className="btn btn--ghost btn--small" disabled={busy} aria-label={`${m.swaps_locked ? "Odblokuj" : "Zablokuj"} wymiany w posiłku ${m.name}`}
+              onClick={() => void zapisz({ day: d.day, meal_id: m.meal_id, meal_swaps_enabled: !!m.swaps_locked })}>{m.swaps_locked ? "odblokuj wymiany" : "zablokuj wymiany"}</button>
             <div className="dim" style={{ fontSize: "0.85rem" }}>{m.ingredients.map((i) => `${i.product} ${gramatura(i)}${i.override ? " (zm.)" : ""}`).join(" · ")}</div>
           </div>
         ))}

@@ -1662,13 +1662,14 @@ export interface DietTemplatePreview {
 }
 export interface DietIngredientOut {
   product: string; grams: number; base_grams: number; class: string; role: string; ingredient_id: string;
-  swappable: boolean; min_factor: number; max_factor: number; factor: number | null; units?: number | null; unit_g?: number;
+  swappable: boolean; min_factor: number; max_factor: number; factor: number | null; units?: number | null; unit_g?: number | null;
+  round_step?: number | null; unit_step?: number | null;
   override?: { by?: string; at?: string; kind?: string };
 }
 export interface DietMealOut {
   meal_id: string; name: string; slot: string; status: DietStatus; macros: DietMacros; target: DietMacros;
   deviation: DietMacros; k: number; steps: string; tags: string[]; flexible: boolean; kcal_share: number;
-  ingredients: DietIngredientOut[]; replaced_from?: string;
+  ingredients: DietIngredientOut[]; replaced_from?: string; swaps_locked?: boolean;
 }
 export interface DietDayOut { day: number; status: DietStatus; macros: DietMacros; target: DietMacros; deviation: DietMacros; meals: DietMealOut[] }
 export interface DietPlanOut {

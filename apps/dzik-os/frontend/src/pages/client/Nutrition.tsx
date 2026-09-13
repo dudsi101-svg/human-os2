@@ -25,6 +25,8 @@ export default function Nutrition() {
   const plan = plans?.find((p) => p.status === "ACTIVE") ?? plans?.[0] ?? null;
   const v = plan?.current_version ?? null;
   const [ostatniaZmiana, setOstatniaZmiana] = useState<string | null>(null);
+  // Dieta z szablonu zastępuje ręczny plan — komunikat o braku planu tylko, gdy nie ma żadnej.
+  const [dietaZSzablonu, setDietaZSzablonu] = useState(false);
   useEffect(() => {
     if (!plan) return;
     api.get<{ changes: { id: string }[] }>(`/api/plany/nutrition/${plan.id}/zmiany`)
@@ -55,8 +57,8 @@ export default function Nutrition() {
       <TopBar title="Dieta" />
       {/* Szablony diet ze skalowaniem (0.60.0): sekcja pojawia się tylko, gdy
           moduł jest włączony i trener przypisał dietę z szablonu. */}
-      <DietaSzablon />
-      {!v && <p className="dim">Trener nie dodał jeszcze planu żywieniowego.</p>}
+      <DietaSzablon onStan={setDietaZSzablonu} />
+      {!v && !dietaZSzablonu && <p className="dim">Trener nie dodał jeszcze planu żywieniowego.</p>}
       {plan && v && (
         <>
           <div className="row row--between">

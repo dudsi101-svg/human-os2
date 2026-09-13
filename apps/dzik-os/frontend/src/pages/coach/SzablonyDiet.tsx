@@ -18,6 +18,7 @@ export default function SzablonyDiet() {
   const [nowyProfil, setNowyProfil] = useState({ name: "", description: "", p: "25", f: "30", c: "45" });
   const [wybrany, setWybrany] = useState<string | null>(null);
   const [importJson, setImportJson] = useState("");
+  const [busy, setBusy] = useState(false);
 
   const zaladuj = useCallback(() => {
     setError(null);
@@ -26,27 +27,27 @@ export default function SzablonyDiet() {
   }, []);
   useEffect(zaladuj, [zaladuj]);
 
-  async function dodajProfil() {
-    try {
-      await api.post("/api/diet/profiles", { name: nowyProfil.name, description: nowyProfil.description,
-        base_p_pct: Number(nowyProfil.p) / 100, base_f_pct: Number(nowyProfil.f) / 100, base_c_pct: Number(nowyProfil.c) / 100 });
-      setNowyProfil({ name: "", description: "", p: "25", f: "30", c: "45" }); zaladuj();
-    } catch (e) { setError((e as Error).message); }
+  // Jedna operacja naraz: podwójne kliknięcie dawało 409 po udanym zapisie.
+  async function akcja(f: () => Promise<void>) {
+    if (busy) return;
+    setBusy(true); setError(null);
+    try { await f(); } catch (e) { setError(e instanceof SyntaxError ? "To nie jest poprawny JSON." : (e as Error).message); } finally { setBusy(false); }
   }
-  async function dodajOdslone(p: DietProfileRow) {
+  const dodajProfil = () => akcja(async () => {
+    await api.post("/api/diet/profiles", { name: nowyProfil.name, description: nowyProfil.description,
+      base_p_pct: Number(nowyProfil.p) / 100, base_f_pct: Number(nowyProfil.f) / 100, base_c_pct: Number(nowyProfil.c) / 100 });
+    setNowyProfil({ name: "", description: "", p: "25", f: "30", c: "45" }); zaladuj();
+  });
+  const dodajOdslone = (p: DietProfileRow) => akcja(async () => {
     const next = (Math.max(0, ...p.weeks.map((w) => w.variant_no)) || 0) + 1;
-    try {
-      await api.post("/api/diet/weeks", { profile_id: p.id, variant_no: next, name: `${p.name} — odsłona ${next}` });
-      zaladuj();
-    } catch (e) { setError((e as Error).message); }
-  }
-  async function importuj() {
-    try {
-      const dane = JSON.parse(importJson);
-      const r = await api.post<{ week_id: string; name: string }>("/api/diet/weeks/import", dane);
-      setInfo(`Zaimportowano odsłonę „${r.name}” jako szkic — uruchom test skalowania i opublikuj.`); setImportJson(""); zaladuj();
-    } catch (e) { setError(e instanceof SyntaxError ? "To nie jest poprawny JSON." : (e as Error).message); }
-  }
+    await api.post("/api/diet/weeks", { profile_id: p.id, variant_no: next, name: `${p.name} — odsłona ${next}` });
+    zaladuj();
+  });
+  const importuj = () => akcja(async () => {
+    const dane = JSON.parse(importJson);
+    const r = await api.post<{ week_id: string; name: string }>("/api/diet/weeks/import", dane);
+    setInfo(`Zaimportowano odsłonę „${r.name}” jako szkic — uruchom test skalowania i opublikuj.`); setImportJson(""); zaladuj();
+  });
 
   if (error && !profile) return <div className="page"><TopBar title="Szablony diet" /><ErrorBox error={error} onRetry={zaladuj} /></div>;
   if (!profile) return <div className="page"><TopBar title="Szablony diet" /><Spinner /></div>;
@@ -76,7 +77,7 @@ export default function SzablonyDiet() {
                   </li>
                 ))}
               </ul>
-              <button type="button" className="btn btn--ghost btn--small" onClick={() => void dodajOdslone(p)}>Dodaj odsłonę</button>
+              <button type="button" className="btn btn--ghost btn--small" disabled={busy} onClick={() => void dodajOdslone(p)}>Dodaj odsłonę</button>
             </div>
           ))}
           <div className="card">
@@ -91,14 +92,14 @@ export default function SzablonyDiet() {
                   <input id={`np-${k}`} inputMode="numeric" value={nowyProfil[k]} onChange={(e) => setNowyProfil({ ...nowyProfil, [k]: e.target.value })} /></div>
               ))}
             </div>
-            <button type="button" className="btn btn--small" style={{ marginTop: 8 }} disabled={nowyProfil.name.length < 2} onClick={() => void dodajProfil()}>Dodaj profil</button>
+            <button type="button" className="btn btn--small" style={{ marginTop: 8 }} disabled={busy || nowyProfil.name.length < 2} onClick={() => void dodajProfil()}>Dodaj profil</button>
           </div>
           <div className="card">
             <h3 style={{ marginTop: 0 }}>Import odsłony z JSON</h3>
             <p className="dim">Format jak `template_standard_v1.json` (profil, wariant, macro_pct, dni → posiłki → składniki po nazwie produktu z bazy). Nieznany produkt = odrzucenie importu.</p>
             <label htmlFor="imp-json">JSON</label>
             <textarea id="imp-json" rows={6} value={importJson} onChange={(e) => setImportJson(e.target.value)} />
-            <button type="button" className="btn btn--small" style={{ marginTop: 8 }} disabled={!importJson.trim()} onClick={() => void importuj()}>Importuj jako szkic</button>
+            <button type="button" className="btn btn--small" style={{ marginTop: 8 }} disabled={busy || !importJson.trim()} onClick={() => void importuj()}>Importuj jako szkic</button>
           </div>
         </>
       )}

@@ -17,11 +17,12 @@ własna dieta; cudza dieta = 404 z wpisem odmowy w audycie.
 from __future__ import annotations
 
 import json
+import re
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from sqlalchemy.orm import Session
 
 from ..authz import DOMAIN_NUTRITION, resolve_client_access
@@ -73,14 +74,26 @@ def _week(db: Session, week_id: str, *, published_only: bool = False) -> DietTem
     return w
 
 
-def _dieta(db: Session, user: User, diet_id: str) -> DietAssigned:
-    """Klient-właściciel albo trener z dostępem do klienta; inaczej 404 z audytem."""
+def _dieta(db: Session, user: User, diet_id: str, *, action: str = "read", active_only: bool = False) -> DietAssigned:
+    """Klient-właściciel albo trener z dostępem do klienta (dla zapisu: zgoda
+    w trybie `write`); inaczej 404 z audytem. `active_only`: zapisy tylko
+    w aktualnej wersji diety — zarchiwizowana wersja jest historią."""
     a = db.get(DietAssigned, diet_id)
     if a is None:
         raise HTTPException(status_code=404, detail="Nie znaleziono")
     if user.id != a.client_id:
-        resolve_client_access(db, user, a.client_id, domain=DOMAIN_NUTRITION)
+        resolve_client_access(db, user, a.client_id, action=action, domain=DOMAIN_NUTRITION)
+    if active_only and a.status != "ACTIVE":
+        raise HTTPException(status_code=409, detail="Ta wersja diety jest zarchiwizowana — zmiany dotyczą tylko aktualnej.")
     return a
+
+
+_KLUCZ_SKLADNIKA = r"^[1-7]:[A-Za-z0-9_\-]{1,40}:[A-Za-z0-9_\-]{1,40}$"
+_KLUCZ_POSILKU = r"^[1-7]:[A-Za-z0-9_\-]{1,40}$"
+
+
+def _oczysc_wykluczenia(v: list[str]) -> list[str]:
+    return serwis.oczysc_wykluczenia(v)
 
 
 # --- wejścia ---------------------------------------------------------------------------
@@ -95,6 +108,11 @@ class MacroIn(BaseModel):
     fat_per_kg: float | None = Field(default=None, ge=0, le=4)
 
 
+class OverrideIn(BaseModel):
+    grams: float = Field(ge=0, le=5000)
+    product: str | None = Field(default=None, min_length=1, max_length=200)
+
+
 class PreviewIn(BaseModel):
     kcal: float = Field(ge=500, le=8000)
     macro: MacroIn = Field(default_factory=MacroIn)
@@ -102,9 +120,34 @@ class PreviewIn(BaseModel):
     exclusions: list[str] = Field(default_factory=list, max_length=60)
     enforce_groups: bool = False
     # korekty trenera w podglądzie: "day:meal_id:ingredient_id" → {grams}
-    overrides: dict[str, dict[str, Any]] = Field(default_factory=dict)
+    overrides: dict[str, OverrideIn] = Field(default_factory=dict)
     # zamiany posiłków: "day:meal_id" → meal_id z biblioteki (ten sam slot)
     meal_replacements: dict[str, str] = Field(default_factory=dict)
+
+    @field_validator("exclusions")
+    @classmethod
+    def _wykluczenia(cls, v: list[str]) -> list[str]:
+        return [x[:80] for x in serwis.oczysc_wykluczenia(v)]
+
+    @field_validator("overrides")
+    @classmethod
+    def _klucze_korekt(cls, v: dict[str, OverrideIn]) -> dict[str, OverrideIn]:
+        if len(v) > 400:
+            raise ValueError("za dużo korekt (maks. 400)")
+        zle = [k for k in v if not re.match(_KLUCZ_SKLADNIKA, k)]
+        if zle:
+            raise ValueError("niepoprawny klucz korekty (dzień:posiłek:składnik): " + ", ".join(zle[:5]))
+        return v
+
+    @field_validator("meal_replacements")
+    @classmethod
+    def _klucze_zamian(cls, v: dict[str, str]) -> dict[str, str]:
+        if len(v) > 60:
+            raise ValueError("za dużo zamian posiłków (maks. 60)")
+        zle = [k for k, val in v.items() if not re.match(_KLUCZ_POSILKU, k) or not (1 <= len(val) <= 40)]
+        if zle:
+            raise ValueError("niepoprawny klucz zamiany posiłku (dzień:posiłek): " + ", ".join(zle[:5]))
+        return v
 
 
 class AssignIn(PreviewIn):
@@ -124,11 +167,14 @@ class SwapIn(BaseModel):
 
 class PatchIn(BaseModel):
     day: int | None = Field(default=None, ge=1, le=7)
-    meal_id: str | None = None
-    ingredient_id: str | None = None
+    meal_id: str | None = Field(default=None, min_length=1, max_length=40)
+    ingredient_id: str | None = Field(default=None, min_length=1, max_length=40)
     grams: float | None = Field(default=None, ge=0, le=5000)
-    replace_with_meal_id: str | None = None
+    replace_with_meal_id: str | None = Field(default=None, min_length=1, max_length=40)
     swaps_enabled: bool | None = None
+    # Blokada wymian dla konkretnego posiłku (§7.3, np. protokół medyczny):
+    # wymaga day + meal_id.
+    meal_swaps_enabled: bool | None = None
 
 
 # --- profile i szablony ---------------------------------------------------------------------
@@ -179,22 +225,31 @@ def library_meals(week_id: str, slot: str | None = Query(default=None), user: Us
                       for m in serwis.posilki_biblioteki(db, w, slot)]}
 
 
+def _korekty(body: PreviewIn, coach_id: str | None = None) -> dict[str, dict[str, Any]]:
+    at = now_iso()
+    return {k: {"grams": float(v.grams), **({"product": v.product} if v.product else {}),
+                **({"by": coach_id, "at": at} if coach_id else {}), "kind": "coach"}
+            for k, v in body.overrides.items()}
+
+
 def _podglad(db: Session, w: DietTemplateWeek, body: PreviewIn) -> dict[str, Any]:
+    """Wynik silnika dla odsłony z zamianami posiłków i korektami trenera.
+    Każdy błąd definicji/wejścia (posiłek bez składników, cel za niski dla
+    szablonu, nieznany produkt w korekcie, korekta pod nieistniejący
+    składnik) to 422 z komunikatem — nigdy 500."""
     try:
         tpl = serwis.szablon_z_zamianami(db, serwis.szablon_dict(db, w), body.meal_replacements)
         plan = serwis.przelicz(db, w, kcal=body.kcal, macro=body.macro.model_dump(), body_weight=body.body_weight,
                                exclusions=body.exclusions, enforce_groups=body.enforce_groups, tpl=tpl)
-    except serwis.BladCelu as e:
-        raise HTTPException(status_code=422, detail=str(e)) from None
-    except ValueError as e:
-        raise HTTPException(status_code=422, detail=str(e)) from None
-    if body.overrides:
-        prods, _ = serwis.produkty(db)
-        o = {"ingredients": {k: {"grams": float(v["grams"]), **({"product": v["product"]} if v.get("product") else {}),
-                                 "kind": "coach"} for k, v in body.overrides.items() if "grams" in v}}
-        serwis.zastosuj_korekty(plan, o, prods)
-        plan["summary"]["days_ok"] = sum(1 for d in plan["days"] if d["status"] == "OK")
-        plan["summary"]["meals_flagged"] = sum(1 for d in plan["days"] for m in d["meals"] if m["status"] != "OK")
+        if body.overrides:
+            znane = serwis.klucze_skladnikow(plan)
+            obce = sorted(set(body.overrides) - znane)
+            if obce:
+                raise ValueError("Korekta wskazuje składnik spoza planu: " + ", ".join(obce[:5]))
+            prods, _ = serwis.produkty(db)
+            serwis.zastosuj_korekty(plan, {"ingredients": _korekty(body)}, prods)
+    except (serwis.BladCelu, ValueError, ZeroDivisionError, KeyError) as e:
+        raise HTTPException(status_code=422, detail=f"Nie da się przeliczyć: {e}") from None
     return plan
 
 
@@ -218,9 +273,7 @@ def assign(body: AssignIn, coach: User = Depends(require_role("COACH")), db: Ses
         return _konflikt("DAY_OUT_OF_TOLERANCE",
                          "Dni poza tolerancją: " + ", ".join(map(str, zle))
                          + ". Popraw gramatury albo zaznacz „przypisz mimo ostrzeżeń”.", days=zle)
-    o = {"ingredients": {k: {"grams": float(v["grams"]), **({"product": v["product"]} if v.get("product") else {}),
-                             "by": coach.id, "at": now_iso(), "kind": "coach"}
-                         for k, v in body.overrides.items() if "grams" in v},
+    o = {"ingredients": _korekty(body, coach.id),
          "meals": {k: {"replaced_by_meal_id": v, "by": coach.id, "at": now_iso()} for k, v in body.meal_replacements.items()},
          "accepted_warnings": bool(zle and body.accept_warnings), "accepted_days": zle if body.accept_warnings else []}
     a = serwis.przypisz(db, client_id=body.client_id, coach_id=coach.id, week=w, plan=plan, kcal=body.kcal,
@@ -280,10 +333,16 @@ def swap_candidates(diet_id: str, day: int = Query(ge=1, le=7), meal: str = Quer
         cands, m, idx = serwis.kandydaci_wymiany(db, a, day, meal, ingredient)
     except KeyError as e:
         raise HTTPException(status_code=404, detail=f"Nie znaleziono: {e}") from None
+    except (ValueError, ZeroDivisionError) as e:
+        raise HTTPException(status_code=422, detail=f"Nie da się przeliczyć wymiany: {e}") from None
     ing = m["ingredients"][idx]
     blokada = None
-    if not a.swaps_enabled:
+    if a.status != "ACTIVE":
+        blokada = "Ta wersja diety jest zarchiwizowana."
+    elif not a.swaps_enabled:
         blokada = "Trener wyłączył wymiany w tej diecie."
+    elif m.get("swaps_locked"):
+        blokada = "Trener zablokował wymiany w tym posiłku."
     elif not ing.get("swappable"):
         blokada = "Ten składnik nie podlega wymianie."
     return {"candidates": [] if blokada else cands, "blocked": blokada, "ingredient": ing,
@@ -294,16 +353,20 @@ def swap_candidates(diet_id: str, day: int = Query(ge=1, le=7), meal: str = Quer
 def swap(diet_id: str, body: SwapIn, user: User = Depends(current_user), db: Session = Depends(get_db)):
     """Zapis wymiany: produkt musi być kandydatem silnika; gramatura z klienta
     (jeśli podana) jest walidowana tolerancją posiłku po stronie serwera."""
-    a = _dieta(db, user, diet_id)
+    a = _dieta(db, user, diet_id, action="write", active_only=True)
     if not a.swaps_enabled:
         raise HTTPException(status_code=409, detail="Trener wyłączył wymiany w tej diecie.")
     try:
         cands, m, idx = serwis.kandydaci_wymiany(db, a, body.day, body.meal_id, body.ingredient_id)
     except KeyError as e:
         raise HTTPException(status_code=404, detail=f"Nie znaleziono: {e}") from None
+    except (ValueError, ZeroDivisionError) as e:
+        raise HTTPException(status_code=422, detail=f"Nie da się przeliczyć wymiany: {e}") from None
     ing = m["ingredients"][idx]
     if not ing.get("swappable"):
         raise HTTPException(status_code=409, detail="Ten składnik nie podlega wymianie.")
+    if m.get("swaps_locked"):
+        raise HTTPException(status_code=409, detail="Trener zablokował wymiany w tym posiłku.")
     kand = next((c for c in cands if c["product_id"] == body.to_product_id), None)
     if kand is None:
         raise HTTPException(status_code=422, detail="Ten produkt nie jest bezpiecznym zamiennikiem w tym posiłku.")
@@ -342,44 +405,40 @@ def patch_assigned(diet_id: str, body: PatchIn, coach: User = Depends(require_ro
                    db: Session = Depends(get_db)):
     """Trener: ręczna korekta gramatury, zamiana posiłku z biblioteki (ten
     sam slot i profil) albo blokada wymian; zwraca przeliczony dzień."""
-    a = _dieta(db, coach, diet_id)
+    a = _dieta(db, coach, diet_id, action="write", active_only=True)
     o = serwis.overrides(a)
     zmiana = None
     if body.swaps_enabled is not None:
         a.swaps_enabled = body.swaps_enabled
         zmiana = "swaps"
+    if body.meal_swaps_enabled is not None:
+        if not (body.day and body.meal_id):
+            raise HTTPException(status_code=422, detail="Blokada wymian posiłku wymaga day i meal_id.")
+        plan = serwis.migawka(db, a)
+        m = next((x for d in plan["days"] if d["day"] == body.day for x in d["meals"] if x["meal_id"] == body.meal_id), None)
+        if m is None:
+            raise HTTPException(status_code=404, detail="Nie znaleziono posiłku w diecie.")
+        m["swaps_locked"] = not body.meal_swaps_enabled
+        a.computed_plan_json = json.dumps(plan, ensure_ascii=False)
+        zmiana = "meal_swaps"
     if body.grams is not None:
         if not (body.day and body.meal_id and body.ingredient_id):
             raise HTTPException(status_code=422, detail="Korekta gramatury wymaga day, meal_id i ingredient_id.")
-        o["ingredients"][serwis._klucz(body.day, body.meal_id, body.ingredient_id)] = {
-            "grams": float(body.grams), "by": coach.id, "at": now_iso(), "kind": "coach"}
+        klucz = serwis._klucz(body.day, body.meal_id, body.ingredient_id)
+        if klucz not in serwis.klucze_skladnikow(serwis.migawka(db, a)):
+            raise HTTPException(status_code=404, detail="Nie znaleziono składnika w diecie (dzień, posiłek, składnik).")
+        o["ingredients"][klucz] = {"grams": float(body.grams), "by": coach.id, "at": now_iso(), "kind": "coach"}
         zmiana = "grams"
     if body.replace_with_meal_id:
         if not (body.day and body.meal_id):
             raise HTTPException(status_code=422, detail="Zamiana posiłku wymaga day i meal_id.")
-        plan = serwis.migawka(db, a)
-        d = next((x for x in plan["days"] if x["day"] == body.day), None)
-        m_idx = next((i for i, x in enumerate(d["meals"]) if x["meal_id"] == body.meal_id), None) if d else None
-        if m_idx is None:
-            raise HTTPException(status_code=404, detail="Nie znaleziono posiłku w migawce.")
-        w = _week(db, a.week_id)
-        tpl = serwis.szablon_dict(db, w)
-        # Skalujemy sam zastępczy posiłek do celu pierwotnego posiłku (tak jak zrobił to silnik).
         try:
-            tpl2 = serwis.szablon_z_zamianami(db, tpl, {f"{body.day}:{body.meal_id}": body.replace_with_meal_id})
-        except ValueError as e:
+            serwis.zamien_posilek_w_migawce(db, a, day=body.day, meal_id=body.meal_id, nowy_id=body.replace_with_meal_id)
+        except KeyError:
+            raise HTTPException(status_code=404, detail="Nie znaleziono posiłku w diecie.") from None
+        except (ValueError, ZeroDivisionError) as e:
             raise HTTPException(status_code=422, detail=str(e)) from None
-        prods, _ = serwis.produkty(db)
-        nowy = next(mm for mm in next(dd for dd in tpl2["days"] if dd["day"] == body.day)["meals"]
-                    if mm.get("replaced_from") == body.meal_id)
-        wynik = S.scale_meal(nowy, d["meals"][m_idx]["target"], prods)
-        d["meals"][m_idx] = serwis.posilek_out(wynik)
-        d["meals"][m_idx]["replaced_from"] = body.meal_id
-        d["macros"] = {k: round(sum(mm["macros"][k] for mm in d["meals"]), 1) for k in ("kcal", "P", "F", "C")}
-        ok, dev = S.check(d["macros"], d["target"], S.TOL_DAY)
-        d["deviation"] = {k: round(v, 1) for k, v in dev.items()}
-        d["status"] = "OK" if ok else "POZA_TOLERANCJĄ"
-        a.computed_plan_json = json.dumps(plan, ensure_ascii=False)
+        o = serwis.overrides(a)  # zamiana usunęła korekty starego posiłku
         o["meals"][f"{body.day}:{body.meal_id}"] = {"replaced_by_meal_id": body.replace_with_meal_id, "by": coach.id,
                                                     "at": now_iso()}
         zmiana = "meal"
@@ -437,7 +496,25 @@ class IngredientIn(BaseModel):
     unit_g: float | None = Field(default=None, gt=0, le=1000)
     unit_step: float | None = Field(default=None, gt=0, le=10)
     group_name: str | None = Field(default=None, max_length=60)
-    swappable: bool = True
+    # Brak = domyślnie wymienialne składniki z rolą P/C/F (§7.3), jak w seedzie.
+    swappable: bool | None = None
+
+
+def _skladnik_z_wejscia(db: Session, body: IngredientIn) -> dict[str, Any]:
+    """Wspólna walidacja składnika: produkt z bazy, DYSKRETNY (jawny albo
+    domyślny produktu) wymaga unit_g, zakres min ≤ max, domyślne swappable."""
+    prod = db.get(DietProduct, body.product_id)
+    if prod is None:
+        raise HTTPException(status_code=404, detail="Nie znaleziono produktu — dodaj go najpierw do bazy (admin, z `source`).")
+    klasa = body.scaling_class or prod.default_scaling or "LINIOWY"
+    if klasa == "DYSKRETNY" and not body.unit_g:
+        raise HTTPException(status_code=422, detail=f"DYSKRETNY (klasa {'jawna' if body.scaling_class else 'domyślna produktu'}) wymaga unit_g.")
+    if body.min_factor is not None and body.max_factor is not None and body.min_factor > body.max_factor:
+        raise HTTPException(status_code=422, detail="min_factor nie może być większy niż max_factor.")
+    dane = body.model_dump()
+    if dane["swappable"] is None:
+        dane["swappable"] = body.macro_role in ("P", "C", "F")
+    return dane
 
 
 class ProductIn(BaseModel):
@@ -509,8 +586,14 @@ def update_profile(profile_id: str, body: ProfileIn, user: User = Depends(_edyto
     return _profil_out(db, p)
 
 
+def _sprawdz_zakres(body: WeekIn) -> None:
+    if not body.kcal_min <= body.base_kcal <= body.kcal_max:
+        raise HTTPException(status_code=422, detail="Zakres kcal musi spełniać kcal_min ≤ base_kcal ≤ kcal_max.")
+
+
 @router.post("/weeks", status_code=201, dependencies=[Depends(wymagaj_modulu)])
 def create_week(body: WeekIn, user: User = Depends(_edytor), db: Session = Depends(get_db)):
+    _sprawdz_zakres(body)
     if db.get(DietProfile, body.profile_id) is None:
         raise HTTPException(status_code=404, detail="Nie znaleziono profilu")
     if db.query(DietTemplateWeek).filter_by(profile_id=body.profile_id, variant_no=body.variant_no).one_or_none():
@@ -526,6 +609,7 @@ def create_week(body: WeekIn, user: User = Depends(_edytor), db: Session = Depen
 
 @router.put("/weeks/{week_id}", dependencies=[Depends(wymagaj_modulu)])
 def update_week(week_id: str, body: WeekIn, user: User = Depends(_edytor), db: Session = Depends(get_db)):
+    _sprawdz_zakres(body)
     w = _week(db, week_id)
     for k, v in body.model_dump(exclude={"profile_id"}).items():
         setattr(w, k, v)
@@ -596,12 +680,9 @@ def delete_meal(meal_id: str, user: User = Depends(_edytor), db: Session = Depen
 @router.post("/meals/{meal_id}/ingredients", status_code=201, dependencies=[Depends(wymagaj_modulu)])
 def create_ingredient(meal_id: str, body: IngredientIn, user: User = Depends(_edytor), db: Session = Depends(get_db)):
     m, w = _meal(db, meal_id)
-    if db.get(DietProduct, body.product_id) is None:
-        raise HTTPException(status_code=404, detail="Nie znaleziono produktu — dodaj go najpierw do bazy (admin, z `source`).")
-    if body.scaling_class == "DYSKRETNY" and not body.unit_g:
-        raise HTTPException(status_code=422, detail="DYSKRETNY wymaga unit_g.")
+    dane = _skladnik_z_wejscia(db, body)
     pos = db.query(DietTemplateIngredient).filter_by(meal_id=m.id).count()
-    i = DietTemplateIngredient(id=new_id("DTI"), meal_id=m.id, position=pos, **body.model_dump())
+    i = DietTemplateIngredient(id=new_id("DTI"), meal_id=m.id, position=pos, **dane)
     db.add(i)
     w.updated_at = now_iso()
     db.commit()
@@ -614,12 +695,9 @@ def update_ingredient(ingredient_id: str, body: IngredientIn, user: User = Depen
     i = db.get(DietTemplateIngredient, ingredient_id)
     if i is None:
         raise HTTPException(status_code=404, detail="Nie znaleziono składnika")
-    if db.get(DietProduct, body.product_id) is None:
-        raise HTTPException(status_code=404, detail="Nie znaleziono produktu")
-    if body.scaling_class == "DYSKRETNY" and not body.unit_g:
-        raise HTTPException(status_code=422, detail="DYSKRETNY wymaga unit_g.")
+    dane = _skladnik_z_wejscia(db, body)
     _m, w = _meal(db, i.meal_id)
-    for k, v in body.model_dump().items():
+    for k, v in dane.items():
         setattr(i, k, v)
     w.updated_at = now_iso()
     db.commit()
@@ -659,7 +737,7 @@ def _sweep(db: Session, w: DietTemplateWeek) -> dict[str, Any]:
                         f["flags"] += 1
                     if m["status"] == "POZA_ZAKRESEM":
                         f["out_of_range"] += 1
-    except (ValueError, ZeroDivisionError, KeyError) as e:
+    except (ValueError, ZeroDivisionError, KeyError, TypeError) as e:
         return {"error": f"Szablon niekompletny: {e}", "days": dni, "days_ok": dni_ok, "meals": [], "ok_pct": 0,
                 "missing_days": brakujace, "publishable": False}
     pct = round(100 * dni_ok / dni) if dni else 0
@@ -706,10 +784,8 @@ def unpublish_week(week_id: str, user: User = Depends(_edytor), db: Session = De
 @router.post("/weeks/import", status_code=201, dependencies=[Depends(wymagaj_modulu)])
 def import_week(body: dict, user: User = Depends(_edytor), db: Session = Depends(get_db)):
     """Import odsłony z JSON w formacie `template_standard_v1.json` (jako DRAFT)."""
-    for k in ("profile", "variant", "macro_pct", "days"):
-        if k not in body:
-            raise HTTPException(status_code=422, detail=f"Brak pola {k}")
     try:
+        dieta_seed.waliduj_szablon(body)
         w, nowa = dieta_seed.zaimportuj_szablon(db, body, created_by=user.id, status="DRAFT")
     except (ValueError, KeyError, TypeError) as e:
         raise HTTPException(status_code=422, detail=f"Import odrzucony: {e}") from None

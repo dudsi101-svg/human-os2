@@ -126,7 +126,6 @@ export default function App() {
             <Route path="/trener" element={<Clients />} />
             <Route path="/trener/klient/:clientId" element={<ClientDetail />} />
             <Route path="/trener/szablony" element={<Templates />} />
-            <Route path="/trener/szablony-diet" element={<SzablonyDiet />} />
             <Route path="/trener/wiedza" element={<CoachKnowledge />} />
             <Route path="/trener/konsultacje" element={<CoachConsultations />} />
             <Route path="/trener/wyzwania" element={<CoachChallenges />} />
@@ -135,6 +134,8 @@ export default function App() {
           </>
         )}
         {roles.includes("ADMIN") && <Route path="/admin" element={<Admin />} />}
+        {/* Biblioteka szablonów diet: trener albo administrator (jak _edytor w API). */}
+        {(roles.includes("COACH") || roles.includes("ADMIN")) && <Route path="/trener/szablony-diet" element={<SzablonyDiet />} />}
         {user && (
           <>
             <Route path="/wiadomosci" element={<Messages />} />

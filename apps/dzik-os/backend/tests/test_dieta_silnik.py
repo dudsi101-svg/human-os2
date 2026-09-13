@@ -181,3 +181,53 @@ def test_day_target_i_bledy_definicji(prods):
     # Tłuszcz LINIOWY dostaje max_factor ≥ 3,0.
     o = S.fill_defaults({"product": "Oliwa z oliwek", "grams": 10, "role": "F"}, prods)
     assert o["max_factor"] == 3.0 and o["class"] == "LINIOWY"
+
+
+# --- stałe i liczby przebiegów z §4a.3/§6.3 (regresja wykrywana wprost, nie tylko przez golden) ---
+
+
+def test_stale_silnika_identyczne_z_prototypem():
+    """Stałe czytane z ŹRÓDŁA prototypu (ast) — moduł engine.py przy imporcie
+    wczytuje CSV z dysku autora, więc nie da się go wykonać w testach."""
+    import ast
+
+    zrodlo = (DOCS / "engine.py").read_text(encoding="utf-8")
+    drzewo = ast.parse(zrodlo)
+    # Prototyp zapisuje stałe przez `dict(...)` — wartościujemy sam fragment
+    # przypisania w pustej przestrzeni nazw (bez importów i bez CSV).
+    stale = {n.targets[0].id: eval(ast.get_source_segment(zrodlo, n.value), {"__builtins__": {"dict": dict}})  # noqa: S307
+             for n in drzewo.body if isinstance(n, ast.Assign) and isinstance(n.targets[0], ast.Name)
+             and n.targets[0].id in ("CLASS_DEFAULTS", "TOL_MEAL", "TOL_DAY")}
+    przebiegi = {n.name: ast.literal_eval(n.args.defaults[-1]) for n in drzewo.body
+                 if isinstance(n, ast.FunctionDef) and n.name in ("fit_macros", "fit_kcal")}
+    assert S.CLASS_DEFAULTS == stale["CLASS_DEFAULTS"]
+    assert S.TOL_MEAL == stale["TOL_MEAL"] and S.TOL_DAY == stale["TOL_DAY"]
+    assert S.fit_macros.__defaults__ == (przebiegi["fit_macros"],) == (6,)
+    assert S.fit_kcal.__defaults__ == (przebiegi["fit_kcal"],) == (3,)
+
+
+def test_regula_plus_minus_40_kcal_posilku():
+    target = {"kcal": 300, "P": 20, "F": 10, "C": 30}
+    ok, _ = S.check({"kcal": 330, "P": 20, "F": 10, "C": 30}, target, S.TOL_MEAL)
+    assert ok  # 8 % z 300 = 24 kcal, ale próg bezwzględny 40 kcal
+    ok, _ = S.check({"kcal": 345, "P": 20, "F": 10, "C": 30}, target, S.TOL_MEAL)
+    assert not ok
+    ok, _ = S.check({"kcal": 1000, "P": 0, "F": 0, "C": 0}, {"kcal": 1000, "P": 0, "F": 0, "C": 0}, S.TOL_DAY)
+    assert ok
+    ok, _ = S.check({"kcal": 1031, "P": 0, "F": 0, "C": 0}, {"kcal": 1000, "P": 0, "F": 0, "C": 0}, S.TOL_DAY)
+    assert not ok  # dzień: 3 %, bez progu bezwzględnego
+
+
+def test_niekompletny_szablon_i_cel_niedodatni_daja_valueerror(prods):
+    posilek = {"name": "Pusty", "slot": "obiad", "kcal_share": 0.3, "ingredients": []}
+    with pytest.raises(ValueError, match="bez składników"):
+        S.scale_meal(posilek, {"kcal": 500, "P": 30, "F": 15, "C": 50}, prods)
+    posilek = {"name": "Kurczak", "slot": "obiad", "kcal_share": 0.3,
+               "ingredients": [{"product": "Pierś z kurczaka (surowa)", "grams": 150, "role": "P"}]}
+    with pytest.raises(ValueError, match="niedodatni"):
+        S.scale_meal(posilek, {"kcal": -40, "P": 30, "F": 15, "C": 50}, prods)
+    with pytest.raises(ValueError, match="round_step"):
+        S.scale_meal({**posilek, "ingredients": [{**posilek["ingredients"][0], "round_step": 0}]},
+                     {"kcal": 300, "P": 30, "F": 5, "C": 20}, prods)
+    with pytest.raises(ValueError, match="brak posiłków"):
+        S.scale_day({"day": 1, "meals": []}, {"kcal": 2000, "P": 125, "F": 67, "C": 225}, prods)

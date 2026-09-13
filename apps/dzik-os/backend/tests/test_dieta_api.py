@@ -84,8 +84,9 @@ def test_preview_zwraca_wynik_silnika_z_ostrzezeniem_poza_zakresem(dieta):
 def test_presety_makro_manual_per_kg_i_bledy_422(dieta):
     c = dieta["c"]
     url = f"{D}/templates/{dieta['week']}/preview"
+    # §6.4: suma kcal z makro ≠ cel ±3 % → OSTRZEŻENIE, tydzień liczony na kcal z gramów makro.
     r = c.post(url, headers=dieta["hc"], json={"kcal": 2000, "macro": {"mode": "manual", "P": 150, "F": 60, "C": 100}})
-    assert r.status_code == 422 and "3 %" in r.json()["detail"]
+    assert r.status_code == 200 and any("3 %" in w for w in r.json()["warnings"]) and r.json()["target"]["kcal"] == 1540
     r = c.post(url, headers=dieta["hc"], json={"kcal": 2000, "macro": {"mode": "manual", "P": 150, "F": 60, "C": 215}})
     assert r.status_code == 200 and r.json()["target"]["P"] == 150
     r = c.post(url, headers=dieta["hc"], json={"kcal": 2000, "macro": {"mode": "per_kg", "protein_per_kg": 2.0, "fat_per_kg": 1.0}})

@@ -19,15 +19,29 @@ flagą `DZIK_DIET_TEMPLATES_ENABLED`, domyślnie wyłączony na produkcji).**
   `diet_swap_events`. Seed idempotentny (`python -m dzik_os.dieta.seed`,
   także przy starcie z włączoną flagą); brak produktu = błąd seeda.
 * **API `/api/diet`**: profile, podgląd szablonu, `preview` (presety makro
-  z profilu / na kg / ręcznie z kontrolą ±3 %, wykluczenia, korekty
-  gramatur, zamiana posiłku z biblioteki, ostrzeżenie poza zakresem kcal),
+  z profilu / na kg / ręcznie z ostrzeżeniem przy rozjeździe ±3 %,
+  wykluczenia, korekty gramatur, zamiana posiłku z biblioteki, ostrzeżenie
+  poza zakresem kcal),
   `assign` (tylko trener, własny klient; migawka; 409 przy dniu poza
   tolerancją bez „przypisz mimo ostrzeżeń”), dieta klienta, kandydaci
   wymiany (1–3, wykluczenia, `swappable`, blokada trenera), zapis wymiany
   z walidacją gramatury po stronie serwera, `PATCH` trenera (korekta,
   zamiana posiłku, blokada wymian), panel szablonów (CRUD, sweep,
   publikacja ≥ 95 % dni OK, import JSON), produkty tylko przez admina
-  z jawnym `source`. 27 wpisów macierzy dostępu.
+  z jawnym `source`. 27 wpisów macierzy dostępu (klasa `COACH_OR_ADMIN`
+  dla panelu szablonów).
+* **Poprawki po przeglądzie kodu przed scaleniem** (`PROGRESS.md`, sekcja
+  „Przegląd kodu po etapach”): zapisy w diecie klienta wymagają zgody
+  `write` i wersji ACTIVE; posiłek zastępczy tylko z tego profilu, z
+  opublikowanej odsłony i niepusty; zamiana posiłku liczona względem
+  migawki (druga zamiana slotu działała na 500); korekty, preset na kg,
+  niska kaloryczność, pusty posiłek, import JSON — 422 z komunikatem
+  zamiast 500; `diet_assigned`/`diet_swap_events` w eksporcie „moje dane”
+  i usuwane z kontem; seed odporny na zmianę nazwy produktu w CSV;
+  wykluczenia po nazwie produktu działają w wymianach; migawka niesie
+  reguły zaokrąglania; blokada wymian per posiłek (§7.3); domyślne
+  `swappable` wg roli; frontend: wyścigi odpowiedzi, widoczne błędy,
+  blokady podwójnych kliknięć, panel także dla roli ADMIN.
 * **UI trenera**: „Przypisz dietę” w zakładce Dieta karty klienta —
   kafelki profili → odsłony z podglądem posiłków → cel → podgląd tygodnia
   z kolorowymi statusami, zamiana posiłku, edycja gramatur inline

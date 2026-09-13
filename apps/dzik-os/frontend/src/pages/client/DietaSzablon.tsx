@@ -12,20 +12,25 @@ import { gramatura, KartaDnia, makro, StatusDiety } from "../dieta/wspolne";
  * P1: wymiana składnika oznaczonego `swappable` — arkusz z 1–3 zamiennikami
  * (gramatury policzone przez serwer), brak kandydatów → „napisz do trenera”.
  */
-export default function DietaSzablon() {
+export default function DietaSzablon({ onStan }: { onStan?: (jest: boolean) => void } = {}) {
   const [a, setA] = useState<DietAssignedOut | null | undefined>(undefined);
   const [error, setError] = useState<string | null>(null);
   const [dzien, setDzien] = useState(1);
   const [arkusz, setArkusz] = useState<{ m: DietMealOut; i: DietIngredientOut; cands: DietSwapCandidate[] | null; blocked: string | null } | null>(null);
   const [info, setInfo] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
 
   const zaladuj = useCallback(() => {
+    setError(null);
     api.get<{ assigned: DietAssignedOut | null }>("/api/diet/assigned/current")
-      .then((d) => setA(d.assigned))
-      .catch((e) => { if ((e as ApiError).status === 404) setA(null); else setError((e as Error).message); });
-  }, []);
+      .then((d) => { setA(d.assigned); onStan?.(d.assigned !== null); })
+      .catch((e) => { if ((e as ApiError).status === 404) { setA(null); onStan?.(false); } else setError((e as Error).message); });
+  }, [onStan]);
   useEffect(zaladuj, [zaladuj]);
 
+  // Błąd inny niż „moduł wyłączony” (404) musi być widoczny — inaczej dieta
+  // „znika” bez słowa i klient widzi tylko komunikat o braku planu.
+  if (a === undefined && error) return <ErrorBox error={error} onRetry={zaladuj} />;
   if (a === undefined || a === null) return null;
   const d = a.plan.days.find((x) => x.day === dzien) ?? a.plan.days[0];
 
@@ -39,7 +44,8 @@ export default function DietaSzablon() {
   }
 
   async function wymien(c: DietSwapCandidate) {
-    if (!arkusz) return;
+    if (!arkusz || busy) return;
+    setBusy(true); setError(null);
     try {
       await api.post(`/api/diet/assigned/${a!.id}/swaps`, {
         day: d.day, meal_id: arkusz.m.meal_id, ingredient_id: arkusz.i.ingredient_id, to_product_id: c.product_id,
@@ -47,7 +53,7 @@ export default function DietaSzablon() {
       setInfo(`Wymieniono: ${arkusz.i.product} → ${c.product} (${Math.round(c.grams)} g). Posiłek nadal mieści się w celu.`);
       setArkusz(null);
       zaladuj();
-    } catch (e) { setError((e as Error).message); }
+    } catch (e) { setError((e as Error).message); } finally { setBusy(false); }
   }
 
   return (
@@ -80,7 +86,7 @@ export default function DietaSzablon() {
                 <li key={i.ingredient_id}>
                   {i.product} — <b>{gramatura(i)}</b>
                   {i.override?.kind === "swap" && <small className="dim"> (wymienione)</small>}
-                  {i.swappable && a.swaps_enabled && i.class !== "STAŁY" && (
+                  {i.swappable && a.swaps_enabled && !m.swaps_locked && i.class !== "STAŁY" && (
                     <button type="button" className="btn btn--ghost btn--small" style={{ marginLeft: 6 }} aria-label={`Wymień ${i.product}`}
                       onClick={() => void otworz(m, i)}>↔ wymień</button>
                   )}
@@ -105,7 +111,7 @@ export default function DietaSzablon() {
               {arkusz.cands.map((c) => (
                 <li key={c.product_id} style={{ marginBottom: 6 }}>
                   <b>{c.product}</b> — {Math.round(c.grams)} g <small className="dim">(posiłek po wymianie: {makro(c.macros)})</small>{" "}
-                  <button type="button" className="btn btn--small" onClick={() => void wymien(c)}>Wybierz</button>
+                  <button type="button" className="btn btn--small" disabled={busy} onClick={() => void wymien(c)}>{busy ? "Zapisuję…" : "Wybierz"}</button>
                 </li>
               ))}
             </ul>

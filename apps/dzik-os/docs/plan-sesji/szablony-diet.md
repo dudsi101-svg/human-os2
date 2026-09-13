@@ -27,9 +27,12 @@ Stary kreator (kulinaria, nutrition_templates, nutrition) nietknięty.
    preview, assign, assigned/current, swaps, PATCH assigned; 404 gdy flaga
    wyłączona. Trener tylko własny klient (`resolve_client_access`,
    domena żywienie); klient tylko własna dieta.
-4. Reguła `group`: opcja silnika `enforce_groups` (domyślnie włączona w
-   aplikacji); test golden dnia 1 niezależny od opcji; test „cały tydzień
-   golden” z opcją wyłączoną dowodzi portu 1:1.
+4. Reguła `group`: opcja silnika `enforce_groups` (domyślnie WYŁĄCZONA —
+   wynik identyczny z referencją i złotym plikiem; API przyjmuje
+   `enforce_groups=true`, interfejs trenera jej nie włącza — decyzja
+   właściciela, pytanie otwarte w PROGRESS.md); test golden dnia 1
+   niezależny od opcji; test „cały tydzień golden” z opcją wyłączoną
+   dowodzi portu 1:1.
 5. UI: trener — przepływ „Przypisz dietę” w zakładce Dieta karty klienta
    (nowy komponent), podgląd tygodnia, edycja gramatur, blokada przy
    `POZA_TOLERANCJĄ` z checkboxem; klient — sekcja w ekranie Dieta
@@ -64,6 +67,10 @@ Migracja **32**, wersja **0.60.0**, pliki: `backend/dzik_os/dieta/**`,
   kcal nie łamał wiersza i poszerzał układ telefonu do 423 px, przez co
   Playwright trafiał w sąsiednią kartę / dolną nawigację (przycisk
   zawija się teraz, `PrzypiszDiete.tsx`).
+- Przegląd kodu przed scaleniem (13.09): 45 uwag zdeduplikowanych i
+  sklasyfikowanych bez agentów; P0/P1 poprawione i pokryte testami
+  (`tests/test_dieta_poprawki.py` 10, stałe silnika 3), P2 w PROGRESS.md.
+  Po poprawkach: backend `pytest` pełny zielony, E2E 28/28, `tsc`/build OK.
 - Flaga: `DZIK_DIET_TEMPLATES_ENABLED=false` → trasy `/api/diet/*` zwracają
   404, `health.features.diet_templates=false`, interfejs nie pokazuje
   wejść (test `test_dieta_api.py::test_flaga_wylaczona_daje_404_na_calym_module`); w dev/test/E2E

@@ -82,18 +82,21 @@ def szablon_dict(db: Session, week: DietTemplateWeek) -> dict[str, Any]:
             "days": days}
 
 
-def cel_dnia(kcal: float, macro: dict[str, Any], profil_pct: list[float], body_weight: float | None) -> dict[str, float]:
+def cel_dnia(kcal: float, macro: dict[str, Any], profil_pct: list[float], body_weight: float | None,
+             warnings: list[str] | None = None) -> dict[str, float]:
     """Preset makro trenera → gramy B/T/W. `mode`: profile (z % profilu),
-    per_kg (B i T g/kg, reszta W), manual (gramy; suma 4/9/4 musi zgadzać
-    się z kcal ±3 %, inaczej BladCelu)."""
+    per_kg (B i T g/kg, reszta W), manual (gramy). Przy presecie ręcznym
+    suma 4/9/4 gramów ma pierwszeństwo przed wpisaną kalorycznością:
+    gdy różnią się o więcej niż 3 %, silnik OSTRZEGA (instrukcja §6.4),
+    a cel kcal wynika z makro — inaczej posiłki nie miałyby spójnego celu."""
     mode = (macro or {}).get("mode", "profile")
     if mode == "profile":
         return S.day_target(kcal, profil_pct)
     if mode == "per_kg":
         if not body_weight or body_weight <= 0:
             raise BladCelu("Preset „na kg masy ciała” wymaga masy ciała klienta.")
-        p = float(macro.get("protein_per_kg", 2.0)) * body_weight
-        f = float(macro.get("fat_per_kg", 1.0)) * body_weight
+        p = float(macro.get("protein_per_kg") or 2.0) * body_weight
+        f = float(macro.get("fat_per_kg") or 1.0) * body_weight
         c = (kcal - 4 * p - 9 * f) / 4
         if c < 0:
             raise BladCelu("Białko i tłuszcz na kg przekraczają cel kcal — zmniejsz g/kg albo zwiększ kcal.")
@@ -104,10 +107,26 @@ def cel_dnia(kcal: float, macro: dict[str, Any], profil_pct: list[float], body_w
         except (KeyError, TypeError, ValueError) as exc:
             raise BladCelu("Preset ręczny wymaga gramów P, F i C.") from exc
         e = 4 * p + 9 * f + 4 * c
+        if e <= 0:
+            raise BladCelu("Preset ręczny wymaga dodatnich gramów makro.")
         if abs(e - kcal) > MACRO_TOL_MANUAL * kcal:
-            raise BladCelu(f"Suma kcal z makro ({e:.0f}) różni się od celu ({kcal:.0f}) o więcej niż 3 % — popraw gramy albo kcal.")
+            if warnings is not None:
+                warnings.append(f"Suma kcal z makro ({e:.0f}) różni się od wpisanego celu ({kcal:.0f}) o więcej "
+                                f"niż 3 % — silnik liczy tydzień na {e:.0f} kcal wynikające z gramów makro.")
+            return {"kcal": e, "P": p, "F": f, "C": c}
         return {"kcal": kcal, "P": p, "F": f, "C": c}
     raise BladCelu(f"Nieznany preset makro: {mode!r}")
+
+
+def oczysc_wykluczenia(exclusions: list[str] | tuple[str, ...] | None) -> list[str]:
+    """Wykluczenia z API/migawki bez pustych i zdublowanych wpisów — pusty
+    napis pasowałby do KAŻDEGO produktu (`"" in "..."`)."""
+    out: list[str] = []
+    for x in exclusions or ():
+        x = str(x).strip()
+        if x and x not in out:
+            out.append(x)
+    return out
 
 
 def przelicz(db: Session, week: DietTemplateWeek, *, kcal: float, macro: dict[str, Any],
@@ -116,13 +135,14 @@ def przelicz(db: Session, week: DietTemplateWeek, *, kcal: float, macro: dict[st
     """Pełny wynik silnika dla odsłony + ostrzeżenia (zakres kcal, wykluczenia)."""
     tpl = tpl or szablon_dict(db, week)
     prods, _rows = produkty(db)
-    target = cel_dnia(kcal, macro, tpl["macro_pct"], body_weight)
-    days = S.scale_week(tpl, kcal, prods, target=target, enforce_groups_=enforce_groups)
     warnings: list[str] = []
+    target = cel_dnia(kcal, macro, tpl["macro_pct"], body_weight, warnings)
+    kcal = target["kcal"]
+    days = S.scale_week(tpl, kcal, prods, target=target, enforce_groups_=enforce_groups)
     if kcal < tpl["kcal_min"] or kcal > tpl["kcal_max"]:
         warnings.append(f"Cel {kcal:.0f} kcal jest poza zakresem ważności szablonu "
                         f"({tpl['kcal_min']}–{tpl['kcal_max']} kcal) — wynik może wymagać ręcznej korekty.")
-    wykl = [x for x in exclusions if x]
+    wykl = oczysc_wykluczenia(exclusions)
     konflikty = sorted({i["product"] for d in tpl["days"] for m in d["meals"] for i in m["ingredients"]
                         if _wykluczony(prods[i["product"]], wykl)})
     if konflikty:
@@ -150,6 +170,9 @@ def skladnik_out(i: dict[str, Any]) -> dict[str, Any]:
     if i["class"] == "DYSKRETNY":
         out["units"] = i.get("units")
         out["unit_g"] = i["unit_g"]
+        out["unit_step"] = i.get("unit_step")
+    elif i["class"] != "STAŁY":
+        out["round_step"] = i.get("round_step")
     return out
 
 
@@ -220,7 +243,8 @@ def posilek_silnika(m_out: dict[str, Any]) -> dict[str, Any]:
     ings = []
     for i in m_out["ingredients"]:
         ings.append({"product": i["product"], "grams": i["grams"], "role": i["role"], "class": i["class"],
-                     "round_step": S.CLASS_DEFAULTS.get(i["class"], {}).get("round_step") or 5,
+                     "round_step": i.get("round_step") or S.CLASS_DEFAULTS.get(i["class"], {}).get("round_step") or 5,
+                     "unit_g": i.get("unit_g"), "unit_step": i.get("unit_step"),
                      "base_grams": i["base_grams"], "min_factor": i["min_factor"], "max_factor": i["max_factor"]})
     return {"ingredients": ings, "target": m_out["target"], "name": m_out["name"], "slot": m_out["slot"]}
 
@@ -236,8 +260,11 @@ def kandydaci_wymiany(db: Session, a: DietAssigned, day: int, meal_id: str, ingr
     if idx is None:
         raise KeyError("składnik")
     prods, rows = produkty(db)
-    excl = json.loads(a.exclusions_json or "[]")
-    cands = S.swap_candidates(posilek_silnika(m), idx, prods, exclusions=tuple(excl), n=n)
+    excl = oczysc_wykluczenia(json.loads(a.exclusions_json or "[]"))
+    # Silnik filtruje alergeny/diety; „nielubiane” (wykluczenie po nazwie
+    # produktu) odsiewamy tu — przed cięciem do n, żeby nie tracić miejsc.
+    cands = [c for c in S.swap_candidates(posilek_silnika(m), idx, prods, exclusions=tuple(excl), n=len(prods))
+             if not _wykluczony(prods[c["product"]], excl)][:n]
     out = [{"product": c["product"], "product_id": rows[c["product"]].id, "grams": _r(c["grams"]),
             "macros": {k: _r(v) for k, v in c["macros"].items()}} for c in cands]
     return out, m, idx
@@ -246,10 +273,24 @@ def kandydaci_wymiany(db: Session, a: DietAssigned, day: int, meal_id: str, ingr
 # --- korekty w podglądzie, zamiana posiłku z biblioteki, przypisanie -------------------------
 
 
+def klucze_skladnikow(plan: dict[str, Any]) -> set[str]:
+    """Wszystkie klucze „day:meal_id:ingredient_id” występujące w planie —
+    korekta pod nieistniejący klucz jest błędem wejścia, nie martwym wpisem."""
+    return {_klucz(d["day"], m["meal_id"], i["ingredient_id"])
+            for d in plan["days"] for m in d["meals"] for i in m["ingredients"]}
+
+
+def przelicz_podsumowanie(plan: dict[str, Any]) -> None:
+    plan["summary"] = {"days_ok": sum(1 for d in plan["days"] if d["status"] == "OK"), "days": len(plan["days"]),
+                       "meals_flagged": sum(1 for d in plan["days"] for m in d["meals"] if m["status"] != "OK"),
+                       "meals": sum(len(d["meals"]) for d in plan["days"])}
+
+
 def zastosuj_korekty(plan: dict[str, Any], o: dict[str, Any], prods: S.Products) -> dict[str, Any]:
     """Nakłada korekty gramatur/produktów (`o["ingredients"]`) na wynik silnika
-    (kształt `dzien_out`) i przelicza makro oraz statusy posiłków i dni po
-    stronie serwera."""
+    (kształt `dzien_out`) i przelicza makro, statusy posiłków i dni oraz
+    podsumowanie po stronie serwera. Nieznany produkt albo niepoprawna
+    gramatura w korekcie = `ValueError` (422), nie 500."""
     for d in plan["days"]:
         zmieniony = False
         for m in d["meals"]:
@@ -258,9 +299,22 @@ def zastosuj_korekty(plan: dict[str, Any], o: dict[str, Any], prods: S.Products)
                 ov = o.get("ingredients", {}).get(_klucz(d["day"], m["meal_id"], i["ingredient_id"]))
                 if not ov:
                     continue
+                try:
+                    grams = float(ov["grams"])
+                except (KeyError, TypeError, ValueError) as exc:
+                    raise ValueError(f"korekta {i['product']}: gramatura musi być liczbą") from exc
+                if not 0 <= grams <= 5000:
+                    raise ValueError(f"korekta {i['product']}: gramatura {grams:.0f} g poza zakresem 0–5000 g")
                 if ov.get("product"):
+                    if ov["product"] not in prods:
+                        raise ValueError(f"korekta: nieznany produkt {ov['product']!r}")
+                    if ov["product"] != i["product"]:
+                        # Inny produkt = inna jednostka praktyczna; „sztuki” starego
+                        # produktu przestają mieć sens — klient widzi gramy.
+                        i["units"] = None
+                        i["unit_g"] = None
                     i["product"] = ov["product"]
-                i["grams"] = float(ov["grams"])
+                i["grams"] = grams
                 i["override"] = {k: ov[k] for k in ("by", "at", "kind") if k in ov}
                 if i.get("unit_g"):
                     i["units"] = round(i["grams"] / i["unit_g"], 2)
@@ -275,6 +329,8 @@ def zastosuj_korekty(plan: dict[str, Any], o: dict[str, Any], prods: S.Products)
             ok, dev = S.check(d["macros"], d["target"], S.TOL_DAY)
             d["deviation"] = {k: _r(v) for k, v in dev.items()}
             d["status"] = "OK" if ok else "POZA_TOLERANCJĄ"
+    if "summary" in plan:
+        przelicz_podsumowanie(plan)
     return plan
 
 
@@ -297,6 +353,30 @@ def posilki_biblioteki(db: Session, week: DietTemplateWeek, slot: str | None = N
     return out
 
 
+def posilek_zastepczy(db: Session, *, profile_id: str, week_id: str, slot: str, nowy_id: str,
+                      nazwy: dict[str, str]) -> dict[str, Any]:
+    """Posiłek z biblioteki do ręcznej zamiany: ten sam slot, ten sam profil,
+    z opublikowanej odsłony (albo z tej samej odsłony) i z co najmniej jednym
+    składnikiem — inaczej `ValueError` (422). Bez tego trener mógłby wstawić
+    klientowi posiłek ze szkicu, który nie przeszedł sweepu, albo z obcego
+    profilu o innym makro."""
+    nowy = db.get(DietTemplateMeal, nowy_id)
+    if nowy is None:
+        raise ValueError(f"Posiłek zastępczy {nowy_id} nie istnieje.")
+    if nowy.slot != slot:
+        raise ValueError(f"Posiłek zastępczy „{nowy.name}” ma slot {nowy.slot}, a zamieniany posiłek — {slot}.")
+    dzien = db.get(DietTemplateDay, nowy.day_id)
+    week = db.get(DietTemplateWeek, dzien.week_id) if dzien else None
+    if week is None or week.profile_id != profile_id:
+        raise ValueError(f"Posiłek zastępczy „{nowy.name}” pochodzi z innego profilu diety.")
+    if week.status != "PUBLISHED" and week.id != week_id:
+        raise ValueError(f"Posiłek zastępczy „{nowy.name}” pochodzi z nieopublikowanej odsłony.")
+    nd = posilek_dict(db, nowy, nazwy)
+    if not nd["ingredients"]:
+        raise ValueError(f"Posiłek zastępczy „{nowy.name}” nie ma składników.")
+    return nd
+
+
 def szablon_z_zamianami(db: Session, tpl: dict[str, Any], zamiany: dict[str, str]) -> dict[str, Any]:
     """`zamiany`: "day:meal_id" → meal_id z biblioteki (ten sam slot). Zamieniony
     posiłek zachowuje udział kcal i flagę elastyczności slotu."""
@@ -304,20 +384,61 @@ def szablon_z_zamianami(db: Session, tpl: dict[str, Any], zamiany: dict[str, str
         return tpl
     nazwy = {p.id: p.name_pl for p in db.query(DietProduct.id, DietProduct.name_pl).all()}
     tpl = json.loads(json.dumps(tpl))
+    znane = {f"{d['day']}:{m['meal_id']}" for d in tpl["days"] for m in d["meals"]}
+    obce = sorted(set(zamiany) - znane)
+    if obce:
+        raise ValueError("Zamiana posiłku wskazuje nieistniejący posiłek szablonu: " + ", ".join(obce))
     for d in tpl["days"]:
         for idx, m in enumerate(d["meals"]):
             nowy_id = zamiany.get(f"{d['day']}:{m['meal_id']}")
             if not nowy_id:
                 continue
-            nowy = db.get(DietTemplateMeal, nowy_id)
-            if nowy is None or nowy.slot != m["slot"]:
-                raise ValueError(f"Posiłek zastępczy {nowy_id} nie istnieje albo ma inny slot niż {m['slot']}.")
-            nd = posilek_dict(db, nowy, nazwy)
+            nd = posilek_zastepczy(db, profile_id=tpl["profile_id"], week_id=tpl["week_id"], slot=m["slot"],
+                                   nowy_id=nowy_id, nazwy=nazwy)
             nd["kcal_share"] = m["kcal_share"]
             nd["flexible"] = m["flexible"]
             nd["replaced_from"] = m["meal_id"]
             d["meals"][idx] = nd
     return tpl
+
+
+def zamien_posilek_w_migawce(db: Session, a: DietAssigned, *, day: int, meal_id: str, nowy_id: str) -> dict[str, Any]:
+    """Zamiana posiłku w PRZYPISANEJ diecie: posiłek z biblioteki skalowany
+    do celu posiłku z migawki (tak jak zrobił to silnik), zapis do migawki.
+    Działa też dla slotu zamienianego po raz kolejny — punktem odniesienia
+    jest migawka, nie oryginalny szablon. Zwraca przeliczony dzień."""
+    plan = migawka(db, a)
+    d = next((x for x in plan["days"] if x["day"] == day), None)
+    m_idx = next((i for i, x in enumerate(d["meals"]) if x["meal_id"] == meal_id), None) if d else None
+    if d is None or m_idx is None:
+        raise KeyError("posiłek")
+    week = db.get(DietTemplateWeek, a.week_id)
+    if week is None:
+        raise ValueError("Odsłona przypisanej diety nie istnieje.")
+    stary = d["meals"][m_idx]
+    nazwy = {p.id: p.name_pl for p in db.query(DietProduct.id, DietProduct.name_pl).all()}
+    nd = posilek_zastepczy(db, profile_id=week.profile_id, week_id=week.id, slot=stary["slot"], nowy_id=nowy_id,
+                           nazwy=nazwy)
+    nd["kcal_share"] = stary.get("kcal_share")
+    nd["flexible"] = stary.get("flexible", False)
+    prods, _ = produkty(db)
+    wynik = S.scale_meal(nd, stary["target"], prods)
+    d["meals"][m_idx] = posilek_out(wynik)
+    d["meals"][m_idx]["replaced_from"] = stary.get("replaced_from") or meal_id
+    d["macros"] = {k: _r(sum(mm["macros"][k] for mm in d["meals"])) for k in ("kcal", "P", "F", "C")}
+    ok, dev = S.check(d["macros"], d["target"], S.TOL_DAY)
+    d["deviation"] = {k: _r(v) for k, v in dev.items()}
+    d["status"] = "OK" if ok else "POZA_TOLERANCJĄ"
+    if "summary" in plan:
+        przelicz_podsumowanie(plan)
+    # Stare korekty tego slotu dotyczyły składników, których już nie ma.
+    o = overrides(a)
+    prefix = f"{day}:{meal_id}:"
+    for k in [k for k in o["ingredients"] if k.startswith(prefix)]:
+        del o["ingredients"][k]
+    a.overrides_json = json.dumps(o, ensure_ascii=False)
+    a.computed_plan_json = json.dumps(plan, ensure_ascii=False)
+    return d
 
 
 def przypisz(db: Session, *, client_id: str, coach_id: str, week: DietTemplateWeek, plan: dict[str, Any],
@@ -332,7 +453,7 @@ def przypisz(db: Session, *, client_id: str, coach_id: str, week: DietTemplateWe
         id=new_id("DAS"), client_id=client_id, coach_id=coach_id, week_id=week.id, target_kcal=round(kcal),
         target_p=plan["target"]["P"], target_f=plan["target"]["F"], target_c=plan["target"]["C"],
         body_weight=body_weight, macro_mode=(macro or {}).get("mode", "profile"),
-        exclusions_json=json.dumps(exclusions, ensure_ascii=False),
+        exclusions_json=json.dumps(oczysc_wykluczenia(exclusions), ensure_ascii=False),
         computed_plan_json=json.dumps({k: plan[k] for k in ("week_id", "target", "kcal", "days", "warnings", "summary")},
                                       ensure_ascii=False),
         overrides_json=json.dumps(overrides_, ensure_ascii=False), version=wersja,

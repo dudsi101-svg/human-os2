@@ -57,6 +57,8 @@ from ..models import (
     WorkoutEntry,
     WorkoutSession,
     now_iso,
+    DietAssigned,
+    DietSwapEvent,
 )
 from ..schemas import ConsentDeclineIn, ConsentGrantIn, DeletionRequestIn
 from ..security import current_user, revoke_other_sessions, verify_password
@@ -341,8 +343,14 @@ def _collect_export(db: Session, user: User) -> dict:
     for onb in onboarding_sessions:
         onboarding_answers.extend(_rows(db, OnboardingAnswer, session_id=onb["id"]))
         onboarding_summary.extend(_rows(db, OnboardingSummaryItem, session_id=onb["id"]))
+    # Dieta z szablonu (0.60.0): przypisania (cel, masa ciała, wykluczenia,
+    # migawka planu i korekty) oraz historia wymian — dane żywieniowe klienta.
+    diet_assigned = _rows(db, DietAssigned, client_id=client_id)
+    diet_swaps = []
+    for da in diet_assigned:
+        diet_swaps.extend(_rows(db, DietSwapEvent, assigned_diet_id=da["id"]))
     return {
-        "export_version": "1.5",
+        "export_version": "1.6",
         "user": {
             "id": user.id, "email": user.email, "display_name": user.display_name,
             "identity_id": user.identity_id, "created_at": user.created_at,
@@ -386,6 +394,8 @@ def _collect_export(db: Session, user: User) -> dict:
         "audit_receipts": receipts,
         "challenge_participations": challenge_participations,
         "challenge_entries": challenge_entries,
+        "diet_assigned": diet_assigned,
+        "diet_swap_events": diet_swaps,
     }
 
 
@@ -584,6 +594,12 @@ def request_deletion(
         onb.current_step_id = None
         onb.summary_mode_reason = None
     db.query(AIUsageCounter).filter(AIUsageCounter.user_id == client_id).delete()
+    # Dieta z szablonu: przypisania (masa ciała, wykluczenia = alergie,
+    # migawka planu) i wymiany znikają w całości — to dane zdrowotne;
+    # szablony (własność trenera) zostają nietknięte.
+    for da in db.query(DietAssigned).filter(DietAssigned.client_id == client_id).all():
+        db.query(DietSwapEvent).filter(DietSwapEvent.assigned_diet_id == da.id).delete()
+        db.delete(da)
     # Klucze idempotencji (metadane operacyjne z identyfikatorami zapisów)
     # znikają razem z kontem.
     db.query(IdempotencyKey).filter(IdempotencyKey.user_id == client_id).delete()

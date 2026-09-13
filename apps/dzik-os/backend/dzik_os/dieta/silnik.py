@@ -10,7 +10,13 @@ Różnice względem referencji są WYŁĄCZNIE techniczne:
 * opcjonalna reguła `group` (specyfikacja §6.3 / kryterium akceptacji:
   „składniki w tej samej `group` mają identyczny współczynnik końcowy”),
   której referencja NIE wymusza — włączana parametrem `enforce_groups`
-  (domyślnie False = wynik identyczny z referencją; aplikacja włącza).
+  (domyślnie False = wynik identyczny z referencją i złotym plikiem;
+  API przyjmuje `enforce_groups=true` w podglądzie/przypisaniu, interfejs
+  trenera nie włącza jej domyślnie — decyzja właściciela, PROGRESS.md);
+* walidacja wejścia (posiłek bez składników, zerowa kaloryczność bazowa,
+  cel ≤ 0 kcal, niedodatnie kroki zaokrąglania) kończy się `ValueError`
+  zamiast wyjątkiem arytmetycznym — referencja nigdy nie była wołana
+  poniżej 1400 kcal ani na niekompletnych szablonach.
 
 Kolejność kroków, stałe (tolerancje, klasy, mnożniki, liczby przebiegów)
 i arytmetyka są identyczne z referencją — test „golden” porównuje pełny
@@ -92,6 +98,14 @@ def fill_defaults(ing: dict, products: Products) -> dict:
             raise ValueError(f"{ing['product']}: DYSKRETNY wymaga unit_g")
         if ing.get("unit_step") is None:
             ing["unit_step"] = 1.0
+        if not (float(ing["unit_g"]) > 0 and float(ing["unit_step"]) > 0):
+            raise ValueError(f"{ing['product']}: unit_g i unit_step muszą być dodatnie")
+    elif cls != "STAŁY" and not (ing.get("round_step") or 0) > 0:
+        raise ValueError(f"{ing['product']}: round_step musi być dodatni")
+    if not (ing.get("min_factor") or 0) > 0 or ing["max_factor"] < ing["min_factor"]:
+        raise ValueError(f"{ing['product']}: zakres min_factor–max_factor jest niepoprawny")
+    if not float(ing["grams"]) > 0:
+        raise ValueError(f"{ing['product']}: gramatura bazowa musi być dodatnia")
     ing["base_grams"] = ing["grams"]
     return ing
 
@@ -213,6 +227,10 @@ def enforce_groups(ings: list[dict], products: Products) -> None:
                 units -= step
             while units / base_units < lo - 1e-9:
                 units += step
+            # Gdy krok jednostki nie mieści się między lo a hi, twarda jest górna
+            # granica (max_factor to limit praktyczny porcji) — schodzimy z powrotem.
+            while units / base_units > hi + 1e-9 and units - step >= step:
+                units -= step
             f = units / base_units
         for m in members:
             m["grams"] = m["base_grams"] * f
@@ -223,7 +241,14 @@ def enforce_groups(ings: list[dict], products: Products) -> None:
 
 def scale_meal(meal: dict, target: dict, products: Products, *, enforce_groups_: bool = False) -> dict:
     ings = [fill_defaults(copy.deepcopy(i), products) for i in meal["ingredients"]]
+    if not ings:
+        raise ValueError(f"{meal.get('name') or meal.get('slot')}: posiłek bez składników")
     base = sum_macros(ings, products)
+    if base["kcal"] <= 0:
+        raise ValueError(f"{meal.get('name') or meal.get('slot')}: bazowa kaloryczność posiłku wynosi 0")
+    if target["kcal"] <= 0:
+        raise ValueError(f"{meal.get('name') or meal.get('slot')}: cel posiłku {target['kcal']:.0f} kcal "
+                         "jest niedodatni — kaloryczność za niska dla tego szablonu")
     k = target["kcal"] / base["kcal"]
     scale_initial(ings, k)
     limit = fit_macros(ings, target, products)
@@ -249,9 +274,18 @@ def scale_meal(meal: dict, target: dict, products: Products, *, enforce_groups_:
 def scale_day(day: dict, day_target: dict, products: Products, *, enforce_groups_: bool = False) -> dict:
     """Krok 1: kcal posiłku wg udziału; makro posiłku wg jego własnego profilu bazowego,
     przeskalowane o stosunek (cel dnia / suma bazowa dnia) - zachowuje charakter przepisu."""
+    if not day["meals"]:
+        raise ValueError(f"dzień {day.get('day')}: brak posiłków")
     bases = [sum_macros([fill_defaults(copy.deepcopy(i), products) for i in m["ingredients"]], products)
              for m in day["meals"]]
     base_day = {m: sum(b[m] for b in bases) for m in ("kcal", "P", "F", "C")}
+    zerowe = [m for m in ("kcal", "P", "F", "C") if base_day[m] <= 0]
+    if zerowe:
+        raise ValueError(f"dzień {day.get('day')}: bazowa suma {', '.join(zerowe)} wynosi 0")
+    if any(b["kcal"] <= 0 for b in bases):
+        raise ValueError(f"dzień {day.get('day')}: posiłek o zerowej kaloryczności bazowej")
+    if day_target["kcal"] <= 0:
+        raise ValueError(f"dzień {day.get('day')}: cel {day_target['kcal']:.0f} kcal jest niedodatni")
     ratio = {m: day_target[m] / base_day[m] for m in ("P", "F", "C")}
     out = []
     for meal, b in zip(day["meals"], bases, strict=True):
