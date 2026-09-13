@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { api, ApiError } from "../../api";
 import { ErrorBox } from "../../components";
+import { WywiadPodpowiedzi } from "../../types";
 import {
   CoachClientRow,
   KulinariaPlan,
@@ -137,6 +138,16 @@ export default function KreatorDan() {
   const [zapisMsg, setZapisMsg] = useState<string | null>(null);
   const [otwarte, setOtwarte] = useState<string | null>(null);
   const [sekcja, setSekcja] = useState<"kreator" | "receptury">("kreator");
+  // Wywiad (0.59.0): podpowiedzi z faktów klienta — alergie jako ograniczenie
+  // (wstępne zaznaczenie do jawnego potwierdzenia), reszta jako informacja.
+  const [podpowiedzi, setPodpowiedzi] = useState<WywiadPodpowiedzi | null>(null);
+  const [zastosowano, setZastosowano] = useState(false);
+  useEffect(() => {
+    setPodpowiedzi(null); setZastosowano(false);
+    if (!f.client_id) return;
+    api.get<WywiadPodpowiedzi>(`/api/clients/${f.client_id}/wywiady/podpowiedzi`)
+      .then(setPodpowiedzi).catch(() => setPodpowiedzi(null));
+  }, [f.client_id]);
 
   useEffect(() => {
     api.get<KulinariaProfil>("/api/coach/kulinaria/profile").then(setProfil).catch((e) => setError((e as Error).message));
@@ -264,6 +275,29 @@ export default function KreatorDan() {
                   onChange={(e) => set("max_family_uses_per_week", e.target.value)} /></div>
             </div>
             <label>Alergeny klienta</label>
+            {podpowiedzi?.available && (
+              <p className="alert alert--info" style={{ fontSize: "0.85rem" }} role="status">
+                <b>Z wywiadu klienta:</b>{" "}
+                {podpowiedzi.nutrition.allergens.length
+                  ? `alergeny ${podpowiedzi.nutrition.allergens.map((a) => ALERGENY_PL[a] ?? a).join(", ")}`
+                  : "brak rozpoznanych alergenów z listy"}
+                {podpowiedzi.nutrition.allergens_text ? ` (odpowiedź: „${podpowiedzi.nutrition.allergens_text}”)` : ""}
+                {podpowiedzi.nutrition.allergen_status ? ` · status: ${podpowiedzi.nutrition.allergen_status}` : ""}
+                {podpowiedzi.nutrition.intolerances ? ` · nietolerancje (preferencja): ${podpowiedzi.nutrition.intolerances}` : ""}
+                {podpowiedzi.nutrition.exclusions ? ` · wykluczenia z wyboru: ${podpowiedzi.nutrition.exclusions}` : ""}
+                {(podpowiedzi.warnings ?? []).map((w) => <span key={w}> · {w}</span>)}
+                {podpowiedzi.nutrition.allergens.length > 0 && !zastosowano && (
+                  <> <button type="button" className="btn btn--small" onClick={() => {
+                    setF((s) => ({ ...s, allergens: new Set([...s.allergens, ...podpowiedzi.nutrition.allergens]) }));
+                    setZastosowano(true);
+                  }}>Zaznacz alergeny z wywiadu</button></>
+                )}
+                {zastosowano && <> · zaznaczono — sprawdź i popraw ręcznie, jeśli trzeba</>}
+              </p>
+            )}
+            {f.client_id && podpowiedzi && !podpowiedzi.available && (
+              <p className="dim" style={{ fontSize: "0.8rem" }}>Brak przesłanego wywiadu — alergie ustaw ręcznie po potwierdzeniu z klientem (brak informacji ≠ brak alergii).</p>
+            )}
             <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
               {(profil?.alergeny ?? Object.keys(ALERGENY_PL)).map((a) => (
                 <label key={a} className="badge" style={{ cursor: "pointer", opacity: f.allergens.has(a) ? 1 : 0.6 }}>

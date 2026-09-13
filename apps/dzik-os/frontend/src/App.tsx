@@ -7,6 +7,7 @@ import { lazy, Suspense } from "react";
 const Today = lazy(() => import("./pages/client/Today"));
 const Intake = lazy(() => import("./pages/client/Intake"));
 const Interview = lazy(() => import("./pages/client/Interview"));
+const Wywiad = lazy(() => import("./pages/client/Wywiad"));
 const Onboarding = lazy(() => import("./pages/client/Onboarding"));
 const Plan = lazy(() => import("./pages/client/Plan"));
 const Nutrition = lazy(() => import("./pages/client/Nutrition"));
@@ -104,7 +105,8 @@ export default function App() {
           <>
             <Route path="/" element={<Today />} />
             <Route path="/rozmowa" element={<Onboarding />} />
-            <Route path="/wywiad" element={<Interview />} />
+            <Route path="/wywiad" element={<Wywiad />} />
+            <Route path="/wywiad/rozmowa" element={<Interview />} />
             <Route path="/ankieta" element={<Intake />} />
             <Route path="/plan" element={<Plan />} />
             <Route path="/dieta" element={<Nutrition />} />

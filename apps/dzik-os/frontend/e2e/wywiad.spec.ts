@@ -12,10 +12,13 @@ import { KONTA, zaloguj } from "./helpers";
 test("klient zaczyna głęboki wywiad, odpowiada i wznawia po przeładowaniu", async ({ page }) => {
   await zaloguj(page, KONTA.klientA);
 
-  // Wejście jak człowiek: Więcej → Głęboki wywiad.
+  // Wejście jak człowiek: Więcej → Wywiad (zakładka, 0.59.0) → rozmowa
+  // krok po kroku jako alternatywny kanał głębokiego wywiadu.
   await page.goto("/wiecej");
-  await page.getByRole("link", { name: "Głęboki wywiad" }).click();
-  await expect(page).toHaveURL(/\/wywiad/);
+  await page.getByRole("link", { name: /Wywiad \(wstępny i głęboki\)/ }).click();
+  await expect(page).toHaveURL(/\/wywiad$/);
+  await page.getByRole("link", { name: "głęboki wywiad" }).click();
+  await expect(page).toHaveURL(/\/wywiad\/rozmowa/);
   await expect(page.getByRole("heading", { name: "Porozmawiajmy głębiej" }))
     .toBeVisible({ timeout: 15_000 });
 

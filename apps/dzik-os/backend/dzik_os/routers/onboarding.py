@@ -942,6 +942,11 @@ def build_router(cfg: FlowConfig) -> APIRouter:
             },
             summary=f"Klient zatwierdził podsumowanie {cfg.label_gen}",
         )
+        # Zakładka Wywiad (0.59.0): zatwierdzona rozmowa = wersja formularza
+        # (ten sam klient, te same odpowiedzi, bez powiadomienia).
+        from ..wywiad import migracja as wywiad_migracja
+
+        wywiad_migracja.przenies_zatwierdzona(db, session)
         db.commit()
         payload = _state_payload(db, user, session, client_id)
         payload["applied_fields"] = changed
@@ -1026,6 +1031,9 @@ def build_router(cfg: FlowConfig) -> APIRouter:
             },
             summary=f"Trener zatwierdził podsumowanie {cfg.label_gen}",
         )
+        from ..wywiad import migracja as wywiad_migracja
+
+        wywiad_migracja.przenies_zatwierdzona(db, session)
         db.commit()
         return _state_payload(db, user, session, client_id)
 

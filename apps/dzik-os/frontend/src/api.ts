@@ -63,12 +63,16 @@ export class ApiError extends Error {
   code?: string;
   /** Identyfikator żądania (X-Request-Id) — do zgłoszenia problemu. */
   requestId?: string;
-  constructor(status: number, detail: string, code?: string, requestId?: string) {
+  /** Ustrukturyzowana treść błędu (np. lista braków formularza) — widoki
+   * używają wyłącznie znanych pól, nigdy nie pokazują jej surowo. */
+  body?: unknown;
+  constructor(status: number, detail: string, code?: string, requestId?: string, body?: unknown) {
     super(detail);
     this.name = "ApiError";
     this.status = status;
     this.code = code;
     this.requestId = requestId;
+    this.body = body;
   }
 }
 
@@ -166,8 +170,10 @@ async function errorFromResponse(resp: Response): Promise<ApiError> {
   let detail = `Błąd ${resp.status}`;
   let code: string | undefined;
   let requestId: string | undefined = resp.headers.get("X-Request-Id") ?? undefined;
+  let body: unknown;
   try {
     const data = await resp.json();
+    body = data;
     if (typeof data.detail === "string") detail = data.detail;
     if (typeof data.code === "string") code = data.code;
     if (typeof data.request_id === "string") requestId = data.request_id;
@@ -175,7 +181,7 @@ async function errorFromResponse(resp: Response): Promise<ApiError> {
     /* Świadomie: odpowiedź bez poprawnego JSON-a (np. proxy, HTML 502) —
      * zostaje bezpieczny fallback „Błąd <status>". */
   }
-  return new ApiError(resp.status, detail, code, requestId);
+  return new ApiError(resp.status, detail, code, requestId, body);
 }
 
 async function request<T>(

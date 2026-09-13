@@ -313,7 +313,8 @@ try {
       ["/", "h1:has-text('Dzisiaj')"],
       ["/raport", "h1:has-text('Raport tygodniowy')"],
       ["/platnosci", "h1:has-text('Płatności')"],
-      ["/wywiad", "h1:has-text('Głęboki wywiad')"],
+      ["/wywiad", "h1:has-text('Wywiad')"],
+      ["/wywiad?typ=wstepny", "h1:has-text('Wywiad wstępny')"],
     ]) {
       await page.goto(`${url}${path}`, { waitUntil: "networkidle" });
       await page.waitForSelector(sel);

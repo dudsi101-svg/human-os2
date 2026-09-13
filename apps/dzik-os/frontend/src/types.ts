@@ -437,6 +437,8 @@ export interface CoachClientRow {
     unread_messages: number;
     recent_pain_reports: number;
     flagged_observations: number;
+    /** Ostatnia przesłana wersja wywiadu bez przeglądu trenera (0.59.0). */
+    interview_to_review?: number;
   };
   last_checkin_week: string | null;
 }
@@ -1452,4 +1454,190 @@ export interface ZestawZmian {
   plan_title?: string;
   plan_url?: string;
   current_version_no?: number;
+}
+
+// --- Zakładka „Wywiad” (0.59.0) ---------------------------------------------
+
+export type WywiadTyp = "wstepny" | "gleboki";
+export type SubmissionStatus = "not_started" | "draft" | "submitted";
+export type ReviewStatus = "not_reviewed" | "needs_clarification" | "reviewed";
+export type FreshnessStatus = "current" | "update_requested";
+
+export interface WywiadPostep {
+  required_answered: number;
+  required_total: number;
+  percent: number;
+  active_answered: number;
+  active_total: number;
+  ready: boolean;
+  data_ready: boolean;
+}
+
+export interface WywiadPytanie {
+  question_id: string;
+  version: number;
+  type: "TEXT" | "LONGTEXT" | "CHOICE" | "MULTI" | "SCALE" | "BOOL" | "INFO";
+  label: string;
+  why: string;
+  section: string;
+  options: string[];
+  required: boolean;
+  required_for: string[];
+  active: boolean;
+  visibility_rule: string;
+  consent_domain: string | null;
+  sensitive: boolean;
+  access_class: string;
+  fact_key: string | null;
+  max_len: number;
+  conditional: boolean;
+  placeholder: string;
+  info: boolean;
+}
+
+export interface WywiadOdpowiedz {
+  question_id: string;
+  label: string;
+  section: string;
+  value: string | null;
+  skipped: boolean;
+  entered_by: string | null;
+  at: string | null;
+  hidden: boolean;
+  active: boolean;
+  fact_key: string | null;
+  sensitive: boolean;
+  to_discuss: boolean;
+}
+
+export interface WywiadFakt {
+  value: string;
+  source_type: string;
+  question_id: string | null;
+  author_id: string;
+  created_at: string;
+  version: number;
+}
+
+export interface WywiadDefinicja {
+  typ: WywiadTyp;
+  version: number;
+  title: string;
+  opis: string;
+  sections: { key: string; label: string; opis: string }[];
+  questions: WywiadPytanie[];
+  progress: WywiadPostep;
+  hidden_domains: string[];
+  answers: WywiadOdpowiedz[];
+  draft: { revision: number; updated_at: string; dirty: boolean; collection_mode: string; updated_by: string } | null;
+  facts: Record<string, WywiadFakt>;
+  has_coach: boolean;
+}
+
+export interface WywiadDoprecyzowanie {
+  id: string;
+  typ: WywiadTyp;
+  submission_id: string | null;
+  question_ids: string[];
+  message: string;
+  status: "OPEN" | "RESOLVED";
+  created_at: string;
+  resolved_at: string | null;
+}
+
+export interface WywiadPrzeglad {
+  id?: string;
+  outcome: "REVIEWED" | "NEEDS_CLARIFICATION";
+  created_at: string;
+  coach_id?: string;
+  migrated: boolean;
+  internal_note?: string | null;
+}
+
+export interface WywiadPrzeslanieMeta {
+  id: string;
+  version_no: number;
+  definition_version: number;
+  submitted_at: string;
+  submitted_by: string;
+  collection_mode: string;
+  migrated: boolean;
+  safety_flag: boolean;
+  progress: Partial<WywiadPostep>;
+  review: { outcome: "REVIEWED" | "NEEDS_CLARIFICATION"; created_at: string; migrated: boolean } | null;
+}
+
+export interface WywiadPrzeslanie extends WywiadPrzeslanieMeta {
+  answers: WywiadOdpowiedz[];
+  reviews: WywiadPrzeglad[];
+  clarifications: WywiadDoprecyzowanie[];
+}
+
+export interface WywiadStan {
+  typ: WywiadTyp;
+  title: string;
+  definition_version: number;
+  submission_status: SubmissionStatus;
+  review_status: ReviewStatus;
+  freshness_status: FreshnessStatus;
+  progress: WywiadPostep;
+  draft: { revision: number; updated_at: string; updated_by: string; collection_mode: string; dirty: boolean } | null;
+  last_submission: WywiadPrzeslanieMeta | null;
+  submissions_count: number;
+  open_clarifications: WywiadDoprecyzowanie[];
+}
+
+export interface ZadanieSprawdzenia {
+  id: string;
+  client_id: string;
+  plan_kind: PlanKind;
+  plan_id: string;
+  submission_id: string;
+  changed_facts: string[];
+  status: "OPEN" | "RESOLVED";
+  created_at: string;
+  resolved_at: string | null;
+  resolution_note: string | null;
+}
+
+export interface WywiadyPrzeglad {
+  client_id: string;
+  access: { ok: boolean; reason: string | null; viewer: "client" | "coach"; has_coach: boolean;
+    missing_domains: string[]; visible_domains: string[] };
+  wywiady: WywiadStan[];
+  review_tasks: ZadanieSprawdzenia[];
+}
+
+export interface WywiadZrodlo {
+  question_id: string; label: string; version_no: number; typ: WywiadTyp; entered_by: string | null; at: string | null;
+}
+
+export interface WywiadPunkt { text: string; source: WywiadZrodlo }
+
+export interface WywiadPodsumowanie {
+  cele: WywiadPunkt[];
+  ograniczenia: WywiadPunkt[];
+  preferencje: WywiadPunkt[];
+  do_wyjasnienia: WywiadPunkt[];
+  do_aktualizacji: { text: string; question_ids: string[]; typ: WywiadTyp; created_at: string; clarification_id: string }[];
+}
+
+export interface WywiadPodpowiedzi {
+  available: boolean;
+  reason?: string;
+  training: Record<string, unknown>;
+  nutrition: { allergens: string[]; allergen_status: string | null; preferences: string[]; intolerances: string | null;
+    exclusions: string | null; cooking: string | null; allergens_text?: string; goal_text?: string };
+  sources: WywiadZrodlo[];
+  warnings?: string[];
+  interview_submission_ids: Partial<Record<WywiadTyp, string>>;
+}
+
+export interface WywiadDoPrzegladuWiersz {
+  client_id: string;
+  display_name: string;
+  wywiady: Pick<WywiadStan, "typ" | "title" | "submission_status" | "review_status" | "freshness_status" | "progress" | "last_submission">[];
+  open_review_tasks: number;
+  needs_review: boolean;
+  not_started: boolean;
 }

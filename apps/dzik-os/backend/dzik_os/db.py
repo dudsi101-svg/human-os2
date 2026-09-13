@@ -1172,7 +1172,7 @@ MIGRATIONS.append(
             " definition_version INTEGER NOT NULL DEFAULT 1,"
             " answers_json TEXT NOT NULL DEFAULT '{}',"
             " revision INTEGER NOT NULL DEFAULT 1,"
-            " dirty BOOLEAN NOT NULL DEFAULT 1,"
+            " dirty BOOLEAN NOT NULL DEFAULT true,"
             " collection_mode VARCHAR(20) NOT NULL DEFAULT 'SELF',"
             " created_by VARCHAR(40) NOT NULL,"
             " updated_by VARCHAR(40) NOT NULL,"
@@ -1196,9 +1196,9 @@ MIGRATIONS.append(
             " submitted_by VARCHAR(40) NOT NULL,"
             " submitted_at VARCHAR(40) NOT NULL,"
             " collection_mode VARCHAR(20) NOT NULL DEFAULT 'SELF',"
-            " migrated BOOLEAN NOT NULL DEFAULT 0,"
+            " migrated BOOLEAN NOT NULL DEFAULT false,"
             " source_session_id VARCHAR(40),"
-            " safety_flag BOOLEAN NOT NULL DEFAULT 0,"
+            " safety_flag BOOLEAN NOT NULL DEFAULT false,"
             " UNIQUE (client_id, typ, version_no))"
         ),
         "CREATE INDEX IF NOT EXISTS ix_interview_submissions_client_id ON interview_submissions (client_id)",
@@ -1211,7 +1211,7 @@ MIGRATIONS.append(
             " coach_id VARCHAR(40) NOT NULL,"
             " outcome VARCHAR(30) NOT NULL,"
             " internal_note TEXT,"
-            " migrated BOOLEAN NOT NULL DEFAULT 0,"
+            " migrated BOOLEAN NOT NULL DEFAULT false,"
             " created_at VARCHAR(40) NOT NULL)"
         ),
         "CREATE INDEX IF NOT EXISTS ix_interview_reviews_submission_id ON interview_reviews (submission_id)",
@@ -1243,8 +1243,8 @@ MIGRATIONS.append(
             " question_id VARCHAR(40),"
             " author_id VARCHAR(40) NOT NULL,"
             " version INTEGER NOT NULL DEFAULT 1,"
-            " is_current BOOLEAN NOT NULL DEFAULT 1,"
-            " sensitive BOOLEAN NOT NULL DEFAULT 0,"
+            " is_current BOOLEAN NOT NULL DEFAULT true,"
+            " sensitive BOOLEAN NOT NULL DEFAULT false,"
             " created_at VARCHAR(40) NOT NULL)"
         ),
         "CREATE INDEX IF NOT EXISTS ix_client_fact_revisions_client_id ON client_fact_revisions (client_id)",

@@ -139,10 +139,14 @@ i podlegają migracji do wersji.
    zaznacza alergeny z jawną korektą trenera; szkic planu zapisuje
    `interview_submission_id` w treści (`_wywiad`). Bez LLM.
 9. **Ścieżki tworzenia klienta**: karty formularzy istnieją dla
-   każdego klienta bez wiersza w bazie (`not_started`); zaproszenie na
-   istniejące konto rejestruje deklaracje zgód jak nowe konto (naprawa
-   przyczyny 5); przyjęcie zaproszenia dołącza konto do istniejącego
-   klienta (bez duplikatu). Trener może zainicjować prośbę o wywiad.
+   każdego klienta bez wiersza w bazie (`not_started`); trener może
+   zainicjować prośbę o wywiad. Przyczyna 5 (zaproszenie na istniejące
+   konto bez deklaracji zgód) **nie jest „naprawiana” rejestrowaniem
+   deklaracji za podmiot** — w tym systemie deklaracja bez potwierdzenia
+   już autoryzuje trenera (`ConsentService.authorize`), więc byłoby to
+   nadanie zgody bez udziału klienta (P7, KARTA). Zamiast tego stan jest
+   jawny: trener widzi powód (konto przed aktywacją / brak zgód), klient
+   widzi wyłączone kategorie i gdzie zgodę włączyć.
 
 ## Zamiar P0
 
@@ -170,8 +174,8 @@ i podlegają migracji do wersji.
 ## Rezerwacje
 
 Migracja nr **31**, wersja **0.59.0**, pliki: `backend/dzik_os/wywiad/**`,
-`dzik_os/migruj_wywiad.py`, `routers/wywiady.py`, `routers/clients.py`
-(zgody), `publikacja/serwis.py` (blokada), `notifications.py` (kategoria),
+`dzik_os/migruj_wywiad.py`, `routers/wywiady.py`, `routers/onboarding.py`
+(zatwierdzenie → wersja), `publikacja/serwis.py` (blokada), `notifications.py` (kategoria),
 `frontend/src/pages/client/Wywiad.tsx`, `pages/coach/WywiadTab.tsx`,
 `pages/coach/{ClientDetail,Clients,KreatorDan}.tsx`, `e2e/wywiad.spec.ts`,
 `docs/WYWIAD.md`.

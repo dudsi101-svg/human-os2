@@ -9,7 +9,7 @@ obserwacji), baza wiedzy (artykuły, know-how ćwiczeń z podziałem na
 partie, baza produktów z makro i kompozytor diety), wiadomości (w tym
 głosowe), dokumenty, płatności i dashboard trenera.
 
-Status: **pilotaż na produkcji (0.58.0)** — bieżący stan wdrożenia,
+Status: **pilotaż na produkcji (0.59.0)** — bieżący stan wdrożenia,
 kont i integracji: [docs/RELEASE_STATUS.md](docs/RELEASE_STATUS.md) ·
 Język: polski · Licencja kodu: Apache-2.0
 
@@ -107,6 +107,8 @@ wszystkie powyższe bramki na każdym PR.
 | [docs/RISK_REGISTER.md](docs/RISK_REGISTER.md) | Rejestr ryzyk |
 | [docs/DEFERRED_FEATURES.md](docs/DEFERRED_FEATURES.md) | Świadomie odłożone funkcje |
 | [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) | Uruchomienie, staging, produkcja |
+| [docs/WYWIAD.md](docs/WYWIAD.md) | Zakładka „Wywiad”: diagnoza, formularze, wersje, przegląd, migracja (0.59.0) |
+| [docs/PUBLIKACJA_ZMIAN.md](docs/PUBLIKACJA_ZMIAN.md) | Panel trenera: szkice, różnice, publikacja zmian (0.58.0) |
 | [docs/OCR.md](docs/OCR.md) | Przepisywanie tekstu ze zdjęcia: dwa tryby, kolejka, limity, prywatność |
 | [docs/INSTRUKCJA_TRENERA.md](docs/INSTRUKCJA_TRENERA.md) | Instrukcja dla trenera |
 | [docs/INSTRUKCJA_KLIENTA.md](docs/INSTRUKCJA_KLIENTA.md) | Instrukcja dla podopiecznego |

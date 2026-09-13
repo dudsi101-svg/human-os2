@@ -147,6 +147,7 @@ def test_dashboard_and_list_still_report_real_state(seeded):
         assert set(row["flags"]) == {
             "checkin_overdue", "awaiting_review", "payment_overdue",
             "unread_messages", "recent_pain_reports", "flagged_observations",
+            "interview_to_review",
         }
     dashboard = seeded.get("/api/coach/dashboard", headers=headers).json()
     assert dashboard["active_clients"] == sum(

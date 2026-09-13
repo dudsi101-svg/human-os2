@@ -109,11 +109,16 @@ def _dostep(db: Session, user: User, client_id: str) -> dict:
                 "visible_domains": {DOMAIN_HEALTH, DOMAIN_NUTRITION},
                 "missing_domains": [], "has_coach": coach_id is not None}
     if "COACH" in roles and active_relationship(db, user.id, client_id) is not None:
+        klient = db.get(User, client_id)
         wsp = coach_can_access_client(db, user.id, client_id, domain=DOMAIN_COLLABORATION)
         widoczne = serwis.domeny_widoczne(db, user, client_id)
         brak = [d for d in (DOMAIN_HEALTH, DOMAIN_NUTRITION) if d not in widoczne]
         powod = None
-        if not wsp:
+        if klient is not None and klient.status != "ACTIVE":
+            wsp = False
+            powod = ("Konto klienta czeka na aktywację (klient nie ustawił jeszcze hasła z zaproszenia). "
+                     "Wywiad będzie można wypełnić po aktywacji — to nie jest błąd techniczny.")
+        elif not wsp:
             powod = ("Klient nie potwierdził jeszcze zgód na współpracę w aplikacji (albo je cofnął). "
                      "Wywiad będzie widoczny po potwierdzeniu zgód przez klienta — to nie jest błąd techniczny.")
         return {"viewer": "coach", "coach_id": user.id, "ok": wsp, "reason": powod,
@@ -127,8 +132,10 @@ def _dostep(db: Session, user: User, client_id: str) -> dict:
 def _dostep_pelny(db: Session, user: User, client_id: str) -> dict:
     d = _dostep(db, user, client_id)
     if not d["ok"]:
-        # Trener z relacją bez zgody współpracy — jak resolve_client_access.
-        resolve_client_access(db, user, client_id, domain=DOMAIN_COLLABORATION)
+        # Trener z relacją, ale bez zgody współpracy albo z kontem klienta
+        # przed aktywacją: przegląd stanów podaje powód, wszystkie inne trasy
+        # odmawiają jak resolve_client_access (404 + wpis w audycie).
+        deny(user.id, f"wywiad:{client_id}")
     return d
 
 
@@ -405,7 +412,9 @@ def do_przegladu(coach: User = Depends(require_role("COACH")), db: Session = Dep
                                                  "freshness_status", "progress", "last_submission")})
         zad = (db.query(PlanReviewTask).filter_by(client_id=rel.client_id, coach_id=coach.id, status="OPEN")
                .count())
-        do_przejrzenia = any(p["submission_status"] == "submitted" and p["review_status"] == "not_reviewed"
+        # Ostatnia przesłana wersja bez przeglądu — niezależnie od tego, czy
+        # klient już zaczął kolejny szkic (wersja czeka na trenera tak czy inaczej).
+        do_przejrzenia = any(p["last_submission"] is not None and p["review_status"] == "not_reviewed"
                              for p in pozycje)
         out.append({"client_id": client.id, "display_name": client.display_name, "wywiady": pozycje,
                     "open_review_tasks": zad, "needs_review": do_przejrzenia,

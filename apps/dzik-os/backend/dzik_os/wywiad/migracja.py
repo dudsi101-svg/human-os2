@@ -79,6 +79,51 @@ def liczby(db: Session) -> dict[str, Any]:
     }
 
 
+def przenies_zatwierdzona(db: Session, session: OnboardingSession) -> InterviewSubmission | None:
+    """Jedna zatwierdzona sesja rozmowy → wersja w zakładce Wywiad (ten
+    kanał nadal działa jako alternatywne źródło). Idempotentnie po
+    `source_session_id`; bez powiadomień (klient sam zatwierdził)."""
+    typ = _FLOW_TYP.get(session.flow)
+    if typ is None or session.status not in _ZATWIERDZONE:
+        return None
+    istn = db.query(InterviewSubmission).filter_by(source_session_id=session.id).one_or_none()
+    if istn is not None:
+        if session.status == "COACH_APPROVED" and session.coach_approved_by and \
+                db.query(InterviewReview).filter_by(submission_id=istn.id).count() == 0:
+            db.add(InterviewReview(id=new_id("IVR"), submission_id=istn.id, coach_id=session.coach_approved_by,
+                                   outcome="REVIEWED", migrated=True,
+                                   created_at=session.coach_approved_at or session.updated_at))
+        return istn
+    answers = _odpowiedzi_sesji(db, session)
+    if not any(not a["skipped"] and a["value"] for a in answers.values()):
+        return None
+    defn = D.definicja(typ)
+    nr = db.query(InterviewSubmission).filter_by(client_id=session.client_id, typ=typ).count() + 1
+    domeny = {DOMAIN_HEALTH, DOMAIN_NUTRITION}
+    sub = InterviewSubmission(
+        id=new_id("IVS"), client_id=session.client_id,
+        coach_id=session.coach_approved_by or serwis.trener_klienta(db, session.client_id), typ=typ,
+        version_no=nr, definition_version=defn.version, answers_json=json.dumps(answers, ensure_ascii=False),
+        progress_json=json.dumps(D.postep(defn, answers, domeny)), submitted_by=session.client_id,
+        submitted_at=session.client_approved_at or session.updated_at, collection_mode="MIGRACJA",
+        migrated=True, source_session_id=session.id, safety_flag=bool(session.safety_flag),
+    )
+    db.add(sub)
+    db.flush()
+    if session.status == "COACH_APPROVED" and session.coach_approved_by:
+        db.add(InterviewReview(id=new_id("IVR"), submission_id=sub.id, coach_id=session.coach_approved_by,
+                               outcome="REVIEWED", migrated=True,
+                               created_at=session.coach_approved_at or session.updated_at))
+    akt = {q.question_id for q in D.aktywne(defn, answers, domeny)}
+    serwis._zapisz_fakty(db, client_id=session.client_id, defn=defn, answers=answers, aktywne_ids=akt,
+                         source_type="migracja", source_id=sub.id, domyslny_autor=session.client_id)
+    # Szkic (jeśli istnieje) wskazuje nową wersję jako bazę.
+    d = serwis.szkic(db, session.client_id, typ)
+    if d is not None and d.last_submission_id is None:
+        d.last_submission_id = sub.id
+    return sub
+
+
 def migruj(db: Session, *, wykonaj: bool = True) -> dict[str, Any]:
     """Wykonuje (albo tylko symuluje przy `wykonaj=False`) migrację.
     Zwraca raport: liczby przed/po, utworzone obiekty, pominięte (już
@@ -102,7 +147,6 @@ def migruj(db: Session, *, wykonaj: bool = True) -> dict[str, Any]:
         grupy[(s.client_id, typ)].append(s)
     aktywne_relacje = {r.client_id for r in db.query(CoachClientRelationship.client_id)
                        .filter(CoachClientRelationship.status == "ACTIVE").all()}
-    domeny = {DOMAIN_HEALTH, DOMAIN_NUTRITION}
 
     for (client_id, typ), sesje in grupy.items():
         klient = db.get(User, client_id)
@@ -116,37 +160,19 @@ def migruj(db: Session, *, wykonaj: bool = True) -> dict[str, Any]:
                                                     "sesje": [s.id for s in sesje]})
         defn = D.definicja(typ)
         zatwierdzone = [s for s in sesje if s.status in _ZATWIERDZONE]
-        nr = (db.query(InterviewSubmission).filter_by(client_id=client_id, typ=typ).count())
         for s in zatwierdzone:
             if s.id in istniejace_zrodla:
                 raport["pominiete_juz_zmigrowane"] += 1
                 continue
-            answers = _odpowiedzi_sesji(db, s)
-            if not any(not a["skipped"] and a["value"] for a in answers.values()):
+            przed_f = db.query(ClientFactRevision).count()
+            sub = przenies_zatwierdzona(db, s)
+            if sub is None:
                 raport["sesje_bez_odpowiedzi"] += 1
                 continue
-            nr += 1
-            coach_id = s.coach_approved_by or serwis.trener_klienta(db, client_id)
-            sub = InterviewSubmission(
-                id=new_id("IVS"), client_id=client_id, coach_id=coach_id, typ=typ, version_no=nr,
-                definition_version=defn.version, answers_json=json.dumps(answers, ensure_ascii=False),
-                progress_json=json.dumps(D.postep(defn, answers, domeny)),
-                submitted_by=client_id, submitted_at=s.client_approved_at or s.updated_at,
-                collection_mode="MIGRACJA", migrated=True, source_session_id=s.id,
-                safety_flag=bool(s.safety_flag),
-            )
-            db.add(sub)
-            db.flush()
             raport["utworzone"]["wersje"] += 1
             if s.status == "COACH_APPROVED" and s.coach_approved_by:
-                db.add(InterviewReview(id=new_id("IVR"), submission_id=sub.id, coach_id=s.coach_approved_by,
-                                       outcome="REVIEWED", migrated=True,
-                                       created_at=s.coach_approved_at or s.updated_at))
                 raport["utworzone"]["przeglady"] += 1
-            akt = {q.question_id for q in D.aktywne(defn, answers, domeny)}
-            zm = serwis._zapisz_fakty(db, client_id=client_id, defn=defn, answers=answers, aktywne_ids=akt,
-                                      source_type="migracja", source_id=sub.id, domyslny_autor=client_id)
-            raport["utworzone"]["fakty"] += len(zm)
+            raport["utworzone"]["fakty"] += db.query(ClientFactRevision).count() - przed_f
         otwarte = [s for s in sesje if s.status in _OTWARTE] or [s for s in sesje if s.status == "ABANDONED"]
         if otwarte:
             if len(otwarte) > 1:
