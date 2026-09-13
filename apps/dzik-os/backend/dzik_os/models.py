@@ -1678,3 +1678,149 @@ class OutboxEvent(Base):
     last_error: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[str] = mapped_column(String(40), default=now_iso)
     delivered_at: Mapped[str | None] = mapped_column(String(40), nullable=True)
+
+
+# ---------------------------------------------------------------------------
+# Zakładka „Wywiad” (0.59.0, migracja 31)
+# ---------------------------------------------------------------------------
+
+
+class InterviewDraft(Base):
+    """Szkic formularza wywiadu — jeden na (klient, typ). Zapis częściowy
+    z rewizją (409 przy konflikcie, nigdy ciche nadpisanie). Po przesłaniu
+    szkic zostaje jako podstawa „Aktualizuj odpowiedzi”; `dirty` mówi, czy
+    od ostatniej wersji coś się zmieniło. `answers_json`: pytanie →
+    {value, skipped, entered_by, at}."""
+
+    __tablename__ = "interview_drafts"
+    __table_args__ = (UniqueConstraint("client_id", "typ"),)
+
+    id: Mapped[str] = mapped_column(String(40), primary_key=True)
+    client_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
+    typ: Mapped[str] = mapped_column(String(20))  # wstepny / gleboki
+    definition_version: Mapped[int] = mapped_column(Integer, default=1)
+    answers_json: Mapped[str] = mapped_column(Text, default="{}")
+    revision: Mapped[int] = mapped_column(Integer, default=1)
+    dirty: Mapped[bool] = mapped_column(Boolean, default=True)
+    # SELF (klient sam) / WSPOLNIE (trener uzupełnia razem z klientem) /
+    # MIGRACJA (przeniesione z rozmowy startowej lub głębokiego wywiadu).
+    collection_mode: Mapped[str] = mapped_column(String(20), default="SELF")
+    created_by: Mapped[str] = mapped_column(String(40))
+    updated_by: Mapped[str] = mapped_column(String(40))
+    created_at: Mapped[str] = mapped_column(String(40), default=now_iso)
+    updated_at: Mapped[str] = mapped_column(String(40), default=now_iso)
+    last_submission_id: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    source_session_id: Mapped[str | None] = mapped_column(String(40), nullable=True)
+
+
+class InterviewSubmission(Base):
+    """Przesłana, NIEZMIENNA wersja wywiadu (kolejne przesłanie = kolejny
+    `version_no`). Odpowiedzi z autorstwem per pytanie; `migrated` oznacza
+    wersję historyczną przeniesioną z sesji rozmowy (bez sztucznego
+    przeglądu trenera)."""
+
+    __tablename__ = "interview_submissions"
+    __table_args__ = (
+        UniqueConstraint("client_id", "typ", "version_no"),
+        Index("ix_interview_submissions_client_typ", "client_id", "typ"),
+    )
+
+    id: Mapped[str] = mapped_column(String(40), primary_key=True)
+    client_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
+    coach_id: Mapped[str | None] = mapped_column(String(40), nullable=True, index=True)
+    typ: Mapped[str] = mapped_column(String(20))
+    version_no: Mapped[int] = mapped_column(Integer)
+    definition_version: Mapped[int] = mapped_column(Integer, default=1)
+    answers_json: Mapped[str] = mapped_column(Text)
+    progress_json: Mapped[str] = mapped_column(Text, default="{}")
+    submitted_by: Mapped[str] = mapped_column(String(40))
+    submitted_at: Mapped[str] = mapped_column(String(40), default=now_iso)
+    collection_mode: Mapped[str] = mapped_column(String(20), default="SELF")
+    migrated: Mapped[bool] = mapped_column(Boolean, default=False)
+    source_session_id: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    safety_flag: Mapped[bool] = mapped_column(Boolean, default=False)
+
+
+class InterviewReview(Base):
+    """Przegląd trenera JEDNEJ wersji: REVIEWED albo NEEDS_CLARIFICATION.
+    Notatka wewnętrzna nigdy nie trafia do API klienta ani eksportu.
+    Kolejna wersja wymaga kolejnego przeglądu — ten zostaje w historii."""
+
+    __tablename__ = "interview_reviews"
+
+    id: Mapped[str] = mapped_column(String(40), primary_key=True)
+    submission_id: Mapped[str] = mapped_column(
+        ForeignKey("interview_submissions.id"), index=True
+    )
+    coach_id: Mapped[str] = mapped_column(String(40), index=True)
+    outcome: Mapped[str] = mapped_column(String(30))  # REVIEWED / NEEDS_CLARIFICATION
+    internal_note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    migrated: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[str] = mapped_column(String(40), default=now_iso)
+
+
+class ClarificationRequest(Base):
+    """Prośba trenera o doprecyzowanie wskazanych pytań danej wersji.
+    OPEN do czasu kolejnego przesłania (rozstrzyga `resolved_by_submission_id`)."""
+
+    __tablename__ = "clarification_requests"
+
+    id: Mapped[str] = mapped_column(String(40), primary_key=True)
+    client_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
+    typ: Mapped[str] = mapped_column(String(20))
+    submission_id: Mapped[str | None] = mapped_column(String(40), nullable=True, index=True)
+    coach_id: Mapped[str] = mapped_column(String(40))
+    question_ids_json: Mapped[str] = mapped_column(Text, default="[]")
+    message: Mapped[str] = mapped_column(Text, default="")
+    status: Mapped[str] = mapped_column(String(20), default="OPEN")  # OPEN / RESOLVED
+    created_at: Mapped[str] = mapped_column(String(40), default=now_iso)
+    resolved_at: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    resolved_by_submission_id: Mapped[str | None] = mapped_column(String(40), nullable=True)
+
+
+class ClientFactRevision(Base):
+    """Rewizja wspólnego faktu klienta (cel, ograniczenia, alergie,
+    dostępność, sprzęt…) z pochodzeniem: typ formularza, wersja, pytanie,
+    autor, czas. Append-only; `is_current` wskazuje aktualną."""
+
+    __tablename__ = "client_fact_revisions"
+    __table_args__ = (
+        Index("ix_client_fact_revisions_current", "client_id", "fact_key", "is_current"),
+    )
+
+    id: Mapped[str] = mapped_column(String(40), primary_key=True)
+    client_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
+    fact_key: Mapped[str] = mapped_column(String(80))
+    value: Mapped[str] = mapped_column(Text, default="")
+    source_type: Mapped[str] = mapped_column(String(40))  # wywiad_wstepny / wywiad_gleboki / migracja
+    source_id: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    question_id: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    author_id: Mapped[str] = mapped_column(String(40))
+    version: Mapped[int] = mapped_column(Integer, default=1)
+    is_current: Mapped[bool] = mapped_column(Boolean, default=True)
+    sensitive: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[str] = mapped_column(String(40), default=now_iso)
+
+
+class PlanReviewTask(Base):
+    """„Wymaga sprawdzenia”: zmiana faktu istotnego dla aktywnego planu
+    (cel, ograniczenia, alergie, dostępność, sprzęt) po przesłaniu nowej
+    wersji wywiadu. Otwarte zadanie blokuje publikację zależnej wersji
+    planu (409 INTERVIEW_REVIEW_REQUIRED); rozstrzyga je trener jawnie.
+    Plan aktywny NIE jest przepisywany automatycznie."""
+
+    __tablename__ = "plan_review_tasks"
+    __table_args__ = (Index("ix_plan_review_tasks_plan", "plan_kind", "plan_id", "status"),)
+
+    id: Mapped[str] = mapped_column(String(40), primary_key=True)
+    client_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
+    coach_id: Mapped[str] = mapped_column(String(40), index=True)
+    plan_kind: Mapped[str] = mapped_column(String(20))  # training / nutrition
+    plan_id: Mapped[str] = mapped_column(String(40))
+    submission_id: Mapped[str] = mapped_column(String(40))
+    changed_facts_json: Mapped[str] = mapped_column(Text, default="[]")
+    status: Mapped[str] = mapped_column(String(20), default="OPEN")  # OPEN / RESOLVED
+    created_at: Mapped[str] = mapped_column(String(40), default=now_iso)
+    resolved_at: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    resolved_by: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    resolution_note: Mapped[str | None] = mapped_column(Text, nullable=True)

@@ -38,6 +38,7 @@ from ..models import (
     NutritionPlanVersion,
     OutboxEvent,
     PlanDraft,
+    PlanReviewTask,
     TrainingPlan,
     TrainingPlanVersion,
     User,
@@ -57,6 +58,15 @@ class KonfliktRewizji(Exception):
     def __init__(self, aktualna: int):
         super().__init__(f"aktualna rewizja {aktualna}")
         self.aktualna = aktualna
+
+
+class WymagaSprawdzenia(Exception):
+    """Otwarte zadanie sprawdzenia planu po zmianie wywiadu (0.59.0)."""
+
+    def __init__(self, task_ids: list[str], facts: list[str]) -> None:
+        super().__init__("wymaga sprawdzenia")
+        self.task_ids = task_ids
+        self.facts = facts
 
 
 class KonfliktWersji(Exception):
@@ -239,6 +249,15 @@ def publikuj(db: Session, szkic: PlanDraft, *, coach: User, revision: int, base_
     plan = plan_trenera(db, coach, szkic.plan_kind, szkic.plan_id)
     if base_version_no != szkic.base_version_no or plan.current_version_no != szkic.base_version_no:
         raise KonfliktWersji(plan.current_version_no)
+    if plan.client_id is not None:
+        # „Wymaga sprawdzenia” (0.59.0): zmiana faktów wywiadu istotnych
+        # dla planu blokuje publikację zależnej wersji do jawnego
+        # rozstrzygnięcia przez trenera.
+        otwarte = (db.query(PlanReviewTask)
+                   .filter_by(plan_kind=szkic.plan_kind, plan_id=plan.id, status="OPEN").all())
+        if otwarte:
+            raise WymagaSprawdzenia([t.id for t in otwarte],
+                                    sorted({f for t in otwarte for f in json.loads(t.changed_facts_json or "[]")}))
     r = roznice_szkicu(szkic)
     if r["total"] == 0:
         return {"published": False, "reason": "no_changes", "version_no": plan.current_version_no,
@@ -321,6 +340,17 @@ def przetworz_outbox(db: Session, *, now_utc: datetime | None = None, limit: int
         ev.attempts += 1
         try:
             dane = json.loads(ev.payload_json)
+            if ev.event_type != "PLAN_PUBLISHED":
+                # Zdarzenia wywiadu (0.59.0): ten sam outbox, inne treści.
+                from ..wywiad import serwis as wywiad_serwis
+
+                n = wywiad_serwis.dorecz_zdarzenie(db, ev, dane)
+                if n is not None:
+                    utworzone.append(n)
+                ev.status = "DELIVERED"
+                ev.delivered_at = now_iso()
+                ev.last_error = None
+                continue
             n = notifications.notify_now(
                 db, user_id=ev.recipient_id, category="ZMIANA_PLANU",
                 title="Trener zaktualizował Twój plan " + ("treningowy" if dane["plan_kind"] == "training" else "żywieniowy"),

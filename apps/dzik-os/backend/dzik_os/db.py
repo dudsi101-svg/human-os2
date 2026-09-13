@@ -1158,3 +1158,114 @@ MIGRATIONS.append(
         "CREATE INDEX IF NOT EXISTS ix_outbox_events_status_next ON outbox_events (status, next_attempt_at)",
     ])
 )
+
+MIGRATIONS.append(
+    (31, "zakładka Wywiad: szkice, wersje, przeglądy, doprecyzowania, fakty, zadania sprawdzenia planu", [
+        # Addytywna. Tabele rozmowy startowej/głębokiego wywiadu ZOSTAJĄ;
+        # przeniesienie sesji do wersji robi `wywiad.migracja` (ponawialnie,
+        # bez powiadomień) po starcie aplikacji, nie ten skrypt.
+        (
+            "CREATE TABLE IF NOT EXISTS interview_drafts ("
+            " id VARCHAR(40) PRIMARY KEY,"
+            " client_id VARCHAR(40) NOT NULL,"
+            " typ VARCHAR(20) NOT NULL,"
+            " definition_version INTEGER NOT NULL DEFAULT 1,"
+            " answers_json TEXT NOT NULL DEFAULT '{}',"
+            " revision INTEGER NOT NULL DEFAULT 1,"
+            " dirty BOOLEAN NOT NULL DEFAULT 1,"
+            " collection_mode VARCHAR(20) NOT NULL DEFAULT 'SELF',"
+            " created_by VARCHAR(40) NOT NULL,"
+            " updated_by VARCHAR(40) NOT NULL,"
+            " created_at VARCHAR(40) NOT NULL,"
+            " updated_at VARCHAR(40) NOT NULL,"
+            " last_submission_id VARCHAR(40),"
+            " source_session_id VARCHAR(40),"
+            " UNIQUE (client_id, typ))"
+        ),
+        "CREATE INDEX IF NOT EXISTS ix_interview_drafts_client_id ON interview_drafts (client_id)",
+        (
+            "CREATE TABLE IF NOT EXISTS interview_submissions ("
+            " id VARCHAR(40) PRIMARY KEY,"
+            " client_id VARCHAR(40) NOT NULL,"
+            " coach_id VARCHAR(40),"
+            " typ VARCHAR(20) NOT NULL,"
+            " version_no INTEGER NOT NULL,"
+            " definition_version INTEGER NOT NULL DEFAULT 1,"
+            " answers_json TEXT NOT NULL,"
+            " progress_json TEXT NOT NULL DEFAULT '{}',"
+            " submitted_by VARCHAR(40) NOT NULL,"
+            " submitted_at VARCHAR(40) NOT NULL,"
+            " collection_mode VARCHAR(20) NOT NULL DEFAULT 'SELF',"
+            " migrated BOOLEAN NOT NULL DEFAULT 0,"
+            " source_session_id VARCHAR(40),"
+            " safety_flag BOOLEAN NOT NULL DEFAULT 0,"
+            " UNIQUE (client_id, typ, version_no))"
+        ),
+        "CREATE INDEX IF NOT EXISTS ix_interview_submissions_client_id ON interview_submissions (client_id)",
+        "CREATE INDEX IF NOT EXISTS ix_interview_submissions_coach_id ON interview_submissions (coach_id)",
+        "CREATE INDEX IF NOT EXISTS ix_interview_submissions_client_typ ON interview_submissions (client_id, typ)",
+        (
+            "CREATE TABLE IF NOT EXISTS interview_reviews ("
+            " id VARCHAR(40) PRIMARY KEY,"
+            " submission_id VARCHAR(40) NOT NULL,"
+            " coach_id VARCHAR(40) NOT NULL,"
+            " outcome VARCHAR(30) NOT NULL,"
+            " internal_note TEXT,"
+            " migrated BOOLEAN NOT NULL DEFAULT 0,"
+            " created_at VARCHAR(40) NOT NULL)"
+        ),
+        "CREATE INDEX IF NOT EXISTS ix_interview_reviews_submission_id ON interview_reviews (submission_id)",
+        "CREATE INDEX IF NOT EXISTS ix_interview_reviews_coach_id ON interview_reviews (coach_id)",
+        (
+            "CREATE TABLE IF NOT EXISTS clarification_requests ("
+            " id VARCHAR(40) PRIMARY KEY,"
+            " client_id VARCHAR(40) NOT NULL,"
+            " typ VARCHAR(20) NOT NULL,"
+            " submission_id VARCHAR(40),"
+            " coach_id VARCHAR(40) NOT NULL,"
+            " question_ids_json TEXT NOT NULL DEFAULT '[]',"
+            " message TEXT NOT NULL DEFAULT '',"
+            " status VARCHAR(20) NOT NULL DEFAULT 'OPEN',"
+            " created_at VARCHAR(40) NOT NULL,"
+            " resolved_at VARCHAR(40),"
+            " resolved_by_submission_id VARCHAR(40))"
+        ),
+        "CREATE INDEX IF NOT EXISTS ix_clarification_requests_client_id ON clarification_requests (client_id)",
+        "CREATE INDEX IF NOT EXISTS ix_clarification_requests_submission_id ON clarification_requests (submission_id)",
+        (
+            "CREATE TABLE IF NOT EXISTS client_fact_revisions ("
+            " id VARCHAR(40) PRIMARY KEY,"
+            " client_id VARCHAR(40) NOT NULL,"
+            " fact_key VARCHAR(80) NOT NULL,"
+            " value TEXT NOT NULL DEFAULT '',"
+            " source_type VARCHAR(40) NOT NULL,"
+            " source_id VARCHAR(40),"
+            " question_id VARCHAR(40),"
+            " author_id VARCHAR(40) NOT NULL,"
+            " version INTEGER NOT NULL DEFAULT 1,"
+            " is_current BOOLEAN NOT NULL DEFAULT 1,"
+            " sensitive BOOLEAN NOT NULL DEFAULT 0,"
+            " created_at VARCHAR(40) NOT NULL)"
+        ),
+        "CREATE INDEX IF NOT EXISTS ix_client_fact_revisions_client_id ON client_fact_revisions (client_id)",
+        "CREATE INDEX IF NOT EXISTS ix_client_fact_revisions_current ON client_fact_revisions (client_id, fact_key, is_current)",
+        (
+            "CREATE TABLE IF NOT EXISTS plan_review_tasks ("
+            " id VARCHAR(40) PRIMARY KEY,"
+            " client_id VARCHAR(40) NOT NULL,"
+            " coach_id VARCHAR(40) NOT NULL,"
+            " plan_kind VARCHAR(20) NOT NULL,"
+            " plan_id VARCHAR(40) NOT NULL,"
+            " submission_id VARCHAR(40) NOT NULL,"
+            " changed_facts_json TEXT NOT NULL DEFAULT '[]',"
+            " status VARCHAR(20) NOT NULL DEFAULT 'OPEN',"
+            " created_at VARCHAR(40) NOT NULL,"
+            " resolved_at VARCHAR(40),"
+            " resolved_by VARCHAR(40),"
+            " resolution_note TEXT)"
+        ),
+        "CREATE INDEX IF NOT EXISTS ix_plan_review_tasks_client_id ON plan_review_tasks (client_id)",
+        "CREATE INDEX IF NOT EXISTS ix_plan_review_tasks_coach_id ON plan_review_tasks (coach_id)",
+        "CREATE INDEX IF NOT EXISTS ix_plan_review_tasks_plan ON plan_review_tasks (plan_kind, plan_id, status)",
+    ])
+)

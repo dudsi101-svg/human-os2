@@ -410,6 +410,7 @@ def list_clients(
                     "unread_messages": flags["unread_messages"],
                     "recent_pain_reports": flags["recent_pain_reports"],
                     "flagged_observations": flags["flagged_observations"],
+                    "interview_to_review": flags.get("interview_to_review", 0),
                 },
                 "last_checkin_week": flags["last_checkin_week"],
             }
