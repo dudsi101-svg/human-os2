@@ -29,6 +29,7 @@ from ..models import (
 from ..schemas import PlanCreateIn, PlanDayIn, PlanVersionIn, WorkoutSessionIn
 from ..security import current_user, require_role
 from ..storage import _read_limited
+from ..wiedza import slad as wiedza_slad
 
 router = APIRouter(prefix="/api", tags=["plans"])
 
@@ -169,6 +170,11 @@ def create_plan_version(
     plan.current_version_no = next_no
     plan.updated_at = now_iso()
     db.add(version)
+    if plan.client_id is not None:
+        # Wiedza (0.56.0): decyzja trenera = oryginalny powód wersji, zapisany
+        # w tej samej transakcji; nic nie jest dopisywane algorytmicznie.
+        wiedza_slad.slad_wersji_trenera(db, owner_id=plan.client_id, plan_id=plan.id,
+                                        plan_revision=next_no, reason=body.reason)
     record_event(
         db,
         action="PLAN_VERSION_CREATED",

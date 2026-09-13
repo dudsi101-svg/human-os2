@@ -106,6 +106,16 @@ class Settings:
     # Publiczny adres aplikacji do linków w e-mailach (aktywacja/reset).
     # Pusty = użyj adresu bieżącego żądania (deployment same-origin).
     public_base_url: str = field(default_factory=lambda: _env("DZIK_PUBLIC_URL", ""))
+    # Wiedza (0.56.0): flaga nowego interfejsu. `false` = /api/wiedza/*
+    # odpowiada 404, a klient pokazuje poprzednią zakładkę; dane (ślady
+    # decyzji, zakładki) zostają. Wycofanie zmienia flagę, nie kasuje.
+    wiedza_v2: bool = field(default_factory=lambda: _env("DZIK_WIEDZA_V2", "true") == "true")
+    # Tryb demonstracyjny Wiedzy: pokazuje SZKICE (treści bez przeglądu)
+    # z widocznym oznaczeniem. W DZIK_ENV=production zawsze ignorowane —
+    # produkcja pokazuje wyłącznie opublikowane karty z ważnym przeglądem.
+    wiedza_szkice_flag: bool = field(
+        default_factory=lambda: _env("DZIK_WIEDZA_SZKICE", "false") == "true"
+    )
     # AI jest opcjonalne i domyślnie WYŁĄCZONE — aplikacja działa w pełni bez AI.
     ai_enabled: bool = field(default_factory=lambda: _env("DZIK_AI_ENABLED", "false") == "true")
     # Klucz dostawcy WYŁĄCZNIE ze środowiska (sekret Fly) — nigdy w repo.
@@ -208,6 +218,11 @@ class Settings:
         "audio/mpeg": ".mp3",
         "audio/ogg": ".ogg",
     }
+
+    @property
+    def wiedza_szkice(self) -> bool:
+        """Czy szkice Wiedzy są widoczne. Produkcja: nigdy."""
+        return self.wiedza_szkice_flag and self.env != "production"
 
     def ensure_dirs(self) -> None:
         Path(self.upload_dir).mkdir(parents=True, exist_ok=True)

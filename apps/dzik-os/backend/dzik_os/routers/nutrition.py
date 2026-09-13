@@ -24,6 +24,7 @@ from ..models import (
 )
 from ..schemas import NutritionCreateIn, NutritionVersionIn, SupplementRemindersIn
 from ..security import current_user, require_role
+from ..wiedza import slad as wiedza_slad
 
 router = APIRouter(prefix="/api", tags=["nutrition"])
 
@@ -102,6 +103,8 @@ def create_nutrition_plan(
         created_by=coach.id,
     )
     db.add(version)
+    wiedza_slad.slady_diety_trenera(db, owner_id=body.client_id, plan_id=plan.id, plan_revision=1,
+                                    content=json.loads(version.content_json), reason=version.reason)
     record_event(
         db,
         action="NUTRITION_PLAN_CREATED",
@@ -143,6 +146,8 @@ def create_nutrition_version(
     plan.current_version_no = next_no
     plan.updated_at = now_iso()
     db.add(version)
+    wiedza_slad.slady_diety_trenera(db, owner_id=plan.client_id, plan_id=plan.id, plan_revision=next_no,
+                                    content=json.loads(version.content_json), reason=version.reason)
     record_event(
         db,
         action="NUTRITION_VERSION_CREATED",

@@ -53,10 +53,11 @@ import {
   MUSCLE_LABELS,
   muscleLabels,
 } from "../../types";
+import WiedzaRedakcja from "./WiedzaRedakcja";
 
-type Tab = "artykuly" | "cwiczenia" | "produkty" | "dieta";
+type Tab = "artykuly" | "karty" | "cwiczenia" | "produkty" | "dieta";
 const TABS: [Tab, string][] = [
-  ["artykuly", "Artykuły"], ["cwiczenia", "Ćwiczenia"],
+  ["artykuly", "Artykuły"], ["karty", "Karty wiedzy"], ["cwiczenia", "Ćwiczenia"],
   ["produkty", "Produkty"], ["dieta", "Dieta"],
 ];
 
@@ -68,6 +69,7 @@ export default function Knowledge() {
       <Tabs tabs={TABS} value={tab} onChange={setTab} label="Sekcje bazy wiedzy" />
       <TabPanel id={tab}>
         {tab === "artykuly" && <ArticlesTab />}
+        {tab === "karty" && <WiedzaRedakcja />}
         {tab === "cwiczenia" && <ExercisesTab />}
         {tab === "produkty" && <ProductsTab />}
         {tab === "dieta" && <DietTab />}

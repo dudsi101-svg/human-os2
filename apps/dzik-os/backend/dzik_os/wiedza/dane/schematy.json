@@ -1,0 +1,544 @@
+{
+  "version": "1.0",
+  "article": {
+    "type": "object",
+    "properties": {
+      "id": {
+        "type": "string",
+        "minLength": 1
+      },
+      "revision": {
+        "type": "integer",
+        "minimum": 1
+      },
+      "locale": {
+        "type": "string",
+        "enum": [
+          "pl-PL"
+        ]
+      },
+      "slug": {
+        "type": "string",
+        "minLength": 1
+      },
+      "title": {
+        "type": "string",
+        "minLength": 1
+      },
+      "category": {
+        "type": "string",
+        "enum": [
+          "training",
+          "nutrition",
+          "progress",
+          "basics"
+        ]
+      },
+      "summary": {
+        "type": "string",
+        "minLength": 1
+      },
+      "steps": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "detail": {
+        "type": "string",
+        "minLength": 1
+      },
+      "limits": {
+        "type": "string",
+        "minLength": 1
+      },
+      "aliases": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "tags": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "source_ids": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "minLength": 1
+        },
+        "minItems": 1,
+        "uniqueItems": true
+      },
+      "evidence_kind": {
+        "type": "string",
+        "enum": [
+          "research",
+          "guideline",
+          "product_rule",
+          "preference"
+        ]
+      },
+      "status": {
+        "type": "string",
+        "enum": [
+          "draft",
+          "in_review",
+          "published",
+          "retired"
+        ]
+      },
+      "review": {
+        "type": "object",
+        "properties": {
+          "approved": {
+            "type": "boolean"
+          },
+          "reviewer_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "reviewed_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          },
+          "next_review_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          }
+        },
+        "required": [
+          "approved",
+          "reviewer_id",
+          "reviewed_at",
+          "next_review_at"
+        ],
+        "additionalProperties": false
+      },
+      "author_label": {
+        "type": "string",
+        "minLength": 1
+      },
+      "media": {
+        "oneOf": [
+          {
+            "type": "null"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "url": {
+                "type": "string",
+                "format": "uri"
+              },
+              "caption": {
+                "type": "string",
+                "minLength": 1
+              },
+              "transcript": {
+                "type": "string",
+                "minLength": 1
+              },
+              "license_reference": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "required": [
+              "url",
+              "caption",
+              "transcript",
+              "license_reference"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      },
+      "estimated_read_minutes": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 60
+      },
+      "exercise_id": {
+        "type": [
+          "string",
+          "null"
+        ]
+      }
+    },
+    "required": [
+      "id",
+      "revision",
+      "locale",
+      "slug",
+      "title",
+      "category",
+      "summary",
+      "steps",
+      "detail",
+      "limits",
+      "aliases",
+      "tags",
+      "source_ids",
+      "evidence_kind",
+      "status",
+      "review",
+      "author_label",
+      "media",
+      "estimated_read_minutes",
+      "exercise_id"
+    ],
+    "additionalProperties": false,
+    "allOf": [
+      {
+        "if": {
+          "properties": {
+            "status": {
+              "const": "published"
+            }
+          }
+        },
+        "then": {
+          "properties": {
+            "review": {
+              "properties": {
+                "approved": {
+                  "const": true
+                },
+                "reviewer_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "reviewed_at": {
+                  "type": "string",
+                  "format": "date"
+                },
+                "next_review_at": {
+                  "type": "string",
+                  "format": "date"
+                }
+              }
+            }
+          }
+        }
+      }
+    ],
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "urn:knowledge:article:1.0"
+  },
+  "decision_trace": {
+    "type": "object",
+    "properties": {
+      "id": {
+        "type": "string",
+        "minLength": 1
+      },
+      "owner_id": {
+        "type": "string",
+        "minLength": 1
+      },
+      "plan_id": {
+        "type": "string",
+        "minLength": 1
+      },
+      "plan_revision": {
+        "type": "integer",
+        "minimum": 1
+      },
+      "target_type": {
+        "type": "string",
+        "minLength": 1
+      },
+      "target_id": {
+        "type": "string",
+        "minLength": 1
+      },
+      "decision_origin": {
+        "type": "string",
+        "enum": [
+          "engine",
+          "professional",
+          "user"
+        ]
+      },
+      "rule_id": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "rule_version": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "data_quality": {
+        "type": "string",
+        "enum": [
+          "sufficient",
+          "partial",
+          "missing",
+          "conflicting"
+        ]
+      },
+      "facts": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "key": {
+              "type": "string",
+              "minLength": 1
+            },
+            "value": {
+              "type": [
+                "string",
+                "number",
+                "boolean",
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": [
+                  "number",
+                  "string",
+                  "boolean",
+                  "null"
+                ]
+              }
+            },
+            "unit": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "observed_at": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          "required": [
+            "key",
+            "value",
+            "unit",
+            "observed_at"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "outcome_code": {
+        "type": "string",
+        "minLength": 1
+      },
+      "outcome_value": {
+        "type": [
+          "string",
+          "number",
+          "boolean",
+          "null"
+        ]
+      },
+      "reason_note": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "created_at": {
+        "type": "string",
+        "format": "date-time"
+      },
+      "article_ids": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "required": [
+      "id",
+      "owner_id",
+      "plan_id",
+      "plan_revision",
+      "target_type",
+      "target_id",
+      "decision_origin",
+      "rule_id",
+      "rule_version",
+      "data_quality",
+      "facts",
+      "outcome_code",
+      "outcome_value",
+      "reason_note",
+      "created_at",
+      "article_ids"
+    ],
+    "additionalProperties": false,
+    "allOf": [
+      {
+        "if": {
+          "properties": {
+            "decision_origin": {
+              "const": "engine"
+            }
+          }
+        },
+        "then": {
+          "properties": {
+            "rule_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "rule_version": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      }
+    ],
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "urn:knowledge:trace:1.0"
+  },
+  "explanation_result": {
+    "type": "object",
+    "properties": {
+      "status": {
+        "type": "string",
+        "enum": [
+          "explained",
+          "general_only",
+          "missing_trace",
+          "insufficient_data",
+          "inconsistent_data",
+          "stale_context",
+          "restricted"
+        ]
+      },
+      "trace_id": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "plan_revision": {
+        "type": [
+          "integer",
+          "null"
+        ],
+        "minimum": 1
+      },
+      "paragraphs": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "used_fact_keys": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "article_refs": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "revision": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "required": [
+            "id",
+            "revision"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "actions": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "label": {
+              "type": "string",
+              "minLength": 1
+            },
+            "type": {
+              "type": "string",
+              "enum": [
+                "open_article",
+                "open_source_view",
+                "open_safety_flow",
+                "retry"
+              ]
+            },
+            "target_id": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "label",
+            "type",
+            "target_id"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "historical": {
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "status",
+      "trace_id",
+      "plan_revision",
+      "paragraphs",
+      "used_fact_keys",
+      "article_refs",
+      "actions",
+      "historical"
+    ],
+    "additionalProperties": false,
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "urn:knowledge:explanation:1.0"
+  },
+  "semantic_checks": [
+    "unique fact keys",
+    "facts required by rule registry",
+    "outcome agrees with source decision",
+    "owner authorised server side",
+    "target belongs to plan revision",
+    "published review not expired where required",
+    "safe action destinations generated server side",
+    "unknown units and null safety values never silently accepted"
+  ]
+}

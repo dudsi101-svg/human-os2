@@ -132,4 +132,31 @@ Migracja nr **28**, wersja **0.56.0**, pliki: `backend/dzik_os/wiedza/**`,
 
 ## Weryfikacja wykonana
 
-(uzupełnię po rundzie)
+* `ruff check` backend: czysto. Backend pytest (solo, bez serwera E2E):
+  **1628 passed, 1 skipped** (7:59) przed ostatnią poprawką resolvera
+  (karty pochodne dla `exercise_prescription`); po niej
+  `test_wiedza_*`, macierz, migracje, spójność: 120 passed. Core: 275.
+* `tools/spojnosc.py`: 13 kontroli czysto (uwagi tylko o plikach
+  nieskomitowanych w chwili uruchomienia).
+* Frontend: `tsc -b` czysto, `npm run build` — wejściowy JS 89,3 kB
+  gzip (budżet 120), `test:helpers` zielone.
+* E2E (Playwright, telefon + desktop-trener): **24 passed** — 21
+  dotychczasowych + 3 nowe z `wiedza.spec.ts` (przepływ 1: sesja →
+  Dlaczego → karta w panelu → Escape → fokus i formularz zachowane;
+  przepływ 5: szukaj „zapas” → karta RIR → zapisz → widoczne po
+  przeładowaniu; redakcja trenera).
+* Uruchomienie w przeglądarce (ZASADA_URUCHOMIENIA): zrzuty
+  `w1-dla-ciebie`, `w2-trening`, `w3-karta`, `w4-dlaczego-telefon`
+  (dolny arkusz), `w4-dlaczego-desktop` (panel boczny), `redakcja`
+  w scratchpadzie sesji; przebieg API od zapisu konfiguratora do
+  `explained` wykonany na seedzie (smoke w sesji).
+* Znalezione i poprawione po drodze: `created_at` śladu ustawiane
+  dopiero przy flush (walidacja schematu wymagała jawnej wartości);
+  410 spłaszczane przez globalną obsługę HTTPException → JSONResponse;
+  brak kart ogólnych dla celu złożonego `exercise_prescription`
+  (pakiet wiąże `work_sets`/`rep_range`/`rir`/`rest`/`load` osobno) →
+  typy pochodne + karta atlasu po `konfigurator_id`; Escape w panelu
+  po powrocie z karty (fokus poza drzewem) → nasłuch na dokumencie.
+* Nie zweryfikowano: produkcja (egress do fly.dev zablokowany) —
+  deploy potwierdzi smoke z workflowu; przegląd ekspercki treści;
+  pilotaż z użytkownikami.

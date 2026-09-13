@@ -23,6 +23,9 @@ os.environ["DZIK_BCRYPT_ROUNDS"] = "4"  # szybkie hasła w testach
 # egzekwowania (tests/test_mfa.py) włączają je punktowo przez
 # monkeypatch(settings, "mfa_required_roles", ...).
 os.environ["DZIK_MFA_REQUIRED_ROLES"] = ""
+# Wiedza: szkice pakietu widoczne w testach (tryb demonstracyjny); testy
+# produkcyjnego ukrycia szkiców przełączają settings.env punktowo.
+os.environ["DZIK_WIEDZA_SZKICE"] = "true"
 
 import pytest
 from fastapi.testclient import TestClient

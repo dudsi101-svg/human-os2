@@ -889,6 +889,113 @@ MIGRATIONS.append(
     ])
 )
 
+MIGRATIONS.append(
+    (28, "wiedza: karty, powiazania, slad decyzji, zakladki, odczyty, opinie, ustawienia", [
+        # Addytywna: siedem nowych tabel, żadna istniejąca ścieżka ich nie
+        # czyta. Wycofanie = flaga DZIK_WIEDZA_V2=false (tabele zostają —
+        # ślady decyzji i zakładki nie giną, plik 09 pakietu Wiedza).
+        (
+            "CREATE TABLE IF NOT EXISTS wiedza_artykuly ("
+            " id VARCHAR(40) PRIMARY KEY,"
+            " article_id VARCHAR(80) NOT NULL,"
+            " revision INTEGER NOT NULL,"
+            " status VARCHAR(20) NOT NULL DEFAULT 'draft',"
+            " category VARCHAR(20) NOT NULL,"
+            " title VARCHAR(300) NOT NULL,"
+            " summary TEXT NOT NULL,"
+            " exercise_id VARCHAR(80),"
+            " tresc_json TEXT NOT NULL,"
+            " review_approved BOOLEAN NOT NULL DEFAULT false,"
+            " reviewer_id VARCHAR(40),"
+            " reviewed_at VARCHAR(40),"
+            " next_review_at VARCHAR(40),"
+            " zamiennik_id VARCHAR(80),"
+            " created_by VARCHAR(40) NOT NULL,"
+            " created_at VARCHAR(40) NOT NULL,"
+            " updated_at VARCHAR(40) NOT NULL,"
+            " UNIQUE (article_id, revision))"
+        ),
+        "CREATE INDEX IF NOT EXISTS ix_wiedza_artykuly_article_id ON wiedza_artykuly (article_id)",
+        "CREATE INDEX IF NOT EXISTS ix_wiedza_artykuly_status ON wiedza_artykuly (status)",
+        "CREATE INDEX IF NOT EXISTS ix_wiedza_artykuly_category ON wiedza_artykuly (category)",
+        "CREATE INDEX IF NOT EXISTS ix_wiedza_artykuly_exercise_id ON wiedza_artykuly (exercise_id)",
+        (
+            "CREATE TABLE IF NOT EXISTS wiedza_powiazania ("
+            " id VARCHAR(40) PRIMARY KEY,"
+            " target_type VARCHAR(60) NOT NULL,"
+            " target_key VARCHAR(120) NOT NULL,"
+            " article_id VARCHAR(80) NOT NULL,"
+            " role VARCHAR(40) NOT NULL,"
+            " UNIQUE (target_type, target_key, article_id))"
+        ),
+        "CREATE INDEX IF NOT EXISTS ix_wiedza_powiazania_target_type ON wiedza_powiazania (target_type)",
+        "CREATE INDEX IF NOT EXISTS ix_wiedza_powiazania_target_key ON wiedza_powiazania (target_key)",
+        "CREATE INDEX IF NOT EXISTS ix_wiedza_powiazania_article_id ON wiedza_powiazania (article_id)",
+        (
+            "CREATE TABLE IF NOT EXISTS wiedza_slady ("
+            " id VARCHAR(40) PRIMARY KEY,"
+            " owner_id VARCHAR(40) NOT NULL REFERENCES users(id),"
+            " plan_kind VARCHAR(20) NOT NULL,"
+            " plan_id VARCHAR(40) NOT NULL,"
+            " plan_revision INTEGER NOT NULL,"
+            " target_type VARCHAR(60) NOT NULL,"
+            " target_id VARCHAR(200) NOT NULL,"
+            " decision_origin VARCHAR(20) NOT NULL,"
+            " rule_id VARCHAR(60),"
+            " rule_version VARCHAR(20),"
+            " data_quality VARCHAR(20) NOT NULL,"
+            " facts_json TEXT NOT NULL,"
+            " outcome_code VARCHAR(60) NOT NULL,"
+            " outcome_value_json TEXT NOT NULL,"
+            " reason_note TEXT,"
+            " article_ids_json TEXT NOT NULL DEFAULT '[]',"
+            " created_at VARCHAR(40) NOT NULL)"
+        ),
+        "CREATE INDEX IF NOT EXISTS ix_wiedza_slady_owner_id ON wiedza_slady (owner_id)",
+        "CREATE INDEX IF NOT EXISTS ix_wiedza_slady_plan_id ON wiedza_slady (plan_id)",
+        (
+            "CREATE INDEX IF NOT EXISTS ix_wiedza_slady_cel ON wiedza_slady"
+            " (owner_id, plan_id, plan_revision, target_type, target_id)"
+        ),
+        (
+            "CREATE TABLE IF NOT EXISTS wiedza_zakladki ("
+            " id VARCHAR(40) PRIMARY KEY,"
+            " owner_id VARCHAR(40) NOT NULL REFERENCES users(id),"
+            " article_id VARCHAR(80) NOT NULL,"
+            " created_at VARCHAR(40) NOT NULL,"
+            " UNIQUE (owner_id, article_id))"
+        ),
+        "CREATE INDEX IF NOT EXISTS ix_wiedza_zakladki_owner_id ON wiedza_zakladki (owner_id)",
+        (
+            "CREATE TABLE IF NOT EXISTS wiedza_odczyty ("
+            " id VARCHAR(40) PRIMARY KEY,"
+            " owner_id VARCHAR(40) NOT NULL REFERENCES users(id),"
+            " article_id VARCHAR(80) NOT NULL,"
+            " last_opened_at VARCHAR(40) NOT NULL,"
+            " explicitly_completed_at VARCHAR(40),"
+            " UNIQUE (owner_id, article_id))"
+        ),
+        "CREATE INDEX IF NOT EXISTS ix_wiedza_odczyty_owner_id ON wiedza_odczyty (owner_id)",
+        (
+            "CREATE TABLE IF NOT EXISTS wiedza_opinie ("
+            " id VARCHAR(40) PRIMARY KEY,"
+            " owner_id VARCHAR(40) NOT NULL REFERENCES users(id),"
+            " article_id VARCHAR(80) NOT NULL,"
+            " revision INTEGER NOT NULL,"
+            " useful BOOLEAN NOT NULL,"
+            " note TEXT,"
+            " created_at VARCHAR(40) NOT NULL)"
+        ),
+        "CREATE INDEX IF NOT EXISTS ix_wiedza_opinie_owner_id ON wiedza_opinie (owner_id)",
+        (
+            "CREATE TABLE IF NOT EXISTS wiedza_ustawienia ("
+            " owner_id VARCHAR(40) PRIMARY KEY REFERENCES users(id),"
+            " personalizacja BOOLEAN NOT NULL DEFAULT true,"
+            " updated_at VARCHAR(40) NOT NULL)"
+        ),
+    ])
+)
+
 
 def run_migrations(target_engine=None) -> list[int]:
     eng = target_engine or engine

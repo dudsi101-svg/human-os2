@@ -1,5 +1,36 @@
 # Changelog — Dzik OS
 
+## 0.56.0 — 2026-09-13
+
+**Wiedza — modernizacja zakładki, P0 (pakiet właściciela 1.0 z 13.09).**
+
+* Pięć części („Dla Ciebie”, Trening, Odżywianie, Postępy i regeneracja,
+  Podstawy i źródła), wyszukiwanie po opublikowanych tekstach (polskie
+  znaki, aliasy, literówki), zapisane, karty wiedzy i atlas z treści
+  startowych, historia rzeczywistych zmian planu, ranking „Dla Ciebie”
+  bez ML z jawnym powodem i opcją wyłączenia personalizacji.
+* **„Dlaczego?”** przy ćwiczeniu, wersji planu, liczbie dni, kaloriach
+  i makro: panel czyta NIEZMIENNY ślad decyzji (`wiedza_slady`) zapisany
+  przez właściciela decyzji w tej samej transakcji co wersja planu —
+  konfigurator 28 dni (`engine`: H_LAYOUT, H_VOLUME) i trener
+  (`professional`: oryginalny powód wersji planu i diety). Brak śladu =
+  uczciwy `missing_trace` + zasada ogólna; bez rekonstrukcji powodów
+  dla starych planów i bez LLM. Resolver z 10 krokami i 7 statusami
+  kontraktu, 15 scenariuszy referencyjnych pakietu, 409 `STALE_PLAN`,
+  404 bez trace_id dla cudzego planu, `restricted` po zgłoszeniu bólu.
+* Redakcja (zakładka „Karty wiedzy” trenera): nowa rewizja, publikacja
+  tylko ze źródłami z rejestru, recenzentem i datą kolejnego przeglądu;
+  wycofanie z zamiennikiem (410). Szkice pakietu (48) importowane
+  idempotentnie; produkcja pokazuje wyłącznie publikacje
+  (`DZIK_WIEDZA_SZKICE` ignorowane w `production`).
+* Flaga `DZIK_WIEDZA_V2` (wycofanie = poprzednia zakładka, dane zostają);
+  mapa migracji starych materiałów trenera, bazy ćwiczeń i produktów.
+  Migracja 28 (7 tabel). Konfigurator dodaje `konfigurator_id` do
+  ćwiczeń w treści planu. Raport wdrożenia: `docs/WIEDZA.md`.
+* Świadomie nie w tej rundzie: adapter posiłków/porcji (brak śladu
+  obliczeń w module diety), multimedia atlasu, P1/P2, przegląd
+  ekspercki treści.
+
 ## 0.55.0 — 2026-09-13
 
 **Konfigurator miesięcznych planów treningowych — K1: silnik (pakiet

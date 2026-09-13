@@ -3,6 +3,7 @@ import { api, getUser } from "../../api";
 import { WEEKDAYS, localToday, plDate } from "../../dates";
 import { ErrorBox, ExerciseTechniqueLink, Icon, Spinner, TopBar } from "../../components";
 import { PlanVersion, TrainingPlan, WorkoutRow } from "../../types";
+import { Dlaczego } from "../../wiedza/Dlaczego";
 
 /** Wiersze serii (ciężar × powtórzenia) wpisywane jako tekst — puste są
  * pomijane przy zapisie. */
@@ -182,6 +183,19 @@ export default function Plan() {
           <p className="dim" style={{ fontSize: "0.85rem" }}>
             Powód ostatniej zmiany: {plan.current_version.reason}
           </p>
+          {/* Wiedza (0.56.0): „Dlaczego?” czyta zapisany ślad decyzji —
+              panel nakłada się na ekran, więc otwarty formularz sesji
+              i timer zostają nietknięte. */}
+          <div className="row" style={{ marginBottom: 10 }}>
+            <Dlaczego etykieta="Dlaczego ta wersja?"
+              naglowek={`Wersja ${plan.current_version_no} planu`}
+              cel={{ plan_id: plan.id, plan_revision: plan.current_version_no,
+                target_type: "plan_change", target_id: "plan" }} />
+            <Dlaczego etykieta="Dlaczego tyle dni?"
+              naglowek="Liczba treningów w tygodniu"
+              cel={{ plan_id: plan.id, plan_revision: plan.current_version_no,
+                target_type: "training_frequency", target_id: "plan" }} />
+          </div>
 
           {showHistory && versions && (
             <div className="card">
@@ -225,6 +239,11 @@ export default function Plan() {
                       {restSeconds !== null && (
                         <div style={{ marginTop: 6 }}><RestTimer seconds={restSeconds} /></div>
                       )}
+                      <div style={{ marginTop: 6 }}>
+                        <Dlaczego naglowek={`${ex.name} — dawka w Twoim planie`}
+                          cel={{ plan_id: plan.id, plan_revision: plan.current_version_no,
+                            target_type: "exercise_prescription", target_id: `d${di}:e${i}` }} />
+                      </div>
                     </div>
                     <div className="meta">
                       {[ex.sets && `${ex.sets}×${ex.reps ?? "?"}`, ex.weight, ex.tempo, ex.rest]

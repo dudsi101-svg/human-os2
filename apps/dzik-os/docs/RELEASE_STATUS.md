@@ -1,6 +1,6 @@
 # Stan wydania — Dzik OS
 
-**Wersja:** 0.55.0 · **Data:** 2026-09-13 · **Środowisko:** produkcja
+**Wersja:** 0.56.0 · **Data:** 2026-09-13 · **Środowisko:** produkcja
 (pilotaż) — https://dzik-os-panel.fly.dev
 
 Jedna strona prawdy o tym, co DZIAŁA na produkcji teraz. Aktualizowana
@@ -60,6 +60,17 @@ Silnik i API trenera są w kodzie (bez ekranu — K1b). Trener może
 wygenerować i zapisać szkic przez API; katalog ma status „do przeglądu
 trenera”, a heurystyki H nie są walidacją kliniczną
 (`docs/KONFIGURATOR.md`).
+
+## Wiedza (P0, 0.56.0)
+
+Nowa zakładka Wiedza jest w kodzie za flagą `DZIK_WIEDZA_V2` (domyślnie
+włączona). **Na produkcji biblioteka jest pusta do pierwszej publikacji:**
+48 kart z pakietu właściciela to szkice bez przeglądu eksperckiego,
+a produkcja ignoruje tryb demonstracyjny. Publikuje trener w zakładce
+„Karty wiedzy” (wymagane źródła z rejestru, recenzent, data kolejnego
+przeglądu). „Dlaczego?” działa od razu dla nowych decyzji (plany
+z konfiguratora, nowe wersje planów i diet od trenera); stare plany
+pokazują uczciwy brak zapisanego uzasadnienia (`docs/WIEDZA.md`).
 
 ## Diagnostyka
 

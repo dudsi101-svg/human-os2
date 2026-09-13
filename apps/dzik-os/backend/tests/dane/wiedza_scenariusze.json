@@ -1,0 +1,978 @@
+{
+  "version": "1.0",
+  "description": "Syntetyczne przypadki resolvera; nie zalecenia osobiste. Aby testować referencje artykułów w trybie produkcyjnym, użyj oddzielnych testowych rekordów published z recenzją, nie publikuj treści startowych.",
+  "fixtures": [
+    {
+      "id": "F01",
+      "title_pl": "Utrzymanie ciężaru po 12 12 10",
+      "request_context": {
+        "authenticated_owner": "demo-user-a",
+        "plan_owner": "demo-user-a",
+        "current_plan_revision": 2,
+        "requested_plan_revision": 2,
+        "mode": "current",
+        "active_safety_block": false
+      },
+      "trace": {
+        "id": "trace-demo-1",
+        "owner_id": "demo-user-a",
+        "plan_id": "demo-plan",
+        "plan_revision": 2,
+        "target_type": "load",
+        "target_id": "demo-session:db_bench:0",
+        "decision_origin": "engine",
+        "rule_id": "H_PROGRESS",
+        "rule_version": "1.0",
+        "data_quality": "sufficient",
+        "facts": [
+          {
+            "key": "planned_sets",
+            "value": 3,
+            "unit": "sets",
+            "observed_at": "2026-09-14T18:45:00+02:00"
+          },
+          {
+            "key": "reps_max",
+            "value": 12,
+            "unit": "reps",
+            "observed_at": "2026-09-14T18:45:00+02:00"
+          },
+          {
+            "key": "completed_reps",
+            "value": [
+              12,
+              12,
+              10
+            ],
+            "unit": "reps",
+            "observed_at": "2026-09-14T18:45:00+02:00"
+          },
+          {
+            "key": "all_rir_met",
+            "value": true,
+            "unit": null,
+            "observed_at": "2026-09-14T18:45:00+02:00"
+          },
+          {
+            "key": "technique_ok",
+            "value": true,
+            "unit": null,
+            "observed_at": "2026-09-14T18:45:00+02:00"
+          },
+          {
+            "key": "pain_reported",
+            "value": false,
+            "unit": null,
+            "observed_at": "2026-09-14T18:45:00+02:00"
+          }
+        ],
+        "outcome_code": "hold_reps",
+        "outcome_value": "keep_load",
+        "reason_note": null,
+        "created_at": "2026-09-14T18:46:00+02:00",
+        "article_ids": [
+          "k-progress"
+        ]
+      },
+      "expected_status": "explained",
+      "expected_http": 200,
+      "must_include_fact_keys": [
+        "completed_reps",
+        "reps_max"
+      ],
+      "must_not_claim": [
+        "Nie dopisuj faktów spoza trace.",
+        "Nie przedstawiaj szkicu jako opublikowanego materiału."
+      ]
+    },
+    {
+      "id": "F02",
+      "title_pl": "Brak historycznego uzasadnienia",
+      "request_context": {
+        "authenticated_owner": "demo-user-a",
+        "plan_owner": "demo-user-a",
+        "current_plan_revision": 2,
+        "requested_plan_revision": 2,
+        "mode": "current",
+        "active_safety_block": false
+      },
+      "trace": null,
+      "expected_status": "missing_trace",
+      "expected_http": 200,
+      "must_include_fact_keys": [],
+      "must_not_claim": [
+        "Nie dopisuj faktów spoza trace.",
+        "Nie przedstawiaj szkicu jako opublikowanego materiału."
+      ]
+    },
+    {
+      "id": "F03",
+      "title_pl": "Nieaktualna rewizja",
+      "request_context": {
+        "authenticated_owner": "demo-user-a",
+        "plan_owner": "demo-user-a",
+        "current_plan_revision": 3,
+        "requested_plan_revision": 2,
+        "mode": "current",
+        "active_safety_block": false
+      },
+      "trace": {
+        "id": "trace-demo-1",
+        "owner_id": "demo-user-a",
+        "plan_id": "demo-plan",
+        "plan_revision": 2,
+        "target_type": "load",
+        "target_id": "demo-session:db_bench:0",
+        "decision_origin": "engine",
+        "rule_id": "H_PROGRESS",
+        "rule_version": "1.0",
+        "data_quality": "sufficient",
+        "facts": [
+          {
+            "key": "planned_sets",
+            "value": 3,
+            "unit": "sets",
+            "observed_at": "2026-09-14T18:45:00+02:00"
+          },
+          {
+            "key": "reps_max",
+            "value": 12,
+            "unit": "reps",
+            "observed_at": "2026-09-14T18:45:00+02:00"
+          },
+          {
+            "key": "completed_reps",
+            "value": [
+              12,
+              12,
+              10
+            ],
+            "unit": "reps",
+            "observed_at": "2026-09-14T18:45:00+02:00"
+          },
+          {
+            "key": "all_rir_met",
+            "value": true,
+            "unit": null,
+            "observed_at": "2026-09-14T18:45:00+02:00"
+          },
+          {
+            "key": "technique_ok",
+            "value": true,
+            "unit": null,
+            "observed_at": "2026-09-14T18:45:00+02:00"
+          },
+          {
+            "key": "pain_reported",
+            "value": false,
+            "unit": null,
+            "observed_at": "2026-09-14T18:45:00+02:00"
+          }
+        ],
+        "outcome_code": "hold_reps",
+        "outcome_value": "keep_load",
+        "reason_note": null,
+        "created_at": "2026-09-14T18:46:00+02:00",
+        "article_ids": [
+          "k-progress"
+        ]
+      },
+      "expected_status": "stale_context",
+      "expected_http": 409,
+      "must_include_fact_keys": [],
+      "must_not_claim": [
+        "Nie dopisuj faktów spoza trace.",
+        "Nie przedstawiaj szkicu jako opublikowanego materiału."
+      ]
+    },
+    {
+      "id": "F04",
+      "title_pl": "Historia starej wersji",
+      "request_context": {
+        "authenticated_owner": "demo-user-a",
+        "plan_owner": "demo-user-a",
+        "current_plan_revision": 3,
+        "requested_plan_revision": 2,
+        "mode": "history",
+        "active_safety_block": false
+      },
+      "trace": {
+        "id": "trace-demo-1",
+        "owner_id": "demo-user-a",
+        "plan_id": "demo-plan",
+        "plan_revision": 2,
+        "target_type": "load",
+        "target_id": "demo-session:db_bench:0",
+        "decision_origin": "engine",
+        "rule_id": "H_PROGRESS",
+        "rule_version": "1.0",
+        "data_quality": "sufficient",
+        "facts": [
+          {
+            "key": "planned_sets",
+            "value": 3,
+            "unit": "sets",
+            "observed_at": "2026-09-14T18:45:00+02:00"
+          },
+          {
+            "key": "reps_max",
+            "value": 12,
+            "unit": "reps",
+            "observed_at": "2026-09-14T18:45:00+02:00"
+          },
+          {
+            "key": "completed_reps",
+            "value": [
+              12,
+              12,
+              10
+            ],
+            "unit": "reps",
+            "observed_at": "2026-09-14T18:45:00+02:00"
+          },
+          {
+            "key": "all_rir_met",
+            "value": true,
+            "unit": null,
+            "observed_at": "2026-09-14T18:45:00+02:00"
+          },
+          {
+            "key": "technique_ok",
+            "value": true,
+            "unit": null,
+            "observed_at": "2026-09-14T18:45:00+02:00"
+          },
+          {
+            "key": "pain_reported",
+            "value": false,
+            "unit": null,
+            "observed_at": "2026-09-14T18:45:00+02:00"
+          }
+        ],
+        "outcome_code": "hold_reps",
+        "outcome_value": "keep_load",
+        "reason_note": null,
+        "created_at": "2026-09-14T18:46:00+02:00",
+        "article_ids": [
+          "k-progress"
+        ]
+      },
+      "expected_status": "explained",
+      "expected_http": 200,
+      "must_include_fact_keys": [
+        "completed_reps"
+      ],
+      "must_not_claim": [
+        "Nie dopisuj faktów spoza trace.",
+        "Nie przedstawiaj szkicu jako opublikowanego materiału."
+      ]
+    },
+    {
+      "id": "F05",
+      "title_pl": "Próba odczytu cudzych danych",
+      "request_context": {
+        "authenticated_owner": "demo-user-b",
+        "plan_owner": "demo-user-a",
+        "current_plan_revision": 2,
+        "requested_plan_revision": 2,
+        "mode": "current",
+        "active_safety_block": false
+      },
+      "trace": {
+        "id": "trace-demo-1",
+        "owner_id": "demo-user-a",
+        "plan_id": "demo-plan",
+        "plan_revision": 2,
+        "target_type": "load",
+        "target_id": "demo-session:db_bench:0",
+        "decision_origin": "engine",
+        "rule_id": "H_PROGRESS",
+        "rule_version": "1.0",
+        "data_quality": "sufficient",
+        "facts": [
+          {
+            "key": "planned_sets",
+            "value": 3,
+            "unit": "sets",
+            "observed_at": "2026-09-14T18:45:00+02:00"
+          },
+          {
+            "key": "reps_max",
+            "value": 12,
+            "unit": "reps",
+            "observed_at": "2026-09-14T18:45:00+02:00"
+          },
+          {
+            "key": "completed_reps",
+            "value": [
+              12,
+              12,
+              10
+            ],
+            "unit": "reps",
+            "observed_at": "2026-09-14T18:45:00+02:00"
+          },
+          {
+            "key": "all_rir_met",
+            "value": true,
+            "unit": null,
+            "observed_at": "2026-09-14T18:45:00+02:00"
+          },
+          {
+            "key": "technique_ok",
+            "value": true,
+            "unit": null,
+            "observed_at": "2026-09-14T18:45:00+02:00"
+          },
+          {
+            "key": "pain_reported",
+            "value": false,
+            "unit": null,
+            "observed_at": "2026-09-14T18:45:00+02:00"
+          }
+        ],
+        "outcome_code": "hold_reps",
+        "outcome_value": "keep_load",
+        "reason_note": null,
+        "created_at": "2026-09-14T18:46:00+02:00",
+        "article_ids": [
+          "k-progress"
+        ]
+      },
+      "expected_status": null,
+      "expected_http": 404,
+      "must_include_fact_keys": [],
+      "must_not_claim": [
+        "Nie dopisuj faktów spoza trace.",
+        "Nie przedstawiaj szkicu jako opublikowanego materiału."
+      ]
+    },
+    {
+      "id": "F06",
+      "title_pl": "Sprzeczne dane",
+      "request_context": {
+        "authenticated_owner": "demo-user-a",
+        "plan_owner": "demo-user-a",
+        "current_plan_revision": 2,
+        "requested_plan_revision": 2,
+        "mode": "current",
+        "active_safety_block": false
+      },
+      "trace": {
+        "id": "trace-demo-1",
+        "owner_id": "demo-user-a",
+        "plan_id": "demo-plan",
+        "plan_revision": 2,
+        "target_type": "load",
+        "target_id": "demo-session:db_bench:0",
+        "decision_origin": "engine",
+        "rule_id": "H_PROGRESS",
+        "rule_version": "1.0",
+        "data_quality": "conflicting",
+        "facts": [
+          {
+            "key": "planned_sets",
+            "value": 3,
+            "unit": "sets",
+            "observed_at": "2026-09-14T18:45:00+02:00"
+          },
+          {
+            "key": "reps_max",
+            "value": 12,
+            "unit": "reps",
+            "observed_at": "2026-09-14T18:45:00+02:00"
+          },
+          {
+            "key": "completed_reps",
+            "value": [
+              12,
+              12,
+              10
+            ],
+            "unit": "reps",
+            "observed_at": "2026-09-14T18:45:00+02:00"
+          },
+          {
+            "key": "all_rir_met",
+            "value": true,
+            "unit": null,
+            "observed_at": "2026-09-14T18:45:00+02:00"
+          },
+          {
+            "key": "technique_ok",
+            "value": true,
+            "unit": null,
+            "observed_at": "2026-09-14T18:45:00+02:00"
+          },
+          {
+            "key": "pain_reported",
+            "value": false,
+            "unit": null,
+            "observed_at": "2026-09-14T18:45:00+02:00"
+          }
+        ],
+        "outcome_code": "hold_reps",
+        "outcome_value": "keep_load",
+        "reason_note": null,
+        "created_at": "2026-09-14T18:46:00+02:00",
+        "article_ids": [
+          "k-progress"
+        ]
+      },
+      "expected_status": "inconsistent_data",
+      "expected_http": 200,
+      "must_include_fact_keys": [],
+      "must_not_claim": [
+        "Nie dopisuj faktów spoza trace.",
+        "Nie przedstawiaj szkicu jako opublikowanego materiału."
+      ]
+    },
+    {
+      "id": "F07",
+      "title_pl": "Brak oceny zapasu",
+      "request_context": {
+        "authenticated_owner": "demo-user-a",
+        "plan_owner": "demo-user-a",
+        "current_plan_revision": 2,
+        "requested_plan_revision": 2,
+        "mode": "current",
+        "active_safety_block": false
+      },
+      "trace": {
+        "id": "trace-demo-1",
+        "owner_id": "demo-user-a",
+        "plan_id": "demo-plan",
+        "plan_revision": 2,
+        "target_type": "load",
+        "target_id": "demo-session:db_bench:0",
+        "decision_origin": "engine",
+        "rule_id": "H_PROGRESS",
+        "rule_version": "1.0",
+        "data_quality": "partial",
+        "facts": [
+          {
+            "key": "planned_sets",
+            "value": 3,
+            "unit": "sets",
+            "observed_at": "2026-09-14T18:45:00+02:00"
+          },
+          {
+            "key": "reps_max",
+            "value": 12,
+            "unit": "reps",
+            "observed_at": "2026-09-14T18:45:00+02:00"
+          },
+          {
+            "key": "completed_reps",
+            "value": [
+              12,
+              12,
+              10
+            ],
+            "unit": "reps",
+            "observed_at": "2026-09-14T18:45:00+02:00"
+          },
+          {
+            "key": "technique_ok",
+            "value": true,
+            "unit": null,
+            "observed_at": "2026-09-14T18:45:00+02:00"
+          },
+          {
+            "key": "pain_reported",
+            "value": false,
+            "unit": null,
+            "observed_at": "2026-09-14T18:45:00+02:00"
+          }
+        ],
+        "outcome_code": "hold_reps",
+        "outcome_value": "keep_load",
+        "reason_note": null,
+        "created_at": "2026-09-14T18:46:00+02:00",
+        "article_ids": [
+          "k-progress"
+        ]
+      },
+      "expected_status": "insufficient_data",
+      "expected_http": 200,
+      "must_include_fact_keys": [],
+      "must_not_claim": [
+        "Nie dopisuj faktów spoza trace.",
+        "Nie przedstawiaj szkicu jako opublikowanego materiału."
+      ]
+    },
+    {
+      "id": "F08",
+      "title_pl": "Aktywna ścieżka bezpieczeństwa",
+      "request_context": {
+        "authenticated_owner": "demo-user-a",
+        "plan_owner": "demo-user-a",
+        "current_plan_revision": 2,
+        "requested_plan_revision": 2,
+        "mode": "current",
+        "active_safety_block": true
+      },
+      "trace": {
+        "id": "trace-demo-1",
+        "owner_id": "demo-user-a",
+        "plan_id": "demo-plan",
+        "plan_revision": 2,
+        "target_type": "load",
+        "target_id": "demo-session:db_bench:0",
+        "decision_origin": "engine",
+        "rule_id": "H_PROGRESS",
+        "rule_version": "1.0",
+        "data_quality": "sufficient",
+        "facts": [
+          {
+            "key": "planned_sets",
+            "value": 3,
+            "unit": "sets",
+            "observed_at": "2026-09-14T18:45:00+02:00"
+          },
+          {
+            "key": "reps_max",
+            "value": 12,
+            "unit": "reps",
+            "observed_at": "2026-09-14T18:45:00+02:00"
+          },
+          {
+            "key": "completed_reps",
+            "value": [
+              12,
+              12,
+              10
+            ],
+            "unit": "reps",
+            "observed_at": "2026-09-14T18:45:00+02:00"
+          },
+          {
+            "key": "all_rir_met",
+            "value": true,
+            "unit": null,
+            "observed_at": "2026-09-14T18:45:00+02:00"
+          },
+          {
+            "key": "technique_ok",
+            "value": true,
+            "unit": null,
+            "observed_at": "2026-09-14T18:45:00+02:00"
+          },
+          {
+            "key": "pain_reported",
+            "value": false,
+            "unit": null,
+            "observed_at": "2026-09-14T18:45:00+02:00"
+          }
+        ],
+        "outcome_code": "hold_reps",
+        "outcome_value": "keep_load",
+        "reason_note": null,
+        "created_at": "2026-09-14T18:46:00+02:00",
+        "article_ids": [
+          "k-progress"
+        ]
+      },
+      "expected_status": "restricted",
+      "expected_http": 200,
+      "must_include_fact_keys": [],
+      "must_not_claim": [
+        "Nie dopisuj faktów spoza trace.",
+        "Nie przedstawiaj szkicu jako opublikowanego materiału."
+      ]
+    },
+    {
+      "id": "F09",
+      "title_pl": "Dni wybrane przez użytkownika",
+      "request_context": {
+        "authenticated_owner": "demo-user-a",
+        "plan_owner": "demo-user-a",
+        "current_plan_revision": 2,
+        "requested_plan_revision": 2,
+        "mode": "current",
+        "active_safety_block": false
+      },
+      "trace": {
+        "id": "trace-demo-1",
+        "owner_id": "demo-user-a",
+        "plan_id": "demo-plan",
+        "plan_revision": 2,
+        "target_type": "load",
+        "target_id": "demo-session:db_bench:0",
+        "decision_origin": "user",
+        "rule_id": null,
+        "rule_version": null,
+        "data_quality": "sufficient",
+        "facts": [
+          {
+            "key": "selected_value",
+            "value": 3,
+            "unit": "sessions_per_week",
+            "observed_at": "2026-09-14T18:45:00+02:00"
+          },
+          {
+            "key": "selected_at",
+            "value": "2026-09-14",
+            "unit": null,
+            "observed_at": "2026-09-14T18:45:00+02:00"
+          }
+        ],
+        "outcome_code": "user_selection",
+        "outcome_value": 3,
+        "reason_note": null,
+        "created_at": "2026-09-14T18:46:00+02:00",
+        "article_ids": [
+          "k-frequency"
+        ]
+      },
+      "expected_status": "explained",
+      "expected_http": 200,
+      "must_include_fact_keys": [
+        "selected_value"
+      ],
+      "must_not_claim": [
+        "Nie dopisuj faktów spoza trace.",
+        "Nie przedstawiaj szkicu jako opublikowanego materiału."
+      ]
+    },
+    {
+      "id": "F10",
+      "title_pl": "Notatka autora planu",
+      "request_context": {
+        "authenticated_owner": "demo-user-a",
+        "plan_owner": "demo-user-a",
+        "current_plan_revision": 2,
+        "requested_plan_revision": 2,
+        "mode": "current",
+        "active_safety_block": false
+      },
+      "trace": {
+        "id": "trace-demo-1",
+        "owner_id": "demo-user-a",
+        "plan_id": "demo-plan",
+        "plan_revision": 2,
+        "target_type": "load",
+        "target_id": "demo-session:db_bench:0",
+        "decision_origin": "professional",
+        "rule_id": null,
+        "rule_version": null,
+        "data_quality": "sufficient",
+        "facts": [],
+        "outcome_code": "professional_note",
+        "outcome_value": "keep_load",
+        "reason_note": "Układ uzgodniony podczas konsultacji z uwzględnieniem dostępnych dni.",
+        "created_at": "2026-09-14T18:46:00+02:00",
+        "article_ids": [
+          "k-progress"
+        ]
+      },
+      "expected_status": "explained",
+      "expected_http": 200,
+      "must_include_fact_keys": [],
+      "must_not_claim": [
+        "Nie dopisuj faktów spoza trace.",
+        "Nie przedstawiaj szkicu jako opublikowanego materiału."
+      ]
+    },
+    {
+      "id": "F11",
+      "title_pl": "Oszacowanie przekazane przez moduł diety",
+      "request_context": {
+        "authenticated_owner": "demo-user-a",
+        "plan_owner": "demo-user-a",
+        "current_plan_revision": 2,
+        "requested_plan_revision": 2,
+        "mode": "current",
+        "active_safety_block": false
+      },
+      "trace": {
+        "id": "trace-demo-1",
+        "owner_id": "demo-user-a",
+        "plan_id": "demo-plan",
+        "plan_revision": 2,
+        "target_type": "energy_target",
+        "target_id": "demo-session:db_bench:0",
+        "decision_origin": "engine",
+        "rule_id": "ENERGY_INITIAL",
+        "rule_version": "1.0",
+        "data_quality": "sufficient",
+        "facts": [
+          {
+            "key": "method_label",
+            "value": "Metoda demonstracyjnego modułu diety",
+            "unit": null,
+            "observed_at": "2026-09-14T18:45:00+02:00"
+          },
+          {
+            "key": "calculated_value",
+            "value": 2200,
+            "unit": "kcal/day",
+            "observed_at": "2026-09-14T18:45:00+02:00"
+          },
+          {
+            "key": "unit",
+            "value": "kcal/day",
+            "unit": null,
+            "observed_at": "2026-09-14T18:45:00+02:00"
+          },
+          {
+            "key": "assumption_summary",
+            "value": "Wartość przykładowa, nie zalecenie dla osoby czytającej.",
+            "unit": null,
+            "observed_at": "2026-09-14T18:45:00+02:00"
+          }
+        ],
+        "outcome_code": "initial_estimate",
+        "outcome_value": 2200,
+        "reason_note": null,
+        "created_at": "2026-09-14T18:46:00+02:00",
+        "article_ids": [
+          "k-energy"
+        ]
+      },
+      "expected_status": "explained",
+      "expected_http": 200,
+      "must_include_fact_keys": [
+        "method_label",
+        "calculated_value"
+      ],
+      "must_not_claim": [
+        "Nie dopisuj faktów spoza trace.",
+        "Nie przedstawiaj szkicu jako opublikowanego materiału."
+      ]
+    },
+    {
+      "id": "F12",
+      "title_pl": "Brak integracji uzasadnień diety",
+      "request_context": {
+        "authenticated_owner": "demo-user-a",
+        "plan_owner": "demo-user-a",
+        "current_plan_revision": 2,
+        "requested_plan_revision": 2,
+        "mode": "current",
+        "active_safety_block": false
+      },
+      "trace": null,
+      "expected_status": "missing_trace",
+      "expected_http": 200,
+      "must_include_fact_keys": [],
+      "must_not_claim": [
+        "Nie dopisuj faktów spoza trace.",
+        "Nie przedstawiaj szkicu jako opublikowanego materiału."
+      ]
+    },
+    {
+      "id": "F13",
+      "title_pl": "Posiłek dobrany według preferencji",
+      "request_context": {
+        "authenticated_owner": "demo-user-a",
+        "plan_owner": "demo-user-a",
+        "current_plan_revision": 2,
+        "requested_plan_revision": 2,
+        "mode": "current",
+        "active_safety_block": false
+      },
+      "trace": {
+        "id": "trace-demo-1",
+        "owner_id": "demo-user-a",
+        "plan_id": "demo-plan",
+        "plan_revision": 2,
+        "target_type": "meal",
+        "target_id": "demo-session:db_bench:0",
+        "decision_origin": "engine",
+        "rule_id": "MEAL_PREFERENCE",
+        "rule_version": "1.0",
+        "data_quality": "sufficient",
+        "facts": [
+          {
+            "key": "preference_label",
+            "value": "krótkie przygotowanie",
+            "unit": null,
+            "observed_at": "2026-09-14T18:45:00+02:00"
+          },
+          {
+            "key": "matching_result",
+            "value": "Potwierdzone dopasowanie w module diety",
+            "unit": null,
+            "observed_at": "2026-09-14T18:45:00+02:00"
+          }
+        ],
+        "outcome_code": "preference_match",
+        "outcome_value": "selected",
+        "reason_note": null,
+        "created_at": "2026-09-14T18:46:00+02:00",
+        "article_ids": [
+          "k-meal"
+        ]
+      },
+      "expected_status": "explained",
+      "expected_http": 200,
+      "must_include_fact_keys": [
+        "preference_label"
+      ],
+      "must_not_claim": [
+        "Nie dopisuj faktów spoza trace.",
+        "Nie przedstawiaj szkicu jako opublikowanego materiału."
+      ]
+    },
+    {
+      "id": "F14",
+      "title_pl": "Niepełna liczba zapisanych serii",
+      "request_context": {
+        "authenticated_owner": "demo-user-a",
+        "plan_owner": "demo-user-a",
+        "current_plan_revision": 2,
+        "requested_plan_revision": 2,
+        "mode": "current",
+        "active_safety_block": false
+      },
+      "trace": {
+        "id": "trace-demo-1",
+        "owner_id": "demo-user-a",
+        "plan_id": "demo-plan",
+        "plan_revision": 2,
+        "target_type": "load",
+        "target_id": "demo-session:db_bench:0",
+        "decision_origin": "engine",
+        "rule_id": "H_PROGRESS",
+        "rule_version": "1.0",
+        "data_quality": "sufficient",
+        "facts": [
+          {
+            "key": "planned_sets",
+            "value": 3,
+            "unit": "sets",
+            "observed_at": "2026-09-14T18:45:00+02:00"
+          },
+          {
+            "key": "reps_max",
+            "value": 12,
+            "unit": "reps",
+            "observed_at": "2026-09-14T18:45:00+02:00"
+          },
+          {
+            "key": "completed_reps",
+            "value": [
+              12,
+              12
+            ],
+            "unit": "reps",
+            "observed_at": "2026-09-14T18:45:00+02:00"
+          },
+          {
+            "key": "all_rir_met",
+            "value": true,
+            "unit": null,
+            "observed_at": "2026-09-14T18:45:00+02:00"
+          },
+          {
+            "key": "technique_ok",
+            "value": true,
+            "unit": null,
+            "observed_at": "2026-09-14T18:45:00+02:00"
+          },
+          {
+            "key": "pain_reported",
+            "value": false,
+            "unit": null,
+            "observed_at": "2026-09-14T18:45:00+02:00"
+          }
+        ],
+        "outcome_code": "hold_reps",
+        "outcome_value": "keep_load",
+        "reason_note": null,
+        "created_at": "2026-09-14T18:46:00+02:00",
+        "article_ids": [
+          "k-progress"
+        ]
+      },
+      "expected_status": "insufficient_data",
+      "expected_http": 200,
+      "must_include_fact_keys": [],
+      "must_not_claim": [
+        "Nie dopisuj faktów spoza trace.",
+        "Nie przedstawiaj szkicu jako opublikowanego materiału."
+      ]
+    },
+    {
+      "id": "F15",
+      "title_pl": "Ból sprzeczny z powodem hold_reps",
+      "request_context": {
+        "authenticated_owner": "demo-user-a",
+        "plan_owner": "demo-user-a",
+        "current_plan_revision": 2,
+        "requested_plan_revision": 2,
+        "mode": "current",
+        "active_safety_block": false
+      },
+      "trace": {
+        "id": "trace-demo-1",
+        "owner_id": "demo-user-a",
+        "plan_id": "demo-plan",
+        "plan_revision": 2,
+        "target_type": "load",
+        "target_id": "demo-session:db_bench:0",
+        "decision_origin": "engine",
+        "rule_id": "H_PROGRESS",
+        "rule_version": "1.0",
+        "data_quality": "sufficient",
+        "facts": [
+          {
+            "key": "planned_sets",
+            "value": 3,
+            "unit": "sets",
+            "observed_at": "2026-09-14T18:45:00+02:00"
+          },
+          {
+            "key": "reps_max",
+            "value": 12,
+            "unit": "reps",
+            "observed_at": "2026-09-14T18:45:00+02:00"
+          },
+          {
+            "key": "completed_reps",
+            "value": [
+              12,
+              12,
+              10
+            ],
+            "unit": "reps",
+            "observed_at": "2026-09-14T18:45:00+02:00"
+          },
+          {
+            "key": "all_rir_met",
+            "value": true,
+            "unit": null,
+            "observed_at": "2026-09-14T18:45:00+02:00"
+          },
+          {
+            "key": "technique_ok",
+            "value": true,
+            "unit": null,
+            "observed_at": "2026-09-14T18:45:00+02:00"
+          },
+          {
+            "key": "pain_reported",
+            "value": true,
+            "unit": null,
+            "observed_at": "2026-09-14T18:45:00+02:00"
+          }
+        ],
+        "outcome_code": "hold_reps",
+        "outcome_value": "keep_load",
+        "reason_note": null,
+        "created_at": "2026-09-14T18:46:00+02:00",
+        "article_ids": [
+          "k-progress"
+        ]
+      },
+      "expected_status": "inconsistent_data",
+      "expected_http": 200,
+      "must_include_fact_keys": [],
+      "must_not_claim": [
+        "Nie dopisuj faktów spoza trace.",
+        "Nie przedstawiaj szkicu jako opublikowanego materiału."
+      ]
+    }
+  ]
+}

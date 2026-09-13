@@ -1049,3 +1049,161 @@ export interface WeeklyDigestData {
     client_name: string | null;
   }[];
 }
+
+// --- Wiedza (0.56.0) ---------------------------------------------------------
+
+export interface WiedzaKarta {
+  id: string;
+  revision: number;
+  status: string;
+  category: string;
+  category_label: string;
+  title: string;
+  summary: string;
+  estimated_read_minutes: number | null;
+  evidence_kind: string | null;
+  exercise_id: string | null;
+  /** Treść robocza (bez przeglądu) — widoczna tylko w trybie demonstracyjnym. */
+  szkic: boolean;
+  przeglad_po_terminie: boolean;
+  next_review_at: string | null;
+}
+
+export interface WiedzaZrodlo {
+  id: string;
+  title: string | null;
+  authors?: string | null;
+  year?: string | null;
+  url?: string | null;
+  type?: string | null;
+  /** merytoryczne / inspiracja_produktowa — inspiracje nie są dowodem. */
+  rola: string;
+}
+
+export interface WiedzaKartaPelna extends WiedzaKarta {
+  steps: string[];
+  detail: string;
+  limits: string;
+  aliases: string[];
+  tags: string[];
+  media: null | { url: string; caption: string; transcript: string; license_reference: string };
+  author_label: string;
+  review: {
+    approved: boolean; reviewer_id: string | null;
+    reviewed_at: string | null; next_review_at: string | null;
+  };
+  sources: WiedzaZrodlo[];
+  zapisany: boolean;
+  szkice_widoczne: boolean;
+}
+
+export type WyjasnienieStatus =
+  | "explained" | "general_only" | "missing_trace" | "insufficient_data"
+  | "inconsistent_data" | "stale_context" | "restricted";
+
+export interface WyjasnienieAkcja {
+  label: string;
+  type: "open_article" | "open_source_view" | "open_safety_flow" | "retry";
+  target_id: string | null;
+}
+
+/** ExplanationResult z kontraktu pakietu Wiedza (07_SCHEMATY). */
+export interface Wyjasnienie {
+  status: WyjasnienieStatus;
+  trace_id: string | null;
+  plan_revision: number | null;
+  paragraphs: string[];
+  used_fact_keys: string[];
+  article_refs: { id: string; revision: number }[];
+  actions: WyjasnienieAkcja[];
+  historical: boolean;
+}
+
+export interface WiedzaPlanSkrot {
+  plan_id: string;
+  title: string;
+  version_no: number;
+  version_created_at: string;
+  reason: string;
+  days: number;
+  exercise_ids: string[];
+  ma_rir: boolean;
+  z_konfiguratora: boolean;
+}
+
+export interface WiedzaZmiana {
+  plan_kind: "training" | "nutrition";
+  plan_id: string;
+  plan_title: string;
+  version_no: number;
+  reason: string;
+  created_at: string;
+  ma_slad: boolean;
+}
+
+export interface WiedzaOdTrenera {
+  id: string;
+  title: string;
+  category: string;
+  czesc: string;
+  body: string | null;
+  external_url: string | null;
+  file_id: string | null;
+  pinned: boolean;
+}
+
+export interface WiedzaStart {
+  wlaczone: boolean;
+  szkice_widoczne?: boolean;
+  personalizacja?: boolean;
+  plan?: WiedzaPlanSkrot | null;
+  dieta?: boolean;
+  dla_ciebie?: (WiedzaKarta & { powod: string; punkty: number })[];
+  ostatnie_zmiany?: WiedzaZmiana[];
+  czesci?: { id: string; label: string; liczba: number }[];
+  od_trenera?: WiedzaOdTrenera[];
+  zakladki?: string[];
+}
+
+export interface WiedzaHistoriaWpis {
+  trace_id: string;
+  plan_revision: number;
+  target_type: string;
+  target_id: string;
+  decision_origin: "engine" | "professional" | "user";
+  rule_id: string | null;
+  outcome_code: string;
+  outcome_value: unknown;
+  reason_note: string | null;
+  created_at: string;
+  version_created_at: string | null;
+  version_reason: string | null;
+  autor: string;
+  aktualna: boolean;
+}
+
+export interface WiedzaWynikSzukania {
+  id: string;
+  revision: number;
+  title: string;
+  fragment: string;
+  category: string;
+  category_label: string | null;
+  szkic: boolean;
+  punkty: number;
+}
+
+export const WIEDZA_CZESCI: [string, string][] = [
+  ["dla-ciebie", "Dla Ciebie"], ["training", "Trening"], ["nutrition", "Odżywianie"],
+  ["progress", "Postępy i regeneracja"], ["basics", "Podstawy i źródła"],
+];
+
+export const WIEDZA_TYP_ELEMENTU: Record<string, string> = {
+  training_frequency: "Liczba treningów",
+  exercise_prescription: "Dawka ćwiczenia",
+  plan_change: "Zmiana planu",
+  energy_target: "Cel kaloryczny",
+  macro_target: "Makroskładniki",
+  load: "Ciężar",
+  meal: "Posiłek",
+};
