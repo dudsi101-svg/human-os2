@@ -21,15 +21,21 @@ z oczekiwanymi. Ręczny deploy: tylko awaryjnie (`workflow_dispatch`).
 
 ## Konta na produkcji
 
+Stan z workflowu „Diagnostyka produkcji (Fly.io)” z 2026-09-13 07:17 UTC
+(run 34744866429) — nie z pamięci sesji. Wcześniejsza wersja tej tabeli
+myliła się co do `dudsi101@gmail.com` (poprawka, Karta §XII).
+
 | Konto | Rola | Stan |
 |---|---|---|
-| lubelskidzikk@gmail.com | COACH (trener — Łukasz) | aktywne; 1. logowanie wymusza zmianę hasła (MFA opcjonalne na pilotaż) |
-| dudsi101+admin@gmail.com | ADMIN (właściciel) | jw. |
-| dudsi101+trener@gmail.com | COACH (konto testowe właściciela) | jw. |
-| dudsi101@gmail.com | CLIENT (właściciel jako podopieczny) | aktywne |
-| dudsi101+klient@gmail.com | CLIENT (konto testowe właściciela u Łukasza) | aktywne, relacja ACTIVE z lubelskidzikk (operatorsko, 31.08); zgody trenerskie udziela sam w Profilu (0.54.3) |
-| dudsi101plusklient@gmail.com | CLIENT (PENDING — literówka w zaproszeniu z panelu, 7.09) | do anulowania przez trenera („Anuluj” na liście) — zajmuje miejsce z limitu |
-| 7 kont demo sprzed pilotażu | — | zdezaktywowane (SUSPENDED, losowy hash) |
+| lubelskidzikk@gmail.com | COACH (trener — Łukasz) | ACTIVE, bez MFA, ostatnie logowanie 13.09 06:06 UTC |
+| dudsi101+admin@gmail.com | ADMIN (właściciel) | ACTIVE, MFA włączone |
+| dudsi101+trener@gmail.com | COACH (konto testowe właściciela) | ACTIVE, wymuszona zmiana hasła (nigdy nie dokończona) |
+| dudsi101@gmail.com | CLIENT (zaproszony 25.08 przez konto demo) | **PENDING** — zaproszenie wygasło 01.09; nigdy nie aktywowane |
+| dudsi101+klient@gmail.com | CLIENT (operatorsko, 31.08) | ACTIVE, relacja z Łukaszem ACTIVE, **zgoda współpracy nieudzielona** (Profil → Prywatność i zgody) |
+| dudsi101plusklient@gmail.com („Mateusz D”) | CLIENT (z panelu Łukasza, 29.08) | **ACTIVE od 13.09 06:03** (aktywowane linkiem), zgoda współpracy z deklaracji — to działające konto testowe właściciela u Łukasza |
+| dudsi101+test1@gmail.com („TEST 01 — plan pełny”) | CLIENT (z panelu Łukasza, 12.09) | **PENDING**, zaproszenie aktywne do 20.09 (odnowione 13.09 06:18), e-mail nie wyszedł (dostawca `null`) — aktywacja linkiem z panelu |
+| kboguta6@gmail.com | CLIENT (zaproszony 23.08 przez konto demo) | PENDING, zaproszenie wygasło 31.08 — do anulowania albo ponowienia przez trenera |
+| 7 kont demo sprzed pilotażu | — | SUSPENDED |
 
 **Logowanie (pilotaż, decyzja właściciela 29.08):** login + hasło; wymuszanie MFA zdjęte (`DZIK_MFA_REQUIRED_ROLES=""`), MFA dostępne opt-in; przywrócenie przymusu = wpisanie `"COACH,ADMIN"` w fly.toml. Reset operatorski hasła czyści też TOTP (konto wraca do logowania hasłem).
 
