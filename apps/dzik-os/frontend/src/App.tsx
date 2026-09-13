@@ -28,6 +28,7 @@ const Messages = lazy(() => import("./pages/Messages"));
 const Thread = lazy(() => import("./pages/Thread"));
 const Clients = lazy(() => import("./pages/coach/Clients"));
 const ClientDetail = lazy(() => import("./pages/coach/ClientDetail"));
+const SzablonyDiet = lazy(() => import("./pages/coach/SzablonyDiet"));
 const Reconciliation = lazy(() => import("./pages/coach/Reconciliation"));
 const WeeklyDigest = lazy(() => import("./pages/coach/WeeklyDigest"));
 const Templates = lazy(() => import("./pages/coach/Templates"));
@@ -125,6 +126,7 @@ export default function App() {
             <Route path="/trener" element={<Clients />} />
             <Route path="/trener/klient/:clientId" element={<ClientDetail />} />
             <Route path="/trener/szablony" element={<Templates />} />
+            <Route path="/trener/szablony-diet" element={<SzablonyDiet />} />
             <Route path="/trener/wiedza" element={<CoachKnowledge />} />
             <Route path="/trener/konsultacje" element={<CoachConsultations />} />
             <Route path="/trener/wyzwania" element={<CoachChallenges />} />

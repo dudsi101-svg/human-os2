@@ -1,6 +1,6 @@
 # Stan wydania — Dzik OS
 
-**Wersja:** 0.59.0 · **Data:** 2026-09-13 · **Środowisko:** produkcja
+**Wersja:** 0.60.0 · **Data:** 2026-09-13 · **Środowisko:** produkcja
 (pilotaż) — https://dzik-os-panel.fly.dev
 
 Jedna strona prawdy o tym, co DZIAŁA na produkcji teraz. Aktualizowana
@@ -71,6 +71,16 @@ a produkcja ignoruje tryb demonstracyjny. Publikuje trener w zakładce
 przeglądu). „Dlaczego?” działa od razu dla nowych decyzji (plany
 z konfiguratora, nowe wersje planów i diet od trenera); stare plany
 pokazują uczciwy brak zapisanego uzasadnienia (`docs/WIEDZA.md`).
+
+## Szablony diet ze skalowaniem (0.60.0) — za flagą, na produkcji WYŁĄCZONE
+
+Moduł równoległy do planów żywieniowych: biblioteka szablonów
+(profil → odsłona tygodnia), silnik skalowania (port prototypu
+właściciela), przypisanie z migawką, wymiany produktów przez klienta,
+panel szablonów. Włączenie: `DZIK_DIET_TEMPLATES_ENABLED=true` (sekret /
+env Fly) — bez niego `/api/diet/*` zwraca 404, interfejs nie pokazuje
+modułu, dane z migracji 32 pozostają nieużywane. Stary kreator diet
+nietknięty. Stan i pytania otwarte: `docs/diet-module/PROGRESS.md`.
 
 ## Zakładka „Wywiad” (0.59.0)
 

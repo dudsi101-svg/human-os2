@@ -1,6 +1,6 @@
 # Stan przekazania — przeczytaj przed rozpoczęciem rundy
 
-**Aktualizacja:** 2026-09-13 · **Wersja w `main`:** 0.59.0
+**Aktualizacja:** 2026-09-13 · **Wersja w `main`:** 0.60.0
 **Tryb pracy:** jeden piszący i jeden PR `[WRITER]` naraz
 (`KOORDYNACJA.md`, zasada nadrzędna).
 
@@ -33,7 +33,15 @@ pierwszy commit, draft PR `[WRITER]`, reszta agentów read-only.
 jednym prawdziwym klientem, **NO-GO na szerszą produkcję** — siedem
 blokerów wypisanych w §5 tamtego dokumentu.
 
-**Ostatnia runda (0.59.0, gałąź `agent/wywiad-zakladka`):** zakładka
+**Ostatnia runda (0.60.0, gałąź `agent/szablony-diet`):** szablony diet ze
+skalowaniem wg zadania właściciela — silnik 1:1 z prototypem (golden
+tydzień, sweep 131/133), model danych (migracja 32), seed 142 produktów +
+odsłona Standard v1, API `/api/diet`, przepływ trenera „Przypisz dietę”,
+widok klienta z wymianami, panel szablonów, flaga
+`DZIK_DIET_TEMPLATES_ENABLED` (produkcja: wyłączona). Otwarte dla
+właściciela: włączyć regułę `group` domyślnie? (PROGRESS.md), kolejne
+profile/odsłony (dietetyk), włączenie flagi na produkcji.
+**Poprzednia runda (0.59.0, gałąź `agent/wywiad-zakladka`):** zakładka
 „Wywiad” wg specyfikacji właściciela — diagnoza braku wywiadu (brak
 inicjacji poza klientem + nieodróżnialne stany widoku; dane nie ginęły),
 dwa formularze z definicjami pytań z istniejących scenariuszy, szkic

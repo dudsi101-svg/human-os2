@@ -68,3 +68,69 @@ szablonów dostępny dla roli COACH lub ADMIN (szablony nie są danymi klientów
 sięga po diety klientów — test). Powiadomień o przypisaniu nie wysyłam (poza zakresem zadania;
 łatwa okazja: wpis „Trener przypisał dietę” przez outbox jak w 0.58.0 — propozycja, nie zrobione).
 Testy: `tests/test_dieta_api.py` (11) + 27 wpisów macierzy dostępu weryfikowanych wykonaniem.
+
+## Etap 4 — UI trenera: zrobione
+`frontend/src/pages/coach/PrzypiszDiete.tsx`, wpięty w zakładkę Dieta karty klienta
+(`ClientDetail.tsx`, widoczny tylko, gdy `GET /api/diet/profiles` odpowiada 200 — flaga).
+Przepływ §9: kafelki profili (tylko z opublikowanymi odsłonami) → odsłony z podglądem posiłków
+tygodnia → cel (kcal, preset z profilu / na kg / ręcznie, masa ciała, wykluczenia: alergeny +
+nielubiane produkty) → „Przelicz tydzień” → karty dni z sumą i kolorowym statusem, posiłki ze
+statusem i odchyleniem, „Zamień na inny posiłek” (biblioteka tego profilu, ten sam slot,
+przeliczenie na żywo), edycja gramatur inline (debounce 700 ms → `preview` z `overrides`) →
+„Przypisz” z potwierdzeniem; blokada przy dniu POZA_TOLERANCJĄ z checkboxem „przypisz mimo
+ostrzeżeń” (serwer zapisuje `accepted_warnings/accepted_days` w overrides). Karta przypisanej
+diety (`PrzypisanaDietaTrenera`): dzień po dniu, korekty, historia wymian klienta, blokada wymian.
+Nie zrobione (poza P0): edycja gramatur po przypisaniu w UI (API `PATCH` istnieje i jest
+przetestowane) — propozycja na kolejną rundę.
+
+## Etap 5 — UI klienta: zrobione (P0 + P1)
+`frontend/src/pages/client/DietaSzablon.tsx` w ekranie Dieta: dzień (zakładki D1–D7), posiłki
+z gramaturami (dyskretne „2 szt. (~110 g)”), makro posiłku i dnia, przepis rozwijany; P1:
+„↔ wymień” przy składniku `swappable` → arkusz 1–3 zamienników z gramaturą policzoną przez
+serwer → zapis; brak kandydatów → „Brak bezpiecznego zamiennika, napisz do trenera” z linkiem
+do wiadomości; blokada trenera pokazana jako komunikat. Trener widzi historię wymian w karcie.
+
+## Etap 6 — panel szablonów: zrobione (minimalny)
+`/trener/szablony-diet` (`SzablonyDiet.tsx`, link z ekranu Szablony → Dieta): profile (dodanie),
+odsłony (dodanie, edycja dni → posiłki → składniki z wyborem produktu z bazy i polami reguł:
+rola, klasa, g/szt, grupa; usuwanie), „Testuj skalowanie” (sweep 1400–3200, dni OK, flagi per
+posiłek, brakujące dni), publikacja tylko przy ≥ 95 % dni OK (serwer 409 poniżej progu),
+cofnięcie publikacji, import odsłony z JSON. Nie ma jeszcze: edycji istniejącego składnika /
+posiłku w miejscu (API `PUT` istnieje), edycji profilu, dodawania produktu (API admina istnieje).
+
+## Odstępstwa od specyfikacji i decyzje techniczne
+* Reguła `group` nie jest wymuszana domyślnie (referencja jej nie wymusza; z regułą sweep
+  129/133) — opcja `enforce_groups`; **pytanie do człowieka**.
+* Tolerancje z §6.2 (±4 g B, ±3 g T, ±8 g W posiłku) zostały w kodzie zastąpione wartościami
+  z §4a.3 i `engine.py` (±5/±4/±10 g, ±8 % lub ±40 kcal) — zgodnie z zadaniem (stałe z `engine.py`).
+* `unit_size` ze specyfikacji = `unit_g` + `unit_step` (jak w prototypie); `group` → `group_name`.
+* `client_id` w ciele `assign` (jak w zadaniu), własność sprawdzana serwerowo; klasa dostępu w
+  macierzy: COACH_ONLY + testy „obcy trener 404 / klient 403”.
+* Panel szablonów dla roli COACH lub ADMIN (aplikacja nie ma roli „dietetyk”); produkt dodaje
+  wyłącznie ADMIN z jawnym `source`.
+* Powiadomienie klienta o przypisaniu diety — nie wysyłane (propozycja: outbox jak w 0.58.0).
+* Wartości produktów: surowe (USDA SR Legacy, 11 pozycji MANUAL_PL „do weryfikacji”) — bez
+  mnożników zmiany masy po obróbce (pytanie otwarte §11 spec).
+* E2E: przyciski nisko na długiej karcie klikane z `force` (kontrola „stable” Playwrighta daje
+  fałszywy wynik w emulacji telefonu; prostokąt elementu jest stały — sprawdzone pomiarem).
+
+## Pytania otwarte do człowieka
+1. Włączyć regułę `group` domyślnie (koszt: 129 zamiast 131 dni OK w sweepie)?
+2. Kiedy włączyć `DZIK_DIET_TEMPLATES_ENABLED` na produkcji (sekret Fly)? Dziś: wyłączone.
+3. Kto i kiedy dostarcza kolejne profile/odsłony (wymagane P0: 3 profile × 5 odsłon) —
+   panel i import JSON są gotowe; w repo jest 1 odsłona.
+4. Czy klient ma limit wymian na posiłek (spec §11)? Dziś: bez limitu, z historią.
+5. Dodać produkty bezlaktozowe do grupy `nabiał_chudy` (golden wskazuje brak zamiennika skyru).
+
+## Jak uruchomić
+```
+cd apps/dzik-os/backend && DZIK_DIET_TEMPLATES_ENABLED=true python -m dzik_os.dieta.seed   # migracje + seed
+python -m pytest tests/test_dieta_seed.py tests/test_dieta_silnik.py tests/test_dieta_api.py
+cd ../frontend && npm run build && DZIK_E2E_PORT=8098 npx playwright test e2e/dieta-szablon.spec.ts
+```
+Aplikacja z flagą (`.env`: `DZIK_DIET_TEMPLATES_ENABLED=true`) seeduje dane przy starcie.
+
+## Propozycje (nie zrobione, poza zakresem)
+* Wpis w centrum powiadomień klienta „Trener przypisał dietę” przez outbox.
+* Lista zakupów z migawki (dane są w `computed_plan`).
+* Statystyki wymian (tabela `diet_swap_events` już je zbiera).

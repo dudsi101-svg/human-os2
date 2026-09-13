@@ -46,4 +46,25 @@ Migracja **32**, wersja **0.60.0**, pliki: `backend/dzik_os/dieta/**`,
 
 ## Weryfikacja wykonana
 
-(uzupełnię po rundzie)
+- Backend: `ruff check` na nowych plikach czysty; `pytest` — 1730 passed,
+  1 skipped (w tym 28 nowych: seed 5, silnik 12, API 11); pokrycie
+  `dzik_os/dieta/silnik.py` 98 % (próg z zadania: 90 %).
+- Złoty test: dzień 1 i cały tydzień (161 składników) przy 2000 kcal
+  identyczne z `szablon_standard_v1_2000kcal.md`; sweep 1400–3200 co 50:
+  131/133 dni OK (próg ≥ 131).
+- Core: 275 testów zielone. `tools/spojnosc.py`: 13/13.
+- Frontend: `tsc --noEmit` czysty; `vite build` 89,5 kB gzip (budżet
+  120 kB); `test:helpers` 140; `e2e/test_a11y.mjs` — wszystkie kontrole
+  dostępności/responsywności przeszły.
+- E2E Playwright (projekt „telefon”): pełny zestaw zielony, w tym nowy
+  `dieta-szablon.spec.ts` (trener: profil → odsłona → 2200 kcal → podgląd →
+  korekta gramatury → przypisanie; klient: dzień z gramaturami → wymiana
+  kurczaka na indyka; trener: historia wymian).
+- Odchylenie znalezione przez E2E i naprawione: przycisk odsłony z zakresem
+  kcal nie łamał wiersza i poszerzał układ telefonu do 423 px, przez co
+  Playwright trafiał w sąsiednią kartę / dolną nawigację (przycisk
+  zawija się teraz, `PrzypiszDiete.tsx`).
+- Flaga: `DZIK_DIET_TEMPLATES_ENABLED=false` → trasy `/api/diet/*` zwracają
+  404, `health.features.diet_templates=false`, interfejs nie pokazuje
+  wejść (test `test_dieta_api.py::test_flaga_wylaczona_daje_404_na_calym_module`); w dev/test/E2E
+  włączona.

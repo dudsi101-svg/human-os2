@@ -1,5 +1,49 @@
 # Changelog — Dzik OS
 
+## 0.60.0 — 2026-09-13
+
+**Szablony diet ze skalowaniem (zadanie właściciela z 13.09; moduł za
+flagą `DZIK_DIET_TEMPLATES_ENABLED`, domyślnie wyłączony na produkcji).**
+
+* **Silnik skalowania** `dzik_os/dieta/silnik.py` = port 1:1 prototypu
+  `engine.py` (kroki 1–5b, klasy LINIOWY / DYSKRETNY / TŁUMIONY / STAŁY,
+  role P/C/F, tolerancje posiłku ±8 % lub ±40 kcal, dnia ±3 %, dwa
+  przebiegi dnia, posiłek elastyczny, dostrojenie krokami). Golden: cały
+  tydzień Standard v1 przy 2000 kcal identyczny z prototypem; sweep
+  1400–3200 = 131/133 dni OK. Reguła `group` jako jawna opcja
+  (`enforce_groups`, domyślnie wyłączona — decyzja do właściciela).
+* **Model danych** (migracja 32, addytywna): `diet_products` (142 z CSV,
+  kcal z makro 4/9/4, `kcal_usda`, `source`), `diet_profiles`,
+  `diet_template_weeks/days/meals/ingredients` (reguły skalowania per
+  składnik), `diet_assigned` (migawka JSON + overrides, wersje),
+  `diet_swap_events`. Seed idempotentny (`python -m dzik_os.dieta.seed`,
+  także przy starcie z włączoną flagą); brak produktu = błąd seeda.
+* **API `/api/diet`**: profile, podgląd szablonu, `preview` (presety makro
+  z profilu / na kg / ręcznie z kontrolą ±3 %, wykluczenia, korekty
+  gramatur, zamiana posiłku z biblioteki, ostrzeżenie poza zakresem kcal),
+  `assign` (tylko trener, własny klient; migawka; 409 przy dniu poza
+  tolerancją bez „przypisz mimo ostrzeżeń”), dieta klienta, kandydaci
+  wymiany (1–3, wykluczenia, `swappable`, blokada trenera), zapis wymiany
+  z walidacją gramatury po stronie serwera, `PATCH` trenera (korekta,
+  zamiana posiłku, blokada wymian), panel szablonów (CRUD, sweep,
+  publikacja ≥ 95 % dni OK, import JSON), produkty tylko przez admina
+  z jawnym `source`. 27 wpisów macierzy dostępu.
+* **UI trenera**: „Przypisz dietę” w zakładce Dieta karty klienta —
+  kafelki profili → odsłony z podglądem posiłków → cel → podgląd tygodnia
+  z kolorowymi statusami, zamiana posiłku, edycja gramatur inline
+  (przeliczenie przez `preview`) → przypisanie z potwierdzeniem; karta
+  przypisanej diety z historią wymian i blokadą wymian.
+* **UI klienta**: sekcja „Twoja dieta” na ekranie Dieta — dzień, posiłki
+  z gramaturami („2 szt. (~110 g)”), makro, przepis; wymiana składnika
+  (arkusz 1–3 zamienników) albo „Brak bezpiecznego zamiennika, napisz do
+  trenera”.
+* **Panel szablonów** `/trener/szablony-diet` (trener/admin): profile,
+  odsłony, dni, posiłki, składniki z bazy i regułami, „Testuj skalowanie”,
+  publikacja, import JSON.
+* Testy: `test_dieta_seed.py` (5), `test_dieta_silnik.py` (12, golden +
+  sweep + kryteria akceptacji), `test_dieta_api.py` (11); pokrycie
+  silnika 98 %. Dokumentacja: `docs/diet-module/` (rozpoznanie, PROGRESS).
+
 ## 0.59.0 — 2026-09-13
 
 **Zakładka „Wywiad”: wstępny i głęboki, wersje, przegląd trenera,

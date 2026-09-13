@@ -1,3 +1,4 @@
+import DietaSzablon from "./DietaSzablon";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api, getUser } from "../../api";
@@ -52,6 +53,9 @@ export default function Nutrition() {
   return (
     <div className="page">
       <TopBar title="Dieta" />
+      {/* Szablony diet ze skalowaniem (0.60.0): sekcja pojawia się tylko, gdy
+          moduł jest włączony i trener przypisał dietę z szablonu. */}
+      <DietaSzablon />
       {!v && <p className="dim">Trener nie dodał jeszcze planu żywieniowego.</p>}
       {plan && v && (
         <>
