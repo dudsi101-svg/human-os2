@@ -56,9 +56,12 @@ import {
 import WiedzaRedakcja from "./WiedzaRedakcja";
 
 type Tab = "artykuly" | "karty" | "cwiczenia" | "produkty" | "dieta";
+// „Karty wiedzy” na końcu: kolejność pierwszych zakładek jest częścią
+// kontraktu klawiatury sprawdzanego w e2e/test_a11y.mjs (strzałka w prawo
+// z „Artykuły” trafia w „Ćwiczenia”).
 const TABS: [Tab, string][] = [
-  ["artykuly", "Artykuły"], ["karty", "Karty wiedzy"], ["cwiczenia", "Ćwiczenia"],
-  ["produkty", "Produkty"], ["dieta", "Dieta"],
+  ["artykuly", "Artykuły"], ["cwiczenia", "Ćwiczenia"],
+  ["produkty", "Produkty"], ["dieta", "Dieta"], ["karty", "Karty wiedzy"],
 ];
 
 export default function Knowledge() {
