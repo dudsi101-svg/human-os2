@@ -1,5 +1,62 @@
 # Changelog — Dzik OS
 
+## 0.59.0 — 2026-09-13
+
+**Zakładka „Wywiad”: wstępny i głęboki, wersje, przegląd trenera,
+migracja (specyfikacja właściciela z 13.09).**
+
+* **Diagnoza** braku wywiadu w karcie klienta (`docs/WYWIAD.md` §1):
+  żadna ścieżka utworzenia klienta nie zakładała sesji (tylko klient
+  przez `/start`), widok trenera zlewał trzy stany w jedno „nie zaczął”,
+  odmowa dostępu wyglądała jak awaria, zgody wycinały pytania po cichu.
+  Dane istniejących sesji były poprawnie powiązane — przeniesione do
+  wersji.
+* **Klient `/wywiad`**: dwie stałe karty (wstępny, głęboki) z trzema
+  ROZDZIELONYMI statusami (wypełnienie / przegląd / aktualność),
+  postępem (wymagane aktywne / wymagane aktywne, 0/0 = 100 %), datą,
+  prośbami trenera i historią wersji; formularz sekcjami z zapisem
+  częściowym (rewizja, „Zapisano ✓” po odpowiedzi serwera, 409 przy
+  konflikcie), „Prześlij trenerowi” / „Aktualizuj odpowiedzi”
+  (idempotencja, 422 z listą braków); odpowiedzi o ograniczeniach
+  „Nie zgłaszam / Tak / Nie wiem / Wolę omówić z trenerem”; alergia,
+  nietolerancja i preferencja jako trzy pytania; podsumowanie
+  deterministyczne z pochodzeniem każdego punktu; rozmowa krok po
+  kroku pozostaje kanałem alternatywnym (`/wywiad/rozmowa`).
+* **Trener** (karta klienta → Wywiad): trzy odrębne stany (pusto /
+  brak dostępu z powodem / błąd z ponowieniem); Przejrzyj, Oznacz jako
+  przejrzane (z notatką wewnętrzną — nigdy do klienta), Poproś
+  o uzupełnienie, Uzupełnij wspólnie (`collection_mode=WSPOLNIE`,
+  autorstwo trenera widoczne dla klienta), Poproś o wypełnienie /
+  Przypomnij (jawne, jeden wpis dziennie); lista „Wywiady do
+  przejrzenia”, filtr i odznaka na liście klientów; podpowiedzi do
+  konfiguratora treningu i kreatora dań z pochodzeniem („Zaznacz
+  alergeny z wywiadu” — alergie jako ograniczenie, brak informacji
+  ≠ brak alergii).
+* **Fakty i plany**: rewizje faktów (`client_fact_revisions`) z
+  pochodzeniem; zmiana celu / ograniczeń / alergii / dostępności /
+  sprzętu w nowej wersji tworzy zadanie „Wymaga sprawdzenia” per aktywny
+  plan i blokuje publikację zależnej wersji (409
+  `INTERVIEW_REVIEW_REQUIRED`) do jawnego rozstrzygnięcia; plan aktywny
+  nie jest przepisywany.
+* **Definicje pytań** z istniejących scenariuszy (`question_id` =
+  `step.id`, wersja definicji, sekcja, reguła widoczności i
+  wymagalności per usługa, klasa dostępu) — widoczność i wymagalność
+  liczy serwer; nieaktywna gałąź nie wchodzi do wersji.
+* **Powiadomienia przez outbox** (INTERVIEW_SUBMITTED →
+  trener, CLARIFICATION_REQUESTED / INTERVIEW_REVIEWED /
+  INTERVIEW_REMINDER → klient), kategoria `WYWIAD` bez treści
+  zdrowotnych, autozapis bez powiadomień, ponowienie w pętli
+  przypomnień.
+* **Migracja 31** (addytywna) + ponawialna migracja sesji rozmowy do
+  wersji (`python -m dzik_os.migruj_wywiad --raport|--wykonaj`, także
+  przy starcie): zatwierdzone → wersja historyczna `migrated`
+  (przegląd tylko przy zatwierdzeniu trenera), otwarte/porzucone →
+  szkic, bez powiadomień, bez usuwania, raport przed/po bez treści.
+  Zatwierdzenie rozmowy krok po kroku tworzy odtąd wersję.
+* 18 scenariuszy odbioru (`tests/test_wywiad_zakladka.py`), 16 wpisów
+  macierzy dostępu, E2E `wywiad-zakladka.spec.ts`; raport
+  `docs/WYWIAD.md`.
+
 ## 0.58.0 — 2026-09-13
 
 **Panel trenera: pełna edycja, usuwanie i publikowanie zmian (specyfikacja

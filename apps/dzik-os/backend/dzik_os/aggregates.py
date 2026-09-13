@@ -16,6 +16,7 @@ hydratowany raz dla wszystkich podopiecznych i to on odpowiada „czy wolno".
 
 from __future__ import annotations
 
+from collections import Counter
 from datetime import date, timedelta
 
 from sqlalchemy import func, select
@@ -177,6 +178,20 @@ def client_flags_bulk(
         Observation.occurred_on >= horizon,
     )
 
+    # Wywiad (0.59.0): ostatnia przesłana wersja bez przeglądu trenera —
+    # jedno zapytanie na wersje, jedno na przeglądy.
+    from .models import InterviewReview, InterviewSubmission
+
+    subs = (db.query(InterviewSubmission)
+            .filter(InterviewSubmission.client_id.in_(client_ids))
+            .order_by(InterviewSubmission.version_no).all())
+    ostatnie: dict[tuple[str, str], InterviewSubmission] = {}
+    for s in subs:
+        ostatnie[(s.client_id, s.typ)] = s
+    przejrzane = {r.submission_id for r in db.query(InterviewReview.submission_id)
+                  .filter(InterviewReview.submission_id.in_([s.id for s in ostatnie.values()] or ["-"])).all()}
+    interview = Counter(s.client_id for s in ostatnie.values() if s.id not in przejrzane)
+
     out: dict[str, dict] = {}
     for client_id in client_ids:
         week = last_checkin.get(client_id)
@@ -187,6 +202,7 @@ def client_flags_bulk(
             "unread_messages": unread.get(client_id, 0),
             "recent_pain_reports": pain.get(client_id, 0),
             "flagged_observations": flagged.get(client_id, 0),
+            "interview_to_review": interview.get(client_id, 0),
             "last_checkin_week": week,
         }
     return out

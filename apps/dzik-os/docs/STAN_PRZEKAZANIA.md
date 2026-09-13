@@ -1,6 +1,6 @@
 # Stan przekazania — przeczytaj przed rozpoczęciem rundy
 
-**Aktualizacja:** 2026-09-13 · **Wersja w `main`:** 0.58.0
+**Aktualizacja:** 2026-09-13 · **Wersja w `main`:** 0.59.0
 **Tryb pracy:** jeden piszący i jeden PR `[WRITER]` naraz
 (`KOORDYNACJA.md`, zasada nadrzędna).
 
@@ -33,7 +33,18 @@ pierwszy commit, draft PR `[WRITER]`, reszta agentów read-only.
 jednym prawdziwym klientem, **NO-GO na szerszą produkcję** — siedem
 blokerów wypisanych w §5 tamtego dokumentu.
 
-**Ostatnia runda (0.58.0, gałąź `agent/panel-trenera-publikacja`):** panel
+**Ostatnia runda (0.59.0, gałąź `agent/wywiad-zakladka`):** zakładka
+„Wywiad” wg specyfikacji właściciela — diagnoza braku wywiadu (brak
+inicjacji poza klientem + nieodróżnialne stany widoku; dane nie ginęły),
+dwa formularze z definicjami pytań z istniejących scenariuszy, szkic
+z rewizją, niezmienne wersje, przegląd per wersja z notatką wewnętrzną,
+prośby o doprecyzowanie, wspólne uzupełnianie, przypomnienia jawne,
+rewizje faktów, zadania „Wymaga sprawdzenia” blokujące publikację planu,
+podpowiedzi do konfiguratorów, outbox, migracja 31 + ponawialna migracja
+sesji rozmowy (bez powiadomień), 18 testów odbioru, E2E. Raport:
+`docs/WYWIAD.md`. Zaproszenie na istniejące konto nadal nie tworzy
+deklaracji zgód (decyzja RODO) — stan jest jawny w zakładce.
+**Poprzednia runda (0.58.0, gałąź `agent/panel-trenera-publikacja`):** panel
 trenera wg specyfikacji właściciela — szkice planów/diet/szablonów ze
 stabilnymi `id`, operacje z rewizją (409), różnice po `id` z polskim
 podsumowaniem, publikacja w jednej transakcji (wersja + ChangeSet + outbox
@@ -42,7 +53,6 @@ przypomnień, ekran „Zobacz zmiany”, baner nowszej wersji u klienta, menu
 działań na kartach, archiwizacja ≠ odpięcie, duplikacja, pochodzenie
 kopii, edycja harmonogramu i celów, migracja 30, 17 scenariuszy
 akceptacyjnych jako testy API + E2E. Raport: `docs/PUBLIKACJA_ZMIAN.md`.
-Następne w kolejce: zakładka „Wywiad” (specyfikacja właściciela 13.09).
 **Poprawka awaryjna (0.57.1, gałąź `agent/hotfix-pakiet-dane`):** obraz
 produkcyjny nie zawierał plików JSON pakietów (brak `package-data`) —
 0.56.0 nie wstało na Fly (import treści Wiedzy w `lifespan`), maszyna

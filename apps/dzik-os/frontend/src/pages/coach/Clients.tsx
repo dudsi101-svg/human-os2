@@ -5,7 +5,7 @@ import { plDate } from "../../dates";
 import { ErrorBox, Icon, LogoutButton, Spinner, TopBar } from "../../components";
 import { CoachClientRow, CoachDashboardData } from "../../types";
 
-type Filter = "all" | "review" | "checkin" | "payment" | "messages" | "pain" | "observation";
+type Filter = "all" | "review" | "checkin" | "payment" | "messages" | "pain" | "observation" | "wywiad";
 
 interface InvitationInfo {
   id: string;
@@ -137,6 +137,7 @@ export default function Clients() {
       case "messages": return c.flags.unread_messages > 0;
       case "pain": return c.flags.recent_pain_reports > 0;
       case "observation": return c.flags.flagged_observations > 0;
+      case "wywiad": return (c.flags.interview_to_review ?? 0) > 0;
       default: return true;
     }
   });
@@ -208,6 +209,7 @@ export default function Clients() {
           ["messages", `Nowe wiadomości (${clients.filter((c) => c.flags.unread_messages > 0).length})`],
           ["pain", `Zgłoszony ból (${clients.filter((c) => c.flags.recent_pain_reports > 0).length})`],
           ["observation", `Niepokojąca obserwacja (${clients.filter((c) => c.flags.flagged_observations > 0).length})`],
+          ["wywiad", `Wywiad do przejrzenia (${clients.filter((c) => (c.flags.interview_to_review ?? 0) > 0).length})`],
         ] as [Filter, string][]).map(([key, label]) => (
           <button key={key} type="button" className={filter === key ? "active" : ""}
             aria-pressed={filter === key}
@@ -247,6 +249,7 @@ export default function Clients() {
                   </span>
                 )}
                 {c.flags.recent_pain_reports > 0 && <span className="badge badge--danger">ból</span>}
+                {(c.flags.interview_to_review ?? 0) > 0 && <span className="badge badge--accent">wywiad do przejrzenia</span>}
                 {c.flags.flagged_observations > 0 && (
                   <span className="badge badge--danger" style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
                     <Icon name="warn" size={12} /> obserwacja

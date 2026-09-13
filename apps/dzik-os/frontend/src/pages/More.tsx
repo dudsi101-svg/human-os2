@@ -62,7 +62,7 @@ export default function More() {
               <Icon name="chart" /><span>Monitoring i postępy</span>
             </Link>
             <Link className="card card--nav" to="/wywiad">
-              <Icon name="clipboard" /><span>Głęboki wywiad</span>
+              <Icon name="clipboard" /><span>Wywiad (wstępny i głęboki)</span>
             </Link>
             <Link className="card card--nav" to="/wiedza">
               <Icon name="knowledge" /><span>Baza wiedzy</span>

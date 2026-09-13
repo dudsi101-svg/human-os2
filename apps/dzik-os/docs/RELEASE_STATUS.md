@@ -1,6 +1,6 @@
 # Stan wydania — Dzik OS
 
-**Wersja:** 0.58.0 · **Data:** 2026-09-13 · **Środowisko:** produkcja
+**Wersja:** 0.59.0 · **Data:** 2026-09-13 · **Środowisko:** produkcja
 (pilotaż) — https://dzik-os-panel.fly.dev
 
 Jedna strona prawdy o tym, co DZIAŁA na produkcji teraz. Aktualizowana
@@ -71,6 +71,18 @@ a produkcja ignoruje tryb demonstracyjny. Publikuje trener w zakładce
 przeglądu). „Dlaczego?” działa od razu dla nowych decyzji (plany
 z konfiguratora, nowe wersje planów i diet od trenera); stare plany
 pokazują uczciwy brak zapisanego uzasadnienia (`docs/WIEDZA.md`).
+
+## Zakładka „Wywiad” (0.59.0)
+
+Każdy klient ma od razu dwa formularze (wstępny, głęboki) z zapisem
+częściowym, wersjami i przeglądem trenera per wersja; trener widzi
+jawnie „pusto” / „brak dostępu z powodem” / „błąd”, prosi o wypełnienie
+lub uzupełnienie, uzupełnia wspólnie; zmiana faktów istotnych dla planu
+blokuje publikację zależnej wersji do rozstrzygnięcia. Sesje rozmowy
+startowej i głębokiego wywiadu są przenoszone do wersji ponawialnie przy
+starcie (bez powiadomień; kontrola: `python -m dzik_os.migruj_wywiad
+--raport`; błąd migracji widoczny w `/api/health` jako
+`wywiad_migracja_error`). Raport: `docs/WYWIAD.md`.
 
 ## Panel trenera: szkice i publikacja zmian (0.58.0)
 

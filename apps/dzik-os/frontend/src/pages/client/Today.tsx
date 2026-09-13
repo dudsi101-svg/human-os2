@@ -41,10 +41,11 @@ export default function Today() {
       // Oba zapytania to podpowiedź — awaria któregokolwiek = brak karty.
       Promise.all([
         api.get<{ checkins: unknown[] }>(`/api/clients/${user.id}/checkins`),
-        api.get<{ session: unknown | null }>(`/api/clients/${user.id}/interview`),
+        api.get<{ wywiady: { typ: string; submission_status: string }[] }>(`/api/clients/${user.id}/wywiady`),
       ])
         .then(([c, i]) =>
-          setInviteInterview(c.checkins.length > 0 && i.session === null)
+          setInviteInterview(c.checkins.length > 0
+            && (i.wywiady.find((w) => w.typ === "gleboki")?.submission_status ?? "not_started") === "not_started")
         )
         .catch(() => undefined);
     }

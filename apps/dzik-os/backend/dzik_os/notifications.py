@@ -116,6 +116,9 @@ CATEGORIES: dict[str, Category] = {
         # odpowiedzi zdrowotnej nigdy nie opuszcza centrum za logowaniem,
         # a i tam podlega zgodom (kanały zewnętrzne: neutralne wezwanie).
         Category("PRZESIEW", "Przesiew bezpieczeństwa", "Odpowiedź wymaga uwagi", "/klienci"),
+        # Wywiad (0.59.0): przesłanie → trener, prośba o uzupełnienie /
+        # przejrzenie → klient. Push bez treści odpowiedzi.
+        Category("WYWIAD", "Wywiad", "Wywiad w aplikacji", "/wywiad"),
     ]
 }
 

@@ -63,6 +63,7 @@ from .routers import (
     telemetry,
     today,
     wiedza,
+    wywiady,
 )
 from .routers import (
     notifications as notifications_router,
@@ -88,6 +89,17 @@ async def lifespan(app: FastAPI):
     except Exception as exc:  # noqa: BLE001
         log_json("wiedza_import_failed", level="error", **exception_fields(exc))
         app.state.wiedza_import_error = type(exc).__name__
+    # Wywiad (0.59.0): ponawialne przeniesienie sesji rozmowy startowej
+    # i głębokiego wywiadu do wersji formularzy — bez powiadomień, bez
+    # usuwania starych danych; błąd nie zatrzymuje startu.
+    try:
+        from .wywiad import migracja as wywiad_migracja
+
+        with db_session() as db:
+            wywiad_migracja.migruj(db)
+    except Exception as exc:  # noqa: BLE001
+        log_json("wywiad_migracja_failed", level="error", **exception_fields(exc))
+        app.state.wywiad_migracja_error = type(exc).__name__
     if os.environ.get("DZIK_SEED_DEMO") == "true":
         # Staging: jednorazowy zasiew danych demo (seed sam pomija
         # niepustą bazę, więc restart maszyny nic nie duplikuje).
@@ -155,7 +167,7 @@ def create_app() -> FastAPI:
         records.router, push.router, consultations.router, telemetry.router,
         challenges.router, notifications_router.router, onboarding.router,
         interview.router, nutrition_templates.router, ocr.router, assistant.router, imports.router,
-        public_site.router, konfigurator.router, kulinaria.router, szkice.router,
+        public_site.router, konfigurator.router, kulinaria.router, szkice.router, wywiady.router,
     ):
         app.include_router(router)
 
@@ -226,6 +238,7 @@ def create_app() -> FastAPI:
             # None = import treści startowych Wiedzy przeszedł; nazwa
             # wyjątku = aplikacja wstała bez treści (patrz lifespan).
             "wiedza_import_error": getattr(app.state, "wiedza_import_error", None),
+            "wywiad_migracja_error": getattr(app.state, "wywiad_migracja_error", None),
         }
 
     @app.get("/api/ready")

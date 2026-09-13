@@ -1,5 +1,5 @@
 import { FormEvent, Fragment, useCallback, useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useSearchParams } from "react-router-dom";
 import { api, isCancel, money } from "../../api";
 import { WEEKDAYS, plDate, plDateTime } from "../../dates";
 import {
@@ -55,6 +55,7 @@ import {
 } from "../../onboardingUtils";
 import PlanEditor from "./PlanEditor";
 import PublikacjaPanel from "./PublikacjaPanel";
+import WywiadTab from "./WywiadTab";
 import OcrCapture from "../../OcrCapture";
 import { appendText } from "../../ocrUtils";
 
@@ -79,7 +80,12 @@ interface NutritionPlanRow {
 
 export default function ClientDetail() {
   const { clientId } = useParams<{ clientId: string }>();
-  const [tab, setTab] = useState<Tab>("profil");
+  // ?zakladka=wywiad — link z powiadomienia „wywiad do przejrzenia” (0.59.0).
+  const [params] = useSearchParams();
+  const startowa = params.get("zakladka");
+  const [tab, setTab] = useState<Tab>(
+    startowa && TABS.some(([k]) => k === startowa) ? (startowa as Tab) : "profil",
+  );
   const [name, setName] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [noAccess, setNoAccess] = useState(false);
@@ -125,7 +131,7 @@ export default function ClientDetail() {
       <TabPanel id={tab}>
         {tab === "profil" && <ProfileTab clientId={clientId!} />}
         {tab === "rozmowa" && <OnboardingTab clientId={clientId!} />}
-        {tab === "wywiad" && <OnboardingTab clientId={clientId!} apiPath="interview" />}
+        {tab === "wywiad" && <WywiadTab clientId={clientId!} />}
         {tab === "plan" && <PlanTab clientId={clientId!} />}
         {tab === "dieta" && <NutritionTab clientId={clientId!} />}
         {tab === "harmonogram" && <ScheduleTab clientId={clientId!} />}

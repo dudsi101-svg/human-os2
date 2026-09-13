@@ -168,6 +168,11 @@ def publikuj(draft_id: str, body: PublikujIn, coach: User = Depends(require_role
         db.rollback()
         return _konflikt("REVISION_CONFLICT", "Szkic zmienił się na innym urządzeniu — odśwież i sprawdź "
                          "zmiany ponownie. Szkic został zachowany.", current_revision=e.aktualna)
+    except serwis.WymagaSprawdzenia as e:
+        return _konflikt("INTERVIEW_REVIEW_REQUIRED",
+                         "Klient zmienił w wywiadzie: " + ", ".join(e.facts)
+                         + ". Sprawdź plan i rozstrzygnij zadanie w zakładce Wywiad, zanim opublikujesz.",
+                         task_ids=e.task_ids, facts=e.facts)
     except serwis.KonfliktWersji as e:
         db.rollback()
         return _konflikt("BASE_VERSION_CONFLICT", "Plan ma już nowszą wersję niż ta, na której powstał "
