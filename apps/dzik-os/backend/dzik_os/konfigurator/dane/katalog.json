@@ -1,0 +1,1280 @@
+{
+  "version": "1.0",
+  "status": "proposed_requires_expert_review",
+  "unit_policy": "kg per dumbbell or total as explicitly indicated; band/bodyweight variants are strings, not kg",
+  "muscle_counting": {
+    "direct": 1,
+    "indirect": 0.5,
+    "warmup": 0,
+    "unilateral": "one set per side in dose; both sides in time"
+  },
+  "exercises": [
+    {
+      "id": "leg_press",
+      "name_pl": "Wypychanie na suwnicy",
+      "pattern": "knee",
+      "primary": [
+        "quads",
+        "glutes"
+      ],
+      "secondary": [],
+      "equipment_all": [
+        "leg_press_machine"
+      ],
+      "reps": [
+        8,
+        12
+      ],
+      "rest_seconds": 150,
+      "unilateral": false,
+      "min_level": "beginner",
+      "load_unit": "machine_display_kg",
+      "setup_seconds": 90,
+      "seconds_per_rep_estimate": 4,
+      "technique_cue_pl": "Ustaw oparcie i stopy stabilnie; nie odrywaj miednicy od podparcia.",
+      "stop_rule_pl": "Nowy, ostry lub narastający ból: przerwij ćwiczenie i uruchom ocenę objawów.",
+      "medical_auto_clearance": false,
+      "review_status": "proposed_requires_coach_review",
+      "source_ids": [
+        "H_CATALOG"
+      ]
+    },
+    {
+      "id": "goblet",
+      "name_pl": "Przysiad z hantlą z przodu",
+      "pattern": "knee",
+      "primary": [
+        "quads",
+        "glutes"
+      ],
+      "secondary": [],
+      "equipment_all": [
+        "dumbbells"
+      ],
+      "reps": [
+        8,
+        12
+      ],
+      "rest_seconds": 150,
+      "unilateral": false,
+      "min_level": "beginner",
+      "load_unit": "one_dumbbell_kg",
+      "setup_seconds": 90,
+      "seconds_per_rep_estimate": 4,
+      "technique_cue_pl": "Trzymaj hantlę blisko tułowia; zachowaj stabilny kontakt stóp z podłożem.",
+      "stop_rule_pl": "Nowy, ostry lub narastający ból: przerwij ćwiczenie i uruchom ocenę objawów.",
+      "medical_auto_clearance": false,
+      "review_status": "proposed_requires_coach_review",
+      "source_ids": [
+        "H_CATALOG"
+      ]
+    },
+    {
+      "id": "split",
+      "name_pl": "Zakroki z hantlami",
+      "pattern": "knee",
+      "primary": [
+        "quads",
+        "glutes"
+      ],
+      "secondary": [],
+      "equipment_all": [
+        "dumbbells"
+      ],
+      "reps": [
+        8,
+        12
+      ],
+      "rest_seconds": 150,
+      "unilateral": true,
+      "min_level": "beginner",
+      "load_unit": "per_dumbbell_kg",
+      "setup_seconds": 90,
+      "seconds_per_rep_estimate": 4,
+      "technique_cue_pl": "Zapis powtórzeń dotyczy każdej nogi. Cofnij nogę na stabilną odległość; kontroluj powrót.",
+      "stop_rule_pl": "Nowy, ostry lub narastający ból: przerwij ćwiczenie i uruchom ocenę objawów.",
+      "medical_auto_clearance": false,
+      "review_status": "proposed_requires_coach_review",
+      "source_ids": [
+        "H_CATALOG"
+      ]
+    },
+    {
+      "id": "leg_extension",
+      "name_pl": "Prostowanie kolan na maszynie",
+      "pattern": "knee_isolation",
+      "primary": [
+        "quads"
+      ],
+      "secondary": [],
+      "equipment_all": [
+        "leg_extension_machine"
+      ],
+      "reps": [
+        10,
+        15
+      ],
+      "rest_seconds": 90,
+      "unilateral": false,
+      "min_level": "beginner",
+      "load_unit": "machine_display_kg",
+      "setup_seconds": 90,
+      "seconds_per_rep_estimate": 4,
+      "technique_cue_pl": "Wykonuj ruch w kontrolowanym, tolerowanym zakresie; zakończ serię przy utracie zamierzonej techniki.",
+      "stop_rule_pl": "Nowy, ostry lub narastający ból: przerwij ćwiczenie i uruchom ocenę objawów.",
+      "medical_auto_clearance": false,
+      "review_status": "proposed_requires_coach_review",
+      "source_ids": [
+        "H_CATALOG"
+      ]
+    },
+    {
+      "id": "rdl",
+      "name_pl": "Rumuński martwy ciąg z hantlami",
+      "pattern": "hinge",
+      "primary": [
+        "hamstrings",
+        "glutes"
+      ],
+      "secondary": [],
+      "equipment_all": [
+        "dumbbells"
+      ],
+      "reps": [
+        8,
+        12
+      ],
+      "rest_seconds": 150,
+      "unilateral": false,
+      "min_level": "beginner",
+      "load_unit": "per_dumbbell_kg",
+      "setup_seconds": 90,
+      "seconds_per_rep_estimate": 4,
+      "technique_cue_pl": "Cofaj biodra, prowadź hantle blisko nóg; zakończ opuszczanie przed utratą kontroli tułowia.",
+      "stop_rule_pl": "Nowy, ostry lub narastający ból: przerwij ćwiczenie i uruchom ocenę objawów.",
+      "medical_auto_clearance": false,
+      "review_status": "proposed_requires_coach_review",
+      "source_ids": [
+        "H_CATALOG"
+      ]
+    },
+    {
+      "id": "hip_thrust",
+      "name_pl": "Unoszenie bioder z hantlą przy ławce",
+      "pattern": "hip_extension",
+      "primary": [
+        "glutes"
+      ],
+      "secondary": [],
+      "equipment_all": [
+        "dumbbells",
+        "bench"
+      ],
+      "reps": [
+        10,
+        15
+      ],
+      "rest_seconds": 120,
+      "unilateral": false,
+      "min_level": "beginner",
+      "load_unit": "one_dumbbell_kg",
+      "setup_seconds": 90,
+      "seconds_per_rep_estimate": 4,
+      "technique_cue_pl": "Wykonuj ruch w kontrolowanym, tolerowanym zakresie; zakończ serię przy utracie zamierzonej techniki.",
+      "stop_rule_pl": "Nowy, ostry lub narastający ból: przerwij ćwiczenie i uruchom ocenę objawów.",
+      "medical_auto_clearance": false,
+      "review_status": "proposed_requires_coach_review",
+      "source_ids": [
+        "H_CATALOG"
+      ]
+    },
+    {
+      "id": "bridge",
+      "name_pl": "Most biodrowy z hantlą na podłodze",
+      "pattern": "hip_extension",
+      "primary": [
+        "glutes"
+      ],
+      "secondary": [],
+      "equipment_all": [
+        "dumbbells",
+        "mat"
+      ],
+      "reps": [
+        10,
+        15
+      ],
+      "rest_seconds": 120,
+      "unilateral": false,
+      "min_level": "beginner",
+      "load_unit": "one_dumbbell_kg",
+      "setup_seconds": 90,
+      "seconds_per_rep_estimate": 4,
+      "technique_cue_pl": "Wykonuj ruch w kontrolowanym, tolerowanym zakresie; zakończ serię przy utracie zamierzonej techniki.",
+      "stop_rule_pl": "Nowy, ostry lub narastający ból: przerwij ćwiczenie i uruchom ocenę objawów.",
+      "medical_auto_clearance": false,
+      "review_status": "proposed_requires_coach_review",
+      "source_ids": [
+        "H_CATALOG"
+      ]
+    },
+    {
+      "id": "leg_curl",
+      "name_pl": "Uginanie kolan na maszynie",
+      "pattern": "knee_flexion",
+      "primary": [
+        "hamstrings"
+      ],
+      "secondary": [],
+      "equipment_all": [
+        "leg_curl_machine"
+      ],
+      "reps": [
+        10,
+        15
+      ],
+      "rest_seconds": 90,
+      "unilateral": false,
+      "min_level": "beginner",
+      "load_unit": "machine_display_kg",
+      "setup_seconds": 90,
+      "seconds_per_rep_estimate": 4,
+      "technique_cue_pl": "Wykonuj ruch w kontrolowanym, tolerowanym zakresie; zakończ serię przy utracie zamierzonej techniki.",
+      "stop_rule_pl": "Nowy, ostry lub narastający ból: przerwij ćwiczenie i uruchom ocenę objawów.",
+      "medical_auto_clearance": false,
+      "review_status": "proposed_requires_coach_review",
+      "source_ids": [
+        "H_CATALOG"
+      ]
+    },
+    {
+      "id": "band_curl",
+      "name_pl": "Uginanie kolan z gumą w leżeniu",
+      "pattern": "knee_flexion",
+      "primary": [
+        "hamstrings"
+      ],
+      "secondary": [],
+      "equipment_all": [
+        "band",
+        "rated_anchor",
+        "mat"
+      ],
+      "reps": [
+        12,
+        20
+      ],
+      "rest_seconds": 90,
+      "unilateral": false,
+      "min_level": "beginner",
+      "load_unit": "band_variant",
+      "setup_seconds": 90,
+      "seconds_per_rep_estimate": 4,
+      "technique_cue_pl": "Użyj niskiego mocowania zgodnego z instrukcją producenta. Sprawdź gumę i mocowanie przed każdą sesją.",
+      "stop_rule_pl": "Nowy, ostry lub narastający ból: przerwij ćwiczenie i uruchom ocenę objawów.",
+      "medical_auto_clearance": false,
+      "review_status": "proposed_requires_coach_review",
+      "source_ids": [
+        "H_CATALOG"
+      ]
+    },
+    {
+      "id": "db_bench",
+      "name_pl": "Wyciskanie hantli na ławce poziomej",
+      "pattern": "horizontal_push",
+      "primary": [
+        "chest"
+      ],
+      "secondary": [
+        "triceps",
+        "front_delts"
+      ],
+      "equipment_all": [
+        "dumbbells",
+        "bench"
+      ],
+      "reps": [
+        8,
+        12
+      ],
+      "rest_seconds": 150,
+      "unilateral": false,
+      "min_level": "beginner",
+      "load_unit": "per_dumbbell_kg",
+      "setup_seconds": 90,
+      "seconds_per_rep_estimate": 4,
+      "technique_cue_pl": "Wykonuj ruch w kontrolowanym, tolerowanym zakresie; zakończ serię przy utracie zamierzonej techniki.",
+      "stop_rule_pl": "Nowy, ostry lub narastający ból: przerwij ćwiczenie i uruchom ocenę objawów.",
+      "medical_auto_clearance": false,
+      "review_status": "proposed_requires_coach_review",
+      "source_ids": [
+        "H_CATALOG"
+      ]
+    },
+    {
+      "id": "incline",
+      "name_pl": "Wyciskanie hantli na ławce skośnej",
+      "pattern": "horizontal_push",
+      "primary": [
+        "chest"
+      ],
+      "secondary": [
+        "triceps",
+        "front_delts"
+      ],
+      "equipment_all": [
+        "dumbbells",
+        "adjustable_bench"
+      ],
+      "reps": [
+        8,
+        12
+      ],
+      "rest_seconds": 150,
+      "unilateral": false,
+      "min_level": "beginner",
+      "load_unit": "per_dumbbell_kg",
+      "setup_seconds": 90,
+      "seconds_per_rep_estimate": 4,
+      "technique_cue_pl": "Wykonuj ruch w kontrolowanym, tolerowanym zakresie; zakończ serię przy utracie zamierzonej techniki.",
+      "stop_rule_pl": "Nowy, ostry lub narastający ból: przerwij ćwiczenie i uruchom ocenę objawów.",
+      "medical_auto_clearance": false,
+      "review_status": "proposed_requires_coach_review",
+      "source_ids": [
+        "H_CATALOG"
+      ]
+    },
+    {
+      "id": "chest_machine",
+      "name_pl": "Wyciskanie na maszynie",
+      "pattern": "horizontal_push",
+      "primary": [
+        "chest"
+      ],
+      "secondary": [
+        "triceps",
+        "front_delts"
+      ],
+      "equipment_all": [
+        "chest_press_machine"
+      ],
+      "reps": [
+        8,
+        12
+      ],
+      "rest_seconds": 150,
+      "unilateral": false,
+      "min_level": "beginner",
+      "load_unit": "machine_display_kg",
+      "setup_seconds": 90,
+      "seconds_per_rep_estimate": 4,
+      "technique_cue_pl": "Wykonuj ruch w kontrolowanym, tolerowanym zakresie; zakończ serię przy utracie zamierzonej techniki.",
+      "stop_rule_pl": "Nowy, ostry lub narastający ból: przerwij ćwiczenie i uruchom ocenę objawów.",
+      "medical_auto_clearance": false,
+      "review_status": "proposed_requires_coach_review",
+      "source_ids": [
+        "H_CATALOG"
+      ]
+    },
+    {
+      "id": "floor_press",
+      "name_pl": "Wyciskanie hantli na podłodze",
+      "pattern": "horizontal_push",
+      "primary": [
+        "chest"
+      ],
+      "secondary": [
+        "triceps",
+        "front_delts"
+      ],
+      "equipment_all": [
+        "dumbbells",
+        "mat"
+      ],
+      "reps": [
+        8,
+        12
+      ],
+      "rest_seconds": 150,
+      "unilateral": false,
+      "min_level": "beginner",
+      "load_unit": "per_dumbbell_kg",
+      "setup_seconds": 90,
+      "seconds_per_rep_estimate": 4,
+      "technique_cue_pl": "Wykonuj ruch w kontrolowanym, tolerowanym zakresie; zakończ serię przy utracie zamierzonej techniki.",
+      "stop_rule_pl": "Nowy, ostry lub narastający ból: przerwij ćwiczenie i uruchom ocenę objawów.",
+      "medical_auto_clearance": false,
+      "review_status": "proposed_requires_coach_review",
+      "source_ids": [
+        "H_CATALOG"
+      ]
+    },
+    {
+      "id": "pushup",
+      "name_pl": "Pompki przy podwyższeniu",
+      "pattern": "horizontal_push",
+      "primary": [
+        "chest"
+      ],
+      "secondary": [
+        "triceps",
+        "front_delts"
+      ],
+      "equipment_all": [
+        "stable_support"
+      ],
+      "reps": [
+        8,
+        15
+      ],
+      "rest_seconds": 120,
+      "unilateral": false,
+      "min_level": "beginner",
+      "load_unit": "bodyweight_variant",
+      "setup_seconds": 90,
+      "seconds_per_rep_estimate": 4,
+      "technique_cue_pl": "Wykonuj ruch w kontrolowanym, tolerowanym zakresie; zakończ serię przy utracie zamierzonej techniki.",
+      "stop_rule_pl": "Nowy, ostry lub narastający ból: przerwij ćwiczenie i uruchom ocenę objawów.",
+      "medical_auto_clearance": false,
+      "review_status": "proposed_requires_coach_review",
+      "source_ids": [
+        "H_CATALOG"
+      ]
+    },
+    {
+      "id": "chest_fly",
+      "name_pl": "Rozpiętki na maszynie",
+      "pattern": "chest_isolation",
+      "primary": [
+        "chest"
+      ],
+      "secondary": [],
+      "equipment_all": [
+        "pec_deck"
+      ],
+      "reps": [
+        10,
+        15
+      ],
+      "rest_seconds": 90,
+      "unilateral": false,
+      "min_level": "beginner",
+      "load_unit": "machine_display_kg",
+      "setup_seconds": 90,
+      "seconds_per_rep_estimate": 4,
+      "technique_cue_pl": "Wykonuj ruch w kontrolowanym, tolerowanym zakresie; zakończ serię przy utracie zamierzonej techniki.",
+      "stop_rule_pl": "Nowy, ostry lub narastający ból: przerwij ćwiczenie i uruchom ocenę objawów.",
+      "medical_auto_clearance": false,
+      "review_status": "proposed_requires_coach_review",
+      "source_ids": [
+        "H_CATALOG"
+      ]
+    },
+    {
+      "id": "row",
+      "name_pl": "Wiosłowanie siedząc na wyciągu",
+      "pattern": "horizontal_pull",
+      "primary": [
+        "back"
+      ],
+      "secondary": [
+        "biceps",
+        "rear_delts"
+      ],
+      "equipment_all": [
+        "cable"
+      ],
+      "reps": [
+        8,
+        12
+      ],
+      "rest_seconds": 150,
+      "unilateral": false,
+      "min_level": "beginner",
+      "load_unit": "machine_display_kg",
+      "setup_seconds": 90,
+      "seconds_per_rep_estimate": 4,
+      "technique_cue_pl": "Wykonuj ruch w kontrolowanym, tolerowanym zakresie; zakończ serię przy utracie zamierzonej techniki.",
+      "stop_rule_pl": "Nowy, ostry lub narastający ból: przerwij ćwiczenie i uruchom ocenę objawów.",
+      "medical_auto_clearance": false,
+      "review_status": "proposed_requires_coach_review",
+      "source_ids": [
+        "H_CATALOG"
+      ]
+    },
+    {
+      "id": "db_row",
+      "name_pl": "Wiosłowanie jednorącz z podparciem",
+      "pattern": "horizontal_pull",
+      "primary": [
+        "back"
+      ],
+      "secondary": [
+        "biceps",
+        "rear_delts"
+      ],
+      "equipment_all": [
+        "dumbbells",
+        "bench"
+      ],
+      "reps": [
+        8,
+        12
+      ],
+      "rest_seconds": 150,
+      "unilateral": true,
+      "min_level": "beginner",
+      "load_unit": "one_dumbbell_kg",
+      "setup_seconds": 90,
+      "seconds_per_rep_estimate": 4,
+      "technique_cue_pl": "Wykonuj ruch w kontrolowanym, tolerowanym zakresie; zakończ serię przy utracie zamierzonej techniki.",
+      "stop_rule_pl": "Nowy, ostry lub narastający ból: przerwij ćwiczenie i uruchom ocenę objawów.",
+      "medical_auto_clearance": false,
+      "review_status": "proposed_requires_coach_review",
+      "source_ids": [
+        "H_CATALOG"
+      ]
+    },
+    {
+      "id": "band_row",
+      "name_pl": "Wiosłowanie z gumą",
+      "pattern": "horizontal_pull",
+      "primary": [
+        "back"
+      ],
+      "secondary": [
+        "biceps",
+        "rear_delts"
+      ],
+      "equipment_all": [
+        "band",
+        "rated_anchor"
+      ],
+      "reps": [
+        10,
+        15
+      ],
+      "rest_seconds": 120,
+      "unilateral": false,
+      "min_level": "beginner",
+      "load_unit": "band_variant",
+      "setup_seconds": 90,
+      "seconds_per_rep_estimate": 4,
+      "technique_cue_pl": "Sprawdź przeznaczenie mocowania i stan gumy; nie używaj improwizowanego uchwytu.",
+      "stop_rule_pl": "Nowy, ostry lub narastający ból: przerwij ćwiczenie i uruchom ocenę objawów.",
+      "medical_auto_clearance": false,
+      "review_status": "proposed_requires_coach_review",
+      "source_ids": [
+        "H_CATALOG"
+      ]
+    },
+    {
+      "id": "lat",
+      "name_pl": "Ściąganie drążka wyciągu górnego",
+      "pattern": "vertical_pull",
+      "primary": [
+        "back"
+      ],
+      "secondary": [
+        "biceps"
+      ],
+      "equipment_all": [
+        "lat_pulldown_machine"
+      ],
+      "reps": [
+        8,
+        12
+      ],
+      "rest_seconds": 150,
+      "unilateral": false,
+      "min_level": "beginner",
+      "load_unit": "machine_display_kg",
+      "setup_seconds": 90,
+      "seconds_per_rep_estimate": 4,
+      "technique_cue_pl": "Wykonuj ruch w kontrolowanym, tolerowanym zakresie; zakończ serię przy utracie zamierzonej techniki.",
+      "stop_rule_pl": "Nowy, ostry lub narastający ból: przerwij ćwiczenie i uruchom ocenę objawów.",
+      "medical_auto_clearance": false,
+      "review_status": "proposed_requires_coach_review",
+      "source_ids": [
+        "H_CATALOG"
+      ]
+    },
+    {
+      "id": "band_lat",
+      "name_pl": "Ściąganie gumy z wysokiego mocowania",
+      "pattern": "vertical_pull",
+      "primary": [
+        "back"
+      ],
+      "secondary": [
+        "biceps"
+      ],
+      "equipment_all": [
+        "band",
+        "rated_anchor"
+      ],
+      "reps": [
+        10,
+        15
+      ],
+      "rest_seconds": 120,
+      "unilateral": false,
+      "min_level": "beginner",
+      "load_unit": "band_variant",
+      "setup_seconds": 90,
+      "seconds_per_rep_estimate": 4,
+      "technique_cue_pl": "Użyj wysokiego, przeznaczonego do tego mocowania; nie mocuj gumy do przypadkowych mebli.",
+      "stop_rule_pl": "Nowy, ostry lub narastający ból: przerwij ćwiczenie i uruchom ocenę objawów.",
+      "medical_auto_clearance": false,
+      "review_status": "proposed_requires_coach_review",
+      "source_ids": [
+        "H_CATALOG"
+      ]
+    },
+    {
+      "id": "shoulder_press",
+      "name_pl": "Wyciskanie hantli siedząc",
+      "pattern": "vertical_push",
+      "primary": [
+        "front_delts"
+      ],
+      "secondary": [
+        "triceps",
+        "side_delts"
+      ],
+      "equipment_all": [
+        "dumbbells",
+        "bench"
+      ],
+      "reps": [
+        8,
+        12
+      ],
+      "rest_seconds": 150,
+      "unilateral": false,
+      "min_level": "beginner",
+      "load_unit": "per_dumbbell_kg",
+      "setup_seconds": 90,
+      "seconds_per_rep_estimate": 4,
+      "technique_cue_pl": "Wykonuj ruch w kontrolowanym, tolerowanym zakresie; zakończ serię przy utracie zamierzonej techniki.",
+      "stop_rule_pl": "Nowy, ostry lub narastający ból: przerwij ćwiczenie i uruchom ocenę objawów.",
+      "medical_auto_clearance": false,
+      "review_status": "proposed_requires_coach_review",
+      "source_ids": [
+        "H_CATALOG"
+      ]
+    },
+    {
+      "id": "lateral",
+      "name_pl": "Unoszenie hantli bokiem",
+      "pattern": "shoulder_abduction",
+      "primary": [
+        "side_delts"
+      ],
+      "secondary": [],
+      "equipment_all": [
+        "dumbbells"
+      ],
+      "reps": [
+        12,
+        20
+      ],
+      "rest_seconds": 90,
+      "unilateral": false,
+      "min_level": "beginner",
+      "load_unit": "per_dumbbell_kg",
+      "setup_seconds": 90,
+      "seconds_per_rep_estimate": 4,
+      "technique_cue_pl": "Wykonuj ruch w kontrolowanym, tolerowanym zakresie; zakończ serię przy utracie zamierzonej techniki.",
+      "stop_rule_pl": "Nowy, ostry lub narastający ból: przerwij ćwiczenie i uruchom ocenę objawów.",
+      "medical_auto_clearance": false,
+      "review_status": "proposed_requires_coach_review",
+      "source_ids": [
+        "H_CATALOG"
+      ]
+    },
+    {
+      "id": "rear_fly",
+      "name_pl": "Odwrotne rozpiętki na maszynie",
+      "pattern": "rear_shoulder",
+      "primary": [
+        "rear_delts"
+      ],
+      "secondary": [
+        "back"
+      ],
+      "equipment_all": [
+        "reverse_pec_deck"
+      ],
+      "reps": [
+        12,
+        20
+      ],
+      "rest_seconds": 90,
+      "unilateral": false,
+      "min_level": "beginner",
+      "load_unit": "machine_display_kg",
+      "setup_seconds": 90,
+      "seconds_per_rep_estimate": 4,
+      "technique_cue_pl": "Wykonuj ruch w kontrolowanym, tolerowanym zakresie; zakończ serię przy utracie zamierzonej techniki.",
+      "stop_rule_pl": "Nowy, ostry lub narastający ból: przerwij ćwiczenie i uruchom ocenę objawów.",
+      "medical_auto_clearance": false,
+      "review_status": "proposed_requires_coach_review",
+      "source_ids": [
+        "H_CATALOG"
+      ]
+    },
+    {
+      "id": "db_rear",
+      "name_pl": "Unoszenie hantli w opadzie z podparciem",
+      "pattern": "rear_shoulder",
+      "primary": [
+        "rear_delts"
+      ],
+      "secondary": [
+        "back"
+      ],
+      "equipment_all": [
+        "dumbbells",
+        "adjustable_bench"
+      ],
+      "reps": [
+        12,
+        20
+      ],
+      "rest_seconds": 90,
+      "unilateral": false,
+      "min_level": "beginner",
+      "load_unit": "per_dumbbell_kg",
+      "setup_seconds": 90,
+      "seconds_per_rep_estimate": 4,
+      "technique_cue_pl": "Wykonuj ruch w kontrolowanym, tolerowanym zakresie; zakończ serię przy utracie zamierzonej techniki.",
+      "stop_rule_pl": "Nowy, ostry lub narastający ból: przerwij ćwiczenie i uruchom ocenę objawów.",
+      "medical_auto_clearance": false,
+      "review_status": "proposed_requires_coach_review",
+      "source_ids": [
+        "H_CATALOG"
+      ]
+    },
+    {
+      "id": "triceps",
+      "name_pl": "Prostowanie ramion na wyciągu",
+      "pattern": "elbow_extension",
+      "primary": [
+        "triceps"
+      ],
+      "secondary": [],
+      "equipment_all": [
+        "cable"
+      ],
+      "reps": [
+        10,
+        15
+      ],
+      "rest_seconds": 90,
+      "unilateral": false,
+      "min_level": "beginner",
+      "load_unit": "machine_display_kg",
+      "setup_seconds": 90,
+      "seconds_per_rep_estimate": 4,
+      "technique_cue_pl": "Wykonuj ruch w kontrolowanym, tolerowanym zakresie; zakończ serię przy utracie zamierzonej techniki.",
+      "stop_rule_pl": "Nowy, ostry lub narastający ból: przerwij ćwiczenie i uruchom ocenę objawów.",
+      "medical_auto_clearance": false,
+      "review_status": "proposed_requires_coach_review",
+      "source_ids": [
+        "H_CATALOG"
+      ]
+    },
+    {
+      "id": "band_triceps",
+      "name_pl": "Prostowanie ramion z gumą",
+      "pattern": "elbow_extension",
+      "primary": [
+        "triceps"
+      ],
+      "secondary": [],
+      "equipment_all": [
+        "band",
+        "rated_anchor"
+      ],
+      "reps": [
+        12,
+        20
+      ],
+      "rest_seconds": 90,
+      "unilateral": false,
+      "min_level": "beginner",
+      "load_unit": "band_variant",
+      "setup_seconds": 90,
+      "seconds_per_rep_estimate": 4,
+      "technique_cue_pl": "Wykonuj ruch w kontrolowanym, tolerowanym zakresie; zakończ serię przy utracie zamierzonej techniki.",
+      "stop_rule_pl": "Nowy, ostry lub narastający ból: przerwij ćwiczenie i uruchom ocenę objawów.",
+      "medical_auto_clearance": false,
+      "review_status": "proposed_requires_coach_review",
+      "source_ids": [
+        "H_CATALOG"
+      ]
+    },
+    {
+      "id": "biceps",
+      "name_pl": "Uginanie ramion z hantlami",
+      "pattern": "elbow_flexion",
+      "primary": [
+        "biceps"
+      ],
+      "secondary": [],
+      "equipment_all": [
+        "dumbbells"
+      ],
+      "reps": [
+        10,
+        15
+      ],
+      "rest_seconds": 90,
+      "unilateral": false,
+      "min_level": "beginner",
+      "load_unit": "per_dumbbell_kg",
+      "setup_seconds": 90,
+      "seconds_per_rep_estimate": 4,
+      "technique_cue_pl": "Wykonuj ruch w kontrolowanym, tolerowanym zakresie; zakończ serię przy utracie zamierzonej techniki.",
+      "stop_rule_pl": "Nowy, ostry lub narastający ból: przerwij ćwiczenie i uruchom ocenę objawów.",
+      "medical_auto_clearance": false,
+      "review_status": "proposed_requires_coach_review",
+      "source_ids": [
+        "H_CATALOG"
+      ]
+    },
+    {
+      "id": "calf",
+      "name_pl": "Wspięcia na palce z hantlami",
+      "pattern": "ankle",
+      "primary": [
+        "calves"
+      ],
+      "secondary": [],
+      "equipment_all": [
+        "dumbbells"
+      ],
+      "reps": [
+        12,
+        20
+      ],
+      "rest_seconds": 90,
+      "unilateral": false,
+      "min_level": "beginner",
+      "load_unit": "per_dumbbell_kg",
+      "setup_seconds": 90,
+      "seconds_per_rep_estimate": 4,
+      "technique_cue_pl": "Wykonuj ruch w kontrolowanym, tolerowanym zakresie; zakończ serię przy utracie zamierzonej techniki.",
+      "stop_rule_pl": "Nowy, ostry lub narastający ból: przerwij ćwiczenie i uruchom ocenę objawów.",
+      "medical_auto_clearance": false,
+      "review_status": "proposed_requires_coach_review",
+      "source_ids": [
+        "H_CATALOG"
+      ]
+    },
+    {
+      "id": "deadbug",
+      "name_pl": "Dead bug",
+      "pattern": "trunk",
+      "primary": [
+        "trunk"
+      ],
+      "secondary": [],
+      "equipment_all": [
+        "mat"
+      ],
+      "reps": [
+        6,
+        10
+      ],
+      "rest_seconds": 60,
+      "unilateral": true,
+      "min_level": "beginner",
+      "load_unit": "bodyweight_variant",
+      "setup_seconds": 90,
+      "seconds_per_rep_estimate": 4,
+      "technique_cue_pl": "Powtórzenia na stronę. Poruszaj kończynami tylko tak daleko, jak pozwala kontrola tułowia i swobodny oddech.",
+      "stop_rule_pl": "Nowy, ostry lub narastający ból: przerwij ćwiczenie i uruchom ocenę objawów.",
+      "medical_auto_clearance": false,
+      "review_status": "proposed_requires_coach_review",
+      "source_ids": [
+        "H_CATALOG"
+      ]
+    },
+    {
+      "id": "pallof",
+      "name_pl": "Wyciskanie Pallofa na wyciągu",
+      "pattern": "trunk",
+      "primary": [
+        "trunk"
+      ],
+      "secondary": [],
+      "equipment_all": [
+        "cable"
+      ],
+      "reps": [
+        8,
+        12
+      ],
+      "rest_seconds": 60,
+      "unilateral": true,
+      "min_level": "beginner",
+      "load_unit": "machine_display_kg",
+      "setup_seconds": 90,
+      "seconds_per_rep_estimate": 4,
+      "technique_cue_pl": "Wykonuj ruch w kontrolowanym, tolerowanym zakresie; zakończ serię przy utracie zamierzonej techniki.",
+      "stop_rule_pl": "Nowy, ostry lub narastający ból: przerwij ćwiczenie i uruchom ocenę objawów.",
+      "medical_auto_clearance": false,
+      "review_status": "proposed_requires_coach_review",
+      "source_ids": [
+        "H_CATALOG"
+      ]
+    },
+    {
+      "id": "band_pallof",
+      "name_pl": "Wyciskanie Pallofa z gumą",
+      "pattern": "trunk",
+      "primary": [
+        "trunk"
+      ],
+      "secondary": [],
+      "equipment_all": [
+        "band",
+        "rated_anchor"
+      ],
+      "reps": [
+        8,
+        12
+      ],
+      "rest_seconds": 60,
+      "unilateral": true,
+      "min_level": "beginner",
+      "load_unit": "band_variant",
+      "setup_seconds": 90,
+      "seconds_per_rep_estimate": 4,
+      "technique_cue_pl": "Wykonuj ruch w kontrolowanym, tolerowanym zakresie; zakończ serię przy utracie zamierzonej techniki.",
+      "stop_rule_pl": "Nowy, ostry lub narastający ból: przerwij ćwiczenie i uruchom ocenę objawów.",
+      "medical_auto_clearance": false,
+      "review_status": "proposed_requires_coach_review",
+      "source_ids": [
+        "H_CATALOG"
+      ]
+    }
+  ],
+  "session_templates": [
+    {
+      "id": "A",
+      "exercise_ids": [
+        "leg_press",
+        "db_bench",
+        "row",
+        "leg_curl",
+        "lateral",
+        "calf",
+        "deadbug"
+      ],
+      "default_work_sets": 2,
+      "optional_exercise_ids": [
+        "lateral"
+      ],
+      "note": "Dawka początkowa; dopasuj do historii, czasu i sum mięśniowych. Nie używaj bez walidacji."
+    },
+    {
+      "id": "B",
+      "exercise_ids": [
+        "goblet",
+        "incline",
+        "lat",
+        "rdl",
+        "biceps",
+        "calf",
+        "pallof"
+      ],
+      "default_work_sets": 2,
+      "optional_exercise_ids": [
+        "biceps"
+      ],
+      "note": "Dawka początkowa; dopasuj do historii, czasu i sum mięśniowych. Nie używaj bez walidacji."
+    },
+    {
+      "id": "C",
+      "exercise_ids": [
+        "split",
+        "chest_machine",
+        "row",
+        "leg_curl",
+        "lateral",
+        "calf",
+        "deadbug"
+      ],
+      "default_work_sets": 2,
+      "optional_exercise_ids": [
+        "lateral"
+      ],
+      "note": "Dawka początkowa; dopasuj do historii, czasu i sum mięśniowych. Nie używaj bez walidacji."
+    },
+    {
+      "id": "U1",
+      "exercise_ids": [
+        "db_bench",
+        "row",
+        "lat",
+        "lateral",
+        "triceps",
+        "biceps"
+      ],
+      "default_work_sets": 3,
+      "optional_exercise_ids": [
+        "lateral",
+        "triceps",
+        "biceps"
+      ],
+      "note": "Dawka początkowa; dopasuj do historii, czasu i sum mięśniowych. Nie używaj bez walidacji."
+    },
+    {
+      "id": "U2",
+      "exercise_ids": [
+        "incline",
+        "row",
+        "chest_fly",
+        "lateral",
+        "triceps",
+        "biceps"
+      ],
+      "default_work_sets": 3,
+      "optional_exercise_ids": [
+        "lateral",
+        "triceps",
+        "biceps"
+      ],
+      "note": "Dawka początkowa; dopasuj do historii, czasu i sum mięśniowych. Nie używaj bez walidacji."
+    },
+    {
+      "id": "L1",
+      "exercise_ids": [
+        "leg_press",
+        "rdl",
+        "leg_curl",
+        "calf",
+        "deadbug"
+      ],
+      "default_work_sets": 3,
+      "optional_exercise_ids": [],
+      "note": "Dawka początkowa; dopasuj do historii, czasu i sum mięśniowych. Nie używaj bez walidacji."
+    },
+    {
+      "id": "L2",
+      "exercise_ids": [
+        "split",
+        "hip_thrust",
+        "leg_curl",
+        "leg_extension",
+        "calf",
+        "pallof"
+      ],
+      "default_work_sets": 3,
+      "optional_exercise_ids": [],
+      "note": "Dawka początkowa; dopasuj do historii, czasu i sum mięśniowych. Nie używaj bez walidacji."
+    },
+    {
+      "id": "P",
+      "exercise_ids": [
+        "db_bench",
+        "shoulder_press",
+        "chest_fly",
+        "lateral",
+        "triceps"
+      ],
+      "default_work_sets": 3,
+      "optional_exercise_ids": [
+        "lateral",
+        "triceps"
+      ],
+      "note": "Dawka początkowa; dopasuj do historii, czasu i sum mięśniowych. Nie używaj bez walidacji."
+    },
+    {
+      "id": "Q",
+      "exercise_ids": [
+        "row",
+        "lat",
+        "rear_fly",
+        "biceps"
+      ],
+      "default_work_sets": 3,
+      "optional_exercise_ids": [
+        "rear_fly",
+        "biceps"
+      ],
+      "note": "Dawka początkowa; dopasuj do historii, czasu i sum mięśniowych. Nie używaj bez walidacji."
+    },
+    {
+      "id": "HA",
+      "exercise_ids": [
+        "goblet",
+        "floor_press",
+        "band_row",
+        "band_curl",
+        "lateral",
+        "calf",
+        "deadbug"
+      ],
+      "default_work_sets": 2,
+      "optional_exercise_ids": [
+        "lateral"
+      ],
+      "note": "Dawka początkowa; dopasuj do historii, czasu i sum mięśniowych. Nie używaj bez walidacji."
+    },
+    {
+      "id": "HB",
+      "exercise_ids": [
+        "goblet",
+        "floor_press",
+        "band_lat",
+        "rdl",
+        "biceps",
+        "calf",
+        "band_pallof"
+      ],
+      "default_work_sets": 2,
+      "optional_exercise_ids": [
+        "biceps"
+      ],
+      "note": "Dawka początkowa; dopasuj do historii, czasu i sum mięśniowych. Nie używaj bez walidacji."
+    }
+  ],
+  "weekly_layouts": [
+    {
+      "id": "D1",
+      "days": 1,
+      "sequence": [
+        "A"
+      ],
+      "weekday_offsets": [
+        0
+      ]
+    },
+    {
+      "id": "D2",
+      "days": 2,
+      "sequence": [
+        "A",
+        "B"
+      ],
+      "weekday_offsets": [
+        0,
+        3
+      ]
+    },
+    {
+      "id": "D3",
+      "days": 3,
+      "sequence": [
+        "A",
+        "B",
+        "C"
+      ],
+      "weekday_offsets": [
+        0,
+        2,
+        4
+      ]
+    },
+    {
+      "id": "D4",
+      "days": 4,
+      "sequence": [
+        "U1",
+        "L1",
+        "U2",
+        "L2"
+      ],
+      "weekday_offsets": [
+        0,
+        1,
+        3,
+        4
+      ]
+    },
+    {
+      "id": "D5",
+      "days": 5,
+      "sequence": [
+        "U1",
+        "L1",
+        "P",
+        "Q",
+        "L2"
+      ],
+      "weekday_offsets": [
+        0,
+        1,
+        3,
+        4,
+        5
+      ]
+    },
+    {
+      "id": "D6",
+      "days": 6,
+      "sequence": [
+        "P",
+        "Q",
+        "L1",
+        "P",
+        "Q",
+        "L2"
+      ],
+      "weekday_offsets": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    },
+    {
+      "id": "HOME2",
+      "days": 2,
+      "sequence": [
+        "HA",
+        "HB"
+      ],
+      "weekday_offsets": [
+        0,
+        3
+      ]
+    }
+  ],
+  "heuristics": {
+    "initial_rir": {
+      "beginner": [
+        4,
+        3,
+        3,
+        3
+      ],
+      "intermediate": [
+        3,
+        2,
+        2,
+        2
+      ],
+      "advanced": [
+        3,
+        2,
+        2,
+        2
+      ]
+    },
+    "warmup_seconds": 600,
+    "cooldown_seconds": 180,
+    "weekly_equivalent_set_cap": 18,
+    "session_equivalent_set_cap": 8,
+    "deload_set_multiplier": 0.6,
+    "deload_rir": 4,
+    "minimum_same_primary_muscle_interval_hours": 48
+  },
+  "note": "Bazowy katalog edukacyjny; nie zawiera automatycznych zaleceń dla rozpoznań medycznych. Każda zamiana wymaga ponownej walidacji."
+}

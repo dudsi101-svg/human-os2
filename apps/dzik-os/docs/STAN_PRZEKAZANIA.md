@@ -1,6 +1,6 @@
 # Stan przekazania — przeczytaj przed rozpoczęciem rundy
 
-**Aktualizacja:** 2026-09-13 · **Wersja w `main`:** 0.54.5
+**Aktualizacja:** 2026-09-13 · **Wersja w `main`:** 0.55.0
 **Tryb pracy:** jeden piszący i jeden PR `[WRITER]` naraz
 (`KOORDYNACJA.md`, zasada nadrzędna).
 
@@ -33,7 +33,26 @@ pierwszy commit, draft PR `[WRITER]`, reszta agentów read-only.
 jednym prawdziwym klientem, **NO-GO na szerszą produkcję** — siedem
 blokerów wypisanych w §5 tamtego dokumentu.
 
-**Ostatnia runda (0.54.5, gałąź `agent/diagnostyka-produkcji`):**
+**Ostatnia runda (0.55.0, gałąź `agent/konfigurator-28-dni`):**
+konfigurator miesięcznych planów treningowych z pakietu właściciela
+(13.09) — K1: deterministyczny silnik + walidator + bramka zdrowotna
++ kalendarz + API trenera (`podglad`/`zapisz`), 7 scenariuszy
+referencyjnych co do bajta, przypadki akceptacyjne i 648 kombinacji.
+Decyzja projektowa: narzędzie trenera (propose-only), własny katalog
+„do przeglądu trenera”, blok zdrowotny nie zapisywany. Następne:
+K1b ekran w karcie klienta, K2 dziennik/adaptacja/zamienniki, potem
+przegląd trenerski i medyczny (`docs/KONFIGURATOR.md`).
+**Fakty z produkcji (diagnostyka 13.09 07:17 UTC, run 34744866429):**
+wersja 0.54.5, migracja 27, dostawca poczty `null` (6 zmiennych SMTP
+brak), MFA niewymagane, limit 10. TEST 01 (dudsi101+test1) = konto
+PENDING z aktywnym zaproszeniem do 20.09 (odnowione 13.09 06:18) —
+e-mail nie wyszedł, link jest w panelu trenera („Wyślij ponownie” daje
+nowy). Konto „dudsi101plusklient” (literówka) zostało 13.09 aktywowane
+przez właściciela i jest jego działającym kontem klienta u Łukasza.
+`dudsi101@gmail.com` nigdy nie aktywowano (zaproszenie z konta demo
+wygasło 01.09) — tabela w RELEASE_STATUS poprawiona. Poczta: sekrety
+SMTP nadal nie istnieją w repo/Fly.
+**Runda 0.54.5 (`agent/diagnostyka-produkcji`):**
 zlecenie właściciela (12.09): uruchomić pocztę i trzy konta testowe
 (dudsi101+test1/2/3). Z sesji produkcja jest nieosiągalna (egress
 odrzuca fly.dev), więc powstał workflow „Diagnostyka produkcji”
