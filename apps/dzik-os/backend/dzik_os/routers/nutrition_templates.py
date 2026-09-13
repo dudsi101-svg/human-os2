@@ -215,6 +215,8 @@ def copy_to_client(
         reason=f"Start z szablonu: {row.title}",
         content_json=json.dumps(content, ensure_ascii=False),
         created_by=coach.id,
+        source_template_id=row.id,
+        source_template_version_no=1,
     ))
     record_event(
         db, action="NUTRITION_PLAN_CREATED", actor_id=coach.id,

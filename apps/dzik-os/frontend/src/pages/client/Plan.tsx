@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import { api, getUser } from "../../api";
 import { WEEKDAYS, localToday, plDate } from "../../dates";
 import { ErrorBox, ExerciseTechniqueLink, Icon, Spinner, TopBar } from "../../components";
@@ -95,6 +96,29 @@ export default function Plan() {
   const [painNote, setPainNote] = useState("");
 
   const plan = plans?.find((p) => p.status === "ACTIVE") ?? plans?.[0] ?? null;
+  // 0.58.0: nowsza wersja opublikowana, gdy ekran był otwarty — informujemy
+  // i dajemy „Wczytaj zmiany”, zamiast podmieniać plan pod otwartym
+  // formularzem wykonania (zapis pozostaje na wersji, na której się zaczął).
+  const [nowszaWersja, setNowszaWersja] = useState<number | null>(null);
+  const [ostatniaZmiana, setOstatniaZmiana] = useState<string | null>(null);
+  useEffect(() => {
+    if (!plan) return;
+    api.get<{ changes: { id: string }[] }>(`/api/plany/training/${plan.id}/zmiany`)
+      .then((d) => setOstatniaZmiana(d.changes[0]?.id ?? null)).catch(() => setOstatniaZmiana(null));
+    const sprawdz = () => {
+      if (document.visibilityState !== "visible") return;
+      api.get<{ plans: TrainingPlan[] }>(`/api/clients/${user.id}/plans`)
+        .then((d) => {
+          const p = d.plans.find((x) => x.id === plan.id);
+          if (p && p.current_version_no > plan.current_version_no) setNowszaWersja(p.current_version_no);
+        })
+        .catch(() => undefined);
+    };
+    document.addEventListener("visibilitychange", sprawdz);
+    window.addEventListener("focus", sprawdz);
+    const t = setInterval(sprawdz, 60_000);
+    return () => { document.removeEventListener("visibilitychange", sprawdz); window.removeEventListener("focus", sprawdz); clearInterval(t); };
+  }, [plan?.id, plan?.current_version_no, user.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const [historyError, setHistoryError] = useState<string | null>(null);
   const loadWorkouts = () => {
@@ -182,7 +206,14 @@ export default function Plan() {
           </div>
           <p className="dim" style={{ fontSize: "0.85rem" }}>
             Powód ostatniej zmiany: {plan.current_version.reason}
+            {ostatniaZmiana && <> · <Link to={`/zmiany/${ostatniaZmiana}`}>Zobacz zmiany</Link></>}
           </p>
+          {nowszaWersja && (
+            <p className="alert alert--info" role="status">
+              Trener opublikował nowszą wersję planu (v{nowszaWersja}). Twój otwarty zapis treningu pozostaje na wersji {plan.current_version_no}.{" "}
+              <button type="button" className="btn btn--small" onClick={() => { setNowszaWersja(null); loadPlans(); }}>Wczytaj zmiany</button>
+            </p>
+          )}
           {/* Wiedza (0.56.0): „Dlaczego?” czyta zapisany ślad decyzji —
               panel nakłada się na ekran, więc otwarty formularz sesji
               i timer zostają nietknięte. */}

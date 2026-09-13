@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { api, getUser } from "../../api";
 import { plDate } from "../../dates";
 import { ErrorBox, FileDownloadButton, Icon, Spinner, TopBar } from "../../components";
@@ -20,8 +21,14 @@ export default function Nutrition() {
   const [showHistory, setShowHistory] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const plan = plans?.[0] ?? null;
+  const plan = plans?.find((p) => p.status === "ACTIVE") ?? plans?.[0] ?? null;
   const v = plan?.current_version ?? null;
+  const [ostatniaZmiana, setOstatniaZmiana] = useState<string | null>(null);
+  useEffect(() => {
+    if (!plan) return;
+    api.get<{ changes: { id: string }[] }>(`/api/plany/nutrition/${plan.id}/zmiany`)
+      .then((d) => setOstatniaZmiana(d.changes[0]?.id ?? null)).catch(() => setOstatniaZmiana(null));
+  }, [plan?.id, plan?.current_version_no]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const load = () => {
     setError(null);
@@ -51,7 +58,8 @@ export default function Nutrition() {
           <div className="row row--between">
             <div>
               <b>{plan.title}</b>
-              <div><small>wersja {v.version_no} · {plDate(v.created_at)}</small></div>
+              <div><small>wersja {v.version_no} · {plDate(v.created_at)}
+                {ostatniaZmiana && <> · <Link to={`/zmiany/${ostatniaZmiana}`}>Zobacz zmiany</Link></>}</small></div>
             </div>
             <button className="btn btn--ghost btn--small" aria-expanded={showHistory}
               onClick={() => setShowHistory(!showHistory)}>

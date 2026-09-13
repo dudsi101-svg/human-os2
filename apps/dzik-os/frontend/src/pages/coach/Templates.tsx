@@ -5,6 +5,7 @@ import { ErrorBox, SheetImportPanel, Spinner, TopBar } from "../../components";
 import { TrainingPlan } from "../../types";
 import BuiltinTemplates from "./BuiltinTemplates";
 import PlanEditor from "./PlanEditor";
+import PublikacjaPanel from "./PublikacjaPanel";
 import DietTemplatesTab from "./DietTemplates";
 
 export default function Templates() {
@@ -66,9 +67,13 @@ export default function Templates() {
               ))}
             </div>
           ))}
+          {/* 0.58.0: szablon jest edytowalny jak plan — szkic → sprawdź zmiany →
+              publikuj (bez powiadomienia, bo nie ma klienta); kopie u klientów
+              zostają nietknięte (pochodzenie zapisane na ich wersji v1). */}
+          <PublikacjaPanel planKind="training" planId={t.id} clientId={null} onZmiana={load} />
           <small className="dim">
-            Aby użyć szablonu, otwórz klienta → Plan → Nowy plan i odtwórz
-            układ (kopiowanie szablonu do klienta: zaplanowane w kolejnej wersji).
+            Kopiowanie do klienta: karta klienta → Plan → „Z szablonu…”. Kopia jest
+            niezależna: zmiany szablonu nie zmieniają planów klientów.
           </small>
         </div>
       ))}

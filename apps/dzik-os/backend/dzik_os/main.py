@@ -59,6 +59,7 @@ from .routers import (
     push,
     records,
     schedule,
+    szkice,
     telemetry,
     today,
     wiedza,
@@ -154,7 +155,7 @@ def create_app() -> FastAPI:
         records.router, push.router, consultations.router, telemetry.router,
         challenges.router, notifications_router.router, onboarding.router,
         interview.router, nutrition_templates.router, ocr.router, assistant.router, imports.router,
-        public_site.router, konfigurator.router, kulinaria.router,
+        public_site.router, konfigurator.router, kulinaria.router, szkice.router,
     ):
         app.include_router(router)
 

@@ -1,6 +1,6 @@
 # Stan wydania — Dzik OS
 
-**Wersja:** 0.57.1 · **Data:** 2026-09-13 · **Środowisko:** produkcja
+**Wersja:** 0.58.0 · **Data:** 2026-09-13 · **Środowisko:** produkcja
 (pilotaż) — https://dzik-os-panel.fly.dev
 
 Jedna strona prawdy o tym, co DZIAŁA na produkcji teraz. Aktualizowana
@@ -71,6 +71,15 @@ a produkcja ignoruje tryb demonstracyjny. Publikuje trener w zakładce
 przeglądu). „Dlaczego?” działa od razu dla nowych decyzji (plany
 z konfiguratora, nowe wersje planów i diet od trenera); stare plany
 pokazują uczciwy brak zapisanego uzasadnienia (`docs/WIEDZA.md`).
+
+## Panel trenera: szkice i publikacja zmian (0.58.0)
+
+Plany, diety i szablony edytuje się jako szkic (klient nic nie widzi),
+z listą różnic i publikacją w jednej transakcji; klient dostaje jeden
+wpis „Trener zaktualizował Twój plan…” z ekranem „Zobacz zmiany”.
+Przełącznik `DZIK_SZKICE_PUBLIKACJA` (domyślnie włączony) przywraca
+poprzedni edytor bez kasowania historii. Migracja 30 nie tworzy szkiców
+ani zdarzeń (`docs/PUBLIKACJA_ZMIAN.md`).
 
 ## Incydent 13.09 (0.56.0 → 0.57.1)
 

@@ -1091,3 +1091,70 @@ def db_session() -> Iterator[Session]:
         raise
     finally:
         db.close()
+
+MIGRATIONS.append(
+    (30, "panel trenera: szkice planów, zestawy zmian, outbox, pochodzenie kopii", [
+        # Addytywna. Wersje planów dostają pochodzenie kopii (NULL dla
+        # istniejących); istniejące wersje pozostają wersją początkową —
+        # migracja NIE tworzy szkiców ani zdarzeń (bez masowych powiadomień).
+        "ALTER TABLE training_plan_versions ADD COLUMN source_template_id VARCHAR(40)",
+        "ALTER TABLE training_plan_versions ADD COLUMN source_template_version_no INTEGER",
+        "ALTER TABLE nutrition_plan_versions ADD COLUMN source_template_id VARCHAR(40)",
+        "ALTER TABLE nutrition_plan_versions ADD COLUMN source_template_version_no INTEGER",
+        (
+            "CREATE TABLE IF NOT EXISTS plan_drafts ("
+            " id VARCHAR(40) PRIMARY KEY,"
+            " plan_kind VARCHAR(20) NOT NULL,"
+            " plan_id VARCHAR(40) NOT NULL,"
+            " client_id VARCHAR(40),"
+            " coach_id VARCHAR(40) NOT NULL,"
+            " base_version_no INTEGER NOT NULL,"
+            " base_content_json TEXT NOT NULL,"
+            " content_json TEXT NOT NULL,"
+            " revision INTEGER NOT NULL DEFAULT 1,"
+            " status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',"
+            " created_by VARCHAR(40) NOT NULL,"
+            " updated_by VARCHAR(40) NOT NULL,"
+            " created_at VARCHAR(40) NOT NULL,"
+            " updated_at VARCHAR(40) NOT NULL)"
+        ),
+        "CREATE INDEX IF NOT EXISTS ix_plan_drafts_plan_id ON plan_drafts (plan_id)",
+        "CREATE INDEX IF NOT EXISTS ix_plan_drafts_coach_id ON plan_drafts (coach_id)",
+        "CREATE INDEX IF NOT EXISTS ix_plan_drafts_plan_status ON plan_drafts (plan_kind, plan_id, status)",
+        (
+            "CREATE TABLE IF NOT EXISTS change_sets ("
+            " id VARCHAR(40) PRIMARY KEY,"
+            " plan_kind VARCHAR(20) NOT NULL,"
+            " plan_id VARCHAR(40) NOT NULL,"
+            " client_id VARCHAR(40),"
+            " old_version_no INTEGER NOT NULL,"
+            " new_version_no INTEGER NOT NULL,"
+            " diff_json TEXT NOT NULL,"
+            " summary TEXT NOT NULL,"
+            " note TEXT,"
+            " author_id VARCHAR(40) NOT NULL,"
+            " published_at VARCHAR(40) NOT NULL,"
+            " notification_id VARCHAR(40))"
+        ),
+        "CREATE INDEX IF NOT EXISTS ix_change_sets_plan_id ON change_sets (plan_id)",
+        "CREATE INDEX IF NOT EXISTS ix_change_sets_client_id ON change_sets (client_id)",
+        "CREATE INDEX IF NOT EXISTS ix_change_sets_plan ON change_sets (plan_kind, plan_id)",
+        (
+            "CREATE TABLE IF NOT EXISTS outbox_events ("
+            " id VARCHAR(40) PRIMARY KEY,"
+            " event_type VARCHAR(40) NOT NULL,"
+            " aggregate_id VARCHAR(40) NOT NULL,"
+            " recipient_id VARCHAR(40) NOT NULL,"
+            " payload_json TEXT NOT NULL,"
+            " status VARCHAR(20) NOT NULL DEFAULT 'PENDING',"
+            " attempts INTEGER NOT NULL DEFAULT 0,"
+            " next_attempt_at VARCHAR(40) NOT NULL,"
+            " last_error TEXT,"
+            " created_at VARCHAR(40) NOT NULL,"
+            " delivered_at VARCHAR(40),"
+            " UNIQUE (event_type, aggregate_id, recipient_id))"
+        ),
+        "CREATE INDEX IF NOT EXISTS ix_outbox_events_recipient_id ON outbox_events (recipient_id)",
+        "CREATE INDEX IF NOT EXISTS ix_outbox_events_status_next ON outbox_events (status, next_attempt_at)",
+    ])
+)

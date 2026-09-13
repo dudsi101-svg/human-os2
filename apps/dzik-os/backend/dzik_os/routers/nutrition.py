@@ -293,3 +293,65 @@ def create_supplement_reminders(
     )
     db.commit()
     return {"created": len(created), "skipped": len(skipped), "item_ids": created}
+
+
+# --- Panel trenera (0.58.0): archiwizacja ≠ odpięcie; duplikacja ------------------
+
+
+def _dieta_do_zmiany(db: Session, coach: User, plan_id: str) -> NutritionPlan:
+    plan = require_owned_resource(db.get(NutritionPlan, plan_id), actor=coach, resource=f"nutrition_plan:{plan_id}")
+    resolve_client_access(db, coach, plan.client_id, action="write", domain=DOMAIN_NUTRITION)
+    return plan
+
+
+@router.post("/nutrition/{plan_id}/archiwizuj")
+def archive_nutrition(plan_id: str, coach: User = Depends(require_role("COACH")), db: Session = Depends(get_db)):
+    plan = _dieta_do_zmiany(db, coach, plan_id)
+    poprzedni = plan.status
+    plan.status = "ARCHIVED"
+    plan.updated_at = now_iso()
+    record_event(db, action="NUTRITION_PLAN_ARCHIVED", actor_id=coach.id, subject_ids=[plan.client_id],
+                 payload={"plan_id": plan.id, "from": poprzedni}, summary=f"Dieta „{plan.title}” zarchiwizowana")
+    db.commit()
+    return {"ok": True, "status": plan.status}
+
+
+@router.post("/nutrition/{plan_id}/odepnij")
+def unassign_nutrition(plan_id: str, coach: User = Depends(require_role("COACH")), db: Session = Depends(get_db)):
+    plan = _dieta_do_zmiany(db, coach, plan_id)
+    poprzedni = plan.status
+    plan.status = "UNASSIGNED"
+    plan.updated_at = now_iso()
+    record_event(db, action="NUTRITION_PLAN_UNASSIGNED", actor_id=coach.id, subject_ids=[plan.client_id],
+                 payload={"plan_id": plan.id, "from": poprzedni}, summary=f"Dieta „{plan.title}” odpięta od klienta")
+    db.commit()
+    return {"ok": True, "status": plan.status}
+
+
+@router.post("/nutrition/{plan_id}/duplikuj", status_code=201)
+def duplicate_nutrition(plan_id: str, coach: User = Depends(require_role("COACH")), db: Session = Depends(get_db)):
+    from ..publikacja import elementy as _el
+
+    plan = _dieta_do_zmiany(db, coach, plan_id)
+    zrodlo = (db.query(NutritionPlanVersion)
+              .filter_by(plan_id=plan.id, version_no=plan.current_version_no).one_or_none())
+    if zrodlo is None:
+        raise HTTPException(status_code=422, detail="Dieta nie ma żadnej wersji")
+    tresc = _el.znormalizuj("nutrition", json.loads(zrodlo.content_json))
+    for kol in ("sections", "meals", "supplements"):
+        for e in tresc[kol]:
+            e["id"] = _el.nowy_id()
+    nowy = NutritionPlan(id=new_id("NUT"), client_id=plan.client_id, coach_id=coach.id,
+                         title=f"{plan.title} (kopia)", current_version_no=1)
+    db.add(nowy)
+    db.add(NutritionPlanVersion(id=new_id("NUV"), plan_id=nowy.id, version_no=1,
+                                reason=f"Duplikat diety „{plan.title}” (v{plan.current_version_no})",
+                                content_json=json.dumps(tresc, ensure_ascii=False), created_by=coach.id,
+                                source_template_id=zrodlo.source_template_id,
+                                source_template_version_no=zrodlo.source_template_version_no))
+    record_event(db, action="NUTRITION_PLAN_CREATED", actor_id=coach.id, subject_ids=[plan.client_id],
+                 payload={"plan_id": nowy.id, "title": nowy.title, "version_no": 1, "duplicated_from": plan.id,
+                          "reason": "duplikat", "supplements_count": len(tresc["supplements"])},
+                 summary=f"Dieta „{nowy.title}” utworzona jako duplikat")
+    db.commit()
+    return {"id": nowy.id, "version_no": 1, "title": nowy.title}

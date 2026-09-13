@@ -1,5 +1,48 @@
 # Changelog — Dzik OS
 
+## 0.58.0 — 2026-09-13
+
+**Panel trenera: pełna edycja, usuwanie i publikowanie zmian (specyfikacja
+właściciela z 13.09).**
+
+* Przepływ **Edytuj → szkic (autozapis) → Sprawdź zmiany → Opublikuj
+  zmiany i powiadom**, osobno „Odrzuć szkic”. Klient nie widzi edycji
+  roboczej; szkic przetrwa odświeżenie i ponowne logowanie; stan zapisu
+  jest potwierdzany dopiero odpowiedzią serwera.
+* Jeden silnik szkiców dla planu treningowego (dni → ćwiczenia), diety
+  (sekcje, posiłki, suplementy) i szablonów treningowych (publikacja bez
+  powiadomienia). Elementy mają stabilne `id`; operacje po `id`
+  (`set`/`add`/`delete`/`move`/`duplicate`/`replace`) z wymaganą rewizją
+  → 409 `REVISION_CONFLICT` (drugie urządzenie), 409 `BASE_VERSION_CONFLICT`
+  (plan ma nowszą wersję) — bez cichego nadpisania.
+* Różnice po `id`: dodane / zmienione (pole: przed → po) / usunięte
+  (z liczbą zawartości) / przestawione; dodanie i usunięcie tego samego
+  elementu nie jest zmianą; deterministyczne podsumowanie po polsku
+  („Zmieniono 2 ćwiczenia, dodano 1 ćwiczenie i usunięto 1 ćwiczenie.”).
+  Brak różnic = brak wersji i brak powiadomienia.
+* Publikacja w jednej transakcji: uprawnienia → rewizja → wersja bazowa →
+  walidacja → nowa niemutowalna wersja → ChangeSet → aktywna wersja →
+  OutboxEvent → ślad Wiedzy → audyt; `idempotency_key` (powtórka = ten sam
+  wynik, inna treść = 409). Outbox doręcza JEDEN wpis klienta
+  (`dedup_key=changeset:{id}`), ponawia po awarii w pętli przypomnień
+  (do 10 prób). Trener widzi: opublikowano / wpis utworzony / odczytano.
+* Ekran klienta „Zobacz zmiany” (`/zmiany/{id}`): przed/po, usunięte
+  pozostają czytelne, autor, czas, notatka trenera, link do planu;
+  baner „Dostępna nowsza wersja — Wczytaj zmiany” na otwartym planie
+  (bez nadpisywania trwającego zapisu; wykonanie wskazuje wersję, na której
+  je rozpoczęto).
+* Menu działań na każdej karcie (telefon + klawiatura): edycja, duplikacja,
+  kolejność, przeniesienie między dniami, usunięcie z „Cofnij”
+  (przywraca pozycję i zawartość); usunięcie dnia z potwierdzeniem i liczbą
+  elementów. Ręczna zmiana posiłku z kreatora dań kasuje jego wartości
+  i oznacza `edited_manually` (walidacja receptury nie przechodzi dalej).
+* Archiwizacja ≠ odpięcie (dwa działania, historia i wykonania zostają),
+  duplikacja z nowymi identyfikatorami, pochodzenie kopii z szablonu
+  (`source_template_id`, `source_template_version_no`), szablony
+  treningowe: edycja/duplikacja/usunięcie; harmonogram i cele: edycja
+  treści z kontrolą wersji. Migracja 30 (bez powiadomień). Przełącznik
+  `DZIK_SZKICE_PUBLIKACJA`. Raport: `docs/PUBLIKACJA_ZMIAN.md`.
+
 ## 0.57.1 — 2026-09-13
 
 **Poprawka awaryjna: pliki danych pakietów w obrazie produkcyjnym.**

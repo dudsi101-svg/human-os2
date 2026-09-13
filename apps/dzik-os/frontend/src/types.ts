@@ -1,4 +1,6 @@
 export interface Exercise {
+  /** Stabilna tożsamość elementu w szkicach (0.58.0); brak = wersja sprzed szkiców. */
+  id?: string | null;
   name: string;
   /** Miękkie odniesienie do bazy ćwiczeń trenera. Nazwa jest już zapisana
    * w planie, więc archiwizacja ćwiczenia nie psuje planu — znika tylko
@@ -47,6 +49,7 @@ export interface BuiltinPlanTemplate {
 }
 
 export interface PlanDay {
+  id?: string | null;
   name: string;
   weekday?: number | null;
   exercises: Exercise[];
@@ -112,6 +115,8 @@ export interface NutritionMealRow {
   draft?: boolean;
   /** Cel śladu decyzji „d{dzień}:m{i}” — pod „Dlaczego to danie?”. */
   trace_target?: string;
+  /** Ręczna zmiana posiłku z kreatora dań (0.58.0): wartości i walidacja nie obowiązują. */
+  edited_manually?: boolean;
   nutrition?: Record<string, number> | null;
 }
 
@@ -1348,4 +1353,103 @@ export interface KulinariaZamianaPodglad {
   dzien: string;
   meal_index: number;
   nutrition_day: Record<string, number> | null;
+}
+
+// --- Panel trenera: szkice i publikacja zmian (0.58.0) ---------------------------
+
+export type PlanKind = "training" | "nutrition";
+
+export interface SzkicOperacja {
+  op: "set" | "add" | "delete" | "move" | "duplicate" | "replace";
+  id?: string;
+  fields?: Record<string, unknown>;
+  collection?: "days" | "exercises" | "sections" | "meals" | "supplements";
+  parent_id?: string | null;
+  item?: Record<string, unknown>;
+  index?: number;
+  content?: Record<string, unknown>;
+}
+
+export type SzkicCwiczenie = Omit<Exercise, "id"> & { id: string };
+export type SzkicDzien = Omit<PlanDay, "id" | "exercises"> & { id: string; exercises: SzkicCwiczenie[] };
+
+export interface SzkicTrening {
+  title: string;
+  days: SzkicDzien[];
+}
+
+export interface SzkicDieta {
+  title: string;
+  kcal?: number | null;
+  protein_g?: number | null;
+  fat_g?: number | null;
+  carbs_g?: number | null;
+  document_id?: string | null;
+  sections: { id: string; title: string; body: string }[];
+  meals: (NutritionMealRow & { id: string })[];
+  supplements: (SupplementEntry & { id: string })[];
+  kulinaria?: KulinariaMetaWersji;
+}
+
+export interface Szkic {
+  id: string;
+  plan_kind: PlanKind;
+  plan_id: string;
+  client_id: string | null;
+  base_version_no: number;
+  revision: number;
+  status: "ACTIVE" | "PUBLISHED" | "DISCARDED";
+  content: SzkicTrening | SzkicDieta;
+  base_content: SzkicTrening | SzkicDieta;
+  changes: number;
+  summary: string;
+  updated_at: string;
+  updated_by: string;
+}
+
+export interface RoznicaPole { field: string; before: unknown; after: unknown }
+
+export interface Roznice {
+  added: { collection: string; parent_id: string | null; id: string; label: string; item: Record<string, unknown>; children: number }[];
+  removed: { collection: string; parent_id: string | null; id: string; label: string; item: Record<string, unknown>; children: number }[];
+  changed: { collection: string; id: string; label: string; label_before: string; fields: RoznicaPole[] }[];
+  moved: { collection: string; id: string; label: string; from?: number; to?: number; from_parent?: string | null; to_parent?: string | null }[];
+  root: RoznicaPole[];
+  counts: { added: number; removed: number; changed: number; moved: number; root: number };
+  summary: string;
+  total: number;
+  plan_id?: string;
+  plan_title?: string;
+  client_id?: string | null;
+  base_version_no?: number;
+  current_version_no?: number;
+  stale_base?: boolean;
+  effective?: string;
+}
+
+export interface WynikPublikacji {
+  published: boolean;
+  reason?: string;
+  version_no: number;
+  changeset_id?: string;
+  summary: string;
+  outbox_event_id?: string | null;
+}
+
+export interface ZestawZmian {
+  id: string;
+  plan_kind: PlanKind;
+  plan_id: string;
+  client_id: string | null;
+  old_version_no: number;
+  new_version_no: number;
+  summary: string;
+  note: string | null;
+  author_id: string;
+  published_at: string;
+  notification: { id: string; created_at: string; read_at: string | null; channels: string | null } | null;
+  diff?: Roznice;
+  plan_title?: string;
+  plan_url?: string;
+  current_version_no?: number;
 }

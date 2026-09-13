@@ -410,6 +410,9 @@ def test_migration_v1_to_v15_preserves_payment_data(tmp_path):
             "client_id VARCHAR(40), file_id VARCHAR(40), title VARCHAR(300), "
             "category VARCHAR(40), uploaded_by VARCHAR(40), "
             "created_at VARCHAR(40), status VARCHAR(20))"))
+        # Stub dla migracji nr 30 (kolumny pochodzenia kopii na wersjach planów).
+        conn.execute(text("CREATE TABLE training_plan_versions (id VARCHAR(40) PRIMARY KEY)"))
+        conn.execute(text("CREATE TABLE nutrition_plan_versions (id VARCHAR(40) PRIMARY KEY)"))
         # Płatności w kształcie v1 — z prawdziwymi danymi.
         conn.execute(text(
             "CREATE TABLE payment_schedules (id VARCHAR(40) PRIMARY KEY, "

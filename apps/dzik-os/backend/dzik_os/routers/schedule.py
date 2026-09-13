@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from .. import notifications
@@ -82,6 +83,57 @@ def list_schedule(
         .all()
     )
     return {"items": [_item_out(i) for i in rows]}
+
+
+class ScheduleItemEditIn(BaseModel):
+    name: str = Field(min_length=1, max_length=300)
+    category: str = Field(
+        pattern="^(TRENING|POSILEK|NAWODNIENIE|REGENERACJA|SUPLEMENT|POMIAR|RAPORT|PLATNOSC|INNE)$"
+    )
+    time_of_day: str | None = Field(default=None, pattern=r"^\d{2}:\d{2}$")
+    days_of_week: str = Field(default="1,2,3,4,5,6,7", max_length=30)
+    instruction: str | None = Field(default=None, max_length=2000)
+    author_note: str | None = Field(default=None, max_length=2000)
+    version: int = Field(ge=1)
+
+
+@router.put("/schedule/{item_id}")
+def edit_schedule_item(
+    item_id: str,
+    body: ScheduleItemEditIn,
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    """Edycja treści elementu (0.58.0). Kontrola wersji: `version` z żądania
+    musi być bieżąca — inaczej 409 (bez cichego nadpisania). Zmiana pory
+    lub dni anuluje zaplanowane przypomnienia (plan_day zaplanuje nowe)."""
+    item = db.get(ScheduleItem, item_id)
+    if item is None:
+        raise HTTPException(status_code=404, detail="Nie znaleziono")
+    resolve_client_access(db, user, item.client_id, action="write", domain=DOMAIN_TRAINING)
+    if body.version != item.version:
+        raise HTTPException(status_code=409, detail="Element zmienił się w międzyczasie — odśwież.")
+    if body.category == "SUPLEMENT" and not (body.author_note or "").strip():
+        raise HTTPException(status_code=422, detail="Suplement wymaga autora zalecenia / źródła")
+    zmiana_terminu = (item.time_of_day, item.days_of_week) != (body.time_of_day, body.days_of_week)
+    przed = {"name": item.name, "category": item.category, "time_of_day": item.time_of_day,
+             "days_of_week": item.days_of_week}
+    item.name, item.category = body.name, body.category
+    item.time_of_day, item.days_of_week = body.time_of_day, body.days_of_week
+    item.instruction, item.author_note = body.instruction, body.author_note
+    item.updated_at = now_iso()
+    item.version += 1
+    if zmiana_terminu:
+        notifications.cancel_source(db, f"schedule_item:{item.id}")
+    record_event(
+        db, action="SCHEDULE_ITEM_UPDATED", actor_id=user.id, subject_ids=[item.client_id],
+        payload={"item_id": item.id, "before": przed,
+                 "after": {"name": item.name, "category": item.category,
+                           "time_of_day": item.time_of_day, "days_of_week": item.days_of_week}},
+        summary=f"Harmonogram: zmieniono '{item.name}'",
+    )
+    db.commit()
+    return {"ok": True, "version": item.version}
 
 
 @router.post("/schedule/{item_id}/status")

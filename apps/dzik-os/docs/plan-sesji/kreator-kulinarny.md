@@ -134,4 +134,4 @@ formularz → podgląd (draft_preview, receptura, lista zakupów) → zapis
 z potwierdzeniem → zamiana → tryb produkcyjny = „za mało receptur po
 filtrach” → biblioteka receptur; klient: „Dlaczego to danie?” →
 „Decyzja: …”. Pokrycie każdej diety i statusy: `docs/KULINARIA.md`.
-CI i scalenie — po otwarciu PR (uzupełnię).
+CI PR #53 (3c0e97a): ALL_GREEN (backend 3.11/3.12/postgres, quality 3.11–3.13, frontend, e2e); scalone 13.09 (6c3d078). Deploy 0.57.0 padł z powodu braku plików JSON w obrazie (błąd pakietowania z 0.56.0, nie z tej rundy) — naprawione w 0.57.1 (`hotfix-pakiet-dane.md`).

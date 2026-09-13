@@ -246,6 +246,40 @@ def create_goal(
     return {"id": goal.id}
 
 
+@router.put("/goals/{goal_id}")
+def edit_goal(
+    client_id: str,
+    goal_id: str,
+    body: GoalIn,
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    """Edycja treści celu (0.58.0): tytuł, opis, rodzaj, termin. Poprzednia
+    treść trafia do audytu (nie ginie)."""
+    resolve_client_access(db, user, client_id, action="write", domain=DOMAIN_TRAINING)
+    goal = db.get(Goal, goal_id)
+    if goal is None:
+        from fastapi import HTTPException
+
+        raise HTTPException(status_code=404, detail="Nie znaleziono")
+    if goal.client_id != client_id:
+        deny(user.id, f"goal:{goal_id}")
+    przed = {"title": goal.title, "description": goal.description, "kind": goal.kind,
+             "target_date": goal.target_date}
+    goal.title, goal.description = body.title, body.description
+    goal.kind, goal.target_date = body.kind, body.target_date
+    goal.updated_at = now_iso()
+    goal.version += 1
+    record_event(
+        db, action="GOAL_UPDATED", actor_id=user.id, subject_ids=[client_id],
+        payload={"goal_id": goal.id, "before": przed,
+                 "after": {"title": goal.title, "kind": goal.kind, "target_date": goal.target_date}},
+        summary=f"Cel zmieniony: {goal.title}",
+    )
+    db.commit()
+    return {"ok": True, "version": goal.version}
+
+
 @router.post("/goals/{goal_id}/status")
 def set_goal_status(
     client_id: str,
