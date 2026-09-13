@@ -146,4 +146,17 @@ Migracja nr **30**, wersja **0.58.0**, pliki: `backend/dzik_os/publikacja/**`,
 
 ## Weryfikacja wykonana
 
-(uzupełnię po rundzie)
+Lokalnie 13.09 (przed PR): ruff czysto (nowe pliki i moduły; 13 zastanych
+uwag w starych plikach niezmienionych, jak dotąd tolerowanych przez CI);
+backend **1684 passed, 1 skipped** (po dołożeniu stubów
+`training_plan_versions`/`nutrition_plan_versions` do 7 testów migracji
+na starej bazie — migracja 30 dokłada tam kolumny); `test_publikacja.py`
+19 passed (A1–A17); Core 275; frontend tsc + build (89,4 kB / 120 kB)
++ test:helpers 140; E2E Playwright **26 passed** (25 + `publikacja.spec.ts`);
+`e2e/test_a11y.mjs` czysto; `tools/spojnosc.py` 13/13.
+Przeklik na żywo (desktop 1280 px + Pixel 7): edycja → autozapis →
+menu działań → usuń + Cofnij → Sprawdź zmiany → publikacja z notatką →
+wpis klienta → ekran „Zobacz zmiany”. Znaleziony i naprawiony błąd:
+menu działań w karcie było przykrywane przez kolejną kartę (animacja
+`transform` tworzy kontekst warstw) — menu renderowane przez portal.
+CI i scalenie — po otwarciu PR #55 (uzupełnię).

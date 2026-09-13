@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { api, ApiError } from "../../api";
 import { WEEKDAYS } from "../../dates";
 import { ErrorBox, Spinner } from "../../components";
@@ -48,31 +49,61 @@ function useDebounced<T extends unknown[]>(fn: (...a: T) => void, ms: number) {
 }
 
 /** Menu działań karty: jeden przycisk otwiera listę, działa z klawiatury
- * (Escape zamyka) i na telefonie (bez najechania myszką). */
+ * (Escape zamyka, fokus wraca) i na telefonie (bez najechania myszką).
+ *
+ * Lista jest renderowana przez portal do `body` z pozycją `fixed`: karty
+ * mają animację wejścia z `transform`, która tworzy kontekst warstw —
+ * menu zagnieżdżone w karcie byłoby przykryte przez KOLEJNĄ kartę
+ * (sprawdzone na żywo: „Dzień 2” przechwytywał kliknięcia w „Usuń”). */
 function MenuDzialan({ etykieta, akcje }: {
   etykieta: string;
   akcje: { label: string; onClick: () => void; danger?: boolean; disabled?: string }[];
 }) {
   const [open, setOpen] = useState(false);
+  const [poz, setPoz] = useState<{ top: number; right: number } | null>(null);
   const btn = useRef<HTMLButtonElement | null>(null);
+  const menuRef = useRef<HTMLDivElement | null>(null);
+
+  function przelacz() {
+    if (open) { setOpen(false); return; }
+    const r = btn.current?.getBoundingClientRect();
+    if (r) setPoz({ top: r.bottom + 4, right: Math.max(8, window.innerWidth - r.right) });
+    setOpen(true);
+  }
+  useEffect(() => {
+    if (!open) return;
+    // Pierwsza pozycja dostaje fokus (klawiatura); klik poza menu zamyka.
+    menuRef.current?.querySelector<HTMLButtonElement>("[role=menuitem]:not(:disabled)")?.focus();
+    const zamknij = (e: MouseEvent) => {
+      if (menuRef.current?.contains(e.target as Node) || btn.current?.contains(e.target as Node)) return;
+      setOpen(false);
+    };
+    const naEscape = (e: KeyboardEvent) => { if (e.key === "Escape") { setOpen(false); btn.current?.focus(); } };
+    document.addEventListener("mousedown", zamknij);
+    document.addEventListener("keydown", naEscape);
+    return () => { document.removeEventListener("mousedown", zamknij); document.removeEventListener("keydown", naEscape); };
+  }, [open]);
+
   return (
-    <div style={{ position: "relative" }} onKeyDown={(e) => { if (e.key === "Escape" && open) { setOpen(false); btn.current?.focus(); } }}>
+    <div>
       <button type="button" ref={btn} className="btn btn--ghost btn--small" aria-haspopup="menu"
-        aria-expanded={open} aria-label={`Działania: ${etykieta}`} onClick={() => setOpen(!open)}>
+        aria-expanded={open} aria-label={`Działania: ${etykieta}`} onClick={przelacz}>
         Działania ▾
       </button>
-      {open && (
-        <div role="menu" className="card" style={{ position: "absolute", right: 0, zIndex: 20, minWidth: 200, padding: 6, marginTop: 4 }}>
+      {open && poz && createPortal(
+        <div role="menu" ref={menuRef} className="card" aria-label={`Działania: ${etykieta}`}
+          style={{ position: "fixed", top: poz.top, right: poz.right, zIndex: 600, minWidth: 220, padding: 6, margin: 0, maxHeight: "60vh", overflowY: "auto" }}>
           {akcje.map((a) => (
             <button key={a.label} type="button" role="menuitem" title={a.disabled}
               className={"btn btn--small " + (a.danger ? "btn--danger" : "btn--ghost")}
               style={{ display: "block", width: "100%", textAlign: "left", marginBottom: 4 }}
               disabled={!!a.disabled}
-              onClick={() => { setOpen(false); a.onClick(); }}>
+              onClick={() => { setOpen(false); btn.current?.focus(); a.onClick(); }}>
               {a.label}{a.disabled ? ` — ${a.disabled}` : ""}
             </button>
           ))}
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   );
