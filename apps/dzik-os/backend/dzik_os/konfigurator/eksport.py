@@ -50,7 +50,8 @@ def na_plan_dzik(odpowiedz: dict, wejscie: dict) -> dict:
             if r["reps_per_side"]:
                 uwagi.insert(0, "powtórzenia na stronę; czas liczy obie strony")
             cwiczenia.append({
-                "name": e["name_pl"], "exercise_id": None, "sets": str(r["sets"]),
+                "name": e["name_pl"], "exercise_id": None, "konfigurator_id": r["exercise_id"],
+                "sets": str(r["sets"]),
                 "reps": f"{r['reps_min']}–{r['reps_max']}" + (" na stronę" if r["reps_per_side"] else ""),
                 "weight": "dobór na miejscu", "tempo": None, "rest": f"{r['rest_seconds']} s",
                 "comment": "; ".join(uwagi),

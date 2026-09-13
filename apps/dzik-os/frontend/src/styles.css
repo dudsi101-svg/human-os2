@@ -605,3 +605,46 @@ table.simple th { color: var(--text-dim); font-weight: 600; font-size: 0.78rem; 
 .landing-form__alt { font-size: 0.88rem; color: var(--text-dim); margin: 0; }
 .landing-form__alt a { color: var(--accent); font-weight: 600; }
 .landing-about__foto { width: 100%; border-radius: 14px; margin-bottom: 16px; display: block; }
+
+/* --- Wiedza (0.56.0): panel „Dlaczego?” — dolny arkusz na telefonie,
+   panel boczny od szerokości tabletu. Nakładka nie odmontowuje ekranu
+   pod spodem: stan sesji, timer i formularz posiłku zostają. --- */
+.dlaczego {
+  position: fixed; inset: 0; z-index: 500; /* nad dolną nawigacją */
+  display: flex; align-items: flex-end; justify-content: center;
+  background: rgba(0, 0, 0, 0.45);
+}
+.dlaczego__panel {
+  background: var(--bg-card); color: var(--text);
+  border: 1px solid var(--border); border-radius: var(--radius) var(--radius) 0 0;
+  width: 100%; max-height: 85vh; overflow-y: auto;
+  /* Dolny arkusz kończy się nad paskiem nawigacji, żeby ostatnie akcje
+     nie chowały się pod nim. */
+  padding: 14px 18px calc(var(--nav-h) + 18px + env(safe-area-inset-bottom));
+}
+.dlaczego__head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.dlaczego__head h2 { margin: 0; font-size: 1rem; }
+.dlaczego__akapit { margin: 10px 0 0; line-height: 1.45; }
+.dlaczego__akcje { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.dlaczego__status { font-size: 0.8rem; color: var(--text-dim); margin-top: 6px; }
+@media (min-width: 700px) {
+  .dlaczego { align-items: stretch; justify-content: flex-end; }
+  .dlaczego__panel {
+    width: 440px; max-height: none; height: 100%;
+    border-radius: 0; border-width: 0 0 0 1px;
+    padding-bottom: 18px;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .dlaczego__panel { animation: card-in 200ms var(--ease-out) both; }
+}
+.wiedza-szukaj { display: flex; gap: 8px; align-items: center; margin-bottom: 12px; }
+.wiedza-szukaj input { flex: 1; min-width: 0; margin: 0; }
+.wiedza-karta__kroki { padding-left: 20px; margin: 6px 0 0; }
+.wiedza-karta__kroki li { margin-bottom: 4px; }
+.wiedza-demo {
+  border: 1px dashed var(--warn); color: var(--warn); border-radius: var(--radius-sm);
+  padding: 8px 12px; font-size: 0.85rem; margin-bottom: 12px;
+}
+.wiedza-lista a.card, .wiedza-lista button.card { margin-bottom: 10px; }
+.wiedza-lista .meta { color: var(--text-dim); font-size: 0.85rem; }

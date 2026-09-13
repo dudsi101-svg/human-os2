@@ -60,6 +60,7 @@ from .routers import (
     schedule,
     telemetry,
     today,
+    wiedza,
 )
 from .routers import (
     notifications as notifications_router,
@@ -70,6 +71,12 @@ from .routers import (
 async def lifespan(app: FastAPI):
     settings.ensure_dirs()
     run_migrations()
+    # Wiedza (0.56.0): szkice pakietu importowane idempotentnie po
+    # (id, rewizja) — nigdy nie nadpisują zmian redakcyjnych.
+    from .wiedza import tresci as wiedza_tresci
+
+    with db_session() as db:
+        wiedza_tresci.zaimportuj_startowe(db)
     if os.environ.get("DZIK_SEED_DEMO") == "true":
         # Staging: jednorazowy zasiew danych demo (seed sam pomija
         # niepustą bazę, więc restart maszyny nic nie duplikuje).
@@ -133,7 +140,7 @@ def create_app() -> FastAPI:
         nutrition.router, schedule.router, checkins.router,
         measurements.router, messages.router, files.router,
         payments.router, privacy.router, today.router, admin.router,
-        monitoring.router, knowledge.router, exercises.router, food_catalog.router,
+        monitoring.router, knowledge.router, wiedza.router, exercises.router, food_catalog.router,
         records.router, push.router, consultations.router, telemetry.router,
         challenges.router, notifications_router.router, onboarding.router,
         interview.router, nutrition_templates.router, ocr.router, assistant.router, imports.router,

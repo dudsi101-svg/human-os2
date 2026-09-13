@@ -1429,3 +1429,145 @@ class ImportSnapshot(Base):
     # drugi raz (inaczej przywracałby stan sprzed cudzych późniejszych
     # zmian, o których ta migawka nic nie wie).
     restored_at: Mapped[str | None] = mapped_column(String(40), nullable=True)
+
+
+# --- Wiedza (0.56.0, migracja 28) -------------------------------------------
+
+
+class WiedzaArtykul(Base):
+    """Karta wiedzy — JEDNA REWIZJA artykułu. Rewizje są niezmienne po
+    publikacji: zmiana tworzy nową rewizję (`article_id` ten sam,
+    `revision` + 1). Treść ogólna nigdy nie zawiera danych osoby —
+    zdanie „W Twoim planie…” pochodzi wyłącznie z resolvera.
+
+    Statusy: draft → in_review → published → retired (plik 04 pakietu).
+    Publikacja wymaga prawdziwego recenzenta (`reviewer_id` = konto
+    trenera), daty recenzji i daty kolejnego przeglądu — serwer odmawia
+    bez nich. Pełna treść (kroki, szczegóły, ograniczenia, aliasy, tagi,
+    źródła, media) w `tresc_json` zgodnie ze schematem `article`."""
+
+    __tablename__ = "wiedza_artykuly"
+    __table_args__ = (UniqueConstraint("article_id", "revision"),)
+
+    id: Mapped[str] = mapped_column(String(40), primary_key=True)
+    article_id: Mapped[str] = mapped_column(String(80), index=True)
+    revision: Mapped[int] = mapped_column(Integer)
+    status: Mapped[str] = mapped_column(String(20), default="draft", index=True)
+    category: Mapped[str] = mapped_column(String(20), index=True)
+    title: Mapped[str] = mapped_column(String(300))
+    summary: Mapped[str] = mapped_column(Text)
+    exercise_id: Mapped[str | None] = mapped_column(String(80), nullable=True, index=True)
+    tresc_json: Mapped[str] = mapped_column(Text)
+    review_approved: Mapped[bool] = mapped_column(Boolean, default=False)
+    reviewer_id: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    reviewed_at: Mapped[str | None] = mapped_column(String(40), nullable=True)   # YYYY-MM-DD
+    next_review_at: Mapped[str | None] = mapped_column(String(40), nullable=True)  # YYYY-MM-DD
+    # Zamiennik redakcyjny po wycofaniu (article_id) — pokazywany przy 410.
+    zamiennik_id: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    created_by: Mapped[str] = mapped_column(String(40))
+    created_at: Mapped[str] = mapped_column(String(40), default=now_iso)
+    updated_at: Mapped[str] = mapped_column(String(40), default=now_iso)
+
+
+class WiedzaPowiazanie(Base):
+    """Powiązanie typu elementu planu (lub konkretnego `exercise_id`
+    konfiguratora) z kartą. `target_key='*'` = wiedza ogólna typu."""
+
+    __tablename__ = "wiedza_powiazania"
+    __table_args__ = (UniqueConstraint("target_type", "target_key", "article_id"),)
+
+    id: Mapped[str] = mapped_column(String(40), primary_key=True)
+    target_type: Mapped[str] = mapped_column(String(60), index=True)
+    target_key: Mapped[str] = mapped_column(String(120), index=True)
+    article_id: Mapped[str] = mapped_column(String(80), index=True)
+    role: Mapped[str] = mapped_column(String(40))  # general_education / instruction
+
+
+class WiedzaSlad(Base):
+    """Ślad decyzji (DecisionTrace) — niezmienny zapis z CHWILI decyzji,
+    prywatny (dane klienta). Zapisuje go WŁAŚCICIEL decyzji w tej samej
+    transakcji co nową wersję planu: konfigurator (engine), trener
+    (professional). Nigdy nie jest odtwarzany po fakcie dla starych
+    planów — brak śladu to poprawny wynik `missing_trace`.
+
+    Przechowuje tylko fakty potrzebne do wyjaśnienia (z jednostką i
+    czasem obserwacji); surowy wywiad zdrowotny nigdy tu nie trafia."""
+
+    __tablename__ = "wiedza_slady"
+    __table_args__ = (
+        Index("ix_wiedza_slady_cel", "owner_id", "plan_id", "plan_revision",
+              "target_type", "target_id"),
+    )
+
+    id: Mapped[str] = mapped_column(String(40), primary_key=True)
+    owner_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
+    plan_kind: Mapped[str] = mapped_column(String(20))  # training / nutrition
+    plan_id: Mapped[str] = mapped_column(String(40), index=True)
+    plan_revision: Mapped[int] = mapped_column(Integer)
+    target_type: Mapped[str] = mapped_column(String(60))
+    target_id: Mapped[str] = mapped_column(String(200))
+    decision_origin: Mapped[str] = mapped_column(String(20))  # engine/professional/user
+    rule_id: Mapped[str | None] = mapped_column(String(60), nullable=True)
+    rule_version: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    data_quality: Mapped[str] = mapped_column(String(20))
+    facts_json: Mapped[str] = mapped_column(Text)
+    outcome_code: Mapped[str] = mapped_column(String(60))
+    outcome_value_json: Mapped[str] = mapped_column(Text)
+    reason_note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    article_ids_json: Mapped[str] = mapped_column(Text, default="[]")
+    created_at: Mapped[str] = mapped_column(String(40), default=now_iso)
+
+
+class WiedzaZakladka(Base):
+    """Zapisany materiał — wskazuje `article_id`, nie rewizję (otwiera
+    najnowszą publikację). Para (właściciel, artykuł) unikalna."""
+
+    __tablename__ = "wiedza_zakladki"
+    __table_args__ = (UniqueConstraint("owner_id", "article_id"),)
+
+    id: Mapped[str] = mapped_column(String(40), primary_key=True)
+    owner_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
+    article_id: Mapped[str] = mapped_column(String(80))
+    created_at: Mapped[str] = mapped_column(String(40), default=now_iso)
+
+
+class WiedzaOdczyt(Base):
+    """Stan czytania: otwarcie NIE oznacza zrozumienia ani ukończenia —
+    `explicitly_completed_at` ustawia tylko jawne działanie użytkownika."""
+
+    __tablename__ = "wiedza_odczyty"
+    __table_args__ = (UniqueConstraint("owner_id", "article_id"),)
+
+    id: Mapped[str] = mapped_column(String(40), primary_key=True)
+    owner_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
+    article_id: Mapped[str] = mapped_column(String(80))
+    last_opened_at: Mapped[str] = mapped_column(String(40), default=now_iso)
+    explicitly_completed_at: Mapped[str | None] = mapped_column(String(40), nullable=True)
+
+
+class WiedzaOpinia(Base):
+    """Odpowiedź na „Czy to wyjaśnienie pomogło?” — tak/nie + opcjonalna
+    notatka. Pomocność liczy się z tych odpowiedzi (plik 09), z
+    zastrzeżeniem dobrowolnego doboru."""
+
+    __tablename__ = "wiedza_opinie"
+
+    id: Mapped[str] = mapped_column(String(40), primary_key=True)
+    owner_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
+    article_id: Mapped[str] = mapped_column(String(80))
+    revision: Mapped[int] = mapped_column(Integer)
+    useful: Mapped[bool] = mapped_column(Boolean)
+    note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[str] = mapped_column(String(40), default=now_iso)
+
+
+class WiedzaUstawienia(Base):
+    """Ustawienia Wiedzy użytkownika: odmowa personalizacji feedu
+    (K29) — po odmowie „Dla Ciebie” pokazuje ręcznie uporządkowane
+    podstawy, a przyciski „Dlaczego?” pozostają dostępne."""
+
+    __tablename__ = "wiedza_ustawienia"
+
+    owner_id: Mapped[str] = mapped_column(ForeignKey("users.id"), primary_key=True)
+    personalizacja: Mapped[bool] = mapped_column(Boolean, default=True)
+    updated_at: Mapped[str] = mapped_column(String(40), default=now_iso)

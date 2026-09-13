@@ -1,6 +1,6 @@
 # Stan przekazania — przeczytaj przed rozpoczęciem rundy
 
-**Aktualizacja:** 2026-09-13 · **Wersja w `main`:** 0.55.0
+**Aktualizacja:** 2026-09-13 · **Wersja w `main`:** 0.56.0
 **Tryb pracy:** jeden piszący i jeden PR `[WRITER]` naraz
 (`KOORDYNACJA.md`, zasada nadrzędna).
 
@@ -33,7 +33,19 @@ pierwszy commit, draft PR `[WRITER]`, reszta agentów read-only.
 jednym prawdziwym klientem, **NO-GO na szerszą produkcję** — siedem
 blokerów wypisanych w §5 tamtego dokumentu.
 
-**Ostatnia runda (0.55.0, gałąź `agent/konfigurator-28-dni`):**
+**Ostatnia runda (0.56.0, gałąź `agent/wiedza-v2`):** modernizacja
+zakładki Wiedza (P0 pakietu właściciela z 13.09) — pięć części, karty
+i atlas ze szkiców (48, niepublikowane), wyszukiwanie, zapisane,
+historia zmian, panel „Dlaczego?” czytający niezmienny ślad decyzji
+(konfigurator: H_LAYOUT/H_VOLUME; trener: powód wersji planu i diety),
+resolver z 15 scenariuszami pakietu, redakcja trenera (publikacja tylko
+ze źródłami, recenzentem i terminem przeglądu), flaga `DZIK_WIEDZA_V2`,
+migracja 28. Produkcja pokazuje wyłącznie publikacje — do pierwszej
+publikacji biblioteka jest pusta. Raport i braki: `docs/WIEDZA.md`.
+Właściciel 13.09: „po każdym wykonanym zadaniu scalaj PR, chyba że
+znalazłeś istotne błędy”. Następne w kolejce: pakiet „kreator diety
+kulinarnej” (dostarczy ślad wyboru dania/porcji dla Wiedzy).
+**Poprzednia runda (0.55.0, gałąź `agent/konfigurator-28-dni`):**
 konfigurator miesięcznych planów treningowych z pakietu właściciela
 (13.09) — K1: deterministyczny silnik + walidator + bramka zdrowotna
 + kalendarz + API trenera (`podglad`/`zapisz`), 7 scenariuszy

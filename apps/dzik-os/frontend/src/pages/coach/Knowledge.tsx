@@ -53,11 +53,15 @@ import {
   MUSCLE_LABELS,
   muscleLabels,
 } from "../../types";
+import WiedzaRedakcja from "./WiedzaRedakcja";
 
-type Tab = "artykuly" | "cwiczenia" | "produkty" | "dieta";
+type Tab = "artykuly" | "karty" | "cwiczenia" | "produkty" | "dieta";
+// „Karty wiedzy” na końcu: kolejność pierwszych zakładek jest częścią
+// kontraktu klawiatury sprawdzanego w e2e/test_a11y.mjs (strzałka w prawo
+// z „Artykuły” trafia w „Ćwiczenia”).
 const TABS: [Tab, string][] = [
   ["artykuly", "Artykuły"], ["cwiczenia", "Ćwiczenia"],
-  ["produkty", "Produkty"], ["dieta", "Dieta"],
+  ["produkty", "Produkty"], ["dieta", "Dieta"], ["karty", "Karty wiedzy"],
 ];
 
 export default function Knowledge() {
@@ -68,6 +72,7 @@ export default function Knowledge() {
       <Tabs tabs={TABS} value={tab} onChange={setTab} label="Sekcje bazy wiedzy" />
       <TabPanel id={tab}>
         {tab === "artykuly" && <ArticlesTab />}
+        {tab === "karty" && <WiedzaRedakcja />}
         {tab === "cwiczenia" && <ExercisesTab />}
         {tab === "produkty" && <ProductsTab />}
         {tab === "dieta" && <DietTab />}

@@ -23,6 +23,7 @@ from ..konfigurator import dane, generuj_plan
 from ..konfigurator.eksport import na_plan_dzik
 from ..models import TrainingPlan, TrainingPlanVersion, User, new_id
 from ..security import require_role
+from ..wiedza import slad
 
 router = APIRouter(prefix="/api/coach/konfigurator", tags=["konfigurator"])
 
@@ -90,6 +91,10 @@ def zapisz(
         created_by=coach.id,
     )
     db.add(wersja)
+    # Ślad decyzji (Wiedza 0.56.0) w TEJ SAMEJ transakcji co wersja planu:
+    # częstotliwość i dawka każdego ćwiczenia z faktami bez bloku zdrowotnego.
+    slad.slady_konfiguratora(db, owner_id=body.client_id, plan_id=plan.id, plan_revision=1,
+                            odpowiedz=odpowiedz, wejscie=body.wejscie)
     record_event(
         db, action="PLAN_CREATED", actor_id=coach.id, subject_ids=[body.client_id],
         # Bez wejścia i bez danych zdrowotnych — tylko metadane szkicu.

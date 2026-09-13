@@ -30,6 +30,9 @@ export DZIK_SECRET_KEY="e2e-tylko-do-testow-nie-uzywac-nigdzie-indziej"
 # Nie jest to konfiguracja produkcyjna — produkcja trzyma domyślne
 # "COACH,ADMIN" (config.py).
 export DZIK_MFA_REQUIRED_ROLES=""
+# Wiedza: treści startowe pakietu są szkicami — E2E ogląda je w trybie
+# demonstracyjnym (jawnie oznaczonym); produkcja tej flagi nie honoruje.
+export DZIK_WIEDZA_SZKICE="true"
 
 cd "$BACKEND"
 # Import `models` przed migracją jest konieczny: świeża baza dostaje schemat

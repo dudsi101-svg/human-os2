@@ -1,0 +1,2126 @@
+{
+  "version": "1.0",
+  "status": "draft_not_for_production",
+  "articles": [
+    {
+      "id": "k-frequency",
+      "revision": 1,
+      "locale": "pl-PL",
+      "slug": "k-frequency",
+      "title": "Dlaczego plan ma taką liczbę treningów",
+      "category": "training",
+      "summary": "Liczba dni ma pomagać rozłożyć pracę w czasie, który możesz przeznaczyć na trening. Sama większa częstotliwość nie gwarantuje lepszego dopasowania.",
+      "steps": [
+        "Sprawdź uzgodnione dni i długość sesji.",
+        "Przy zmianie dostępności zmień ustawienia planu, zamiast ściskać kilka sesji w jeden dzień."
+      ],
+      "detail": "Konfigurator powinien uwzględniać dostępność, doświadczenie i regenerację. Dokładny powód wybranego układu jest dostępny tylko wtedy, gdy zapisano ślad tej decyzji.",
+      "limits": "Opis ogólny nie wyjaśnia automatycznie konkretnego planu.",
+      "aliases": [
+        "fbw",
+        "split",
+        "ile razy",
+        "częstotliwość"
+      ],
+      "tags": [
+        "training"
+      ],
+      "source_ids": [
+        "S01",
+        "S03"
+      ],
+      "evidence_kind": "product_rule",
+      "status": "draft",
+      "review": {
+        "approved": false,
+        "reviewer_id": null,
+        "reviewed_at": null,
+        "next_review_at": null
+      },
+      "author_label": "Projekt treści przygotowany z pomocą AI",
+      "media": null,
+      "estimated_read_minutes": 2,
+      "exercise_id": null
+    },
+    {
+      "id": "k-sets",
+      "revision": 1,
+      "locale": "pl-PL",
+      "slug": "k-sets",
+      "title": "Co oznaczają serie i powtórzenia",
+      "category": "training",
+      "summary": "Powtórzenie to pojedyncze wykonanie ruchu. Seria to grupa powtórzeń, po której następuje odpoczynek.",
+      "steps": [
+        "Odczytaj liczbę serii roboczych oraz zakres powtórzeń.",
+        "Oddziel serie rozgrzewkowe od roboczych.",
+        "Przy zapisie na stronę wykonaj wskazaną pracę dla obu stron."
+      ],
+      "detail": "Zapis 3 × 8–12 oznacza trzy serie robocze, każda po 8 do 12 poprawnych powtórzeń. Dobór konkretnej liczby serii w aplikacji jest regułą planu, uwzględniającą pozostały trening.",
+      "limits": "Większa liczba serii nie zawsze jest właściwym kolejnym krokiem.",
+      "aliases": [
+        "serie",
+        "powtórzenia",
+        "powtorzenia",
+        "objętość"
+      ],
+      "tags": [
+        "training"
+      ],
+      "source_ids": [
+        "S01",
+        "S03"
+      ],
+      "evidence_kind": "product_rule",
+      "status": "draft",
+      "review": {
+        "approved": false,
+        "reviewer_id": null,
+        "reviewed_at": null,
+        "next_review_at": null
+      },
+      "author_label": "Projekt treści przygotowany z pomocą AI",
+      "media": null,
+      "estimated_read_minutes": 2,
+      "exercise_id": null
+    },
+    {
+      "id": "k-rir",
+      "revision": 1,
+      "locale": "pl-PL",
+      "slug": "k-rir",
+      "title": "Jak rozumieć zapas powtórzeń",
+      "category": "training",
+      "summary": "RIR opisuje, ile dodatkowych poprawnych powtórzeń prawdopodobnie byłoby możliwych na końcu serii.",
+      "steps": [
+        "Odczytaj zapas wskazany w sesji.",
+        "Zakończ serię z zachowaniem techniki i zapasu.",
+        "Zapisz ocenę; jeśli nie potrafisz jej podać, oznacz brak pewności."
+      ],
+      "detail": "RIR 2 oznacza szacowany zapas dwóch powtórzeń. To subiektywna ocena, nie pomiar. Przy nauce ważne jest zachowanie wyraźnego zapasu i kontroli ruchu.",
+      "limits": "Nie wykonuj dodatkowych powtórzeń do upadku tylko po to, aby sprawdzić ocenę.",
+      "aliases": [
+        "rir",
+        "zapas",
+        "powtórzenia w zapasie"
+      ],
+      "tags": [
+        "training"
+      ],
+      "source_ids": [
+        "S04",
+        "S13"
+      ],
+      "evidence_kind": "research",
+      "status": "draft",
+      "review": {
+        "approved": false,
+        "reviewer_id": null,
+        "reviewed_at": null,
+        "next_review_at": null
+      },
+      "author_label": "Projekt treści przygotowany z pomocą AI",
+      "media": null,
+      "estimated_read_minutes": 2,
+      "exercise_id": null
+    },
+    {
+      "id": "k-rest",
+      "revision": 1,
+      "locale": "pl-PL",
+      "slug": "k-rest",
+      "title": "Jak korzystać z przerw między seriami",
+      "category": "training",
+      "summary": "Przerwa pomaga przygotować się do kolejnej serii o zamierzonej jakości.",
+      "steps": [
+        "Użyj czasu podanego przy ćwiczeniu.",
+        "Przy trudnościach z kolejną serią sprawdź też obciążenie i zapas.",
+        "Jeżeli trening się nie mieści w czasie, zgłoś to w ustawieniach planu."
+      ],
+      "detail": "Nie skracaj samodzielnie wszystkich przerw w celu zmieszczenia zbyt obszernej sesji. Plan powinien uwzględniać czas ćwiczeń, odpoczynku i przygotowania sprzętu.",
+      "limits": "Dokładne sekundy w planie są jego ustawieniem; materiał ogólny nie ustala jednej wartości dla wszystkich.",
+      "aliases": [
+        "odpoczynek",
+        "przerwy",
+        "timer"
+      ],
+      "tags": [
+        "training"
+      ],
+      "source_ids": [
+        "S02",
+        "S09"
+      ],
+      "evidence_kind": "product_rule",
+      "status": "draft",
+      "review": {
+        "approved": false,
+        "reviewer_id": null,
+        "reviewed_at": null,
+        "next_review_at": null
+      },
+      "author_label": "Projekt treści przygotowany z pomocą AI",
+      "media": null,
+      "estimated_read_minutes": 2,
+      "exercise_id": null
+    },
+    {
+      "id": "k-load",
+      "revision": 1,
+      "locale": "pl-PL",
+      "slug": "k-load",
+      "title": "Jak dobrać ciężar początkowy",
+      "category": "training",
+      "summary": "Brak wpisanych kilogramów może oznaczać zaplanowaną kalibrację obciążenia podczas pierwszej sesji.",
+      "steps": [
+        "Sprawdź jednostkę: jedna hantla, cała sztanga lub wskazanie maszyny.",
+        "Zacznij od lekkiego obciążenia i dolnej części zakresu.",
+        "Dostosuj je do wymaganej techniki i zapasu."
+      ],
+      "detail": "Nie wyliczaj ciężaru wyłącznie z masy ciała ani płci. Wyniki na różnych maszynach nie muszą być bezpośrednio porównywalne. Po zmianie ćwiczenia potrzebna może być ponowna kalibracja.",
+      "limits": "Przy niepewności poproś o instruktaż. Nie jest wymagany test maksymalnego ciężaru.",
+      "aliases": [
+        "ciężar",
+        "kg",
+        "hantle"
+      ],
+      "tags": [
+        "training"
+      ],
+      "source_ids": [
+        "S01",
+        "S02"
+      ],
+      "evidence_kind": "product_rule",
+      "status": "draft",
+      "review": {
+        "approved": false,
+        "reviewer_id": null,
+        "reviewed_at": null,
+        "next_review_at": null
+      },
+      "author_label": "Projekt treści przygotowany z pomocą AI",
+      "media": null,
+      "estimated_read_minutes": 2,
+      "exercise_id": null
+    },
+    {
+      "id": "k-progress",
+      "revision": 1,
+      "locale": "pl-PL",
+      "slug": "k-progress",
+      "title": "Kiedy zwiększyć ciężar",
+      "category": "training",
+      "summary": "W podwójnej progresji najpierw poprawiasz powtórzenia w zadanym zakresie, a potem rozważasz zwiększenie obciążenia.",
+      "steps": [
+        "Zapisz wszystkie serie i zapas.",
+        "Sprawdź osiągnięcie górnej granicy w każdej serii.",
+        "Zwiększ dopiero po spełnieniu warunków techniki, zapasu i braku problemu bólowego."
+      ],
+      "detail": "W regule naszego konfiguratora wynik 12, 12 i 10 dla 3 × 8–12 nie spełnia jeszcze warunku zwiększenia. Skok obciążenia musi być wykonalny na dostępnym sprzęcie.",
+      "limits": "To opis konkretnej reguły produktu. Nie wszystkie programy stosują identyczną progresję.",
+      "aliases": [
+        "progresja",
+        "zwiększanie ciężaru",
+        "stagnacja"
+      ],
+      "tags": [
+        "training"
+      ],
+      "source_ids": [
+        "S01",
+        "S04"
+      ],
+      "evidence_kind": "product_rule",
+      "status": "draft",
+      "review": {
+        "approved": false,
+        "reviewer_id": null,
+        "reviewed_at": null,
+        "next_review_at": null
+      },
+      "author_label": "Projekt treści przygotowany z pomocą AI",
+      "media": null,
+      "estimated_read_minutes": 2,
+      "exercise_id": null
+    },
+    {
+      "id": "k-replacement",
+      "revision": 1,
+      "locale": "pl-PL",
+      "slug": "k-replacement",
+      "title": "Jak działa zamiana ćwiczenia",
+      "category": "training",
+      "summary": "Zamiennik powinien odpowiadać celowi ruchu oraz możliwościom sprzętowym i ograniczeniom użytkownika.",
+      "steps": [
+        "Otwórz zatwierdzone zamienniki przy ćwiczeniu.",
+        "Sprawdź różnice i ponowny czas sesji.",
+        "Zatwierdź zmianę dopiero po sprawdzeniu planu przez aplikację."
+      ],
+      "detail": "Podobna nazwa nie oznacza równoważnego ćwiczenia. Zamiana wymaga ponownego policzenia pracy mięśni i nie powinna kopiować ciężaru między różnymi urządzeniami.",
+      "limits": "Nowy lub narastający ból wymaga oceny sytuacji; sama zamiana nie jest oceną medyczną.",
+      "aliases": [
+        "zamiennik",
+        "sprzęt",
+        "zamiana"
+      ],
+      "tags": [
+        "training"
+      ],
+      "source_ids": [
+        "S02"
+      ],
+      "evidence_kind": "product_rule",
+      "status": "draft",
+      "review": {
+        "approved": false,
+        "reviewer_id": null,
+        "reviewed_at": null,
+        "next_review_at": null
+      },
+      "author_label": "Projekt treści przygotowany z pomocą AI",
+      "media": null,
+      "estimated_read_minutes": 2,
+      "exercise_id": null
+    },
+    {
+      "id": "k-energy",
+      "revision": 1,
+      "locale": "pl-PL",
+      "slug": "k-energy",
+      "title": "Skąd bierze się cel kaloryczny",
+      "category": "nutrition",
+      "summary": "Cel kaloryczny powinien mieć wskazaną metodę ustalenia i źródło danych. Może być początkowym oszacowaniem, wartością od specjalisty albo ustawieniem użytkownika.",
+      "steps": [
+        "Otwórz Dlaczego przy wartości.",
+        "Sprawdź pochodzenie, datę i przyjęte założenia.",
+        "Uzupełniaj dane zgodnie z zasadami modułu diety."
+      ],
+      "detail": "Zakładka Wiedza wyjaśnia wynik otrzymany z modułu diety. Nie oblicza zastępczego celu. Gdy metoda nie została zapisana, uczciwą odpowiedzią jest brak indywidualnego uzasadnienia.",
+      "limits": "Ta karta nie wyznacza zapotrzebowania ani deficytu dla osoby czytającej.",
+      "aliases": [
+        "kalorie",
+        "kcal",
+        "energia",
+        "zapotrzebowanie"
+      ],
+      "tags": [
+        "nutrition"
+      ],
+      "source_ids": [
+        "S05"
+      ],
+      "evidence_kind": "product_rule",
+      "status": "draft",
+      "review": {
+        "approved": false,
+        "reviewer_id": null,
+        "reviewed_at": null,
+        "next_review_at": null
+      },
+      "author_label": "Projekt treści przygotowany z pomocą AI",
+      "media": null,
+      "estimated_read_minutes": 2,
+      "exercise_id": null
+    },
+    {
+      "id": "k-macros",
+      "revision": 1,
+      "locale": "pl-PL",
+      "slug": "k-macros",
+      "title": "Co oznaczają makroskładniki",
+      "category": "nutrition",
+      "summary": "Białko, tłuszcze i węglowodany to podstawowe grupy makroskładników. Ich cele należy czytać razem z całym jadłospisem i jego założeniami.",
+      "steps": [
+        "Sprawdź jednostkę i cel dzienny.",
+        "Zobacz źródła składników w posiłkach.",
+        "Przy zmianie celu korzystaj z modułu diety lub uzgodnienia ze specjalistą."
+      ],
+      "detail": "Dokładna wartość w gramach wymaga osobnego uzasadnienia w źródłowym planie. Sama ogólna wiedza o składniku nie dowodzi, że podana liczba jest najlepsza dla konkretnej osoby.",
+      "limits": "Nie stosuj tej karty do samodzielnej zmiany diety leczniczej.",
+      "aliases": [
+        "makro",
+        "białko",
+        "bialko",
+        "tłuszcze",
+        "węglowodany"
+      ],
+      "tags": [
+        "nutrition"
+      ],
+      "source_ids": [
+        "S14"
+      ],
+      "evidence_kind": "product_rule",
+      "status": "draft",
+      "review": {
+        "approved": false,
+        "reviewer_id": null,
+        "reviewed_at": null,
+        "next_review_at": null
+      },
+      "author_label": "Projekt treści przygotowany z pomocą AI",
+      "media": null,
+      "estimated_read_minutes": 2,
+      "exercise_id": null
+    },
+    {
+      "id": "k-portion",
+      "revision": 1,
+      "locale": "pl-PL",
+      "slug": "k-portion",
+      "title": "Jak czytać porcję w jadłospisie",
+      "category": "nutrition",
+      "summary": "Porcja musi jasno wskazywać ilość oraz to, czy dotyczy produktu przed przygotowaniem, po przygotowaniu czy całego przepisu.",
+      "steps": [
+        "Sprawdź gramaturę i stan produktu.",
+        "Sprawdź liczbę porcji przepisu.",
+        "Jeśli stan nie jest podany, zgłoś brak informacji zamiast zgadywać."
+      ],
+      "detail": "Moduł diety powinien zachowywać jednostki i sposób ważenia przy zmianach posiłku. Wiedza pokazuje zapis źródłowy i nie przelicza samodzielnie nieznanej porcji.",
+      "limits": "Przykłady porcji nie są indywidualnymi zaleceniami.",
+      "aliases": [
+        "gramy",
+        "porcja",
+        "surowe",
+        "ugotowane"
+      ],
+      "tags": [
+        "nutrition"
+      ],
+      "source_ids": [
+        "H_DIET_INTERFACE"
+      ],
+      "evidence_kind": "product_rule",
+      "status": "draft",
+      "review": {
+        "approved": false,
+        "reviewer_id": null,
+        "reviewed_at": null,
+        "next_review_at": null
+      },
+      "author_label": "Projekt treści przygotowany z pomocą AI",
+      "media": null,
+      "estimated_read_minutes": 2,
+      "exercise_id": null
+    },
+    {
+      "id": "k-meal",
+      "revision": 1,
+      "locale": "pl-PL",
+      "slug": "k-meal",
+      "title": "Dlaczego wybrano ten posiłek",
+      "category": "nutrition",
+      "summary": "Powodem wyboru może być dopasowanie do jadłospisu, preferencje smakowe, czas przygotowania lub dostępność produktów.",
+      "steps": [
+        "Zobacz rzeczywisty powód w panelu Dlaczego.",
+        "Sprawdź składniki oraz zapisane wykluczenia.",
+        "Korzystaj z zatwierdzonej wymiany, gdy posiłek nie odpowiada potrzebom."
+      ],
+      "detail": "Nie każdy składnik ma wyjątkowe znaczenie dla celu sylwetkowego. Jeśli wybór wynika z preferencji, aplikacja powinna powiedzieć to wprost.",
+      "limits": "Bez danych źródłowych nie można odtworzyć powodu doboru dania.",
+      "aliases": [
+        "posiłek",
+        "przepis",
+        "składnik"
+      ],
+      "tags": [
+        "nutrition"
+      ],
+      "source_ids": [
+        "H_DIET_INTERFACE"
+      ],
+      "evidence_kind": "product_rule",
+      "status": "draft",
+      "review": {
+        "approved": false,
+        "reviewer_id": null,
+        "reviewed_at": null,
+        "next_review_at": null
+      },
+      "author_label": "Projekt treści przygotowany z pomocą AI",
+      "media": null,
+      "estimated_read_minutes": 2,
+      "exercise_id": null
+    },
+    {
+      "id": "k-meal-swap",
+      "revision": 1,
+      "locale": "pl-PL",
+      "slug": "k-meal-swap",
+      "title": "Jak zamienić posiłek",
+      "category": "nutrition",
+      "summary": "Wymiana powinna przejść przez moduł diety, który sprawdza wymagania jadłospisu i ograniczenia.",
+      "steps": [
+        "Otwórz listę dozwolonych wymian.",
+        "Sprawdź porcję, skład i zmianę w podsumowaniu dnia.",
+        "Zatwierdź dopiero po walidacji."
+      ],
+      "detail": "Podobna liczba kalorii nie jest jedynym kryterium. Moduł źródłowy odpowiada za ograniczenia, jednostki oraz zgodność z planem.",
+      "limits": "Zakładka Wiedza nie zatwierdza bezpieczeństwa alergologicznego na podstawie ogólnego artykułu.",
+      "aliases": [
+        "wymiana",
+        "zamiana dania",
+        "zamienniki jedzenia"
+      ],
+      "tags": [
+        "nutrition"
+      ],
+      "source_ids": [
+        "H_DIET_INTERFACE"
+      ],
+      "evidence_kind": "product_rule",
+      "status": "draft",
+      "review": {
+        "approved": false,
+        "reviewer_id": null,
+        "reviewed_at": null,
+        "next_review_at": null
+      },
+      "author_label": "Projekt treści przygotowany z pomocą AI",
+      "media": null,
+      "estimated_read_minutes": 2,
+      "exercise_id": null
+    },
+    {
+      "id": "k-log",
+      "revision": 1,
+      "locale": "pl-PL",
+      "slug": "k-log",
+      "title": "Dlaczego kompletność dziennika ma znaczenie",
+      "category": "progress",
+      "summary": "Wyjaśnienie może być tylko tak szczegółowe, jak dane, które rzeczywiście zapisano.",
+      "steps": [
+        "W treningu zapisuj wykonane serie, ciężar i ocenę zapasu.",
+        "W diecie stosuj zasady kompletności wymagane przez używany moduł.",
+        "Nie zastępuj braków wymyślonymi wartościami."
+      ],
+      "detail": "Brak wpisu nie oznacza niewykonania ani wykonania zadania. Silnik powinien ujawniać niepełne dane zamiast deklarować pewną ocenę postępów.",
+      "limits": "Ta karta opisuje jakość danych, nie ocenia zaangażowania użytkownika.",
+      "aliases": [
+        "dziennik",
+        "brak danych",
+        "raport"
+      ],
+      "tags": [
+        "progress"
+      ],
+      "source_ids": [
+        "H_DATA"
+      ],
+      "evidence_kind": "product_rule",
+      "status": "draft",
+      "review": {
+        "approved": false,
+        "reviewer_id": null,
+        "reviewed_at": null,
+        "next_review_at": null
+      },
+      "author_label": "Projekt treści przygotowany z pomocą AI",
+      "media": null,
+      "estimated_read_minutes": 2,
+      "exercise_id": null
+    },
+    {
+      "id": "k-trends",
+      "revision": 1,
+      "locale": "pl-PL",
+      "slug": "k-trends",
+      "title": "Jak czytać podsumowanie postępów",
+      "category": "progress",
+      "summary": "Sprawdź okres, liczbę zapisów i to, czy porównywane wyniki dotyczą tego samego rodzaju pomiaru.",
+      "steps": [
+        "Odczytaj zakres dat.",
+        "Sprawdź kompletność i jednostki.",
+        "Rozróżnij opis danych od decyzji o zmianie planu."
+      ],
+      "detail": "Wykres i pojedynczy wynik nie są automatycznie rozpoznaniem przyczyny zmiany. Zakładka wyjaśnia interpretację zapisaną przez moduł źródłowy, a przy niepewności ujawnia brak podstaw.",
+      "limits": "Nie wyciągaj wniosku o koniecznej korekcie kalorii lub serii wyłącznie z wyglądu wykresu.",
+      "aliases": [
+        "trend",
+        "waga",
+        "wyniki",
+        "wykres"
+      ],
+      "tags": [
+        "progress"
+      ],
+      "source_ids": [
+        "H_DATA"
+      ],
+      "evidence_kind": "product_rule",
+      "status": "draft",
+      "review": {
+        "approved": false,
+        "reviewer_id": null,
+        "reviewed_at": null,
+        "next_review_at": null
+      },
+      "author_label": "Projekt treści przygotowany z pomocą AI",
+      "media": null,
+      "estimated_read_minutes": 2,
+      "exercise_id": null
+    },
+    {
+      "id": "k-deload",
+      "revision": 1,
+      "locale": "pl-PL",
+      "slug": "k-deload",
+      "title": "Dlaczego plan może mieć lżejszy tydzień",
+      "category": "progress",
+      "summary": "Lżejszy tydzień jest możliwą reakcją na dane o tolerancji treningu. Nie jest obowiązkowy tylko dlatego, że kończy się miesiąc.",
+      "steps": [
+        "Sprawdź zapisany powód zmiany.",
+        "Zastosuj nowe parametry zatwierdzonego planu.",
+        "Po okresie lżejszej pracy ponownie oceń gotowość."
+      ],
+      "detail": "W naszym konfiguratorze dokładne progi odciążenia są regułami produktu. Wyjaśnienie ma wskazywać rzeczywiste sygnały z dziennika i nie nazywać ich diagnozą przetrenowania.",
+      "limits": "Brak danych nie uzasadnia twierdzenia, że organizm wymaga konkretnej redukcji pracy.",
+      "aliases": [
+        "deload",
+        "regeneracja",
+        "zmęczenie"
+      ],
+      "tags": [
+        "progress"
+      ],
+      "source_ids": [
+        "S02"
+      ],
+      "evidence_kind": "product_rule",
+      "status": "draft",
+      "review": {
+        "approved": false,
+        "reviewer_id": null,
+        "reviewed_at": null,
+        "next_review_at": null
+      },
+      "author_label": "Projekt treści przygotowany z pomocą AI",
+      "media": null,
+      "estimated_read_minutes": 2,
+      "exercise_id": null
+    },
+    {
+      "id": "k-safety",
+      "revision": 1,
+      "locale": "pl-PL",
+      "slug": "k-safety",
+      "title": "Kiedy przerwać ćwiczenie i szukać pomocy",
+      "category": "basics",
+      "summary": "Nowy, ostry lub narastający ból oraz niepokojące objawy wymagają przerwania ćwiczenia i oceny sytuacji.",
+      "steps": [
+        "Przerwij ćwiczenie przy niepokojących objawach.",
+        "Skorzystaj ze ścieżki pomocy w aplikacji lub odpowiedniej pomocy medycznej.",
+        "W podejrzeniu nagłego zagrożenia zdrowia skontaktuj się z numerem alarmowym; w Polsce 112."
+      ],
+      "detail": "Aplikacja nie powinna rozwiązywać takich sytuacji samym zwiększeniem odpoczynku albo automatyczną zamianą ćwiczenia. Objawy takie jak ucisk w klatce, omdlenie czy nietypowa silna duszność wymagają pilnej oceny.",
+      "limits": "Treść i ścieżka muszą zostać zatwierdzone przez odpowiedniego specjalistę przed publikacją.",
+      "aliases": [
+        "ból",
+        "bol",
+        "objawy",
+        "pomoc"
+      ],
+      "tags": [
+        "basics"
+      ],
+      "source_ids": [
+        "S12"
+      ],
+      "evidence_kind": "guideline",
+      "status": "draft",
+      "review": {
+        "approved": false,
+        "reviewer_id": null,
+        "reviewed_at": null,
+        "next_review_at": null
+      },
+      "author_label": "Projekt treści przygotowany z pomocą AI",
+      "media": null,
+      "estimated_read_minutes": 2,
+      "exercise_id": null
+    },
+    {
+      "id": "k-evidence",
+      "revision": 1,
+      "locale": "pl-PL",
+      "slug": "k-evidence",
+      "title": "Jak odróżniamy źródła od reguł aplikacji",
+      "category": "basics",
+      "summary": "Badania pomagają formułować zasady ogólne. Dokładne ustawienia aplikacji mogą być decyzjami projektowymi albo preferencjami.",
+      "steps": [
+        "Sprawdź rodzaj uzasadnienia.",
+        "Rozwiń źródła i datę przeglądu.",
+        "Zwróć uwagę na ograniczenia zastosowania."
+      ],
+      "detail": "Link do badania nie jest dowodem poprawności każdej liczby w planie. Aplikacja oddziela źródła naukowe, reguły produktu i wybory użytkownika.",
+      "limits": "Inspiracje funkcjami innych aplikacji nie stanowią dowodów zdrowotnych.",
+      "aliases": [
+        "źródła",
+        "badania",
+        "dowody"
+      ],
+      "tags": [
+        "basics"
+      ],
+      "source_ids": [
+        "H_EDITORIAL"
+      ],
+      "evidence_kind": "product_rule",
+      "status": "draft",
+      "review": {
+        "approved": false,
+        "reviewer_id": null,
+        "reviewed_at": null,
+        "next_review_at": null
+      },
+      "author_label": "Projekt treści przygotowany z pomocą AI",
+      "media": null,
+      "estimated_read_minutes": 2,
+      "exercise_id": null
+    },
+    {
+      "id": "ex-leg_press",
+      "revision": 1,
+      "locale": "pl-PL",
+      "slug": "ex-leg_press",
+      "title": "Wypychanie na suwnicy",
+      "category": "training",
+      "summary": "Ustaw oparcie i stopy stabilnie; nie odrywaj miednicy od podparcia.",
+      "steps": [
+        "Sprawdź wymagany sprzęt i ustawienie konkretnego wariantu.",
+        "Wykonuj serię według parametrów sesji, zachowując kontrolę.",
+        "Zakończ przy utracie zamierzonej techniki; nie ignoruj nowych objawów."
+      ],
+      "detail": "Ta karta dotyczy wariantu oznaczonego identyfikatorem leg_press. Dokładna dawka i powód obecności w sesji pochodzą z planu. Zapis jednostki ciężaru i ewentualnych powtórzeń na stronę jest dostępny przy ćwiczeniu.",
+      "limits": "Wskazówka wymaga uzupełnienia i przeglądu techniki przez trenera. Film nie został dołączony.",
+      "aliases": [
+        "leg_press"
+      ],
+      "tags": [
+        "training"
+      ],
+      "source_ids": [
+        "H_CATALOG"
+      ],
+      "evidence_kind": "product_rule",
+      "status": "draft",
+      "review": {
+        "approved": false,
+        "reviewer_id": null,
+        "reviewed_at": null,
+        "next_review_at": null
+      },
+      "author_label": "Projekt treści przygotowany z pomocą AI",
+      "media": null,
+      "estimated_read_minutes": 2,
+      "exercise_id": "leg_press"
+    },
+    {
+      "id": "ex-goblet",
+      "revision": 1,
+      "locale": "pl-PL",
+      "slug": "ex-goblet",
+      "title": "Przysiad z hantlą z przodu",
+      "category": "training",
+      "summary": "Trzymaj hantlę blisko tułowia; zachowaj stabilny kontakt stóp z podłożem.",
+      "steps": [
+        "Sprawdź wymagany sprzęt i ustawienie konkretnego wariantu.",
+        "Wykonuj serię według parametrów sesji, zachowując kontrolę.",
+        "Zakończ przy utracie zamierzonej techniki; nie ignoruj nowych objawów."
+      ],
+      "detail": "Ta karta dotyczy wariantu oznaczonego identyfikatorem goblet. Dokładna dawka i powód obecności w sesji pochodzą z planu. Zapis jednostki ciężaru i ewentualnych powtórzeń na stronę jest dostępny przy ćwiczeniu.",
+      "limits": "Wskazówka wymaga uzupełnienia i przeglądu techniki przez trenera. Film nie został dołączony.",
+      "aliases": [
+        "goblet"
+      ],
+      "tags": [
+        "training"
+      ],
+      "source_ids": [
+        "H_CATALOG"
+      ],
+      "evidence_kind": "product_rule",
+      "status": "draft",
+      "review": {
+        "approved": false,
+        "reviewer_id": null,
+        "reviewed_at": null,
+        "next_review_at": null
+      },
+      "author_label": "Projekt treści przygotowany z pomocą AI",
+      "media": null,
+      "estimated_read_minutes": 2,
+      "exercise_id": "goblet"
+    },
+    {
+      "id": "ex-split",
+      "revision": 1,
+      "locale": "pl-PL",
+      "slug": "ex-split",
+      "title": "Zakroki z hantlami",
+      "category": "training",
+      "summary": "Zapis powtórzeń dotyczy każdej nogi. Cofnij nogę na stabilną odległość; kontroluj powrót.",
+      "steps": [
+        "Sprawdź wymagany sprzęt i ustawienie konkretnego wariantu.",
+        "Wykonuj serię według parametrów sesji, zachowując kontrolę.",
+        "Zakończ przy utracie zamierzonej techniki; nie ignoruj nowych objawów."
+      ],
+      "detail": "Ta karta dotyczy wariantu oznaczonego identyfikatorem split. Dokładna dawka i powód obecności w sesji pochodzą z planu. Zapis jednostki ciężaru i ewentualnych powtórzeń na stronę jest dostępny przy ćwiczeniu.",
+      "limits": "Wskazówka wymaga uzupełnienia i przeglądu techniki przez trenera. Film nie został dołączony.",
+      "aliases": [
+        "split"
+      ],
+      "tags": [
+        "training"
+      ],
+      "source_ids": [
+        "H_CATALOG"
+      ],
+      "evidence_kind": "product_rule",
+      "status": "draft",
+      "review": {
+        "approved": false,
+        "reviewer_id": null,
+        "reviewed_at": null,
+        "next_review_at": null
+      },
+      "author_label": "Projekt treści przygotowany z pomocą AI",
+      "media": null,
+      "estimated_read_minutes": 2,
+      "exercise_id": "split"
+    },
+    {
+      "id": "ex-leg_extension",
+      "revision": 1,
+      "locale": "pl-PL",
+      "slug": "ex-leg_extension",
+      "title": "Prostowanie kolan na maszynie",
+      "category": "training",
+      "summary": "Wykonuj ruch w kontrolowanym, tolerowanym zakresie; zakończ serię przy utracie zamierzonej techniki.",
+      "steps": [
+        "Sprawdź wymagany sprzęt i ustawienie konkretnego wariantu.",
+        "Wykonuj serię według parametrów sesji, zachowując kontrolę.",
+        "Zakończ przy utracie zamierzonej techniki; nie ignoruj nowych objawów."
+      ],
+      "detail": "Ta karta dotyczy wariantu oznaczonego identyfikatorem leg_extension. Dokładna dawka i powód obecności w sesji pochodzą z planu. Zapis jednostki ciężaru i ewentualnych powtórzeń na stronę jest dostępny przy ćwiczeniu.",
+      "limits": "Wskazówka wymaga uzupełnienia i przeglądu techniki przez trenera. Film nie został dołączony.",
+      "aliases": [
+        "leg_extension"
+      ],
+      "tags": [
+        "training"
+      ],
+      "source_ids": [
+        "H_CATALOG"
+      ],
+      "evidence_kind": "product_rule",
+      "status": "draft",
+      "review": {
+        "approved": false,
+        "reviewer_id": null,
+        "reviewed_at": null,
+        "next_review_at": null
+      },
+      "author_label": "Projekt treści przygotowany z pomocą AI",
+      "media": null,
+      "estimated_read_minutes": 2,
+      "exercise_id": "leg_extension"
+    },
+    {
+      "id": "ex-rdl",
+      "revision": 1,
+      "locale": "pl-PL",
+      "slug": "ex-rdl",
+      "title": "Rumuński martwy ciąg z hantlami",
+      "category": "training",
+      "summary": "Cofaj biodra, prowadź hantle blisko nóg; zakończ opuszczanie przed utratą kontroli tułowia.",
+      "steps": [
+        "Sprawdź wymagany sprzęt i ustawienie konkretnego wariantu.",
+        "Wykonuj serię według parametrów sesji, zachowując kontrolę.",
+        "Zakończ przy utracie zamierzonej techniki; nie ignoruj nowych objawów."
+      ],
+      "detail": "Ta karta dotyczy wariantu oznaczonego identyfikatorem rdl. Dokładna dawka i powód obecności w sesji pochodzą z planu. Zapis jednostki ciężaru i ewentualnych powtórzeń na stronę jest dostępny przy ćwiczeniu.",
+      "limits": "Wskazówka wymaga uzupełnienia i przeglądu techniki przez trenera. Film nie został dołączony.",
+      "aliases": [
+        "rdl"
+      ],
+      "tags": [
+        "training"
+      ],
+      "source_ids": [
+        "H_CATALOG"
+      ],
+      "evidence_kind": "product_rule",
+      "status": "draft",
+      "review": {
+        "approved": false,
+        "reviewer_id": null,
+        "reviewed_at": null,
+        "next_review_at": null
+      },
+      "author_label": "Projekt treści przygotowany z pomocą AI",
+      "media": null,
+      "estimated_read_minutes": 2,
+      "exercise_id": "rdl"
+    },
+    {
+      "id": "ex-hip_thrust",
+      "revision": 1,
+      "locale": "pl-PL",
+      "slug": "ex-hip_thrust",
+      "title": "Unoszenie bioder z hantlą przy ławce",
+      "category": "training",
+      "summary": "Wykonuj ruch w kontrolowanym, tolerowanym zakresie; zakończ serię przy utracie zamierzonej techniki.",
+      "steps": [
+        "Sprawdź wymagany sprzęt i ustawienie konkretnego wariantu.",
+        "Wykonuj serię według parametrów sesji, zachowując kontrolę.",
+        "Zakończ przy utracie zamierzonej techniki; nie ignoruj nowych objawów."
+      ],
+      "detail": "Ta karta dotyczy wariantu oznaczonego identyfikatorem hip_thrust. Dokładna dawka i powód obecności w sesji pochodzą z planu. Zapis jednostki ciężaru i ewentualnych powtórzeń na stronę jest dostępny przy ćwiczeniu.",
+      "limits": "Wskazówka wymaga uzupełnienia i przeglądu techniki przez trenera. Film nie został dołączony.",
+      "aliases": [
+        "hip_thrust"
+      ],
+      "tags": [
+        "training"
+      ],
+      "source_ids": [
+        "H_CATALOG"
+      ],
+      "evidence_kind": "product_rule",
+      "status": "draft",
+      "review": {
+        "approved": false,
+        "reviewer_id": null,
+        "reviewed_at": null,
+        "next_review_at": null
+      },
+      "author_label": "Projekt treści przygotowany z pomocą AI",
+      "media": null,
+      "estimated_read_minutes": 2,
+      "exercise_id": "hip_thrust"
+    },
+    {
+      "id": "ex-bridge",
+      "revision": 1,
+      "locale": "pl-PL",
+      "slug": "ex-bridge",
+      "title": "Most biodrowy z hantlą na podłodze",
+      "category": "training",
+      "summary": "Wykonuj ruch w kontrolowanym, tolerowanym zakresie; zakończ serię przy utracie zamierzonej techniki.",
+      "steps": [
+        "Sprawdź wymagany sprzęt i ustawienie konkretnego wariantu.",
+        "Wykonuj serię według parametrów sesji, zachowując kontrolę.",
+        "Zakończ przy utracie zamierzonej techniki; nie ignoruj nowych objawów."
+      ],
+      "detail": "Ta karta dotyczy wariantu oznaczonego identyfikatorem bridge. Dokładna dawka i powód obecności w sesji pochodzą z planu. Zapis jednostki ciężaru i ewentualnych powtórzeń na stronę jest dostępny przy ćwiczeniu.",
+      "limits": "Wskazówka wymaga uzupełnienia i przeglądu techniki przez trenera. Film nie został dołączony.",
+      "aliases": [
+        "bridge"
+      ],
+      "tags": [
+        "training"
+      ],
+      "source_ids": [
+        "H_CATALOG"
+      ],
+      "evidence_kind": "product_rule",
+      "status": "draft",
+      "review": {
+        "approved": false,
+        "reviewer_id": null,
+        "reviewed_at": null,
+        "next_review_at": null
+      },
+      "author_label": "Projekt treści przygotowany z pomocą AI",
+      "media": null,
+      "estimated_read_minutes": 2,
+      "exercise_id": "bridge"
+    },
+    {
+      "id": "ex-leg_curl",
+      "revision": 1,
+      "locale": "pl-PL",
+      "slug": "ex-leg_curl",
+      "title": "Uginanie kolan na maszynie",
+      "category": "training",
+      "summary": "Wykonuj ruch w kontrolowanym, tolerowanym zakresie; zakończ serię przy utracie zamierzonej techniki.",
+      "steps": [
+        "Sprawdź wymagany sprzęt i ustawienie konkretnego wariantu.",
+        "Wykonuj serię według parametrów sesji, zachowując kontrolę.",
+        "Zakończ przy utracie zamierzonej techniki; nie ignoruj nowych objawów."
+      ],
+      "detail": "Ta karta dotyczy wariantu oznaczonego identyfikatorem leg_curl. Dokładna dawka i powód obecności w sesji pochodzą z planu. Zapis jednostki ciężaru i ewentualnych powtórzeń na stronę jest dostępny przy ćwiczeniu.",
+      "limits": "Wskazówka wymaga uzupełnienia i przeglądu techniki przez trenera. Film nie został dołączony.",
+      "aliases": [
+        "leg_curl"
+      ],
+      "tags": [
+        "training"
+      ],
+      "source_ids": [
+        "H_CATALOG"
+      ],
+      "evidence_kind": "product_rule",
+      "status": "draft",
+      "review": {
+        "approved": false,
+        "reviewer_id": null,
+        "reviewed_at": null,
+        "next_review_at": null
+      },
+      "author_label": "Projekt treści przygotowany z pomocą AI",
+      "media": null,
+      "estimated_read_minutes": 2,
+      "exercise_id": "leg_curl"
+    },
+    {
+      "id": "ex-band_curl",
+      "revision": 1,
+      "locale": "pl-PL",
+      "slug": "ex-band_curl",
+      "title": "Uginanie kolan z gumą w leżeniu",
+      "category": "training",
+      "summary": "Użyj niskiego mocowania zgodnego z instrukcją producenta. Sprawdź gumę i mocowanie przed każdą sesją.",
+      "steps": [
+        "Sprawdź wymagany sprzęt i ustawienie konkretnego wariantu.",
+        "Wykonuj serię według parametrów sesji, zachowując kontrolę.",
+        "Zakończ przy utracie zamierzonej techniki; nie ignoruj nowych objawów."
+      ],
+      "detail": "Ta karta dotyczy wariantu oznaczonego identyfikatorem band_curl. Dokładna dawka i powód obecności w sesji pochodzą z planu. Zapis jednostki ciężaru i ewentualnych powtórzeń na stronę jest dostępny przy ćwiczeniu.",
+      "limits": "Wskazówka wymaga uzupełnienia i przeglądu techniki przez trenera. Film nie został dołączony.",
+      "aliases": [
+        "band_curl"
+      ],
+      "tags": [
+        "training"
+      ],
+      "source_ids": [
+        "H_CATALOG"
+      ],
+      "evidence_kind": "product_rule",
+      "status": "draft",
+      "review": {
+        "approved": false,
+        "reviewer_id": null,
+        "reviewed_at": null,
+        "next_review_at": null
+      },
+      "author_label": "Projekt treści przygotowany z pomocą AI",
+      "media": null,
+      "estimated_read_minutes": 2,
+      "exercise_id": "band_curl"
+    },
+    {
+      "id": "ex-db_bench",
+      "revision": 1,
+      "locale": "pl-PL",
+      "slug": "ex-db_bench",
+      "title": "Wyciskanie hantli na ławce poziomej",
+      "category": "training",
+      "summary": "Wykonuj ruch w kontrolowanym, tolerowanym zakresie; zakończ serię przy utracie zamierzonej techniki.",
+      "steps": [
+        "Sprawdź wymagany sprzęt i ustawienie konkretnego wariantu.",
+        "Wykonuj serię według parametrów sesji, zachowując kontrolę.",
+        "Zakończ przy utracie zamierzonej techniki; nie ignoruj nowych objawów."
+      ],
+      "detail": "Ta karta dotyczy wariantu oznaczonego identyfikatorem db_bench. Dokładna dawka i powód obecności w sesji pochodzą z planu. Zapis jednostki ciężaru i ewentualnych powtórzeń na stronę jest dostępny przy ćwiczeniu.",
+      "limits": "Wskazówka wymaga uzupełnienia i przeglądu techniki przez trenera. Film nie został dołączony.",
+      "aliases": [
+        "db_bench"
+      ],
+      "tags": [
+        "training"
+      ],
+      "source_ids": [
+        "H_CATALOG"
+      ],
+      "evidence_kind": "product_rule",
+      "status": "draft",
+      "review": {
+        "approved": false,
+        "reviewer_id": null,
+        "reviewed_at": null,
+        "next_review_at": null
+      },
+      "author_label": "Projekt treści przygotowany z pomocą AI",
+      "media": null,
+      "estimated_read_minutes": 2,
+      "exercise_id": "db_bench"
+    },
+    {
+      "id": "ex-incline",
+      "revision": 1,
+      "locale": "pl-PL",
+      "slug": "ex-incline",
+      "title": "Wyciskanie hantli na ławce skośnej",
+      "category": "training",
+      "summary": "Wykonuj ruch w kontrolowanym, tolerowanym zakresie; zakończ serię przy utracie zamierzonej techniki.",
+      "steps": [
+        "Sprawdź wymagany sprzęt i ustawienie konkretnego wariantu.",
+        "Wykonuj serię według parametrów sesji, zachowując kontrolę.",
+        "Zakończ przy utracie zamierzonej techniki; nie ignoruj nowych objawów."
+      ],
+      "detail": "Ta karta dotyczy wariantu oznaczonego identyfikatorem incline. Dokładna dawka i powód obecności w sesji pochodzą z planu. Zapis jednostki ciężaru i ewentualnych powtórzeń na stronę jest dostępny przy ćwiczeniu.",
+      "limits": "Wskazówka wymaga uzupełnienia i przeglądu techniki przez trenera. Film nie został dołączony.",
+      "aliases": [
+        "incline"
+      ],
+      "tags": [
+        "training"
+      ],
+      "source_ids": [
+        "H_CATALOG"
+      ],
+      "evidence_kind": "product_rule",
+      "status": "draft",
+      "review": {
+        "approved": false,
+        "reviewer_id": null,
+        "reviewed_at": null,
+        "next_review_at": null
+      },
+      "author_label": "Projekt treści przygotowany z pomocą AI",
+      "media": null,
+      "estimated_read_minutes": 2,
+      "exercise_id": "incline"
+    },
+    {
+      "id": "ex-chest_machine",
+      "revision": 1,
+      "locale": "pl-PL",
+      "slug": "ex-chest_machine",
+      "title": "Wyciskanie na maszynie",
+      "category": "training",
+      "summary": "Wykonuj ruch w kontrolowanym, tolerowanym zakresie; zakończ serię przy utracie zamierzonej techniki.",
+      "steps": [
+        "Sprawdź wymagany sprzęt i ustawienie konkretnego wariantu.",
+        "Wykonuj serię według parametrów sesji, zachowując kontrolę.",
+        "Zakończ przy utracie zamierzonej techniki; nie ignoruj nowych objawów."
+      ],
+      "detail": "Ta karta dotyczy wariantu oznaczonego identyfikatorem chest_machine. Dokładna dawka i powód obecności w sesji pochodzą z planu. Zapis jednostki ciężaru i ewentualnych powtórzeń na stronę jest dostępny przy ćwiczeniu.",
+      "limits": "Wskazówka wymaga uzupełnienia i przeglądu techniki przez trenera. Film nie został dołączony.",
+      "aliases": [
+        "chest_machine"
+      ],
+      "tags": [
+        "training"
+      ],
+      "source_ids": [
+        "H_CATALOG"
+      ],
+      "evidence_kind": "product_rule",
+      "status": "draft",
+      "review": {
+        "approved": false,
+        "reviewer_id": null,
+        "reviewed_at": null,
+        "next_review_at": null
+      },
+      "author_label": "Projekt treści przygotowany z pomocą AI",
+      "media": null,
+      "estimated_read_minutes": 2,
+      "exercise_id": "chest_machine"
+    },
+    {
+      "id": "ex-floor_press",
+      "revision": 1,
+      "locale": "pl-PL",
+      "slug": "ex-floor_press",
+      "title": "Wyciskanie hantli na podłodze",
+      "category": "training",
+      "summary": "Wykonuj ruch w kontrolowanym, tolerowanym zakresie; zakończ serię przy utracie zamierzonej techniki.",
+      "steps": [
+        "Sprawdź wymagany sprzęt i ustawienie konkretnego wariantu.",
+        "Wykonuj serię według parametrów sesji, zachowując kontrolę.",
+        "Zakończ przy utracie zamierzonej techniki; nie ignoruj nowych objawów."
+      ],
+      "detail": "Ta karta dotyczy wariantu oznaczonego identyfikatorem floor_press. Dokładna dawka i powód obecności w sesji pochodzą z planu. Zapis jednostki ciężaru i ewentualnych powtórzeń na stronę jest dostępny przy ćwiczeniu.",
+      "limits": "Wskazówka wymaga uzupełnienia i przeglądu techniki przez trenera. Film nie został dołączony.",
+      "aliases": [
+        "floor_press"
+      ],
+      "tags": [
+        "training"
+      ],
+      "source_ids": [
+        "H_CATALOG"
+      ],
+      "evidence_kind": "product_rule",
+      "status": "draft",
+      "review": {
+        "approved": false,
+        "reviewer_id": null,
+        "reviewed_at": null,
+        "next_review_at": null
+      },
+      "author_label": "Projekt treści przygotowany z pomocą AI",
+      "media": null,
+      "estimated_read_minutes": 2,
+      "exercise_id": "floor_press"
+    },
+    {
+      "id": "ex-pushup",
+      "revision": 1,
+      "locale": "pl-PL",
+      "slug": "ex-pushup",
+      "title": "Pompki przy podwyższeniu",
+      "category": "training",
+      "summary": "Wykonuj ruch w kontrolowanym, tolerowanym zakresie; zakończ serię przy utracie zamierzonej techniki.",
+      "steps": [
+        "Sprawdź wymagany sprzęt i ustawienie konkretnego wariantu.",
+        "Wykonuj serię według parametrów sesji, zachowując kontrolę.",
+        "Zakończ przy utracie zamierzonej techniki; nie ignoruj nowych objawów."
+      ],
+      "detail": "Ta karta dotyczy wariantu oznaczonego identyfikatorem pushup. Dokładna dawka i powód obecności w sesji pochodzą z planu. Zapis jednostki ciężaru i ewentualnych powtórzeń na stronę jest dostępny przy ćwiczeniu.",
+      "limits": "Wskazówka wymaga uzupełnienia i przeglądu techniki przez trenera. Film nie został dołączony.",
+      "aliases": [
+        "pushup"
+      ],
+      "tags": [
+        "training"
+      ],
+      "source_ids": [
+        "H_CATALOG"
+      ],
+      "evidence_kind": "product_rule",
+      "status": "draft",
+      "review": {
+        "approved": false,
+        "reviewer_id": null,
+        "reviewed_at": null,
+        "next_review_at": null
+      },
+      "author_label": "Projekt treści przygotowany z pomocą AI",
+      "media": null,
+      "estimated_read_minutes": 2,
+      "exercise_id": "pushup"
+    },
+    {
+      "id": "ex-chest_fly",
+      "revision": 1,
+      "locale": "pl-PL",
+      "slug": "ex-chest_fly",
+      "title": "Rozpiętki na maszynie",
+      "category": "training",
+      "summary": "Wykonuj ruch w kontrolowanym, tolerowanym zakresie; zakończ serię przy utracie zamierzonej techniki.",
+      "steps": [
+        "Sprawdź wymagany sprzęt i ustawienie konkretnego wariantu.",
+        "Wykonuj serię według parametrów sesji, zachowując kontrolę.",
+        "Zakończ przy utracie zamierzonej techniki; nie ignoruj nowych objawów."
+      ],
+      "detail": "Ta karta dotyczy wariantu oznaczonego identyfikatorem chest_fly. Dokładna dawka i powód obecności w sesji pochodzą z planu. Zapis jednostki ciężaru i ewentualnych powtórzeń na stronę jest dostępny przy ćwiczeniu.",
+      "limits": "Wskazówka wymaga uzupełnienia i przeglądu techniki przez trenera. Film nie został dołączony.",
+      "aliases": [
+        "chest_fly"
+      ],
+      "tags": [
+        "training"
+      ],
+      "source_ids": [
+        "H_CATALOG"
+      ],
+      "evidence_kind": "product_rule",
+      "status": "draft",
+      "review": {
+        "approved": false,
+        "reviewer_id": null,
+        "reviewed_at": null,
+        "next_review_at": null
+      },
+      "author_label": "Projekt treści przygotowany z pomocą AI",
+      "media": null,
+      "estimated_read_minutes": 2,
+      "exercise_id": "chest_fly"
+    },
+    {
+      "id": "ex-row",
+      "revision": 1,
+      "locale": "pl-PL",
+      "slug": "ex-row",
+      "title": "Wiosłowanie siedząc na wyciągu",
+      "category": "training",
+      "summary": "Wykonuj ruch w kontrolowanym, tolerowanym zakresie; zakończ serię przy utracie zamierzonej techniki.",
+      "steps": [
+        "Sprawdź wymagany sprzęt i ustawienie konkretnego wariantu.",
+        "Wykonuj serię według parametrów sesji, zachowując kontrolę.",
+        "Zakończ przy utracie zamierzonej techniki; nie ignoruj nowych objawów."
+      ],
+      "detail": "Ta karta dotyczy wariantu oznaczonego identyfikatorem row. Dokładna dawka i powód obecności w sesji pochodzą z planu. Zapis jednostki ciężaru i ewentualnych powtórzeń na stronę jest dostępny przy ćwiczeniu.",
+      "limits": "Wskazówka wymaga uzupełnienia i przeglądu techniki przez trenera. Film nie został dołączony.",
+      "aliases": [
+        "row"
+      ],
+      "tags": [
+        "training"
+      ],
+      "source_ids": [
+        "H_CATALOG"
+      ],
+      "evidence_kind": "product_rule",
+      "status": "draft",
+      "review": {
+        "approved": false,
+        "reviewer_id": null,
+        "reviewed_at": null,
+        "next_review_at": null
+      },
+      "author_label": "Projekt treści przygotowany z pomocą AI",
+      "media": null,
+      "estimated_read_minutes": 2,
+      "exercise_id": "row"
+    },
+    {
+      "id": "ex-db_row",
+      "revision": 1,
+      "locale": "pl-PL",
+      "slug": "ex-db_row",
+      "title": "Wiosłowanie jednorącz z podparciem",
+      "category": "training",
+      "summary": "Wykonuj ruch w kontrolowanym, tolerowanym zakresie; zakończ serię przy utracie zamierzonej techniki.",
+      "steps": [
+        "Sprawdź wymagany sprzęt i ustawienie konkretnego wariantu.",
+        "Wykonuj serię według parametrów sesji, zachowując kontrolę.",
+        "Zakończ przy utracie zamierzonej techniki; nie ignoruj nowych objawów."
+      ],
+      "detail": "Ta karta dotyczy wariantu oznaczonego identyfikatorem db_row. Dokładna dawka i powód obecności w sesji pochodzą z planu. Zapis jednostki ciężaru i ewentualnych powtórzeń na stronę jest dostępny przy ćwiczeniu.",
+      "limits": "Wskazówka wymaga uzupełnienia i przeglądu techniki przez trenera. Film nie został dołączony.",
+      "aliases": [
+        "db_row"
+      ],
+      "tags": [
+        "training"
+      ],
+      "source_ids": [
+        "H_CATALOG"
+      ],
+      "evidence_kind": "product_rule",
+      "status": "draft",
+      "review": {
+        "approved": false,
+        "reviewer_id": null,
+        "reviewed_at": null,
+        "next_review_at": null
+      },
+      "author_label": "Projekt treści przygotowany z pomocą AI",
+      "media": null,
+      "estimated_read_minutes": 2,
+      "exercise_id": "db_row"
+    },
+    {
+      "id": "ex-band_row",
+      "revision": 1,
+      "locale": "pl-PL",
+      "slug": "ex-band_row",
+      "title": "Wiosłowanie z gumą",
+      "category": "training",
+      "summary": "Sprawdź przeznaczenie mocowania i stan gumy; nie używaj improwizowanego uchwytu.",
+      "steps": [
+        "Sprawdź wymagany sprzęt i ustawienie konkretnego wariantu.",
+        "Wykonuj serię według parametrów sesji, zachowując kontrolę.",
+        "Zakończ przy utracie zamierzonej techniki; nie ignoruj nowych objawów."
+      ],
+      "detail": "Ta karta dotyczy wariantu oznaczonego identyfikatorem band_row. Dokładna dawka i powód obecności w sesji pochodzą z planu. Zapis jednostki ciężaru i ewentualnych powtórzeń na stronę jest dostępny przy ćwiczeniu.",
+      "limits": "Wskazówka wymaga uzupełnienia i przeglądu techniki przez trenera. Film nie został dołączony.",
+      "aliases": [
+        "band_row"
+      ],
+      "tags": [
+        "training"
+      ],
+      "source_ids": [
+        "H_CATALOG"
+      ],
+      "evidence_kind": "product_rule",
+      "status": "draft",
+      "review": {
+        "approved": false,
+        "reviewer_id": null,
+        "reviewed_at": null,
+        "next_review_at": null
+      },
+      "author_label": "Projekt treści przygotowany z pomocą AI",
+      "media": null,
+      "estimated_read_minutes": 2,
+      "exercise_id": "band_row"
+    },
+    {
+      "id": "ex-lat",
+      "revision": 1,
+      "locale": "pl-PL",
+      "slug": "ex-lat",
+      "title": "Ściąganie drążka wyciągu górnego",
+      "category": "training",
+      "summary": "Wykonuj ruch w kontrolowanym, tolerowanym zakresie; zakończ serię przy utracie zamierzonej techniki.",
+      "steps": [
+        "Sprawdź wymagany sprzęt i ustawienie konkretnego wariantu.",
+        "Wykonuj serię według parametrów sesji, zachowując kontrolę.",
+        "Zakończ przy utracie zamierzonej techniki; nie ignoruj nowych objawów."
+      ],
+      "detail": "Ta karta dotyczy wariantu oznaczonego identyfikatorem lat. Dokładna dawka i powód obecności w sesji pochodzą z planu. Zapis jednostki ciężaru i ewentualnych powtórzeń na stronę jest dostępny przy ćwiczeniu.",
+      "limits": "Wskazówka wymaga uzupełnienia i przeglądu techniki przez trenera. Film nie został dołączony.",
+      "aliases": [
+        "lat"
+      ],
+      "tags": [
+        "training"
+      ],
+      "source_ids": [
+        "H_CATALOG"
+      ],
+      "evidence_kind": "product_rule",
+      "status": "draft",
+      "review": {
+        "approved": false,
+        "reviewer_id": null,
+        "reviewed_at": null,
+        "next_review_at": null
+      },
+      "author_label": "Projekt treści przygotowany z pomocą AI",
+      "media": null,
+      "estimated_read_minutes": 2,
+      "exercise_id": "lat"
+    },
+    {
+      "id": "ex-band_lat",
+      "revision": 1,
+      "locale": "pl-PL",
+      "slug": "ex-band_lat",
+      "title": "Ściąganie gumy z wysokiego mocowania",
+      "category": "training",
+      "summary": "Użyj wysokiego, przeznaczonego do tego mocowania; nie mocuj gumy do przypadkowych mebli.",
+      "steps": [
+        "Sprawdź wymagany sprzęt i ustawienie konkretnego wariantu.",
+        "Wykonuj serię według parametrów sesji, zachowując kontrolę.",
+        "Zakończ przy utracie zamierzonej techniki; nie ignoruj nowych objawów."
+      ],
+      "detail": "Ta karta dotyczy wariantu oznaczonego identyfikatorem band_lat. Dokładna dawka i powód obecności w sesji pochodzą z planu. Zapis jednostki ciężaru i ewentualnych powtórzeń na stronę jest dostępny przy ćwiczeniu.",
+      "limits": "Wskazówka wymaga uzupełnienia i przeglądu techniki przez trenera. Film nie został dołączony.",
+      "aliases": [
+        "band_lat"
+      ],
+      "tags": [
+        "training"
+      ],
+      "source_ids": [
+        "H_CATALOG"
+      ],
+      "evidence_kind": "product_rule",
+      "status": "draft",
+      "review": {
+        "approved": false,
+        "reviewer_id": null,
+        "reviewed_at": null,
+        "next_review_at": null
+      },
+      "author_label": "Projekt treści przygotowany z pomocą AI",
+      "media": null,
+      "estimated_read_minutes": 2,
+      "exercise_id": "band_lat"
+    },
+    {
+      "id": "ex-shoulder_press",
+      "revision": 1,
+      "locale": "pl-PL",
+      "slug": "ex-shoulder_press",
+      "title": "Wyciskanie hantli siedząc",
+      "category": "training",
+      "summary": "Wykonuj ruch w kontrolowanym, tolerowanym zakresie; zakończ serię przy utracie zamierzonej techniki.",
+      "steps": [
+        "Sprawdź wymagany sprzęt i ustawienie konkretnego wariantu.",
+        "Wykonuj serię według parametrów sesji, zachowując kontrolę.",
+        "Zakończ przy utracie zamierzonej techniki; nie ignoruj nowych objawów."
+      ],
+      "detail": "Ta karta dotyczy wariantu oznaczonego identyfikatorem shoulder_press. Dokładna dawka i powód obecności w sesji pochodzą z planu. Zapis jednostki ciężaru i ewentualnych powtórzeń na stronę jest dostępny przy ćwiczeniu.",
+      "limits": "Wskazówka wymaga uzupełnienia i przeglądu techniki przez trenera. Film nie został dołączony.",
+      "aliases": [
+        "shoulder_press"
+      ],
+      "tags": [
+        "training"
+      ],
+      "source_ids": [
+        "H_CATALOG"
+      ],
+      "evidence_kind": "product_rule",
+      "status": "draft",
+      "review": {
+        "approved": false,
+        "reviewer_id": null,
+        "reviewed_at": null,
+        "next_review_at": null
+      },
+      "author_label": "Projekt treści przygotowany z pomocą AI",
+      "media": null,
+      "estimated_read_minutes": 2,
+      "exercise_id": "shoulder_press"
+    },
+    {
+      "id": "ex-lateral",
+      "revision": 1,
+      "locale": "pl-PL",
+      "slug": "ex-lateral",
+      "title": "Unoszenie hantli bokiem",
+      "category": "training",
+      "summary": "Wykonuj ruch w kontrolowanym, tolerowanym zakresie; zakończ serię przy utracie zamierzonej techniki.",
+      "steps": [
+        "Sprawdź wymagany sprzęt i ustawienie konkretnego wariantu.",
+        "Wykonuj serię według parametrów sesji, zachowując kontrolę.",
+        "Zakończ przy utracie zamierzonej techniki; nie ignoruj nowych objawów."
+      ],
+      "detail": "Ta karta dotyczy wariantu oznaczonego identyfikatorem lateral. Dokładna dawka i powód obecności w sesji pochodzą z planu. Zapis jednostki ciężaru i ewentualnych powtórzeń na stronę jest dostępny przy ćwiczeniu.",
+      "limits": "Wskazówka wymaga uzupełnienia i przeglądu techniki przez trenera. Film nie został dołączony.",
+      "aliases": [
+        "lateral"
+      ],
+      "tags": [
+        "training"
+      ],
+      "source_ids": [
+        "H_CATALOG"
+      ],
+      "evidence_kind": "product_rule",
+      "status": "draft",
+      "review": {
+        "approved": false,
+        "reviewer_id": null,
+        "reviewed_at": null,
+        "next_review_at": null
+      },
+      "author_label": "Projekt treści przygotowany z pomocą AI",
+      "media": null,
+      "estimated_read_minutes": 2,
+      "exercise_id": "lateral"
+    },
+    {
+      "id": "ex-rear_fly",
+      "revision": 1,
+      "locale": "pl-PL",
+      "slug": "ex-rear_fly",
+      "title": "Odwrotne rozpiętki na maszynie",
+      "category": "training",
+      "summary": "Wykonuj ruch w kontrolowanym, tolerowanym zakresie; zakończ serię przy utracie zamierzonej techniki.",
+      "steps": [
+        "Sprawdź wymagany sprzęt i ustawienie konkretnego wariantu.",
+        "Wykonuj serię według parametrów sesji, zachowując kontrolę.",
+        "Zakończ przy utracie zamierzonej techniki; nie ignoruj nowych objawów."
+      ],
+      "detail": "Ta karta dotyczy wariantu oznaczonego identyfikatorem rear_fly. Dokładna dawka i powód obecności w sesji pochodzą z planu. Zapis jednostki ciężaru i ewentualnych powtórzeń na stronę jest dostępny przy ćwiczeniu.",
+      "limits": "Wskazówka wymaga uzupełnienia i przeglądu techniki przez trenera. Film nie został dołączony.",
+      "aliases": [
+        "rear_fly"
+      ],
+      "tags": [
+        "training"
+      ],
+      "source_ids": [
+        "H_CATALOG"
+      ],
+      "evidence_kind": "product_rule",
+      "status": "draft",
+      "review": {
+        "approved": false,
+        "reviewer_id": null,
+        "reviewed_at": null,
+        "next_review_at": null
+      },
+      "author_label": "Projekt treści przygotowany z pomocą AI",
+      "media": null,
+      "estimated_read_minutes": 2,
+      "exercise_id": "rear_fly"
+    },
+    {
+      "id": "ex-db_rear",
+      "revision": 1,
+      "locale": "pl-PL",
+      "slug": "ex-db_rear",
+      "title": "Unoszenie hantli w opadzie z podparciem",
+      "category": "training",
+      "summary": "Wykonuj ruch w kontrolowanym, tolerowanym zakresie; zakończ serię przy utracie zamierzonej techniki.",
+      "steps": [
+        "Sprawdź wymagany sprzęt i ustawienie konkretnego wariantu.",
+        "Wykonuj serię według parametrów sesji, zachowując kontrolę.",
+        "Zakończ przy utracie zamierzonej techniki; nie ignoruj nowych objawów."
+      ],
+      "detail": "Ta karta dotyczy wariantu oznaczonego identyfikatorem db_rear. Dokładna dawka i powód obecności w sesji pochodzą z planu. Zapis jednostki ciężaru i ewentualnych powtórzeń na stronę jest dostępny przy ćwiczeniu.",
+      "limits": "Wskazówka wymaga uzupełnienia i przeglądu techniki przez trenera. Film nie został dołączony.",
+      "aliases": [
+        "db_rear"
+      ],
+      "tags": [
+        "training"
+      ],
+      "source_ids": [
+        "H_CATALOG"
+      ],
+      "evidence_kind": "product_rule",
+      "status": "draft",
+      "review": {
+        "approved": false,
+        "reviewer_id": null,
+        "reviewed_at": null,
+        "next_review_at": null
+      },
+      "author_label": "Projekt treści przygotowany z pomocą AI",
+      "media": null,
+      "estimated_read_minutes": 2,
+      "exercise_id": "db_rear"
+    },
+    {
+      "id": "ex-triceps",
+      "revision": 1,
+      "locale": "pl-PL",
+      "slug": "ex-triceps",
+      "title": "Prostowanie ramion na wyciągu",
+      "category": "training",
+      "summary": "Wykonuj ruch w kontrolowanym, tolerowanym zakresie; zakończ serię przy utracie zamierzonej techniki.",
+      "steps": [
+        "Sprawdź wymagany sprzęt i ustawienie konkretnego wariantu.",
+        "Wykonuj serię według parametrów sesji, zachowując kontrolę.",
+        "Zakończ przy utracie zamierzonej techniki; nie ignoruj nowych objawów."
+      ],
+      "detail": "Ta karta dotyczy wariantu oznaczonego identyfikatorem triceps. Dokładna dawka i powód obecności w sesji pochodzą z planu. Zapis jednostki ciężaru i ewentualnych powtórzeń na stronę jest dostępny przy ćwiczeniu.",
+      "limits": "Wskazówka wymaga uzupełnienia i przeglądu techniki przez trenera. Film nie został dołączony.",
+      "aliases": [
+        "triceps"
+      ],
+      "tags": [
+        "training"
+      ],
+      "source_ids": [
+        "H_CATALOG"
+      ],
+      "evidence_kind": "product_rule",
+      "status": "draft",
+      "review": {
+        "approved": false,
+        "reviewer_id": null,
+        "reviewed_at": null,
+        "next_review_at": null
+      },
+      "author_label": "Projekt treści przygotowany z pomocą AI",
+      "media": null,
+      "estimated_read_minutes": 2,
+      "exercise_id": "triceps"
+    },
+    {
+      "id": "ex-band_triceps",
+      "revision": 1,
+      "locale": "pl-PL",
+      "slug": "ex-band_triceps",
+      "title": "Prostowanie ramion z gumą",
+      "category": "training",
+      "summary": "Wykonuj ruch w kontrolowanym, tolerowanym zakresie; zakończ serię przy utracie zamierzonej techniki.",
+      "steps": [
+        "Sprawdź wymagany sprzęt i ustawienie konkretnego wariantu.",
+        "Wykonuj serię według parametrów sesji, zachowując kontrolę.",
+        "Zakończ przy utracie zamierzonej techniki; nie ignoruj nowych objawów."
+      ],
+      "detail": "Ta karta dotyczy wariantu oznaczonego identyfikatorem band_triceps. Dokładna dawka i powód obecności w sesji pochodzą z planu. Zapis jednostki ciężaru i ewentualnych powtórzeń na stronę jest dostępny przy ćwiczeniu.",
+      "limits": "Wskazówka wymaga uzupełnienia i przeglądu techniki przez trenera. Film nie został dołączony.",
+      "aliases": [
+        "band_triceps"
+      ],
+      "tags": [
+        "training"
+      ],
+      "source_ids": [
+        "H_CATALOG"
+      ],
+      "evidence_kind": "product_rule",
+      "status": "draft",
+      "review": {
+        "approved": false,
+        "reviewer_id": null,
+        "reviewed_at": null,
+        "next_review_at": null
+      },
+      "author_label": "Projekt treści przygotowany z pomocą AI",
+      "media": null,
+      "estimated_read_minutes": 2,
+      "exercise_id": "band_triceps"
+    },
+    {
+      "id": "ex-biceps",
+      "revision": 1,
+      "locale": "pl-PL",
+      "slug": "ex-biceps",
+      "title": "Uginanie ramion z hantlami",
+      "category": "training",
+      "summary": "Wykonuj ruch w kontrolowanym, tolerowanym zakresie; zakończ serię przy utracie zamierzonej techniki.",
+      "steps": [
+        "Sprawdź wymagany sprzęt i ustawienie konkretnego wariantu.",
+        "Wykonuj serię według parametrów sesji, zachowując kontrolę.",
+        "Zakończ przy utracie zamierzonej techniki; nie ignoruj nowych objawów."
+      ],
+      "detail": "Ta karta dotyczy wariantu oznaczonego identyfikatorem biceps. Dokładna dawka i powód obecności w sesji pochodzą z planu. Zapis jednostki ciężaru i ewentualnych powtórzeń na stronę jest dostępny przy ćwiczeniu.",
+      "limits": "Wskazówka wymaga uzupełnienia i przeglądu techniki przez trenera. Film nie został dołączony.",
+      "aliases": [
+        "biceps"
+      ],
+      "tags": [
+        "training"
+      ],
+      "source_ids": [
+        "H_CATALOG"
+      ],
+      "evidence_kind": "product_rule",
+      "status": "draft",
+      "review": {
+        "approved": false,
+        "reviewer_id": null,
+        "reviewed_at": null,
+        "next_review_at": null
+      },
+      "author_label": "Projekt treści przygotowany z pomocą AI",
+      "media": null,
+      "estimated_read_minutes": 2,
+      "exercise_id": "biceps"
+    },
+    {
+      "id": "ex-calf",
+      "revision": 1,
+      "locale": "pl-PL",
+      "slug": "ex-calf",
+      "title": "Wspięcia na palce z hantlami",
+      "category": "training",
+      "summary": "Wykonuj ruch w kontrolowanym, tolerowanym zakresie; zakończ serię przy utracie zamierzonej techniki.",
+      "steps": [
+        "Sprawdź wymagany sprzęt i ustawienie konkretnego wariantu.",
+        "Wykonuj serię według parametrów sesji, zachowując kontrolę.",
+        "Zakończ przy utracie zamierzonej techniki; nie ignoruj nowych objawów."
+      ],
+      "detail": "Ta karta dotyczy wariantu oznaczonego identyfikatorem calf. Dokładna dawka i powód obecności w sesji pochodzą z planu. Zapis jednostki ciężaru i ewentualnych powtórzeń na stronę jest dostępny przy ćwiczeniu.",
+      "limits": "Wskazówka wymaga uzupełnienia i przeglądu techniki przez trenera. Film nie został dołączony.",
+      "aliases": [
+        "calf"
+      ],
+      "tags": [
+        "training"
+      ],
+      "source_ids": [
+        "H_CATALOG"
+      ],
+      "evidence_kind": "product_rule",
+      "status": "draft",
+      "review": {
+        "approved": false,
+        "reviewer_id": null,
+        "reviewed_at": null,
+        "next_review_at": null
+      },
+      "author_label": "Projekt treści przygotowany z pomocą AI",
+      "media": null,
+      "estimated_read_minutes": 2,
+      "exercise_id": "calf"
+    },
+    {
+      "id": "ex-deadbug",
+      "revision": 1,
+      "locale": "pl-PL",
+      "slug": "ex-deadbug",
+      "title": "Dead bug",
+      "category": "training",
+      "summary": "Powtórzenia na stronę. Poruszaj kończynami tylko tak daleko, jak pozwala kontrola tułowia i swobodny oddech.",
+      "steps": [
+        "Sprawdź wymagany sprzęt i ustawienie konkretnego wariantu.",
+        "Wykonuj serię według parametrów sesji, zachowując kontrolę.",
+        "Zakończ przy utracie zamierzonej techniki; nie ignoruj nowych objawów."
+      ],
+      "detail": "Ta karta dotyczy wariantu oznaczonego identyfikatorem deadbug. Dokładna dawka i powód obecności w sesji pochodzą z planu. Zapis jednostki ciężaru i ewentualnych powtórzeń na stronę jest dostępny przy ćwiczeniu.",
+      "limits": "Wskazówka wymaga uzupełnienia i przeglądu techniki przez trenera. Film nie został dołączony.",
+      "aliases": [
+        "deadbug"
+      ],
+      "tags": [
+        "training"
+      ],
+      "source_ids": [
+        "H_CATALOG"
+      ],
+      "evidence_kind": "product_rule",
+      "status": "draft",
+      "review": {
+        "approved": false,
+        "reviewer_id": null,
+        "reviewed_at": null,
+        "next_review_at": null
+      },
+      "author_label": "Projekt treści przygotowany z pomocą AI",
+      "media": null,
+      "estimated_read_minutes": 2,
+      "exercise_id": "deadbug"
+    },
+    {
+      "id": "ex-pallof",
+      "revision": 1,
+      "locale": "pl-PL",
+      "slug": "ex-pallof",
+      "title": "Wyciskanie Pallofa na wyciągu",
+      "category": "training",
+      "summary": "Wykonuj ruch w kontrolowanym, tolerowanym zakresie; zakończ serię przy utracie zamierzonej techniki.",
+      "steps": [
+        "Sprawdź wymagany sprzęt i ustawienie konkretnego wariantu.",
+        "Wykonuj serię według parametrów sesji, zachowując kontrolę.",
+        "Zakończ przy utracie zamierzonej techniki; nie ignoruj nowych objawów."
+      ],
+      "detail": "Ta karta dotyczy wariantu oznaczonego identyfikatorem pallof. Dokładna dawka i powód obecności w sesji pochodzą z planu. Zapis jednostki ciężaru i ewentualnych powtórzeń na stronę jest dostępny przy ćwiczeniu.",
+      "limits": "Wskazówka wymaga uzupełnienia i przeglądu techniki przez trenera. Film nie został dołączony.",
+      "aliases": [
+        "pallof"
+      ],
+      "tags": [
+        "training"
+      ],
+      "source_ids": [
+        "H_CATALOG"
+      ],
+      "evidence_kind": "product_rule",
+      "status": "draft",
+      "review": {
+        "approved": false,
+        "reviewer_id": null,
+        "reviewed_at": null,
+        "next_review_at": null
+      },
+      "author_label": "Projekt treści przygotowany z pomocą AI",
+      "media": null,
+      "estimated_read_minutes": 2,
+      "exercise_id": "pallof"
+    },
+    {
+      "id": "ex-band_pallof",
+      "revision": 1,
+      "locale": "pl-PL",
+      "slug": "ex-band_pallof",
+      "title": "Wyciskanie Pallofa z gumą",
+      "category": "training",
+      "summary": "Wykonuj ruch w kontrolowanym, tolerowanym zakresie; zakończ serię przy utracie zamierzonej techniki.",
+      "steps": [
+        "Sprawdź wymagany sprzęt i ustawienie konkretnego wariantu.",
+        "Wykonuj serię według parametrów sesji, zachowując kontrolę.",
+        "Zakończ przy utracie zamierzonej techniki; nie ignoruj nowych objawów."
+      ],
+      "detail": "Ta karta dotyczy wariantu oznaczonego identyfikatorem band_pallof. Dokładna dawka i powód obecności w sesji pochodzą z planu. Zapis jednostki ciężaru i ewentualnych powtórzeń na stronę jest dostępny przy ćwiczeniu.",
+      "limits": "Wskazówka wymaga uzupełnienia i przeglądu techniki przez trenera. Film nie został dołączony.",
+      "aliases": [
+        "band_pallof"
+      ],
+      "tags": [
+        "training"
+      ],
+      "source_ids": [
+        "H_CATALOG"
+      ],
+      "evidence_kind": "product_rule",
+      "status": "draft",
+      "review": {
+        "approved": false,
+        "reviewer_id": null,
+        "reviewed_at": null,
+        "next_review_at": null
+      },
+      "author_label": "Projekt treści przygotowany z pomocą AI",
+      "media": null,
+      "estimated_read_minutes": 2,
+      "exercise_id": "band_pallof"
+    }
+  ],
+  "bindings": [
+    {
+      "target_type": "training_frequency",
+      "target_key": "*",
+      "article_id": "k-frequency",
+      "role": "general_education"
+    },
+    {
+      "target_type": "work_sets",
+      "target_key": "*",
+      "article_id": "k-sets",
+      "role": "general_education"
+    },
+    {
+      "target_type": "rep_range",
+      "target_key": "*",
+      "article_id": "k-sets",
+      "role": "general_education"
+    },
+    {
+      "target_type": "rir",
+      "target_key": "*",
+      "article_id": "k-rir",
+      "role": "general_education"
+    },
+    {
+      "target_type": "rest",
+      "target_key": "*",
+      "article_id": "k-rest",
+      "role": "general_education"
+    },
+    {
+      "target_type": "load",
+      "target_key": "*",
+      "article_id": "k-load",
+      "role": "general_education"
+    },
+    {
+      "target_type": "progression",
+      "target_key": "*",
+      "article_id": "k-progress",
+      "role": "general_education"
+    },
+    {
+      "target_type": "exercise_replacement",
+      "target_key": "*",
+      "article_id": "k-replacement",
+      "role": "general_education"
+    },
+    {
+      "target_type": "energy_target",
+      "target_key": "*",
+      "article_id": "k-energy",
+      "role": "general_education"
+    },
+    {
+      "target_type": "macro_target",
+      "target_key": "*",
+      "article_id": "k-macros",
+      "role": "general_education"
+    },
+    {
+      "target_type": "portion",
+      "target_key": "*",
+      "article_id": "k-portion",
+      "role": "general_education"
+    },
+    {
+      "target_type": "meal",
+      "target_key": "*",
+      "article_id": "k-meal",
+      "role": "general_education"
+    },
+    {
+      "target_type": "ingredient",
+      "target_key": "*",
+      "article_id": "k-meal",
+      "role": "general_education"
+    },
+    {
+      "target_type": "meal_replacement",
+      "target_key": "*",
+      "article_id": "k-meal-swap",
+      "role": "general_education"
+    },
+    {
+      "target_type": "session_log",
+      "target_key": "*",
+      "article_id": "k-log",
+      "role": "general_education"
+    },
+    {
+      "target_type": "progress_chart",
+      "target_key": "*",
+      "article_id": "k-trends",
+      "role": "general_education"
+    },
+    {
+      "target_type": "plan_change",
+      "target_key": "*",
+      "article_id": "k-deload",
+      "role": "general_education"
+    },
+    {
+      "target_type": "safety",
+      "target_key": "*",
+      "article_id": "k-safety",
+      "role": "general_education"
+    },
+    {
+      "target_type": "exercise",
+      "target_key": "leg_press",
+      "article_id": "ex-leg_press",
+      "role": "instruction"
+    },
+    {
+      "target_type": "exercise",
+      "target_key": "goblet",
+      "article_id": "ex-goblet",
+      "role": "instruction"
+    },
+    {
+      "target_type": "exercise",
+      "target_key": "split",
+      "article_id": "ex-split",
+      "role": "instruction"
+    },
+    {
+      "target_type": "exercise",
+      "target_key": "leg_extension",
+      "article_id": "ex-leg_extension",
+      "role": "instruction"
+    },
+    {
+      "target_type": "exercise",
+      "target_key": "rdl",
+      "article_id": "ex-rdl",
+      "role": "instruction"
+    },
+    {
+      "target_type": "exercise",
+      "target_key": "hip_thrust",
+      "article_id": "ex-hip_thrust",
+      "role": "instruction"
+    },
+    {
+      "target_type": "exercise",
+      "target_key": "bridge",
+      "article_id": "ex-bridge",
+      "role": "instruction"
+    },
+    {
+      "target_type": "exercise",
+      "target_key": "leg_curl",
+      "article_id": "ex-leg_curl",
+      "role": "instruction"
+    },
+    {
+      "target_type": "exercise",
+      "target_key": "band_curl",
+      "article_id": "ex-band_curl",
+      "role": "instruction"
+    },
+    {
+      "target_type": "exercise",
+      "target_key": "db_bench",
+      "article_id": "ex-db_bench",
+      "role": "instruction"
+    },
+    {
+      "target_type": "exercise",
+      "target_key": "incline",
+      "article_id": "ex-incline",
+      "role": "instruction"
+    },
+    {
+      "target_type": "exercise",
+      "target_key": "chest_machine",
+      "article_id": "ex-chest_machine",
+      "role": "instruction"
+    },
+    {
+      "target_type": "exercise",
+      "target_key": "floor_press",
+      "article_id": "ex-floor_press",
+      "role": "instruction"
+    },
+    {
+      "target_type": "exercise",
+      "target_key": "pushup",
+      "article_id": "ex-pushup",
+      "role": "instruction"
+    },
+    {
+      "target_type": "exercise",
+      "target_key": "chest_fly",
+      "article_id": "ex-chest_fly",
+      "role": "instruction"
+    },
+    {
+      "target_type": "exercise",
+      "target_key": "row",
+      "article_id": "ex-row",
+      "role": "instruction"
+    },
+    {
+      "target_type": "exercise",
+      "target_key": "db_row",
+      "article_id": "ex-db_row",
+      "role": "instruction"
+    },
+    {
+      "target_type": "exercise",
+      "target_key": "band_row",
+      "article_id": "ex-band_row",
+      "role": "instruction"
+    },
+    {
+      "target_type": "exercise",
+      "target_key": "lat",
+      "article_id": "ex-lat",
+      "role": "instruction"
+    },
+    {
+      "target_type": "exercise",
+      "target_key": "band_lat",
+      "article_id": "ex-band_lat",
+      "role": "instruction"
+    },
+    {
+      "target_type": "exercise",
+      "target_key": "shoulder_press",
+      "article_id": "ex-shoulder_press",
+      "role": "instruction"
+    },
+    {
+      "target_type": "exercise",
+      "target_key": "lateral",
+      "article_id": "ex-lateral",
+      "role": "instruction"
+    },
+    {
+      "target_type": "exercise",
+      "target_key": "rear_fly",
+      "article_id": "ex-rear_fly",
+      "role": "instruction"
+    },
+    {
+      "target_type": "exercise",
+      "target_key": "db_rear",
+      "article_id": "ex-db_rear",
+      "role": "instruction"
+    },
+    {
+      "target_type": "exercise",
+      "target_key": "triceps",
+      "article_id": "ex-triceps",
+      "role": "instruction"
+    },
+    {
+      "target_type": "exercise",
+      "target_key": "band_triceps",
+      "article_id": "ex-band_triceps",
+      "role": "instruction"
+    },
+    {
+      "target_type": "exercise",
+      "target_key": "biceps",
+      "article_id": "ex-biceps",
+      "role": "instruction"
+    },
+    {
+      "target_type": "exercise",
+      "target_key": "calf",
+      "article_id": "ex-calf",
+      "role": "instruction"
+    },
+    {
+      "target_type": "exercise",
+      "target_key": "deadbug",
+      "article_id": "ex-deadbug",
+      "role": "instruction"
+    },
+    {
+      "target_type": "exercise",
+      "target_key": "pallof",
+      "article_id": "ex-pallof",
+      "role": "instruction"
+    },
+    {
+      "target_type": "exercise",
+      "target_key": "band_pallof",
+      "article_id": "ex-band_pallof",
+      "role": "instruction"
+    }
+  ],
+  "display_policy": "Only published with valid review in production; all current entries are drafts."
+}

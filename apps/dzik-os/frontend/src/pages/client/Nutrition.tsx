@@ -3,6 +3,7 @@ import { api, getUser } from "../../api";
 import { plDate } from "../../dates";
 import { ErrorBox, FileDownloadButton, Icon, Spinner, TopBar } from "../../components";
 import { NutritionVersion } from "../../types";
+import { Dlaczego } from "../../wiedza/Dlaczego";
 
 interface NutritionPlanRow {
   id: string;
@@ -83,6 +84,16 @@ export default function Nutrition() {
               <div className="stat"><b>{v.content.protein_g ?? "—"} g</b><span>białko</span></div>
               <div className="stat"><b>{v.content.carbs_g ?? "—"} g</b><span>węglowodany</span></div>
               <div className="stat"><b>{v.content.fat_g ?? "—"} g</b><span>tłuszcze</span></div>
+            </div>
+            {/* Wiedza (0.56.0): uzasadnienie celu = zapisana decyzja trenera
+                przy tej wersji diety; Wiedza niczego nie przelicza. */}
+            <div className="row" style={{ marginTop: 10 }}>
+              <Dlaczego etykieta="Dlaczego tyle kalorii?" naglowek="Cel kaloryczny"
+                cel={{ plan_kind: "nutrition", plan_id: plan.id, plan_revision: v.version_no,
+                  target_type: "energy_target", target_id: "plan" }} />
+              <Dlaczego etykieta="Dlaczego takie makro?" naglowek="Makroskładniki"
+                cel={{ plan_kind: "nutrition", plan_id: plan.id, plan_revision: v.version_no,
+                  target_type: "macro_target", target_id: "plan" }} />
             </div>
           </div>
           {v.content.sections.map((s, i) => (
