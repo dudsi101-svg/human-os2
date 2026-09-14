@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import { ExerciseTechniqueLink, Icon } from "./components";
+import { Icon } from "./components";
+import { RolaOpisu } from "./nazwy";
+import { OpisCwiczenia } from "./opisCwiczenia";
 import { zGoalMix } from "./suwaki";
 import {
   BLOCK_KIND_LABELS,
@@ -119,7 +121,9 @@ function zakres(r: [number, number] | null | undefined, jednostka: string): stri
 }
 
 /** Blok rozgrzewki/rozciągania: rozwijana lista pozycji z dawką. */
-export function PozycjaBloku({ ex, otwarty = false, testid }: { ex: Exercise; otwarty?: boolean; testid?: string }) {
+export function PozycjaBloku({ ex, otwarty = false, rola = "klient", powrot, testid }: {
+  ex: Exercise; otwarty?: boolean; rola?: RolaOpisu; powrot?: string | null; testid?: string;
+}) {
   const [open, setOpen] = useState(otwarty);
   const b = ex.block;
   if (!b) return <div className="exercise"><div><b>{ex.name}</b></div></div>;
@@ -141,7 +145,8 @@ export function PozycjaBloku({ ex, otwarty = false, testid }: { ex: Exercise; ot
               <li key={i} style={{ fontSize: "0.9rem", marginBottom: 2 }}>
                 {it.name}{it.dose && <> — <b>{it.dose}</b></>}
                 {it.note && <span className="dim"> ({it.note})</span>}
-                {it.exercise_id && <> <ExerciseTechniqueLink exerciseId={it.exercise_id} name={it.name} /></>}
+                {/* Opis z bazy (0.75.0): po id, a bez id po nazwie pozycji. */}
+                <OpisCwiczenia exerciseId={it.exercise_id} name={it.name} rola={rola} powrot={powrot} />
               </li>
             ))}
           </ol>

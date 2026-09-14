@@ -55,7 +55,8 @@ import {
   summaryModeNote,
 } from "../../onboardingUtils";
 import PlanEditor from "./PlanEditor";
-import { KIND_BADGE, opisPozycji, rodzajPozycji } from "../../pozycje";
+import { KIND_BADGE, PozycjaBloku, opisPozycji, rodzajPozycji } from "../../pozycje";
+import { OpisCwiczenia } from "../../opisCwiczenia";
 import PublikacjaPanel from "./PublikacjaPanel";
 import PrzypiszDiete, { PrzypisanaDietaTrenera } from "./PrzypiszDiete";
 import WywiadTab from "./WywiadTab";
@@ -631,12 +632,28 @@ function PlanTab({ clientId }: { clientId: string }) {
                 if (wpis) return <span className="badge">{etykietaDnia("client", wpis.weekday, "trener")}</span>;
                 return d.weekday ? <span className="badge">{WEEKDAYS[d.weekday - 1]}</span> : null;
               })()}
-              {d.exercises.map((ex, j) => (
-                <div className="exercise" key={j}>
-                  <div>{ex.name}{KIND_BADGE[rodzajPozycji(ex)] && <span className="badge" style={{ marginLeft: 8 }}>{KIND_BADGE[rodzajPozycji(ex)]}</span>}</div>
-                  <div className="meta">{opisPozycji(ex)}</div>
-                </div>
-              ))}
+              {d.exercises.map((ex, j) => {
+                const rodzaj = rodzajPozycji(ex);
+                // Blok (0.73.0) jak u klienta: rozwijana lista pozycji, każda z opisem z bazy (0.75.0).
+                if (rodzaj === "warmup_block" || rodzaj === "stretch_block") {
+                  return <PozycjaBloku key={j} ex={ex} rola="trener" powrot={`/trener/klient/${clientId}?zakladka=plan`} testid={`tr-blok-${i}-${j}`} />;
+                }
+                return (
+                  <div className="exercise" key={j}>
+                    <div>
+                      {ex.name}{KIND_BADGE[rodzaj] && <span className="badge" style={{ marginLeft: 8 }}>{KIND_BADGE[rodzaj]}</span>}
+                      {/* Opis z własnej bazy (0.75.0): to samo, co widzi klient — po id albo po nazwie. */}
+                    </div>
+                    <div className="meta">{opisPozycji(ex)}</div>
+                    {rodzaj === "strength" && (
+                      <div style={{ gridColumn: "1 / -1", textAlign: "left" }}>
+                        <OpisCwiczenia exerciseId={ex.exercise_id} name={ex.name} rola="trener"
+                          powrot={`/trener/klient/${clientId}?zakladka=plan`} testid={`tr-opis-${i}-${j}`} />
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           ))}
         </div>

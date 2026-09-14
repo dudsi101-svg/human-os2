@@ -30,7 +30,9 @@ wersje 0.64.0 i 0.65.0 są zajęte przez `agent/biblioteka-diet` i `agent/monito
 | 4 | zlecenie 2 — wymiany produktów v2 (+ korelacja katalogu) | kolejna wolna | — (przegląd CSV przez właściciela może iść równolegle) |
 | 5 | PR #67 `agent/landing-czerwony` — zlecenie 3, domknięcie (stan 14.09 wieczór: `main` = 0.69.0; 0.70.0 = PR #70 powitanie, 0.71.0 = dni treningowe) | **0.72.0 (scalone)** | — |
 | 6 | zlecenie 5 — rozgrzewka, rozciąganie, cardio z suwakami | **0.73.0 (scalone `8a71116`)** | **39** (`exercise_blocks` + pola cardio w `workout_entries`) |
-| 7 | zlecenie 4 — motyw jasny czerwono-biały (`agent/motyw-czerwony`, PR #76) | **0.74.0 (zajęte, w PR)** | **40** (`notification_settings.theme`) |
+| 7 | zlecenie 4 — motyw jasny czerwono-biały (`agent/motyw-czerwony`, PR #76) | **0.74.0 (scalone `26a03af`)** | **40** (`notification_settings.theme`) |
+| 8 | polecenie właściciela 14.09: szablony rozwijane po nazwie + opisy ćwiczeń z Wiedzy w planie klienta | **0.75.0** (PR #77, `agent/szablony-i-opisy`) | — (dopasowanie po nazwie odczytowe; utrwalenie = pytanie do właściciela) |
+| 9 | zgłoszenie właściciela 14.09: dolna nawigacja na iPhonie (ikony ściskane przez wcięcie systemowe) | **0.75.1** (PR #78, `agent/nawigacja-safe-area`) | — |
 
 Decyzje właściciela z drugiej tury (14.09): kreator diety odłożony i ukryty; klient na
 diecie z szablonu; katalog pojedynczych produktów (2058 pozycji) ma zasilić zamienniki

@@ -1,5 +1,7 @@
-import { useEffect, useState } from "react";
-import { api } from "../../api";
+import { useEffect, useRef, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
+import { api, ApiError } from "../../api";
+import { bezpiecznyPowrot, etykietaPowrotu } from "../../nazwy";
 import {
   AuthAttachment, ErrorBox, ExerciseDetail, ExerciseFilterBar, Icon, Spinner,
   TabPanel, Tabs, TopBar,
@@ -27,6 +29,20 @@ const TABS: [Tab, string][] = [
 
 export default function KnowledgeLegacy() {
   const [tab, setTab] = useState<Tab>("artykuly");
+  // Karta ćwiczenia z planu (0.75.0): `?cwiczenie=<id>&powrot=/plan` — ten sam
+  // parametr co w Wiedzy v2, żeby link z planu działał niezależnie od flagi.
+  const [params, setParams] = useSearchParams();
+  const cwiczenie = params.get("cwiczenie");
+  if (cwiczenie) {
+    return (
+      <div className="page">
+        <TopBar title="Baza wiedzy" />
+        <KartaCwiczeniaTrenera id={cwiczenie} url={`/api/me/exercises/${encodeURIComponent(cwiczenie)}`}
+          powrot={bezpiecznyPowrot(params.get("powrot"))}
+          onZamknij={() => { const next = new URLSearchParams(params); next.delete("cwiczenie"); next.delete("powrot"); setParams(next, { replace: true }); setTab("cwiczenia"); }} />
+      </div>
+    );
+  }
   return (
     <div className="page">
       <TopBar title="Baza wiedzy" />
@@ -121,6 +137,64 @@ function KnowledgeCard({ item }: { item: KnowledgeItemRow }) {
 }
 
 const PAGE_SIZE = 30;
+
+/**
+ * Pełna karta ćwiczenia z bazy trenera (0.75.0) — cel linku „Pełny opis
+ * w Wiedzy” przy pozycji planu. Wspólna dla Wiedzy v2, trybu legacy
+ * i panelu trenera (`url` wskazuje trasę roli). Fokus po wejściu ląduje na
+ * przycisku powrotu, a powrót prowadzi dokładnie tam, skąd przyszedł
+ * człowiek (tylko ścieżka aplikacji — `bezpiecznyPowrot`).
+ */
+export function KartaCwiczeniaTrenera({ id, url, powrot, onZamknij }: {
+  id: string; url: string; powrot: string | null; onZamknij: () => void;
+}) {
+  const [item, setItem] = useState<ExerciseLibraryItem | null>(null);
+  const [brak, setBrak] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const backRef = useRef<HTMLAnchorElement | HTMLButtonElement | null>(null);
+  const load = () => {
+    setError(null); setBrak(false); setItem(null);
+    api.get<ExerciseLibraryItem>(url)
+      .then(setItem)
+      .catch((e) => { const err = e as ApiError; if (err.status === 404) setBrak(true); else setError(err.message); });
+  };
+  useEffect(() => { load(); backRef.current?.focus(); }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
+  const etykieta = etykietaPowrotu(powrot);
+  return (
+    <div data-testid="karta-cwiczenia">
+      {powrot ? (
+        <Link ref={backRef as React.RefObject<HTMLAnchorElement>} to={powrot} className="btn btn--ghost btn--small" style={{ marginBottom: 10 }}>
+          <Icon name="chevron-up" size={16} /> {etykieta}
+        </Link>
+      ) : (
+        <button ref={backRef as React.RefObject<HTMLButtonElement>} type="button" className="btn btn--ghost btn--small" style={{ marginBottom: 10 }} onClick={onZamknij}>
+          <Icon name="chevron-up" size={16} /> {etykieta}
+        </button>
+      )}
+      {error && <ErrorBox error={error} onRetry={load} />}
+      {brak && (
+        <div className="card">
+          <p style={{ margin: 0 }}>Tego ćwiczenia nie ma już w bazie trenera (mogło zostać zarchiwizowane). Plan pozostaje bez zmian.</p>
+        </div>
+      )}
+      {!item && !error && !brak && <Spinner />}
+      {item && (
+        <article className="card">
+          <h2 style={{ fontSize: "1.1rem" }}>{item.name}</h2>
+          <p className="dim" style={{ margin: "0 0 8px", fontSize: "0.85rem" }}>
+            Z bazy ćwiczeń trenera · {MUSCLE_GROUP_LABELS[item.muscle_group] ?? item.muscle_group}
+          </p>
+          <ExerciseDetail item={item} />
+          {powrot && (
+            <p style={{ margin: "10px 0 0" }}>
+              <Link to={powrot} className="btn btn--small">{etykieta}</Link>
+            </p>
+          )}
+        </article>
+      )}
+    </div>
+  );
+}
 
 export function ExercisesTab() {
   const [items, setItems] = useState<ExerciseLibraryItem[] | null>(null);

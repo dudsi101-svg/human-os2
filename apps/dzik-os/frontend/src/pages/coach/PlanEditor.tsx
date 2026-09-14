@@ -20,6 +20,7 @@ import PlanAssistant from "../../PlanAssistant";
 import { appendDays, snapshot } from "../../assistantUtils";
 import { linesToExerciseNames } from "../../ocrUtils";
 import { KIND_BADGE, opisPozycji, rodzajPozycji } from "../../pozycje";
+import { LinkKartyTrenera } from "../../opisCwiczenia";
 import {
   BLOCK_VARIANT_LABELS,
   EXERCISE_LEVEL_LABELS,
@@ -502,6 +503,8 @@ export default function PlanEditor({
                 Ćwiczenie {ei + 1}
                 {ex.exercise_id && <span className="badge" style={{ marginLeft: 8 }}>z bazy</span>}
               </label>
+              {/* 0.75.0: z edytora prosto do własnej karty ćwiczenia (powrót tutaj). */}
+              <LinkKartyTrenera exerciseId={ex.exercise_id} />
               <input id={`pe-ex-${di}-${ei}`} value={ex.name} placeholder="nazwa ćwiczenia"
                 onChange={(e) => {
                   const exs = [...day.exercises];

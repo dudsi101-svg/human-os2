@@ -1,5 +1,8 @@
 import { FormEvent, useCallback, useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { api, saveBlobAs } from "../../api";
+import { bezpiecznyPowrot } from "../../nazwy";
+import { KartaCwiczeniaTrenera } from "../client/KnowledgeLegacy";
 import {
   ErrorBox, ExerciseDetail, ExerciseFilterBar, LogoutButton, SheetImportPanel,
   Spinner, TabPanel, Tabs, TopBar,
@@ -77,6 +80,20 @@ export default function Knowledge() {
   }, []);
   const tabs = kreator ? TABS : TABS.filter(([id]) => id !== "dieta");
   const aktywna = tab === "dieta" && !kreator ? "artykuly" : tab;
+  // Własna karta ćwiczenia (0.75.0): link „Karta w Wiedzy” / „Pełny opis
+  // w Wiedzy” z edytora, szkicu i podglądu planu klienta — `?cwiczenie=<id>`.
+  const [params, setParams] = useSearchParams();
+  const cwiczenie = params.get("cwiczenie");
+  if (cwiczenie) {
+    return (
+      <div className="page page--wide">
+        <TopBar title="Baza wiedzy" right={<LogoutButton />} />
+        <KartaCwiczeniaTrenera id={cwiczenie} url={`/api/coach/exercises/${encodeURIComponent(cwiczenie)}`}
+          powrot={bezpiecznyPowrot(params.get("powrot"))}
+          onZamknij={() => { const next = new URLSearchParams(params); next.delete("cwiczenie"); next.delete("powrot"); setParams(next, { replace: true }); setTab("cwiczenia"); }} />
+      </div>
+    );
+  }
   return (
     <div className="page page--wide">
       <TopBar title="Baza wiedzy" right={<LogoutButton />} />

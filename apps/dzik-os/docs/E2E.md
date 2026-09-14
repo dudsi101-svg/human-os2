@@ -23,8 +23,10 @@ każdym pushu niż duży, który nie chodzi.
 | `logowanie.spec.ts` | Wejście trenera i klienta, odmowa przy błędnym haśle, odmowa dostępu do panelu trenera bez sesji |
 | `raport.spec.ts` | Pełna wysyłka raportu tygodniowego oraz reguła „żadne pytanie nie ma wartości domyślnej" |
 | `wiadomosci.spec.ts` | Klient pisze, **trener czyta** — dwie sesje, dwa konta |
+| `szablony.spec.ts` | Katalog gotowych schematów → import; zakładka Dieta; grupy zamienników RO; **0.75.0:** rozwinięcie i zwinięcie szablonu kliknięciem w nazwę (oba projekty) |
+| `plan-opis.spec.ts` | 0.75.0: klient rozwija „Opis ćwiczenia” (po id i po nazwie), przechodzi do pełnej karty w Wiedzy i wraca do planu; karta spoza bazy mówi wprost, że jej nie ma |
 
-Siedem testów, ok. 20 sekund.
+Cały pakiet trwa kilka minut; pojedynczy plik uruchamia się w kilkanaście sekund.
 
 ## Uruchomienie
 

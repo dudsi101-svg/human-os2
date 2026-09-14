@@ -3,8 +3,9 @@ import { Link } from "react-router-dom";
 import { api, getUser, money } from "../../api";
 import { plDate } from "../../dates";
 import {
-  ErrorBox, ExerciseTechniqueLink, Icon, PushContextPrompt, Spinner, TopBar,
+  ErrorBox, Icon, PushContextPrompt, Spinner, TopBar,
 } from "../../components";
+import { OpisCwiczenia } from "../../opisCwiczenia";
 import { PozycjaBloku, PozycjaCardio, rodzajPozycji } from "../../pozycje";
 import { CATEGORY_LABELS, ConsultSlotRow, TodayData } from "../../types";
 import { powitanie } from "../../powitanie";
@@ -187,7 +188,7 @@ export default function Today() {
             {data.workout.day.exercises.map((ex, i) => {
               // Rozgrzewka / rozciąganie / cardio (0.73.0): wspólny renderer z Planem.
               const rodzaj = rodzajPozycji(ex);
-              if (rodzaj === "warmup_block" || rodzaj === "stretch_block") return <PozycjaBloku key={i} ex={ex} testid={`dzis-blok-${i}`} />;
+              if (rodzaj === "warmup_block" || rodzaj === "stretch_block") return <PozycjaBloku key={i} ex={ex} powrot="/" testid={`dzis-blok-${i}`} />;
               if (rodzaj === "cardio") {
                 return (
                   <PozycjaCardio key={i} ex={ex} kompakt testid={`dzis-cardio-${i}`}
@@ -200,14 +201,14 @@ export default function Today() {
                 <div>
                   <b>{ex.name}</b>
                   {ex.comment && <div className="meta">{ex.comment}</div>}
-                  {ex.exercise_id && (
-                    <ExerciseTechniqueLink exerciseId={ex.exercise_id} name={ex.name} />
-                  )}
                 </div>
                 <div className="meta">
                   {[ex.sets && `${ex.sets}×${ex.reps ?? "?"}`, ex.weight, ex.rest]
                     .filter(Boolean)
                     .join(" · ")}
+                </div>
+                <div style={{ gridColumn: "1 / -1", textAlign: "left" }}>
+                  <OpisCwiczenia exerciseId={ex.exercise_id} name={ex.name} powrot="/" testid={`dzis-opis-${i}`} />
                 </div>
               </div>
               );

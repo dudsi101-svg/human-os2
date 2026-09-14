@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api, getUser } from "../../api";
 import { WEEKDAYS, localToday, plDate } from "../../dates";
-import { ErrorBox, ExerciseTechniqueLink, Icon, Spinner, TopBar } from "../../components";
+import { ErrorBox, Icon, Spinner, TopBar } from "../../components";
+import { OpisCwiczenia } from "../../opisCwiczenia";
 import { PozycjaBloku, PozycjaCardio, RestTimer, parseRestSeconds, rodzajPozycji } from "../../pozycje";
 import { DniPlanu, MACHINE_LABELS, PlanVersion, TrainingPlan, WorkoutRow } from "../../types";
 import { Dlaczego } from "../../wiedza/Dlaczego";
@@ -227,7 +228,7 @@ export default function Plan() {
               {day.exercises.map((ex, i) => {
                 const rodzaj = rodzajPozycji(ex);
                 if (rodzaj === "warmup_block" || rodzaj === "stretch_block") {
-                  return <PozycjaBloku key={i} ex={ex} testid={`blok-${di}-${i}`} />;
+                  return <PozycjaBloku key={i} ex={ex} powrot="/plan" testid={`blok-${di}-${i}`} />;
                 }
                 if (rodzaj === "cardio") {
                   return (
@@ -245,9 +246,6 @@ export default function Plan() {
                       {ex.video_url && (
                         <a href={ex.video_url} target="_blank" rel="noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Icon name="film" size={16} /> technika</a>
                       )}
-                      {ex.exercise_id && (
-                        <ExerciseTechniqueLink exerciseId={ex.exercise_id} name={ex.name} />
-                      )}
                       {restSeconds !== null && (
                         <div style={{ marginTop: 6 }}><RestTimer seconds={restSeconds} /></div>
                       )}
@@ -260,6 +258,12 @@ export default function Plan() {
                     <div className="meta">
                       {[ex.sets && `${ex.sets}×${ex.reps ?? "?"}`, ex.weight, ex.tempo, ex.rest]
                         .filter(Boolean).join(" · ")}
+                    </div>
+                    {/* Opis z bazy trenera (0.75.0): po id, a bez id po nazwie; pełna karta
+                        w Wiedzy z powrotem do planu. Na całą szerokość wiersza — na telefonie
+                        kolumna nazwy jest za wąska na listę kroków. */}
+                    <div style={{ gridColumn: "1 / -1", textAlign: "left" }}>
+                      <OpisCwiczenia exerciseId={ex.exercise_id} name={ex.name} powrot="/plan" testid={`opis-${di}-${i}`} />
                     </div>
                   </div>
                 );
