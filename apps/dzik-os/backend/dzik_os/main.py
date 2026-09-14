@@ -32,11 +32,13 @@ from .routers import (
     admin,
     assistant,
     auth,
+    cardio,
     challenges,
     checkins,
     clients,
     consultations,
     diet,
+    exercise_blocks,
     exercises,
     files,
     food_catalog,
@@ -197,6 +199,7 @@ def create_app() -> FastAPI:
         interview.router, nutrition_templates.router, ocr.router, assistant.router, imports.router,
         public_site.router, konfigurator.router, kulinaria.router, szkice.router, wywiady.router, zapotrzebowanie.router, diet.router, habits.router,
         mail_admin.router, postepy.router, plan_weekdays.router,
+        cardio.router, exercise_blocks.router,
     ):
         app.include_router(router)
 

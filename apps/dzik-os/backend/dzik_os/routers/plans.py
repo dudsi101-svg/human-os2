@@ -28,7 +28,7 @@ from ..models import (
 )
 from ..postepy import rekordy as R
 from ..postepy import serwis as postepy_serwis
-from ..schemas import PlanCreateIn, PlanDayIn, PlanVersionIn, WorkoutSessionIn
+from ..schemas import PlanCreateIn, PlanDayIn, PlanVersionIn, WorkoutSessionIn, dni_do_zapisu
 from ..security import current_user, require_role
 from ..storage import _read_limited
 from ..wiedza import slad as wiedza_slad
@@ -125,11 +125,16 @@ def create_plan(
         version_no=1,
         reason=body.version.reason,
         content_json=json.dumps(
-            {"days": [d.model_dump() for d in body.version.days]}, ensure_ascii=False
+            {"days": dni_do_zapisu(body.version.days)}, ensure_ascii=False
         ),
         created_by=coach.id,
     )
     db.add(version)
+    if plan.client_id is not None:
+        # Cardio (0.73.0): ślad H_CARDIO dla każdej pozycji cardio — w tej
+        # samej transakcji co wersja (szablon trenera bez klienta = bez śladu).
+        wiedza_slad.slady_cardio(db, owner_id=plan.client_id, plan_id=plan.id, plan_revision=1,
+                                 content=json.loads(version.content_json))
     record_event(
         db,
         action="PLAN_CREATED",
@@ -165,7 +170,7 @@ def create_plan_version(
         version_no=next_no,
         reason=body.reason,
         content_json=json.dumps(
-            {"days": [d.model_dump() for d in body.days]}, ensure_ascii=False
+            {"days": dni_do_zapisu(body.days)}, ensure_ascii=False
         ),
         created_by=coach.id,
     )
@@ -177,6 +182,8 @@ def create_plan_version(
         # w tej samej transakcji; nic nie jest dopisywane algorytmicznie.
         wiedza_slad.slad_wersji_trenera(db, owner_id=plan.client_id, plan_id=plan.id,
                                         plan_revision=next_no, reason=body.reason)
+        wiedza_slad.slady_cardio(db, owner_id=plan.client_id, plan_id=plan.id, plan_revision=next_no,
+                                 content=json.loads(version.content_json))
     record_event(
         db,
         action="PLAN_VERSION_CREATED",
@@ -379,6 +386,12 @@ def log_workout(
             ),
             comment=e.comment,
             file_id=e.file_id,
+            # Cardio (0.73.0): pola bez serii; wpis siłowy zostawia NULL-e.
+            duration_min=e.duration_min,
+            avg_hr=e.avg_hr,
+            rpe=e.rpe,
+            distance_km=e.distance_km,
+            machine=e.machine,
         )
         db.add(wpis)
         wpisy.append(wpis)
@@ -451,6 +464,11 @@ def list_workouts(
                         "sets": json.loads(e.sets_json) if e.sets_json else [],
                         "comment": e.comment,
                         "file_id": e.file_id,
+                        "duration_min": e.duration_min,
+                        "avg_hr": e.avg_hr,
+                        "rpe": e.rpe,
+                        "distance_km": e.distance_km,
+                        "machine": e.machine,
                     }
                     for e in entries
                 ],

@@ -43,7 +43,10 @@ POLA_KORZENIA = {
 POLA_ELEMENTU: dict[str, set[str]] = {
     "days": {"name", "weekday"},
     "exercises": {"name", "exercise_id", "sets", "reps", "weight", "tempo", "rest", "comment",
-                  "video_url", "target_rir", "progression", "konfigurator_id"},
+                  "video_url", "target_rir", "progression", "konfigurator_id",
+                  # rozgrzewka / rozciąganie / cardio (0.73.0) — pola spoza listy
+                  # znikają ze szkicu bez błędu, więc muszą tu być
+                  "kind", "block_id", "block", "cardio"},
     "sections": {"title", "body"},
     "meals": {"name", "description", "swaps",
               # kreator dań (0.57.0)

@@ -368,7 +368,7 @@ def _collect_export(db: Session, user: User) -> dict:
     # Dni treningowe (0.71.0): wybór dni tygodnia klienta dla jednostek planu.
     plan_weekday_choices = _rows(db, PlanWeekdayChoice, client_id=client_id)
     return {
-        "export_version": "2.0",
+        "export_version": "2.1",
         "user": {
             "id": user.id, "email": user.email, "display_name": user.display_name,
             "identity_id": user.identity_id, "created_at": user.created_at,

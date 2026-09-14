@@ -20,6 +20,9 @@ from __future__ import annotations
 import json
 from datetime import UTC, datetime, timedelta
 
+from .cardio import model as cardio_model
+from .cardio.bloki import migawka as migawka_bloku
+from .cardio.bloki import zaladuj_wbudowane
 from .config import settings
 from .consent_catalog import ONBOARDING_CATEGORIES
 from .dates import local_today
@@ -32,6 +35,7 @@ from .models import (
     CoachClientRelationship,
     Document,
     Exercise,
+    ExerciseBlock,
     FoodProduct,
     Goal,
     Measurement,
@@ -54,6 +58,7 @@ from .models import (
 )
 from .muscles import join_muscles
 from .security import hash_password
+from .wiedza import slad as wiedza_slad
 
 DEMO_ACCOUNTS = {
     "coach": ("dzik@example.com", "DzikTrener#2026", "Lubelski Dzik"),
@@ -245,6 +250,10 @@ def seed() -> dict[str, str]:
         # dokładnie to samo (docs/BAZA_CWICZEN.md §11).
         db.flush()
         import_library(db, coach.id)
+        # Bloki rozgrzewki i rozciągania (0.73.0): ten sam wbudowany zestaw
+        # co przycisk „Dodaj wbudowane” w panelu (treść do przeglądu trenera).
+        bloki = zaladuj_wbudowane(db, coach.id)["ids"]
+        db.flush()
 
         def ex_ref(name: str, **fields: object) -> dict:
             """Pozycja planu podpięta do bazy ćwiczeń (miękkie odniesienie:
@@ -286,6 +295,24 @@ def seed() -> dict[str, str]:
         days_v2 = json.loads(json.dumps(days_v1))
         days_v2[1]["exercises"][0]["weight"] = "105 kg"
         days_v2[0]["exercises"][0]["comment"] = "Bark OK — pełny zakres"
+        # 0.73.0: dzień C dostaje blok rozgrzewki (całe ciało, początkujący —
+        # migawka treści) na początku i pozycję cardio (rowerek, mix
+        # 0,5/0,25/0,25 policzony deterministycznie przez silnik) na końcu.
+        blok_c = db.get(ExerciseBlock, bloki[("WARMUP", "POCZATKUJACY", "C")])
+        cardio_c = cardio_model.propozycja(
+            {"redukcja": 0.5, "wydolnosc": 0.25, "regeneracja": 0.25}, "POCZATKUJACY", ["rowerek"],
+            age=34, weight_kg=88.0,
+        )
+        days_v2[2]["exercises"] = [
+            {"name": blok_c.name, "kind": "warmup_block", "block_id": blok_c.id, "block": migawka_bloku(blok_c)},
+            *days_v2[2]["exercises"],
+            {"name": "Cardio — rowerek (Redukcja 50 % / Wydolność 25 % / Regeneracja 25 %)",
+             "kind": "cardio", "exercise_id": exercise_ids["Rower stacjonarny — jazda ciągła"],
+             "cardio": {"goal_mix": {"redukcja": 0.5, "wydolnosc": 0.25, "regeneracja": 0.25},
+                        "level": "POCZATKUJACY", "machines": ["rowerek"],
+                        "prescription": cardio_c["prescription"], "trace": cardio_c["trace"],
+                        "model_version": cardio_c["model_version"], "overridden_by_coach": []}},
+        ]
         plan_a_v2 = TrainingPlanVersion(
             id=new_id("PLV"), plan_id=plan_a.id, version_no=2,
             reason="Progresja przysiadu po raporcie z tygodnia 2; bark bez bólu",
@@ -293,6 +320,9 @@ def seed() -> dict[str, str]:
             content_json=json.dumps({"days": days_v2}, ensure_ascii=False),
         )
         db.add(plan_a_v2)
+        # Ślad H_CARDIO dla pozycji cardio dnia C (Wiedza → „Dlaczego?” w demo).
+        wiedza_slad.slady_cardio(db, owner_id=client_a.id, plan_id=plan_a.id, plan_revision=2,
+                                 content={"days": days_v2})
         record_event(db, action="PLAN_VERSION_CREATED", actor_id=coach.id,
                      subject_ids=[client_a.id],
                      payload={"plan_id": plan_a.id, "version_no": 2,
