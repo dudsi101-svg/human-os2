@@ -1,5 +1,51 @@
 # Changelog — Dzik OS
 
+## 0.62.0 — 2026-09-14
+
+**Wywiad „Zapotrzebowanie kaloryczne” (zgłoszenie właściciela z 14.09;
+gałąź `agent/wywiad-zapotrzebowanie`, migracja 33).**
+
+* **Trzeci typ wywiadu** `zapotrzebowanie` w istniejącym mechanizmie
+  zakładki „Wywiad” (szkic z rewizją, niezmienne wersje, przegląd, tryb
+  wspólnie): 11 pytań w 4 sekcjach — płeć, wiek, wzrost, masa (nowy rodzaj
+  pytania **NUMBER** z zakresem walidowanym serwerowo, przecinek
+  dziesiętny; podpowiedź masy z ostatniego pomiaru), praca, treningi,
+  kroki (opcjonalne), cel i tempo (pytania warunkowe), pytanie zdrowotne
+  o zaburzenia odżywiania (domena zdrowie, za zgodą).
+* **Silnik** `dzik_os/wywiad/zapotrzebowanie.py` (czyste funkcje, bez AI):
+  PPM wg Mifflina-St Jeora, PAL z pracy + treningów + kroków (1,2–1,9),
+  CPM, korekta pod cel (−10/−15/−20 %, 0, +5/+10 %), zaokrąglenie do
+  10 kcal, bezpiecznik „nie poniżej PPM” z ostrzeżeniem; wynik zawiera
+  **podstawienie liczb krok po kroku**. Szacunek liczy się przy przesłaniu
+  wersji i zapisuje do `calorie_estimates` (jedna wersja na przesłanie).
+* **Flaga zdrowotna:** odpowiedź „Tak / Nie wiem / Wolę omówić z trenerem”
+  → `hidden_for_client`: API klienta nie zwraca **żadnej liczby** (kcal,
+  PPM, masa) — tylko komunikat; trener widzi pełne dane i po rozmowie
+  odsłania wynik (`POST …/zapotrzebowanie/odblokuj`, audyt).
+* **Nadpisanie trenera** `PUT /api/clients/{id}/zapotrzebowanie/nadpisanie`
+  `{kcal|null, reason}` (800–8000 kcal, powód obowiązkowy i widoczny dla
+  klienta; `null` = powrót do wzoru; audyt `CALORIE_ESTIMATE_OVERRIDDEN`).
+  `GET /api/clients/{id}/zapotrzebowanie`: klient/trener; trener dodatkowo
+  historia wersji.
+* **Interfejs:** karta „Zapotrzebowanie kaloryczne” (wynik, „Skąd ta
+  liczba?”, ustalenie trenera z powodem) — klient: zakładki Wywiad
+  i Dieta; trener: karta klienta → Wywiad (nadpisanie, odsłonięcie,
+  „Zaktualizuj wywiad wspólnie”) i Dieta; w „Przypisz dietę” przycisk
+  **„Zaproponuj kcal”** wypełnia pole kcal (i masę) wynikiem — nie
+  przypisuje diety.
+* **Flaga instalacji** `DZIK_CALORIE_INTERVIEW_ENABLED` (domyślnie
+  wyłączona; dev/test/E2E włączona; produkcja: włączona w `fly.toml` —
+  do potwierdzenia przez właściciela); `health.features.calorie_interview`.
+  Wyłączenie = typ i trasy 404, dane w bazie zostają.
+* **Prywatność:** eksport danych `calorie_estimates` (`export_version`
+  1.7), usuwanie konta kasuje szacunki. Podsumowanie wywiadu pomija ten
+  typ (wynik ma własną kartę).
+* **Testy:** 9 silnika (przykłady kontrolne liczone ręcznie), 7 API
+  (definicja/walidacja, wyliczenie, flaga zdrowotna bez liczb, nadpisanie
+  i obcy trener, brak zgody zdrowotnej, placeholder z pomiaru, flaga
+  instalacji), E2E `zapotrzebowanie.spec.ts`. Odstępstwo od planu: wiek
+  w latach zamiast daty urodzenia (minimalizacja danych, ten sam wynik).
+
 ## 0.61.0 — 2026-09-14
 
 **Poczta Brevo SMTP na Fly (zadanie właściciela z 13.09; pliki

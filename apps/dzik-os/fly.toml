@@ -35,6 +35,10 @@ primary_region = "fra"   # Frankfurt (najbliższy region Fly dla Polski)
   # Szablony diet ze skalowaniem (0.60.0): moduł włączony na produkcji
   # decyzją właściciela z 14.09 (domyślnie w kodzie wyłączony).
   DZIK_DIET_TEMPLATES_ENABLED = "true"
+  # Wywiad „Zapotrzebowanie kaloryczne” (0.62.0): włączony na produkcji
+  # w rundzie, w której powstał (prośba właściciela z 14.09: funkcje mają
+  # być widoczne w aplikacji). Wyłączenie = "false" (dane zostają).
+  DZIK_CALORIE_INTERVIEW_ENABLED = "true"
   DZIK_DATABASE_URL = "sqlite:////data/dzik.db"
   DZIK_AUDIT_DB = "/data/audit.db"
   DZIK_UPLOAD_DIR = "/data/uploads"

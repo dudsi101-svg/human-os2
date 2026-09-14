@@ -83,6 +83,15 @@ opcjonalny input `test_email` wysyła wiadomość testową tą samą ścieżką
 co endpoint). Endpoint testowy admina/trenera za flagą, domyślnie
 wyłączony na produkcji. Plan i odstępstwa: `docs/plan-sesji/poczta-brevo.md`.
 
+## Wywiad „Zapotrzebowanie kaloryczne” (0.62.0) — za flagą, na produkcji WŁĄCZONY (do potwierdzenia)
+
+`DZIK_CALORIE_INTERVIEW_ENABLED="true"` w `fly.toml` (runda 0.62.0, zgodnie
+z prośbą właściciela z 14.09, żeby funkcje były widoczne w aplikacji;
+wyłączenie = jedna linia). Trzeci typ wywiadu w zakładce „Wywiad”, wynik
+w Dieta (klient) i karcie klienta (trener), „Zaproponuj kcal” w „Przypisz
+dietę”. Filtr flagi zdrowotnej po stronie serwera. Szczegóły:
+`docs/WYWIAD.md` §8, `docs/plan-sesji/wywiad-zapotrzebowanie.md`.
+
 ## Szablony diet ze skalowaniem (0.60.0) — za flagą, na produkcji WYŁĄCZONE
 
 Moduł równoległy do planów żywieniowych: biblioteka szablonów

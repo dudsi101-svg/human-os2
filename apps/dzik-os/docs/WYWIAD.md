@@ -210,3 +210,51 @@ starcie aplikacji (`lifespan`; błąd nie zatrzymuje startu, jest w
 * **Stare tabele rozmowy** zostają (kanał alternatywny); `UNIQUE
   (client_id, flow)` dla sesji rozmowy nie został dodany — duplikaty
   sesji rozmowy raportuje migracja.
+
+## 8. Wywiad „Zapotrzebowanie kaloryczne” (0.62.0)
+
+Trzeci typ `zapotrzebowanie` w tym samym mechanizmie (szkic, wersje,
+przegląd, wspólnie). Pytania `zk_*` w `definicje.py` (4 sekcje, rodzaj
+**NUMBER** z zakresem: wiek 14–100, wzrost 120–230 cm, masa 30–300 kg;
+przecinek dziesiętny). Za flagą `DZIK_CALORIE_INTERVIEW_ENABLED`
+(`routers/wywiady.typy_aktywne`).
+
+**Wzór** (`wywiad/zapotrzebowanie.py`, bez AI): PPM = 10·m + 6,25·h −
+5·wiek + 5 (M) / − 161 (K); PAL = baza z pracy (1,2 / 1,35 / 1,5 / 1,7)
++ treningi (0 / +0,05 / +0,15 / +0,25 / +0,35) + kroki (−0,05 … +0,1),
+w [1,2; 1,9]; CPM = PPM × PAL; korekta pod cel (redukcja −10/−15/−20 %,
+utrzymanie 0, masa +5/+10 %); wynik zaokrąglony do 10 kcal i nigdy
+poniżej PPM (ostrzeżenie). Każdy krok ma wiersz podstawienia — trener
+i klient widzą „skąd ta liczba”. Przykład kontrolny: K 70 kg / 170 cm /
+30 lat, siedząca + 3–4 treningi → PPM 1452, PAL 1,35, CPM 1960; −15 % →
+1670 kcal.
+
+**Zapis:** `calorie_estimates` (migracja 33) — jedna wersja na
+przesłanie (`submission_id` UNIQUE), wejścia i podstawienie zamrożone;
+brak danych (np. masa poza zakresem) = brak szacunku, przesłanie ważne.
+
+**Flaga zdrowotna:** pytanie `zk_zaburzenia` (domena zdrowie; bez zgody
+nie jest zadawane) z `flag_options` „Tak / Nie wiem / Wolę omówić” →
+`safety_flag` przesłania → `hidden_for_client`. Widok klienta
+(`zapotrzebowanie_serwis.widok`) zwraca wtedy tylko `status="hidden"`
+i komunikat — żadnej liczby na żadnym poziomie (test
+`test_flaga_zdrowotna_klient_nie_dostaje_zadnej_liczby`). Trener widzi
+pełne dane i po rozmowie odsłania (`POST …/odblokuj`, audyt
+`CALORIE_ESTIMATE_UNHIDDEN`).
+
+**API:** `GET /api/clients/{id}/zapotrzebowanie` (klient: swoje; trener:
+relacja + zgody, dodatkowo `history`), `PUT …/nadpisanie` `{kcal|null,
+reason}` (trener; 800–8000; powód obowiązkowy, widoczny dla klienta;
+audyt `CALORIE_ESTIMATE_OVERRIDDEN`), `POST …/odblokuj` (trener). Obcy
+trener: 404. Flaga wyłączona: 404 na typ i trasy.
+
+**Interfejs:** `pages/wywiad/Zapotrzebowanie.tsx` (jedna karta, tryb
+klient/trener): klient — Wywiad (po przesłaniu) i Dieta; trener — Wywiad
+(nadpisz / wróć do wzoru / odsłoń / wspólnie) i Dieta; `PrzypiszDiete`
+„Zaproponuj kcal” wypełnia pole kcal (i masę), nie przypisuje.
+
+**Świadomie nie zrobiono:** data urodzenia (wiek w latach wystarcza,
+mniej danych); automatyczne przeliczenie po nowym pomiarze masy (wynik
+zmienia się tylko przez nową wersję wywiadu — świadoma decyzja klienta
+albo trenera „wspólnie”); zasilanie profilu (`fact_key=None`, żeby masa
+z wywiadu nie dublowała zakładki Pomiary).

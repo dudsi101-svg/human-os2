@@ -345,7 +345,7 @@ nie uruchamiano, ponieważ runda nie zmienia kodu ani zasobów frontendu.
 
 | Gałąź | Wersja | Migracja | Etap | Co blokuje | Kolejność scalania |
 |---|---|---|---|---|---|
-| `agent/wywiad-zapotrzebowanie` | 0.62.0 | 33 | plan → etap 1 | dokument właściciela `wywiad_zapotrzebowanie_kaloryczne.md` (pracuję na założeniach) | 1 |
+| `agent/wywiad-zapotrzebowanie` | 0.62.0 | 33 | etapy 0–6 gotowe, PR #60 do przeglądu | dokument właściciela `wywiad_zapotrzebowanie_kaloryczne.md` (pracuję na założeniach) | 1 |
 | `agent/monitoring-postepy` | 0.63.0 | 34 | etap 0 — STOP (brak flagi rozgrzewki i wariantów ćwiczeń, decyzje właściciela) | decyzje z `docs/monitoring-tab/00_rozpoznanie.md`; flaga `ZABURZENIA_ODZYWIANIA` z 0.62.0 | 2 |
 
 | Rzecz | Stan | Gdzie |

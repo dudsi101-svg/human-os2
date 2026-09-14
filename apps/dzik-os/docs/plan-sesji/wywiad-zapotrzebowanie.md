@@ -33,7 +33,7 @@ dostarczony — pracuję na założeniach poniżej; po otrzymaniu dokumentu ró�
 | Etap | Czytam (z hipotezą) | Wytwarzam | Weryfikacja | Nakład |
 |---|---|---|---|---|
 | 0 rozpoznanie | `wywiad/definicje.py` (jak zbudowany typ), `wywiad/serwis.py` (przeslij/fakty), `routers/wywiady.py` (dostęp), `frontend/pages/wywiad/*`, `Measurement` | `docs/WYWIAD.md` §nowy + ten plan | — | dziesiątki tys. |
-| 1 silnik | — | `dzik_os/wywiad/zapotrzebowanie.py`: czyste funkcje PPM/PAL/CPM/korekta, walidacja zakresów, wynik z podstawieniem liczb | testy jednostkowe na przykładach kontrolnych (K 70 kg/170 cm/30 l → PPM 1414; M 85/180/28 → 1854; PAL, korekty, zakresy, brak danych) | dziesiątki tys. |
+| 1 silnik | — | `dzik_os/wywiad/zapotrzebowanie.py`: czyste funkcje PPM/PAL/CPM/korekta, walidacja zakresów, wynik z podstawieniem liczb | testy jednostkowe na przykładach kontrolnych (K 70 kg/170 cm/30 l → PPM 1451,5; M 85/180/28 → 1840; PAL, korekty, zakresy, brak danych) | dziesiątki tys. |
 | 2 definicja wywiadu | `definicje.py` | trzeci typ `zapotrzebowanie` w istniejącym mechanizmie (sekcje, pytania warunkowe, klasa dostępu żywieniowa), wersjonowanie i przegląd jak dziś | testy istniejącego modułu wywiadu zielone + nowe (definicja, braki, flaga) | setki tys. (największy koszt — tu ryzyko integracji z mechanizmem szkiców/przesłań) |
 | 3 model + migracja 33 | `models.py`, `db.py` | `calorie_estimate` (client_id, submission_id, wejścia, PPM, PAL, CPM, cel, wynik, `override_kcal`, `override_by/at/reason`, `hidden_for_client` z flagi), addytywna | `test_migracje_przenosnosc`, `test_pakietowanie` | dziesiątki tys. |
 | 4 API | `routers/wywiady.py` | `GET /clients/{id}/zapotrzebowanie` (klient: bez kcal przy fladze; trener: pełne + podstawienie), `PUT …/zapotrzebowanie/nadpisanie` (trener), przeliczenie przy przesłaniu wywiadu | test flagi (brak pola `kcal`/`weight` na żadnym poziomie) napisany PRZED implementacją; macierz dostępu; obcy trener 404 | setki tys. |
@@ -45,6 +45,41 @@ Taniej bez utraty informacji: zamiast czytać cały moduł wywiadu, czytam `_zbu
 i jeden pełny przebieg `przeslij` jako wzorzec; UI buduję na istniejących komponentach
 `pages/wywiad/wspolne.tsx` i `dieta/wspolne.tsx`. Bezpiecznik: 3× plan ≈ 1,5 mln tokenów.
 
+## Odstępstwa od planu
+
+* Wiek w latach zamiast daty urodzenia (mniej danych, ten sam wynik).
+* Wartości kontrolne w planie były policzone z pamięci (1414 / 1854) —
+  poprawne z wzoru: 1451,5 / 1840; testy używają poprawnych.
+* Etap 3 i 4 wykonane razem z 2 (jeden przebieg testów po zestawie zmian,
+  §2.8 zasad) — bez osobnego etapu.
+* Brak zasilania profilu (`fact_key=None`): masa z wywiadu nie dubluje
+  zakładki Pomiary; pomiar zasila tylko podpowiedź (placeholder).
+* Flaga na produkcji włączona w `fly.toml` w tej rundzie (patrz
+  RELEASE_STATUS) — właściciel może wyłączyć jedną linią.
+
 ## Weryfikacja wykonana
 
-(uzupełnię po rundzie)
+* Silnik: 9 testów (`tests/test_zapotrzebowanie_silnik.py`), wartości
+  liczone ręcznie w komentarzach.
+* API: 7 testów (`tests/test_zapotrzebowanie_api.py`); test flagi
+  zdrowotnej sprawdza brak kluczy liczbowych na każdym poziomie odpowiedzi
+  klienta (napisany przed nadpisaniem/odblokowaniem).
+* Istniejący moduł wywiadu: `test_wywiad_zakladka`, `test_wywiad`,
+  `test_przeglad_wywiadu` — 47 zielone (jedna asercja rozszerzona o trzeci
+  typ w liście — to zmiana kontraktu, nie obejście).
+* Ruff z korzenia repo: czysto. Frontend: `tsc` czysto, build 91,9 kB gzip
+  (budżet 120 kB). E2E `zapotrzebowanie.spec.ts` (klient → trener nadpisuje
+  → „Zaproponuj kcal” → klient widzi powód): zielony.
+* Pełny `pytest` backendu i a11y: wynik w PR.
+
+## Plan kontra rzeczywistość (zasady v2 §5)
+
+Plan: 6 etapów, największy koszt etap 2 i 5. Rzeczywistość: rozpoznanie
+zapisane w `docs/wywiad-zapotrzebowanie/00_rozpoznanie.md` (kilka odczytów
+celowanych z grep, bez pełnych plików); etap 2 tańszy niż zakładano —
+mechanizm wywiadu przyjął trzeci typ bez zmian w szkicach/wersjach
+(jedna nowa gałąź w `waliduj`, jedno pole w `Pytanie`); etap 5 zgodnie
+z planem (jedna wspólna karta zamiast czterech widoków). Zero podagentów.
+Usprawnienie na następny raz: wartości kontrolne do planu liczyć
+skryptem, nie z pamięci.
+
