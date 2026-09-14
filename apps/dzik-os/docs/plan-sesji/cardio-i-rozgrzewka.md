@@ -204,3 +204,113 @@ z promptu — historia cardio w „Ostatnich treningach” w Planie).
    `elementy.py` i pokazywane jako pozycje tylko do odczytu z odznaką (rozgrzewka /
    rozciąganie / cardio); dodawanie ich w szkicu — przez `PlanEditor` (nowa wersja) albo
    przyszła runda.
+7. **Przegląd 3 recenzentów wsadowo:** narzędzie `Agent` nie jest dostępne w tej sesji —
+   przegląd wykonany jako trzy oddzielne przejścia tematyczne po pełnym diffie
+   (A: bezpieczeństwo/zgody/dane zdrowotne/IDOR; B: model suwaków i wzory wobec
+   `model-suwakow-cardio.md`; C: testy/UX/treść/dokumenty). Nie jest to przegląd
+   niezależny — odnotowane wprost. Wynik niżej („Przegląd”).
+8. **Numeracja pozycji w edytorze** („Ćwiczenie 2” po bloku rozgrzewki) liczy indeks
+   w tablicy pozycji, nie tylko siłowe — zachowane (stabilne `id`/indeksy, `aria-label`),
+   P2 w `docs/cardio/PROGRESS.md`.
+9. **Czas interwałów** nie jest zaokrąglany do 5 min, gdy suma rund przekracza czas
+   z mieszania (ZAAWANSOWANY: 4×(4+3) = 28 min) — suma rund jest dokładniejsza niż
+   zaokrąglenie; przykład kontrolny `(0,1,0)` → 25 min dotyczy poziomu średniego.
+10. **Dwa testy istniejące dostosowane do seedu** (jawnie, Karta §II):
+    `test_exercises_extended::test_seeded_plans_and_templates_are_linked_to_library`
+    (blok linkuje przez `block_id`, jego pozycje przez `exercise_id`) i
+    `test_wiedza_api::test_nowa_wersja_trenera…` (ślad `plan_change` filtrowany po
+    celu, historia decyzji niesie też `H_CARDIO` z dnia C) oraz stub `workout_entries`
+    dla migracji 39 w `test_migration_19…` (wzorzec 0.70.0).
+
+## Przegląd (trzy przejścia tematyczne po diffie — patrz odstępstwo 7)
+
+**A. Bezpieczeństwo / zgody / dane zdrowotne / IDOR.** P1 (naprawione): `avg_hr`
+(tętno średnie z sesji cardio) wracało w `GET /api/clients/{id}/workouts` trenerowi
+z dostępem tylko do domeny treningowej po cofnięciu zgody zdrowotnej — teraz maskowane
+po stronie serwera (`coach_can_access_client(..., domain=DOMAIN_HEALTH)`), klient widzi
+swoje; test `test_tetno_srednie_maskowane_dla_trenera_bez_zgody_zdrowotnej`. Sprawdzone
+bez zastrzeżeń: `podglad` wymaga COACH + relacji (`write`, domena treningowa) — klient
+403, obcy trener 404 (testy); prefill wieku/tętna/masy wyłącznie po
+`resolve_client_access(DOMAIN_HEALTH)` (wyjątek łapany bez audytu odmowy — to nie IDOR,
+tylko brak zgody; odpowiedź mówi `health_access: false`); blok zdrowotny nie trafia do
+odpowiedzi poza `status/issues/questions`, nie jest logowany (`record_event` nie ma w
+`podglad`), nie ma go w `trace` ani `prescription` (test na zrzucie JSON); fakty śladu
+`H_CARDIO` bez wieku/tętna; bloki — `require_owned_resource` (cudzy 404, klient 403);
+`exercise_id` w pozycjach bloku sprawdzane wobec aktywnej bazy trenera (422);
+`machine` w dzienniku z listy zamkniętej; eksport/usunięcie konta jak dotąd. P2:
+`prescription.hrmax_estimate` w treści planu pozwala odtworzyć wiek (208 − 0,7·w) —
+treść planu jest w domenie treningowej; wiek podał trener z rozmowy albo odczytał za
+zgodą; zostaje (PROGRESS).
+
+**B. Model suwaków i wzory.** Zgodne z `model-suwakow-cardio.md`: kotwice §4 (%HRmax,
+%HRR, RPE, czas, test mowy) 1:1; Karvonen `HRspocz + %HRR × (HRmax − HRspocz)` z
+kotwic %HRR (nie z przeliczenia %HRmax) — dwa zakresy liczone niezależnie, w bpm zawsze
+z Karvonena, gdy jest tętno spoczynkowe; Tanaka `208 − 0,7·wiek` z błędem ±10 podanym
+w odpowiedzi; zakres ±5 punktów, sufit 85 % dla początkujących nie zwęża zakresu do
+jednej liczby (P2 naprawione przed testami: `(85,85)` → `(75,85)`); progi struktury —
+odstępstwo wobec §4 tekstu (`wW ≥ 0,5`) na rzecz przykładu kontrolnego `(0,5/0,5/0) →
+tempo 2×10` (próg ostry `> 0,5`), a „tempo” używa mieszanej intensywności (przykład
+`(⅓,⅓,⅓) → ok. 73 %`), nie stałych 78–85 — obie decyzje opisane w kodzie i w
+PROGRESS jako [C] do potwierdzenia; zaokrąglenie czasu do 5 z połówką w górę
+(33,3 → 35; 37,5 → 40); jednostki: `bpm`, `% HRmax`, `% rezerwy tętna`, `RPE`, `min`,
+`kcal` — spójne w API, śladzie i UI; MET × masa × h — bez masy brak liczby (nie
+zgadujemy); brak porad medycznych w UI: teksty mówią „propozycja”, „zakres, nie jedna
+liczba”, „bilans energii”; przy lekach — bez ud./min. Determinizm: test równości dwóch
+wywołań. Suma wag ≠ 1 → 422 bez normalizacji (silnik, schemat `CardioIn`, front
+zawsze 100).
+
+**C. Testy / UX / treść / dokumenty.** Bez P0/P1. P2 (PROGRESS): numeracja
+„Ćwiczenie N” po bloku; podsumowanie różnic szkicu dla pozycji cardio jest generyczne
+(„zmieniono <nazwa pozycji>”), bez frazy „zmieniono cel cardio”; sekcja Cardio w
+Postępach wycięta (zgodnie z kolejnością cięcia promptu); zastrzeżenie o bilansie
+energii u klienta pokazywane warunkowo (naprawione: tylko gdy waga Redukcja > 0).
+Treść polska bez nazw modeli AI; dokumenty: CHANGELOG, RELEASE_STATUS, PERMISSIONS,
+WIEDZA, RISK_REGISTER (R-21), KONFIGURATOR, BAZA_CWICZEN §12, IMPORT_BAZ §3.6,
+instrukcje, STAN_PRZEKAZANIA, `docs/zlecenia/README.md`, `docs/cardio/`.
+
+## Weryfikacja wykonana
+
+**Przeklik przez serwer E2E** (port 8112, świeża baza + seed; skrypt Playwright poza
+repo, zrzuty w scratchpadzie sesji `cardio-zrzuty/01–12`), co kliknąłem i co zobaczyłem:
+
+1. Trener (desktop 1280) → Szablony → zakładka **„Bloki”**: 12 kart (9 rozgrzewek,
+   3 rozciągania) z odznakami rodzaj/wariant/poziom, źródło „wbudowany — do przeglądu
+   trenera”, lista pozycji z dawką (zrzut 01).
+2. Karta Anny Wilk → Plan → **„+ Nowy plan”** → „+ Rozgrzewka” → lista bloków WARMUP
+   (zrzut 02) → „Wstaw” pierwszej (całe ciało, początkujący) → pozycja z odznaką
+   „rozgrzewka” na początku dnia, „całe ciało · początkujący · ≈8 min · 6 pozycji”.
+3. **„+ Cardio”** → panel: suwak Wydolność na 60 → Redukcja 20 % / Wydolność 60 % /
+   Regeneracja 20 % (suma 100; zrzut 03). „Policz propozycję” bez bramki → komunikat
+   „Brak odpowiedzi na pytania kwalifikacji zdrowotnej…” i lista pytań, **bez
+   propozycji** (zrzut 04). Siedem „nie”, wiek 41, tętno spoczynkowe 62, masa 90,
+   wioślarz dołożony → kafelki **85–95 % tętna maks. · 152–164 ud./min (rezerwa tętna)
+   · RPE 5–7 · 30 min, 6×2 min / przerwa 2 min**, test mowy „pojedyncze słowa”,
+   szacunek 302 kcal (MET), tabela „zacznij od” dla rowerka (kadencja 90–100, opór
+   wysoki; w przerwie 80–90, umiarkowany) i wioślarza (28–32 spm, damper 3–5), cztery
+   zastrzeżenia, „Zmień liczby ręcznie” (zrzut 05). „Wstaw do dnia” → pozycja „cardio”
+   z opisem „R 20 % / W 60 % / G 20 % · 85–95 % HRmax · RPE 5–7 · 30 min · 6×2 min”.
+   „+ Rozciąganie” → blok na końcu dnia (zrzut 06). „Utwórz plan” → karta klienta:
+   dzień z trzema pozycjami i odznakami (zrzut 07).
+4. Anna (Pixel 7): Plan → „Twoje dni treningowe” ustawia dzisiejszy dzień → **„Dzisiaj”**
+   pokazuje jednostkę z blokiem rozgrzewki (odznaka, „Pokaż pozycje (6)”), przysiadem
+   i kartą cardio z paskami wag, wyborem urządzenia i „zacznij od…” (zrzut 08).
+5. Plan: rozwinięta lista rozgrzewki (6 pozycji z dawką i „Technika z bazy”), cardio
+   po wyborze **wioślarza**: „Zacznij od: uderzenia 28–32 spm, opór (damper) 3–5 ·
+   w przerwie 22–26”, „Tętno: 152–164 ud./min · 85–95 % HRmax (praca) · przerwa
+   115–126 ud./min”, „RPE: 5–7 / 10 · test mowy: pojedyncze słowa”, „Czas: 30 min ·
+   struktura: 6×2 min / przerwa 2 min”, szacunek 279 kcal, timery „praca 2 min” /
+   „przerwa 2 min”, zastrzeżenie, „Dlaczego takie cardio?” (zrzut 09).
+6. „Zapisz wykonanie z wynikami”: blok odhaczony „wykonane w całości”, cardio: czas 30,
+   RPE 5, tętno 128 (zrzut 10) → „Zapisz trening” → **„Ostatnie treningi”: „Rozgrzewka
+   — całe ciało (początkujący): wykonano”, „Cardio …: Wioślarz · 30 min · RPE 5 ·
+   128 ud./min”** (zrzut 11).
+7. **„Dlaczego takie cardio?”** → panel „Wyjaśnienie z zapisanej decyzji”: „Decyzja:
+   cardio 30 min w zakresie 85–95 % tętna maksymalnego (RPE 5–7). Zakres, nie jedna
+   liczba…”, „Co na nią wpłynęło: suwaki celów — Redukcja 20 %, Wydolność 60 %,
+   Regeneracja 20 % — poziom średniozaawansowany, tętno z rezerwy tętna…; struktura:
+   6×2 min… To reguła modelu (wersja 1.0…), nie wynik badania ani porada medyczna.”
+   (zrzut 12).
+8. Konsola: **0 `pageerror`, 0 błędów konsoli** w obu przebiegach.
+
+**Bramki** (z `/home/user/wt/cardio`, jak CI) — patrz tabela na końcu (uzupełniona po
+pełnym przebiegu).

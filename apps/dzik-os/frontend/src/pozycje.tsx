@@ -222,8 +222,12 @@ export function PozycjaCardio({ ex, machine, onMachine, dlaczego, kompakt = fals
         )}
         <p className="dim" style={{ margin: "6px 0 0", fontSize: "0.8rem" }}>
           {rx.hr_mode === "rpe_only" ? rx.caveats.find((x) => x.startsWith("Leki")) ?? rx.caveats[0]
-            : "Zakres, nie jedna liczba: tętno z wzoru wiekowego ma błąd ±10 ud./min — kieruj się też RPE i testem mowy. "
-              + "Udział tłuszczu jako paliwa w strefie nie przesądza o utracie tkanki — decyduje bilans energii w skali tygodni."}
+            : (rx.hr_bpm_range
+              ? "Zakres, nie jedna liczba: tętno z wzoru wiekowego ma błąd ±10 ud./min — kieruj się też RPE i testem mowy. "
+              : "Bez tętna prowadź wysiłek według RPE i testu mowy — to równoprawny wariant. ")
+              + ((c.goal_mix.redukcja ?? 0) > 0
+                ? "Udział tłuszczu jako paliwa w strefie nie przesądza o utracie tkanki — decyduje bilans energii w skali tygodni."
+                : "To propozycja trenera — zakres, nie jedna liczba.")}
         </p>
         {dlaczego && (
           <div style={{ marginTop: 6 }}>

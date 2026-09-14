@@ -7,7 +7,9 @@ from sqlalchemy.orm import Session
 
 from .. import aggregates, notifications, plan_templates, sheet_import
 from ..authz import (
+    DOMAIN_HEALTH,
     DOMAIN_TRAINING,
+    coach_can_access_client,
     deny,
     require_attachable_file,
     require_owned_resource,
@@ -429,6 +431,12 @@ def list_workouts(
     db: Session = Depends(get_db),
 ):
     resolve_client_access(db, user, client_id, domain=DOMAIN_TRAINING)
+    # Tętno średnie z sesji cardio (0.73.0) to dana zdrowotna: klient widzi swoje,
+    # trener tylko przy dostępie do domeny zdrowotnej — inaczej pole jest maskowane
+    # po stronie serwera (jak `hidden_for_client` w Postępach), reszta wpisu zostaje.
+    tetno_widoczne = user.id == client_id or coach_can_access_client(
+        db, user.id, client_id, action="read", domain=DOMAIN_HEALTH
+    )
     sessions = (
         db.query(WorkoutSession)
         .filter(WorkoutSession.client_id == client_id)
@@ -465,7 +473,7 @@ def list_workouts(
                         "comment": e.comment,
                         "file_id": e.file_id,
                         "duration_min": e.duration_min,
-                        "avg_hr": e.avg_hr,
+                        "avg_hr": e.avg_hr if tetno_widoczne else None,
                         "rpe": e.rpe,
                         "distance_km": e.distance_km,
                         "machine": e.machine,

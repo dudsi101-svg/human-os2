@@ -9,7 +9,14 @@ from __future__ import annotations
 
 import json
 
-from conftest import CLIENT_A, CLIENT_B, COACH, create_activated_client, create_user_with_role, get_user_id, login
+from conftest import (
+    CLIENT_A,
+    CLIENT_B,
+    COACH,
+    create_user_with_role,
+    get_user_id,
+    login,
+)
 
 from dzik_os.db import SessionLocal
 from dzik_os.models import Measurement, WiedzaSlad, WorkoutEntry, new_id
@@ -256,3 +263,26 @@ def test_dziennik_cudzego_klienta_404(seeded):
         "plan_version_id": plan["current_version"]["id"], "day_index": 2, "performed_on": "2026-09-14",
         "entries": [{"exercise_index": 3, "exercise_name": "Cardio", "duration_min": 20, "rpe": 5}]})
     assert r.status_code == 404
+
+
+def test_tetno_srednie_maskowane_dla_trenera_bez_zgody_zdrowotnej(seeded):
+    """`avg_hr` to dana zdrowotna: po cofnięciu zgody na dane zdrowotne trener nadal
+    widzi wpis cardio (czas, RPE, urządzenie — domena treningowa), ale bez tętna."""
+    hc, ha = login(seeded, COACH), login(seeded, CLIENT_A)
+    cid = get_user_id(seeded, ha)
+    plan = _plan_a(seeded, ha, cid)
+    r = seeded.post(f"/api/clients/{cid}/workouts", headers=ha, json={
+        "plan_version_id": plan["current_version"]["id"], "day_index": 2, "performed_on": "2026-09-14",
+        "entries": [{"exercise_index": 3, "exercise_name": "Cardio", "duration_min": 20, "avg_hr": 140, "rpe": 5,
+                     "machine": "rowerek"}]})
+    assert r.status_code == 201
+    wpis = seeded.get(f"/api/clients/{cid}/workouts", headers=hc).json()["workouts"][0]["entries"][0]
+    assert wpis["avg_hr"] == 140  # zgoda zdrowotna z seedu
+    zgody = seeded.get("/api/me/consents", headers=ha).json()["consents"]
+    zdrowie = next(c for c in zgody if c["category"] == "dane_zdrowotne" and c["revoked_at"] is None
+                   and c["denied_at"] is None)
+    assert seeded.post(f"/api/me/consents/{zdrowie['id']}/revoke", headers=ha).status_code == 200
+    wpis = seeded.get(f"/api/clients/{cid}/workouts", headers=hc).json()["workouts"][0]["entries"][0]
+    assert wpis["avg_hr"] is None and wpis["duration_min"] == 20 and wpis["machine"] == "rowerek"
+    # Klient nadal widzi swoje tętno.
+    assert seeded.get(f"/api/clients/{cid}/workouts", headers=ha).json()["workouts"][0]["entries"][0]["avg_hr"] == 140
