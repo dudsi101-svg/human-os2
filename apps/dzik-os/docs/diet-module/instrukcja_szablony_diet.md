@@ -181,31 +181,58 @@ Trener widzi propozycję z porównaniem makro i zatwierdza lub wybiera inną. Do
 
 ---
 
-## 7. Wymiana produktu przez klienta
+## 7. Wymiana produktu przez klienta (v2, 0.69.0)
 
 ### 7.1 Zachowanie
 
-1. Klient klika produkt w swoim jadłospisie.
-2. Widzi **1–3 zamienniki** z tej samej `substitution_group` (np. "białko chude": pierś z kurczaka → pierś z indyka, dorsz, tofu w profilu wege).
-3. Przy każdym zamienniku wyświetla się przeliczona gramatura, żeby posiłek zachował kcal i makro (wymiana **izokaloryczna z zachowaniem roli makro**).
-4. Po wyborze posiłek się przelicza; jeśli po wymianie odchylenie > tolerancji posiłku, zamiennik nie jest pokazywany (odpada na etapie doboru).
+1. Klient klika „↔ wymień” przy składniku — także przy warzywach i dodatkach
+   (rola NONE), jeśli grupa zamienników ma ≥ 2 produkty; składniki STAŁE bez przycisku.
+2. Widzi do **5 zamienników** z etykietą poziomu: **„z tej samej grupy”** (poziom 1,
+   ta sama `substitution_group`) albo **„grupa pokrewna: …”** (poziom 2, z tabeli
+   powiązań `dieta/dane/grupy_pokrewne.json`; powód powiązania w dymku).
+3. Przy każdym zamienniku: gramatura policzona przez serwer (zachowanie roli makro;
+   dla NONE 1:1 wagowo) i **delta posiłku** po polsku („posiłek: −12 kcal, białko +1 g”).
+4. Po wyborze posiłek się przelicza; serwer zapisuje wymianę z poziomem.
 
-### 7.2 Dobór zamienników
+### 7.2 Dobór zamienników (sita w tej kolejności, każde odrzucenie liczone z powodem)
 
-Kandydaci pochodzą z tej samej `substitution_group` produktu bazowego. Ranking według:
+1. **Wykluczenia** klienta (alergeny, wykluczenia dietetyczne, „nie lubię” po nazwie)
+   — **przed** poziomem 2: grupa pokrewna nie może przemycić alergenu.
+2. **Funkcja w posiłku:** metoda przygotowania (`cooking_tags` muszą się przecinać;
+   `*` i pusty zestaw tagów = wildcard; na poziomie 2 wildcard kandydata nie wystarcza)
+   i rola makro (kandydat musi dostarczać makro roli; na poziomie 2 dominujące makro
+   zgodne z rolą, dla P wystarczy ≥ 15 g białka/100 g).
+3. **Limity porcji** v1.1: ≤ 300 g surowego mięsa/ryby, ≤ 4 jajka.
+4. **Bramka posiłku „w tolerancji ALBO nie pogarsza”:** posiłek po wymianie mieści się
+   w `TOL_MEAL` **albo** żadne odchylenie (kcal, P, F, C) nie jest większe niż przed
+   wymianą — w posiłku już poza tolerancją wymiana neutralna lub poprawiająca jest
+   dozwolona. `TOL_MEAL`/`TOL_DAY` bez zmian.
 
-- odległości makro na 100 g (B, T, W — ważone rolą składnika w przepisie),
-- zgodności z profilem diety i wykluczeniami klienta,
-- zgodności z metodą przygotowania (`cooking_tags`: "do smażenia", "na zimno", "do pieczenia") — nie proponujemy twarogu zamiast piersi na patelnię,
-- popularności wymian (liczymy, co klienci wybierają).
+Ranking: poziom (1 przed 2) → suma |Δ| posiłku po wymianie → odległość makro produktu.
+Wynik deterministyczny.
 
-Pokazujemy maks. 3, min. 1; jeśli zero kandydatów spełnia kryteria — komunikat "Brak bezpiecznego zamiennika, napisz do trenera".
+**Pusta lista ma powód** (`reason`): `SINGLETON` (grupa bez innych produktów i bez grup
+pokrewnych), `EXCLUDED` (wszystko odpadło przez wykluczenia), `FUNCTION` (nic nie pasuje
+metodą/rolą), `PORTION` (porcja poza limitem), `TOLERANCE` (kandydaci istnieją, ale
+każdy pogarsza posiłek). Interfejs pokazuje właściwy komunikat po polsku.
 
 ### 7.3 Uprawnienia trenera
 
-- domyślnie wymiany włączone dla wszystkich składników z rolą `P`/`C`/`F`,
-- trener może zablokować wymiany globalnie dla klienta lub dla konkretnego posiłku (np. protokół medyczny),
-- trener widzi historię wymian klienta (co, kiedy, na co) — sygnał, czego klient nie lubi.
+- domyślnie wymiany włączone dla składników z rolą `P`/`C`/`F` oraz `NONE` z grupą
+  ≥ 2 produktów (liczone przy odczycie — także dla przypisań sprzed 0.69.0),
+- trener może zablokować wymiany globalnie dla klienta lub dla konkretnego posiłku,
+- trener widzi historię wymian klienta (co, kiedy, na co, **z jakiego poziomu**),
+- tabela grup pokrewnych w panelu szablonów **tylko do odczytu** (status PROPOZYCJA,
+  pary „?” wyłączone) — poprawki przez właściciela, edycja z panelu to osobna runda.
+
+### 7.4 Katalog trenera jako źródło zamienników (§5a zlecenia)
+
+Katalog pojedynczych produktów (`FoodProduct`, 2058 pozycji) **nie** jest źródłem
+kandydatów w czasie działania (brak grup, tagów, alergenów). Narzędzie
+`tools/koreluj_katalog.py` generuje CSV propozycji do przeglądu człowieka
+(`docs/diet-module/katalog_korelacja_propozycja.csv`); tylko wiersze z decyzją TAK
+trafiają do `dieta/dane/produkty_z_katalogu.csv` (osobny plik, jawne pochodzenie,
+seed po głównym CSV). Wiersz bez uzupełnionego alergenu nie może być zaimportowany.
 
 ---
 

@@ -268,3 +268,39 @@ seed na dwóch maszynach Fly przy rolling deploy → `IntegrityError` i rollback
 szablonów diet (od 0.60.0) — do uzupełnienia przed włączeniem flagi na produkcji;
 `test_powtorny_seed_nie_dubluje` częściowo dubluje test główny; typografia cudzysłowu w
 `types.ts:1667`.
+
+## Wymiany produktów v2 (0.69.0, zlecenie 2 z 14.09) — pomiar, odstępstwa, pytania
+
+Pomiar `tools/pomiar_wymian.py` (Standard v1, bez wykluczeń, składniki P/C/F = 108):
+
+| stan | 1600 | 2000 | 2600 | NONE 2000 |
+|---|---|---|---|---|
+| `main` 0.64.0 (poziom 1, bramka absolutna) | 20 | 12 | 18 | brak przycisku |
+| poziom 1 + „nie pogarsza” + limity v1.1 | 16 | 12 | 17 | 3/124 |
+| **+ grupy pokrewne (0.69.0)** | **9** | **3** | **9** | **3/124** |
+
+Rozpoznanie etapu 0: `wymiany_v2_rozpoznanie.md`. Strażnik: `tests/test_dieta_wymiany_pokrycie.py`.
+
+**Silnik przestaje być 1:1 z prototypem** `engine.py` w `swap_candidates`
+(nowa funkcja `swap_candidates_z_powodami`; skalowanie, `check`, `fit_*`, stałe bez zmian).
+
+**Odstępstwa od promptu (świadome):**
+1. Zakres `min_factor..max_factor` składnika nie jest przenoszony na kandydata
+   (§4 pkt 2 „klasa i limity porcji”) — gęstość produktów różni się kilkukrotnie
+   (50 g awokado ↔ 8 g oliwy); z tym zakresem pomiar dawał 6/108 (2000 kcal) i 51/124
+   dla NONE. Zostają twarde limity v1.1 (300 g mięsa/ryby, 4 jajka).
+2. Tabela grup pokrewnych w panelu bez nowej trasy — w odpowiedzi `GET /api/diet/products`.
+3. Poziom wymiany w historii liczony z grup produktów (bez kolumny, bez migracji).
+
+**Pozostałe puste listy przy 2000 kcal (3):** tuńczyk z puszki (sałatka), szynka
+z indyka (kanapka), ciecierzyca z puszki (miska) — każdy kandydat pogarsza posiłek
+(`TOLERANCE`); do korekty posiłków w szablonie albo wzbogacenia grup przez import
+z katalogu.
+
+**Pytania do właściciela (odpowiedzi domyślne przyjęte):** kto przegląda CSV korelacji
+(właściciel wstępnie, trener potwierdza alergeny); pary „?” wyłączone; bramka „nie
+pogarsza”; NONE 1:1 wagowo. **Do zrobienia po przeglądzie CSV:** `produkty_z_katalogu.csv`
+(tylko TAK) + seed + test integralności — osobny mały PR.
+
+**Poza zakresem (v3):** re-fit pozostałych składników po wymianie, edycja powiązań w UI,
+przycisk wymiany w planie z kreatora, zmiana tolerancji.

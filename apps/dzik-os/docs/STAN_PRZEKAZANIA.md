@@ -367,6 +367,7 @@ nie uruchamiano, ponieważ runda nie zmienia kodu ani zasobów frontendu.
 | `agent/biblioteka-diet` | 0.64.0 | 35 | etapy 0–4 gotowe, przegląd naprawiony (P1 ×8, P2 ×10), PR #66 po scaleniu `main` z migracją 34 | — | 1 |
 | `agent/landing-czerwony` | 0.65.0 | — | etap 0–3 w toku (strona publiczna, wariant czerwono-biały), PR #67 | scalenie #66 (wspólny tylko `package.json`) | 2 |
 | `agent/monitoring-postepy` | 0.66.0 (przesunięte przez nawyki, bibliotekę diet i stronę publiczną) | 36 (przesunięta z 34) | etap 0 — STOP (brak flagi rozgrzewki i wariantów ćwiczeń, decyzje właściciela) | decyzje z `docs/monitoring-tab/00_rozpoznanie.md`; flaga zdrowotna `hidden_for_client` (pytanie `zk_zaburzenia`) z 0.62.0 | 3 |
+| `agent/wymiany-produktow` | 0.69.0 (0.68.0 = dni treningowe) | — | zlecenie 2 (14.09): silnik wymian v2, grupy pokrewne, korelacja katalogu (CSV do decyzji właściciela), PR #69 | scalenie #61 i #68 (wersje rosnące); przegląd CSV przez właściciela równolegle, import zatwierdzonych osobnym PR-em | 3 |
 
 | Rzecz | Stan | Gdzie |
 |---|---|---|

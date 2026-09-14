@@ -1,5 +1,76 @@
 # Changelog — Dzik OS
 
+## 0.69.0 — 2026-09-14
+
+**Wymiany produktów v2 — grupy pokrewne, zgodność funkcji w posiłku, bramka
+„nie pogarsza”, przycisk dla roli NONE, korelacja katalogu trenera (zlecenie 2
+właściciela z 14.09, `docs/zlecenia/PROMPT_writer_wymiany-produktow.md`; gałąź
+`agent/wymiany-produktow`, bez migracji).** Numer 0.68.0 zarezerwowany dla
+„dni treningowych” (migracja 37).
+
+Problem (właściciel): „przycisk wymiany produktu w zakładce Dieta nie działa”.
+Pomiar (`tools/pomiar_wymian.py`, Standard v1, bez wykluczeń): składników
+z rolą P/C/F **bez żadnego zamiennika**:
+
+| stan | 1600 kcal | 2000 kcal | 2600 kcal | NONE 2000 kcal |
+|---|---|---|---|---|
+| `main` 0.64.0 (poziom 1, bramka absolutna) | 20/108 (19 %) | 12/108 (11 %) | 18/108 (17 %) | bez przycisku (124) |
+| **0.69.0** (poziom 1 + 2, „nie pogarsza”, limity v1.1) | **9/108 (8 %)** | **3/108 (3 %)** | **9/108 (8 %)** | **3/124 (2 %)** |
+
+Pozostałe puste przy 2000 kcal: tuńczyk z puszki, szynka z indyka, ciecierzyca
+z puszki (każdy kandydat pogarsza posiłek) — do korekty posiłków w szablonie.
+
+* **Silnik** (`dieta/silnik.py`, `swap_candidates_z_powodami`) — **tu silnik
+  przestaje być 1:1 z prototypem `docs/diet-module/engine.py`** (skalowanie,
+  `check`, `fit_*`, `TOL_MEAL`/`TOL_DAY` bez zmian, test stałych). Poziom 1 =
+  ta sama `substitution_group`, poziom 2 = grupa pokrewna z
+  `dieta/dane/grupy_pokrewne.json` (45 par z tabeli właściciela, symetryczne,
+  z powodem; 5 par „?” wyłączonych do przeglądu trenera). Sita w kolejności:
+  wykluczenia (alergeny/diety/„nie lubię” — **przed** poziomem 2) → funkcja
+  w posiłku (`cooking_tags`: `*` i pusty zestaw = wildcard, na poziomie 2
+  wildcard kandydata nie wystarcza; rola makro: na poziomie 2 dominujące makro
+  zgodne z rolą, dla P wystarczy ≥ 15 g/100 g) → limity porcji v1.1 (≤ 300 g
+  surowego mięsa/ryby, ≤ 4 jajka) → bramka posiłku **„w tolerancji ALBO nie
+  pogarsza”** (żadne odchylenie kcal/P/F/C nie większe niż przed wymianą).
+  Rola NONE: tylko poziom 1, gramatura 1:1 wagowo. Ranking: poziom → suma
+  |Δ| posiłku → odległość makro. Wynik deterministyczny (test). Odstępstwo od
+  promptu: zakres `min/max_factor` składnika **nie** jest przenoszony na
+  kandydata (gęstość produktów różni się kilkukrotnie; pomiar: 6/108 zamiast
+  3/108 pustych list i 51/124 zamiast 3/124 dla NONE).
+* **Powód pustej listy:** `reason` ∈ SINGLETON / EXCLUDED / FUNCTION / PORTION /
+  TOLERANCE + `rejected` (liczby per powód) w `GET /api/diet/assigned/{id}/swaps`;
+  klient widzi właściwy komunikat po polsku zamiast jednego „Brak bezpiecznego
+  zamiennika”. Kandydat niesie `tier`, `group`, `tier_reason`, `meal_delta`.
+* **POST** wymiany: ta sama ścieżka co GET (kandydat spoza listy → 422 także na
+  poziomie 2), bramka „nie pogarsza” dla gramatury z klienta, `tier` w korekcie
+  (JSON, bez migracji); historia wymian trenera pokazuje poziom (liczony z grup
+  produktów). Blokady trenera bez zmian.
+* **`swappable` efektywne** przy odczycie (`serwis.swappable_efektywne`): NONE
+  z grupą ≥ 2 produktów dostaje przycisk także w migawkach sprzed rundy (bez
+  przepisywania danych); seed tą samą regułą; STAŁY nadal bez.
+* **Interfejs klienta** (`DietaSzablon.tsx`): przycisk „↔ wymień” także dla
+  warzyw/dodatków, etykieta „z tej samej grupy” / „grupa pokrewna: …”, delta
+  posiłku po polsku, do 5 kandydatów, pięć komunikatów pustej listy; link do
+  trenera przy SINGLETON/PORTION/TOLERANCE. Panel szablonów trenera: karta
+  „Grupy pokrewne zamienników” **tylko do odczytu** (z `GET /api/diet/products`,
+  bez nowej trasy); historia wymian z poziomem.
+* **Korelacja katalogu trenera (§5a):** `tools/koreluj_katalog.py` czyta
+  2058 pozycji `FOOD_ROWS_ALL` i `produkty.csv`, pisze
+  `docs/diet-module/katalog_korelacja_propozycja.csv` (1930 propozycji:
+  1194 po słowie kluczowym, 736 po kategorii, 128 duplikatów pominiętych;
+  513 z góry NIE: dania gotowe, napoje poza mlekami, odżywki poza białkiem,
+  przekąski; pewność WYSOKA 365 / ŚREDNIA 617 / NISKA 948) — **do decyzji
+  właściciela TAK/NIE**; import zatwierdzonych do
+  `dieta/dane/produkty_z_katalogu.csv` to osobny, mały PR po przeglądzie.
+  Silnik nadal działa wyłącznie na `DietProduct`; katalog `FoodProduct` nie
+  jest źródłem kandydatów w czasie działania.
+* **Testy:** silnik (poziom 2, NONE 1:1, „nie pogarsza”, powody pustej listy,
+  wildcard, alergen nie przechodzi poziomem 2, determinizm), API (reason,
+  tier 2 z zapisem, NONE, historia), grupy (walidacja), korelacja (reguły),
+  **strażnik pokrycia** `test_dieta_wymiany_pokrycie.py` (progi = pomiar +
+  3 pp), E2E `dieta-szablon.spec.ts` (brokuł 1:1, awokado przez grupę
+  pokrewną, historia z poziomem).
+
 ## 0.64.0 — 2026-09-14
 
 **Biblioteka szablonów diet po audycie 14.09 (zgłoszenie właściciela

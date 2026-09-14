@@ -82,15 +82,26 @@ w planie z kreatora, zmiana tolerancji.
 
 ## Odstępstwa od planu
 
-(uzupełniane w trakcie rundy)
+* Zakres `min/max_factor` składnika nie przeniesiony na kandydata (pomiar: 6/108 vs 3/108
+  przy 2000 kcal; NONE 51/124 vs 3/124) — zostały twarde limity v1.1.
+* Tabela powiązań w panelu bez nowej trasy (w `GET /api/diet/products`).
+* Etap 5a (import zatwierdzonych wierszy) po przeglądzie CSV przez właściciela — osobny PR.
 
 ## Weryfikacja wykonana
 
-(uzupełniane: pomiar przed/po, co kliknięto i co zobaczono)
+Pomiar przed/po (`tools/pomiar_wymian.py`, Standard v1, P/C/F z 108): 1600 kcal 20 → 9,
+2000 kcal 12 → 3, 2600 kcal 18 → 9; NONE 2000 kcal: bez przycisku → 3/124 pustych.
+Bramki: ruff, testy diety (87: silnik 26, API, poprawki, seed, grupy 7, korelacja 6,
+strażnik 5, pakietowanie, macierz), tsc, build, E2E `dieta-szablon.spec.ts` (klient B:
+kurczak → indyk, brokuł → warzywo z tej samej grupy 1:1 z deltą posiłku, awokado (dzień 2)
+→ grupa pokrewna; trener: historia z poziomami). Uruchomienie przez serwer E2E — patrz PR.
 
 ## Plan kontra rzeczywistość (zasady v2 §5)
 
-(uzupełniane na koniec rundy)
+Etapy 0–5 wg planu; 5a (import) odłożony do przeglądu CSV. Największy koszt: silnik
+(sita, powody, ranking) i dopasowanie E2E — zgodnie z planem. Usprawnienie: pomiar jako
+narzędzie + strażnik z progiem z pomiaru zamiast „0 pustych list”. Przegląd: 3 recenzentów
+wsadowo (wynik w PR).
 
 ## Odpowiedzi na pytania §9 promptu (domyślne, o ile właściciel nie zmieni)
 
