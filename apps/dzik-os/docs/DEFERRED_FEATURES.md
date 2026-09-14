@@ -19,6 +19,18 @@ Zgodnie z zakresem MVP (sekcja 13 briefu). Architektura ich nie blokuje.
 * autonomiczny AI-coach; jakiekolwiek funkcje AI (patrz ADR-DZIK-001 §AI);
 * marketplace trenerów / multi-tenant dla wielu firm.
 
+## Odłożone decyzją właściciela (14.09.2026)
+
+* **Kreator diety** (0.44–0.48: „Wygeneruj propozycję”, „Ułóż sam
+  z produktów”; zakładka „Dieta” w Bazie wiedzy trenera) — odłożony
+  i **ukryty za flagą** `DZIK_DIET_WIZARD_ENABLED` od 0.67.0. Powód
+  (właściciel): „wymaga wielkiej pracy”; dieta klienta = szablon
+  („Przypisz dietę”, biblioteka 0.64.0). Katalog pojedynczych produktów
+  (zakładka „Produkty”, 2058 pozycji) zostaje jako źródło zamienników dla
+  szablonów (zlecenie „Wymiany produktów v2”, §5a). Jak wrócić: jedna
+  zmienna środowiskowa (`DEPLOYMENT.md` §4e) — kod, trasy, testy i dane
+  są nietknięte; plany żywieniowe z kreatora u klientów pozostają widoczne.
+
 ## Odłożone technicznie (znane braki MVP)
 
 * kopiowanie szablonu planu do klienta jednym kliknięciem (obecnie trener

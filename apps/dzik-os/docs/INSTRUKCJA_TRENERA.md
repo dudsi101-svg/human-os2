@@ -181,6 +181,11 @@ Zakładka „Wiedza" ma cztery karty:
   arytmetyka — **nic nie zapisuje się automatycznie**; wynik skopiuj i
   wklej ręcznie do zakładki „Dieta" klienta, jeśli Ci odpowiada.
 
+Zakładka „Dieta" (kreator diety: „Wygeneruj propozycję", „Ułóż sam
+z produktów", „Ułóż z dań") jest od 0.67.0 ukryta — pokazuje się tylko,
+gdy operator włączy `DZIK_DIET_WIZARD_ENABLED`. Twoje ręczne plany
+żywieniowe, szablony diet i zakładka „Produkty" działają jak dotąd.
+
 ## Zasady
 
 * Widzisz wyłącznie klientów, z którymi masz aktywną współpracę i zgodę.

@@ -365,8 +365,9 @@ nie uruchamiano, ponieważ runda nie zmienia kodu ani zasobów frontendu.
 | `agent/nawyki-dzisiaj` | 0.63.0 | 34 | **scalona** (PR #65, 14.09), wdrożenie 0.63.0 w toku | — | — |
 | `agent/wywiad-zapotrzebowanie` | 0.62.0 | 33 | **scalona** (PR #60, 14.09) i wdrożona | dokument właściciela `wywiad_zapotrzebowanie_kaloryczne.md` nadal niedostarczony — różnice do wyrównania | — |
 | `agent/biblioteka-diet` | 0.64.0 | 35 | **scalona** (PR #66, 14.09), deploy 0.64.0 po CI na `main` | — | — |
-| `agent/landing-czerwony` | 0.65.0 | — | gotowa, PR #67 „ready”, CI zielone po scaleniu `main` | **decyzja właściciela o scaleniu** (prompt: nie scalać samodzielnie) | po decyzji |
-| `agent/monitoring-postepy` | 0.66.0 | 36 | etapy 0–8 gotowe (decyzje właściciela z 14.09 przyjęte), `main` 0.64.0 scalony, PR #61 — przegląd (3 recenzentów + weryfikator) i CI | — (wspólne z #67 tylko `package.json`, CHANGELOG, STAN) | 1 |
+| `agent/landing-czerwony` | 0.65.0 | — | gotowa, PR #67 „ready”, CI zielone po scaleniu `main` | **decyzja właściciela o scaleniu** (prompt: nie scalać samodzielnie); po scaleniu #61 numer 0.65.0 do zmiany na kolejny wolny | po decyzji |
+| `agent/monitoring-postepy` | 0.66.0 | 36 | **scalona** (PR #61, 14.09), deploy 0.66.0 po CI na `main`; flaga na produkcji wyłączona | włączenie flagi + backfill — decyzja właściciela | — |
+| `agent/ukryj-kreator` | 0.67.0 | — | zlecenie 0 (14.09): kreator diety za flagą `DZIK_DIET_WIZARD_ENABLED`, nic nie kasowane; `main` 0.66.0 scalony, PR #68 — CI po scaleniu | — | 1 |
 
 | Rzecz | Stan | Gdzie |
 |---|---|---|

@@ -148,7 +148,8 @@ domeny endpointu (`sensitive` wynika z katalogu kategorii).
 | POST/PUT/status /api/coach/knowledge, /exercises, /food-products | T·own | wyłącznie własne wpisy katalogów | — | — | W |
 | GET /api/coach/knowledge, /exercises, /food-products | T·own | własny katalog (izolacja między trenerami) | — | — | R |
 | GET /api/me/knowledge, /exercises, /food-products | klient | AKTYWNE wpisy trenerów z AKTYWNĄ relacją | tak | nie (broadcast) | R |
-| POST /api/coach/diet-suggestion | T·own | wyłącznie własne produkty (422 dla cudzych); nic nie zapisuje | — | — | R |
+| POST /api/coach/diet-suggestion | T·own | wyłącznie własne produkty (422 dla cudzych); nic nie zapisuje; od 0.67.0 za flagą `DZIK_DIET_WIZARD_ENABLED` (bez niej 404) | — | — | R |
+| POST /api/coach/diet-wizard | T·own | propozycja diety z własnego katalogu (propose-only, nic nie zapisuje); od 0.67.0 za flagą `DZIK_DIET_WIZARD_ENABLED` (bez niej 404) | — | — | R |
 | GET /api/coach/food-products/export | T·own | eksport CSV wyłącznie własnego katalogu (prawo wyjścia) | — | — | R |
 | POST /api/coach/food-products/import | T·own | import CSV dopisuje/aktualizuje wyłącznie własne produkty — nigdy cudze (dopasowanie po nazwie w obrębie katalogu trenera) | — | — | W |
 | POST /api/food-products/portion | zalogowany | kalkulator porcji: własny produkt (trener) albo AKTYWNY produkt trenera z AKTYWNĄ relacją (klient); 404 poza tym | tak (klient) | nie | R |

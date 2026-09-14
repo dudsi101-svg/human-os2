@@ -271,7 +271,8 @@ def create_app() -> FastAPI:
             "features": {"diet_templates": settings.diet_templates_enabled,
                          "mail_test_endpoint": settings.mail_test_endpoint_enabled,
                          "calorie_interview": settings.calorie_interview_enabled,
-                         "monitoring_tab": settings.monitoring_tab_enabled},
+                         "monitoring_tab": settings.monitoring_tab_enabled,
+                         "diet_wizard": settings.diet_wizard_enabled},
         }
 
     @app.get("/api/ready")

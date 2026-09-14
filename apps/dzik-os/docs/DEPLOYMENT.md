@@ -334,6 +334,15 @@ Oczekiwane: `smtp` i `True` oraz list w skrzynce. `null` znaczy, że
 zdrowotne ani kwoty (`docs/POWIADOMIENIA.md`). Adres, temat i treść
 **nie trafiają do logów**.
 
+### 4e. Flagi modułów (env w `fly.toml` `[env]` albo sekret)
+
+| Flaga | Domyślnie | Co włącza |
+|---|---|---|
+| `DZIK_DIET_TEMPLATES_ENABLED` | `false` | szablony diet ze skalowaniem (0.60.0) — `/api/diet/*`, panel szablonów |
+| `DZIK_CALORIE_INTERVIEW_ENABLED` | `false` (produkcja: `true`) | wywiad „Zapotrzebowanie kaloryczne” (0.62.0) |
+| `DZIK_DIET_WIZARD_ENABLED` | `false` | **kreator diety** (zakładka „Dieta” w Bazie wiedzy trenera, `POST /api/coach/diet-wizard`, `/api/coach/diet-suggestion`) — od 0.67.0 ukryty decyzją właściciela z 14.09; **brak wpisu w `fly.toml` = ukryty**. Przywrócenie: dopisać `DZIK_DIET_WIZARD_ENABLED = "true"` w `[env]` i wdrożyć — kod, testy i dane kreatora są nietknięte |
+| `DZIK_MONITORING_TAB_ENABLED` | `false` | zakładka Postępy/Monitoring (0.66.0) |
+
 ### 4d. Funkcje AI (opcjonalne, domyślnie WYŁĄCZONE)
 
 Bez konfiguracji aplikacja działa w pełni — cztery funkcje AI (OCR
