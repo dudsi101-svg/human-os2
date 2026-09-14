@@ -41,6 +41,19 @@ function FormularzBloku({ blok, onSaved, onCancel }: { blok: ExerciseBlockRow | 
   const [tekst, setTekst] = useState(blok ? pozycjeDoTekstu(blok.items) : "");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  // Przegląd PR #79, P1: pozycje opisowe i czas bloku aerobowego liczy serwer
+  // z presetu. Po zmianie rodzaju, celu, poziomu albo urządzeń stara treść
+  // przestaje pasować do nowych liczb (blok mówiłby „RPE 4–5, 40 min”, a preset
+  // liczyłby „RPE 2–3, 25 min”) i taka sprzeczność szła migawką do planu klienta.
+  // Dlatego przy każdej zmianie tych pól czyścimy oba pola — puste = serwer
+  // wypełnia presetem. Pierwsze wejście w formularz (wartości z bloku) zostaje.
+  const [osie, setOsie] = useState(`${blok?.kind ?? "WARMUP"}|${blok?.goal ?? ""}|${blok?.level ?? ""}|${(blok?.cardio?.machines ?? []).join(",")}`);
+  useEffect(() => {
+    const teraz = `${kind}|${kind === "CARDIO" ? goal : ""}|${kind === "STRETCH" ? "" : level}|${kind === "CARDIO" ? machines.join(",") : ""}`;
+    if (teraz === osie) return;
+    setOsie(teraz);
+    if (kind === "CARDIO") { setTekst(""); setDuration(""); }
+  }, [kind, goal, level, machines, osie]);
 
   async function save(e: FormEvent) {
     e.preventDefault();

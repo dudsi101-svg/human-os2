@@ -29,13 +29,42 @@ z szablonów; dodać jednocześnie szablon treningowy i szablon z bloku, a nawet
 4. **`variant` dla CARDIO w bazie = pusty napis** (kolumna `NOT NULL` z migracji 39),
    w API `null`. Alternatywa: przebudowa tabeli w migracji (SQLite bez `DROP NOT NULL`) —
    odrzucona jako ryzyko bez korzyści dla użytkownika.
-5. **Kopia szablonu z ćwiczeniem zarchiwizowanym po zapisie szablonu → 422** (ten sam próg,
-   co nowa wersja planu). Alternatywa: kopiować i tylko ostrzec — do decyzji.
+5. **Kopia szablonu z ćwiczeniem zarchiwizowanym po zapisie szablonu — rozstrzygnięte
+   po przeglądzie:** kopiowanie **przechodzi**. Walidacja przy kopii sprawdza tylko, czy
+   identyfikator należy do tego trenera (cudzy i nieistniejący → 422) — nie wymaga statusu
+   ACTIVE. Blokowanie zmuszałoby trenera do przepisywania szablonu, a odniesienie jest
+   miękkie: nazwa ćwiczenia jest w treści planu. Przy zapisie NOWEJ wersji planu próg
+   zostaje ostry (ACTIVE) — tam trener świadomie redaguje treść.
 6. **Dzień z blokiem tego rodzaju już w szablonie nie jest dublowany** (raport
    `skipped_days`). Alternatywa: zastępować blok z szablonu wybranym — odrzucona (szablon
    jest świadomą decyzją trenera).
 
+## 2a. Po niezależnym przeglądzie (PR #79)
+
+Recenzent: brak P0, dwa P1 — oba naprawione w tej rundzie.
+
+1. **Edycja bloku aerobowego zostawiała stary czas i stare pozycje opisowe.** Formularz
+   prefiluje oba pola z bloku i nie czyścił ich przy zmianie celu, poziomu, urządzeń ani
+   rodzaju, więc po zmianie celu blok reklamował się sprzecznie (nagłówek „≈40 min”, preset
+   liczył 25 min), a migawka niosła tę sprzeczność do planu klienta. Poprawka: zmiana
+   którejkolwiek z tych osi czyści czas i pozycje (puste = serwer liczy presetem).
+   Dowód: E2E „zmiana celu bloku aerobowego przelicza czas i pozycje opisowe” sprawdzony
+   na mutancie — bez poprawki czerwony („Expected: '', Received: '40'”).
+2. **422 przy kopiowaniu szablonu z zarchiwizowanym własnym ćwiczeniem** — patrz §2.5:
+   walidacja zawężona do własności identyfikatora; nowy test pilnuje, że cudze id nadal
+   daje 422.
+
+Drobne z przeglądu, też poprawione: etykieta rodzaju bloku w karcie „Przypisz plan” nie
+wskazuje już na akapit bez kontrolki (gdy katalog jest pusty); `migawka` zamienia pusty
+wariant na `null` wyłącznie dla bloków aerobowych; martwy warunek w teście usunięty.
+
 ## 3. P2 zostawione (nienaprawione, do kolejnej rundy)
+
+0. **Dwa aktywne plany po przypisaniu** (wskazane w przeglądzie): `copy-to` i `from-blocks`
+   nie archiwizują poprzedniego planu, a widoki biorą najnowszy ACTIVE — stary zostaje
+   aktywny i niewidoczny. Dieta robi odwrotnie (archiwizuje poprzednią). Zachowanie sprzed
+   tej rundy, ale nowa karta czyni je codziennym. **Decyzja właściciela:** archiwizować
+   poprzedni plan przy przypisaniu (jak w diecie) czy zostawić?
 
 1. Karta „Przypisz plan” nie pozwala nazwać dni ani ustawić dni tygodnia dla „tylko bloki”
    (nazwy „Dzień 1…”, `weekday` null) — trener robi to w edytorze nowej wersji, klient w

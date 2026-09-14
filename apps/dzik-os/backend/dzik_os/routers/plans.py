@@ -62,34 +62,40 @@ def _validate_exercise_refs(db: Session, coach: User, days: list[PlanDayIn]) -> 
 
 
 def _validate_exercise_ids_in_content(db: Session, coach: User, content: dict) -> None:
-    """To samo dla surowej treści wersji (kopia szablonu, 0.76.0) — bez
-    przepisywania treści przez `PlanDayIn`, żeby kopia była bajt w bajt."""
+    """Kopia szablonu (0.76.0): pilnujemy, żeby do planu klienta nie weszło
+    CUDZE ani nieistniejące `exercise_id` — bez przepisywania treści przez
+    `PlanDayIn`, żeby kopia była bajt w bajt.
+
+    Świadomie NIE wymagamy statusu ACTIVE (inaczej niż przy zapisie nowej
+    wersji): szablon zapisany wcześniej mógł wymieniać ćwiczenie, które trener
+    później zarchiwizował, a archiwizacja ma niczego nie psuć — nazwa jest
+    w treści planu, a odniesienie jest miękkie. Blokowanie kopii zmuszałoby
+    trenera do przepisywania szablonu (przegląd PR #79, P1)."""
     _validate_exercise_ids(db, coach, {
         ex.get("exercise_id")
         for day in (content or {}).get("days") or []
         for ex in (day or {}).get("exercises") or []
         if isinstance(ex, dict) and ex.get("exercise_id")
-    })
+    }, wymagaj_aktywnego=False)
 
 
-def _validate_exercise_ids(db: Session, coach: User, wanted: set[str]) -> None:
+def _validate_exercise_ids(
+    db: Session, coach: User, wanted: set[str], *, wymagaj_aktywnego: bool = True
+) -> None:
     if not wanted:
         return
-    known = {
-        row.id
-        for row in db.query(Exercise)
-        .filter(
-            Exercise.id.in_(wanted),
-            Exercise.coach_id == coach.id,
-            Exercise.status == "ACTIVE",
-        )
-        .all()
-    }
+    filtry = [Exercise.id.in_(wanted), Exercise.coach_id == coach.id]
+    if wymagaj_aktywnego:
+        filtry.append(Exercise.status == "ACTIVE")
+    known = {row.id for row in db.query(Exercise).filter(*filtry).all()}
     missing = sorted(wanted - known)
     if missing:
         raise HTTPException(
             status_code=422,
-            detail="Ćwiczenie spoza Twojej aktywnej bazy: " + ", ".join(missing),
+            detail=(
+                "Ćwiczenie spoza Twojej aktywnej bazy: " if wymagaj_aktywnego
+                else "Ćwiczenie spoza Twojej bazy: "
+            ) + ", ".join(missing),
         )
 
 

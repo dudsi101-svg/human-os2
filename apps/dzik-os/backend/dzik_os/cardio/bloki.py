@@ -87,7 +87,10 @@ def klucz_wiersza(row: ExerciseBlock) -> tuple[str, str | None, str]:
 def migawka(row: ExerciseBlock) -> dict:
     """Migawka treści bloku do pozycji planu (`block`) — archiwizacja bloku
     nie zmienia opublikowanego planu. `variant` = None dla CARDIO."""
-    return {"name": row.name, "kind": row.kind, "level": row.level, "variant": row.variant or None,
+    return {"name": row.name, "kind": row.kind, "level": row.level, # Pusty napis to zapis wariantu „nie dotyczy” dla CARDIO (kolumna NOT NULL
+        # z migracji 39). Dla rozgrzewki i rozciągania wariant jest obowiązkowy —
+        # nie zamieniamy go na None, bo taka migawka nie przeszłaby walidacji.
+        "variant": (row.variant or None) if row.kind == "CARDIO" else row.variant,
             "duration_min": row.duration_min, "items": json.loads(row.items_json or "[]")}
 
 

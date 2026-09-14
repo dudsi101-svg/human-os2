@@ -222,7 +222,7 @@ def test_copy_to_odmowy_duplikat_cudzy_zarchiwizowany_i_brak_dublowania(seeded):
     dni[0]["exercises"].insert(0, {"name": w1["name"], "kind": "warmup_block", "block_id": w1["id"],
                                    "block": {k: w1[k] for k in ("name", "kind", "level", "variant", "duration_min", "items")}})
     assert seeded.post(f"/api/plans/{tid}/versions", headers=hc, json={"reason": "rozgrzewka w dniu 1", "days": dni}).status_code == 201
-    r = seeded.post(f"/api/plans/{tid}/copy-to/{cid}", headers=hc, json={"blocks": [w2["id"] if False else w1["id"], c["id"]]})
+    r = seeded.post(f"/api/plans/{tid}/copy-to/{cid}", headers=hc, json={"blocks": [w1["id"], c["id"]]})
     assert r.status_code == 201, r.text
     ra = r.json()["blocks_applied"]
     assert ra["added"] == {"warmup": 2, "cardio": 3, "stretch": 0}
@@ -246,8 +246,33 @@ def test_copy_to_waliduje_exercise_id_jak_create_plan(seeded):
     tid = r.json()["id"]
     assert seeded.post(f"/api/plans/{tid}/copy-to/{cid}", headers=hc).status_code == 201
     assert seeded.post(f"/api/coach/exercises/{eid}/status", headers=hc, params={"status": "ARCHIVED"}).status_code == 200
+    # Archiwizacja własnego ćwiczenia NIE psuje kopiowania szablonu (przegląd
+    # PR #79, P1): nazwa jest w treści planu, odniesienie jest miękkie.
+    assert seeded.post(f"/api/plans/{tid}/copy-to/{cid}", headers=hc).status_code == 201
+
+
+def test_copy_to_odrzuca_cudze_exercise_id_w_szablonie(seeded):
+    """Kopia nie przepuszcza CUDZEGO ani nieistniejącego `exercise_id` —
+    to jest sens walidacji przy kopiowaniu (bezpieczeństwo, nie status)."""
+    hc = login(seeded, COACH)
+    cid = _client_id(seeded, hc)
+    r = seeded.post("/api/plans", headers=hc, json={"client_id": None, "title": "Szablon z obcym id",
+                                                     "version": {"reason": "t", "days": [{"name": "A", "exercises": [
+                                                         {"name": "Przysiad"}]}]}})
+    assert r.status_code == 201, r.text
+    tid = r.json()["id"]
+    # Obce id wstrzykujemy prosto do treści wersji — API zapisu by go nie przyjęło.
+    import json as _json
+
+    from dzik_os.db import db_session
+    from dzik_os.models import TrainingPlanVersion
+    with db_session() as db:
+        v = db.query(TrainingPlanVersion).filter_by(plan_id=tid, version_no=1).one()
+        tresc = _json.loads(v.content_json)
+        tresc["days"][0]["exercises"][0]["exercise_id"] = "HOS-EXC-999999"
+        v.content_json = _json.dumps(tresc, ensure_ascii=False)
     r = seeded.post(f"/api/plans/{tid}/copy-to/{cid}", headers=hc)
-    assert r.status_code == 422 and eid in r.json()["detail"]
+    assert r.status_code == 422 and "HOS-EXC-999999" in r.json()["detail"]
 
 
 # --- from-blocks -------------------------------------------------------------

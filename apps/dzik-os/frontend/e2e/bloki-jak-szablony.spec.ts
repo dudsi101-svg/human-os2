@@ -116,3 +116,39 @@ test("trener tworzy plan „tylko bloki” na 2 dni; klient widzi dwa dni po aer
   }
   await ctx.close();
 });
+
+/**
+ * Przegląd PR #79, P1: edycja bloku aerobowego zostawiała w formularzu stary
+ * czas i stare pozycje opisowe, więc po zmianie celu blok reklamował się
+ * sprzecznie (nagłówek „≈40 min”, a preset liczył 25 min) i ta sprzeczność
+ * szła migawką do planu klienta. Po poprawce zmiana celu czyści oba pola,
+ * a serwer wypełnia je presetem.
+ */
+test("zmiana celu bloku aerobowego przelicza czas i pozycje opisowe", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await zaloguj(page, KONTA.trener);
+  await page.goto("/trener/szablony");
+  await klik(page.getByRole("tab", { name: "Bloki" }));
+  const tab = page.getByTestId("bloki-tab");
+  await expect(tab).toBeVisible({ timeout: 15_000 });
+
+  // Blok wbudowany „redukcja / średniozaawansowany”: ciągła 40 min.
+  const karta = tab.getByTestId("blok-karta")
+    .filter({ hasText: "Aeroby — redukcja (średniozaawansowany)" }).first();
+  await expect(karta).toContainText("≈40 min");
+  await klik(karta.getByRole("button", { name: "Edytuj" }));
+
+  const formularz = page.getByTestId("blok-formularz");
+  await expect(formularz).toBeVisible();
+  await expect(formularz.locator("#bl-duration")).toHaveValue("40");
+  await formularz.locator("#bl-goal").selectOption("regeneracja");
+  // Zmiana celu czyści oba pola — puste znaczy „policz presetem”.
+  await expect(formularz.locator("#bl-duration")).toHaveValue("");
+  await expect(formularz.locator("#bl-items")).toHaveValue("");
+  await klik(formularz.getByRole("button", { name: "Zapisz blok" }));
+
+  const po = tab.getByTestId("blok-karta")
+    .filter({ hasText: "Aeroby — redukcja (średniozaawansowany)" }).first();
+  await expect(po).toContainText("≈25 min", { timeout: 15_000 });
+  await expect(po).not.toContainText("≈40 min");
+});

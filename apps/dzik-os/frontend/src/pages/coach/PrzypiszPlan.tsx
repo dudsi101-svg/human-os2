@@ -127,9 +127,13 @@ export default function PrzypiszPlan({ clientId, templates, onDone }: {
           const lista = aktywne(kind);
           return (
             <div key={kind} style={{ marginTop: 6 }}>
-              <label htmlFor={`pp-blok-${kind}`}>{BLOCK_KIND_LABELS[kind]} <span className="dim">({OPIS_RODZAJU[kind]})</span></label>
+              {/* Etykieta wskazuje na pole tylko wtedy, gdy pole istnieje — przy pustym
+                  katalogu jest zwykłym tekstem nad komunikatem (przegląd PR #79, P2). */}
+              {bloki !== null && lista.length === 0
+                ? <b style={{ display: "block" }}>{BLOCK_KIND_LABELS[kind]} <span className="dim">({OPIS_RODZAJU[kind]})</span></b>
+                : <label htmlFor={`pp-blok-${kind}`}>{BLOCK_KIND_LABELS[kind]} <span className="dim">({OPIS_RODZAJU[kind]})</span></label>}
               {bloki !== null && lista.length === 0 ? (
-                <p className="dim" style={{ fontSize: "0.85rem", margin: "2px 0 0" }} id={`pp-blok-${kind}`}>
+                <p className="dim" style={{ fontSize: "0.85rem", margin: "2px 0 0" }}>
                   Brak bloków tego rodzaju w katalogu — <Link to="/trener/szablony">Szablony → Bloki → „Dodaj wbudowane”</Link>.
                 </p>
               ) : (

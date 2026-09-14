@@ -36,8 +36,10 @@ nawigacja na iPhonie (PR #78).
   migawki bloków; dzień, który ma już blok danego rodzaju z szablonu, nie jest
   dublowany. Odpowiedź dokłada `blocks_applied: {added: {warmup, cardio, stretch},
   skipped_days: [...]}`. Bez ciała — zachowanie i odpowiedź jak dotąd. **Luka
-  z 0.73.0 zamknięta:** kopia szablonu waliduje `exercise_id` (jak `POST /plans`)
-  i zapisuje ślad `H_CARDIO` dla każdej pozycji cardio w tej samej transakcji.
+  z 0.73.0 zamknięta:** kopia szablonu sprawdza, czy `exercise_id` należy do tego
+  trenera (cudzy albo nieistniejący → 422; własny zarchiwizowany przechodzi —
+  odniesienie jest miękkie, nazwa jest w treści planu) i zapisuje ślad `H_CARDIO`
+  dla każdej pozycji cardio w tej samej transakcji.
 * **`POST /api/clients/{client_id}/plans/from-blocks`** — plan klienta z samych
   bloków (1–7 dni z nazwami, 1–3 bloki po jednym na rodzaj), CLIENT_SCOPED
   (klient 403, trener bez relacji 404).
@@ -60,6 +62,12 @@ nawigacja na iPhonie (PR #78).
   `CardioPanel`, wbudowane schematy treningowe (bloki dokłada się przy przypisaniu).
   Plan sesji i odstępstwa: `docs/plan-sesji/bloki-jak-szablony.md`; postęp i P2:
   `docs/bloki-jak-szablony/PROGRESS.md`.
+
+* **Po niezależnym przeglądzie:** edycja bloku aerobowego czyści czas i pozycje
+  opisowe przy zmianie celu, poziomu, urządzeń albo rodzaju — inaczej blok
+  reklamował się sprzecznie z własnym presetem, a migawka niosła to do planu
+  klienta (E2E sprawdzony na mutancie). Etykieta rodzaju bloku w karcie
+  „Przypisz plan” nie wskazuje już na akapit bez kontrolki, gdy katalog jest pusty.
 
 ## 0.75.1 — 2026-09-14
 
