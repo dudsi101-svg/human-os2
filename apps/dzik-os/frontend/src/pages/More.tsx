@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { getUser, listNotifications } from "../api";
+import { getUser, hasFeature, listNotifications } from "../api";
 import {
   Icon, LogoutButton, MfaCard, PushNotificationsCard, SecurityEventsCard,
   SessionsCard, TopBar,
@@ -9,6 +9,7 @@ import { unreadBadge } from "../notificationsUtils";
 
 export default function More() {
   const user = getUser()!;
+  const monitoringTab = hasFeature("monitoring_tab");
   const isClient = user.roles.includes("CLIENT");
   const [unread, setUnread] = useState(0);
   useEffect(() => {
@@ -58,9 +59,20 @@ export default function More() {
         </Link>
         {isClient && (
           <>
-            <Link className="card card--nav" to="/postepy">
-              <Icon name="chart" /><span>Monitoring i postępy</span>
-            </Link>
+            {monitoringTab ? (
+              <>
+                <Link className="card card--nav" to="/wiecej/raport">
+                  <Icon name="report" /><span>Raport tygodniowy</span>
+                </Link>
+                <Link className="card card--nav" to="/monitoring">
+                  <Icon name="chart" /><span>Postępy</span>
+                </Link>
+              </>
+            ) : (
+              <Link className="card card--nav" to="/postepy">
+                <Icon name="chart" /><span>Monitoring i postępy</span>
+              </Link>
+            )}
             <Link className="card card--nav" to="/wywiad">
               <Icon name="clipboard" /><span>Wywiad (wstępny i głęboki)</span>
             </Link>

@@ -877,6 +877,15 @@ def seed() -> dict[str, str]:
                  "trenera.",
         ))
 
+        # Postępy (0.66.0): rekordy i agregaty tygodniowe liczone z zapisanych
+        # sesji — to samo przeliczenie, które na produkcji robi
+        # `python -m dzik_os.recalculate_progress` (dane demo od razu z rekordami).
+        db.flush()
+        from .postepy import serwis as postepy_serwis
+
+        for (cid,) in db.query(WorkoutSession.client_id).distinct().all():
+            postepy_serwis.przelicz_klienta(db, cid)
+
         db.commit()
         print("Seed OK. Konta demo:")
         for email, password, name in DEMO_ACCOUNTS.values():

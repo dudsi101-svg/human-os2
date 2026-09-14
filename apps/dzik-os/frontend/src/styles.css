@@ -651,3 +651,31 @@ table.simple th { color: var(--text-dim); font-weight: 600; font-size: 0.78rem; 
 
 /* Panel rozwojowy „Dzisiaj” (0.63.0): powitanie nad kartami. */
 .powitanie { font-family: var(--font-display); font-size: 1.35rem; font-weight: 600; margin: 4px 0 10px; }
+
+/* --- Postępy / Monitoring (0.66.0): kafelki tygodnia, kropki dni, słupki, heatmapa.
+   Trzy osie postępu, bez czerwieni i bez porównań między ludźmi. --- */
+.postepy-kafelki { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.postepy-kafelki .stat b { font-size: 1.1rem; }
+.postepy-kafelki .stat small { display: block; color: var(--text-dim); font-size: 0.72rem; margin-top: 2px; }
+.postepy-dni { display: flex; gap: 4px; margin-top: 6px; }
+.postepy-dni i { width: 8px; height: 8px; border-radius: 50%; background: var(--border); display: block; }
+.postepy-dni i.done { background: var(--accent); }
+.postepy-wstega { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 6px; scroll-snap-type: x mandatory; }
+.postepy-wstega .card { flex: 0 0 auto; min-width: 200px; margin: 0; scroll-snap-align: start; }
+.postepy-slupki { display: flex; align-items: flex-end; gap: 4px; height: 90px; }
+.postepy-slupki .slupek { flex: 1; background: var(--accent-ink); border-radius: 3px 3px 0 0; position: relative; min-width: 4px; }
+.postepy-slupki .slupek.biezacy { background: var(--accent); }
+.postepy-srednia { border-top: 1px dashed var(--text-dim); position: absolute; left: 0; right: 0; pointer-events: none; }
+.postepy-grupy div { display: grid; grid-template-columns: 90px 1fr auto; gap: 8px; align-items: center; margin: 4px 0; font-size: 0.85rem; }
+.postepy-grupy .pasek { height: 10px; border-radius: 5px; background: var(--bg-raised); overflow: hidden; position: relative; }
+.postepy-grupy .pasek i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--accent); border-radius: 5px; }
+.postepy-grupy .pasek i.poprzedni { background: transparent; border-right: 2px solid var(--text-dim); border-radius: 0; }
+.postepy-heat { display: grid; grid-template-columns: repeat(12, 1fr); gap: 3px; }
+.postepy-heat .tydz { display: grid; grid-template-rows: repeat(7, 1fr); gap: 3px; }
+.postepy-heat i { display: block; aspect-ratio: 1; border-radius: 2px; background: var(--bg-raised); }
+.postepy-heat i.on { background: var(--accent); }
+.postepy-sygnaly { display: flex; flex-wrap: wrap; gap: 4px; }
+.postepy-progi { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; }
+.postepy-progi label { font-size: 0.78rem; color: var(--text-dim); display: grid; gap: 2px; }
+.postepy-progi input { margin: 0; }
+@media (max-width: 380px) { .postepy-kafelki { grid-template-columns: 1fr 1fr; } }

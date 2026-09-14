@@ -107,6 +107,9 @@ const env = {
   // Test dostępności loguje trenera bez przechodzenia konfiguracji TOTP —
   // wymóg MFA dla ról jest testowany osobno w backendzie (test_mfa).
   DZIK_MFA_REQUIRED_ROLES: "",
+  // Zakładka Postępy/Monitoring (0.66.0) — docelowy stan nawigacji:
+  // klient ma „Postępy” zamiast „Raportu”, trener szóstą pozycję „Monitoring”.
+  DZIK_MONITORING_TAB_ENABLED: "true",
 };
 execFileSync("python3", ["-m", "dzik_os.seed"], { env, cwd: tmp });
 const port = await freePort();
@@ -312,6 +315,7 @@ try {
     for (const [path, sel] of [
       ["/", "h1:has-text('Dzisiaj')"],
       ["/raport", "h1:has-text('Raport tygodniowy')"],
+      ["/monitoring", "h1:has-text('Postępy')"],
       ["/platnosci", "h1:has-text('Płatności')"],
       ["/wywiad", "h1:has-text('Wywiad')"],
       ["/wywiad?typ=wstepny", "h1:has-text('Wywiad wstępny')"],
@@ -321,6 +325,25 @@ try {
       await assertNoHorizontalScroll(page, `${path} @${width}`);
     }
   }
+
+  // ————— 4b. Postępy (0.66.0): nagłówki sekcji, wykresy z opisem, formularz —————
+  console.log("4b. Postępy — nagłówki, opisy wykresów, etykiety pól");
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.goto(`${url}/monitoring`, { waitUntil: "networkidle" });
+  await page.waitForSelector("h2:has-text('Sylwetka')");
+  const hPostepy = await page.evaluate(HEADINGS_JS);
+  check("postępy: jeden h1, bez przeskoków nagłówków",
+    hPostepy.h1 === 1 && hPostepy.skip === null, JSON.stringify(hPostepy));
+  const wykresyBezOpisu = await page.evaluate(() =>
+    [...document.querySelectorAll(".postepy-slupki, .postepy-heat")]
+      .filter((el) => !(el.getAttribute("aria-label") || "").trim()).length
+  );
+  check("postępy: każdy wykres słupkowy/heatmapa ma aria-label", wykresyBezOpisu === 0,
+    String(wykresyBezOpisu));
+  const unlabeledPostepy = await page.evaluate(UNLABELED_JS);
+  check("postępy: wszystkie pola mają etykiety", unlabeledPostepy.length === 0,
+    JSON.stringify(unlabeledPostepy));
+  await runAxe(page, "Postępy");
 
   // ————— 5. Raport: etykiety pól + suwaki —————
   console.log("5. Raport tygodniowy — etykiety i suwaki");
@@ -414,6 +437,22 @@ try {
   check("baza wiedzy trenera: wszystkie pola mają etykiety",
     unlabeledCoach.length === 0, JSON.stringify(unlabeledCoach));
   await runAxe(coach, "baza wiedzy trenera");
+
+  // ————— 7b. Trener: Monitoring (lista sygnałów + widok klienta) —————
+  console.log("7b. Trener — Monitoring (1024 px)");
+  await coach.goto(`${url}/monitoring`, { waitUntil: "networkidle" });
+  await coach.waitForSelector("h1:has-text('Monitoring')");
+  await assertNoHorizontalScroll(coach, "monitoring @1024");
+  const unlabeledProgi = await coach.evaluate(UNLABELED_JS);
+  check("monitoring: pola progów mają etykiety", unlabeledProgi.length === 0,
+    JSON.stringify(unlabeledProgi));
+  await runAxe(coach, "monitoring trenera");
+  await coach.click("a.card--nav[href^='/monitoring/klient/']");
+  await coach.waitForSelector("h2:has-text('Rekordy')");
+  const hKlient = await coach.evaluate(HEADINGS_JS);
+  check("monitoring klienta: jeden h1, bez przeskoków nagłówków",
+    hKlient.h1 === 1 && hKlient.skip === null, JSON.stringify(hKlient));
+  await runAxe(coach, "monitoring klienta");
 
   // ————— 8. Trener 320 px: tabela → karty, chipy filtrów —————
   console.log("8. Trener — wąski ekran (320 px)");
