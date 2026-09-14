@@ -21,6 +21,7 @@ from ..models import (
     new_id,
     now_iso,
 )
+from ..notifications import get_settings
 from ..notifications_provider import provider as notifications
 from ..observability import metrics
 from ..schemas import (
@@ -75,6 +76,9 @@ def _user_payload(db: Session, user: User) -> dict:
         # Flagi modułów, od których zależy nawigacja (0.66.0): interfejs nie
         # zgaduje, tylko czyta stan serwera przy logowaniu i w /api/me.
         "features": {"monitoring_tab": settings.monitoring_tab_enabled},
+        # Motyw z konta (0.74.0): po zalogowaniu interfejs nadpisuje nim
+        # wybór z urządzenia; None = brak wyboru na koncie (zostaje lokalny).
+        "theme": get_settings(db, user.id).theme,
     }
 
 
@@ -780,6 +784,7 @@ def me(user: User = Depends(current_user), db: Session = Depends(get_db)):
         # Flagi modułów, od których zależy nawigacja (0.66.0): interfejs nie
         # zgaduje, tylko czyta stan serwera przy logowaniu i w /api/me.
         "features": {"monitoring_tab": settings.monitoring_tab_enabled},
+        "theme": get_settings(db, user.id).theme,
     }
 
 

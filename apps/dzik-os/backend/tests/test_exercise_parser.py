@@ -527,6 +527,8 @@ def test_migracja_22_dodaje_nullable_kolumny_do_starej_bazy(tmp_path):
         conn.execute(text("CREATE TABLE users (id VARCHAR(40) PRIMARY KEY)"))
         # Stub dla migracji nr 39 (pola cardio w dzienniku: workout_entries).
         conn.execute(text("CREATE TABLE workout_entries (id VARCHAR(40) PRIMARY KEY)"))
+        # Stub dla migracji nr 40 (motyw aplikacji: notification_settings.theme).
+        conn.execute(text("CREATE TABLE notification_settings (id VARCHAR(40) PRIMARY KEY)"))
     applied = run_migrations(eng)
     assert 22 in applied
     with eng.connect() as conn:

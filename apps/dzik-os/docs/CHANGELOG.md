@@ -1,5 +1,73 @@
 # Changelog — Dzik OS
 
+## 0.74.0 — 2026-09-14
+
+**Motyw jasny czerwono-biały jako drugi, kompletny motyw aplikacji do wyboru
+użytkownika (decyzja właściciela z trzeciej tury 14.09; zlecenie 4 pakietu
+14.09; gałąź `agent/motyw-czerwony`, PR #76, migracja 40; `main` 0.73.0 =
+PR #75 rozgrzewka/cardio, migracja 39, scalony przed tą rundą).**
+
+* **Dwa motywy, oba pełne:** „Ciemny (czarno-zielony)” — domyślny, dokładnie
+  taki jak dotąd — i „Jasny (czerwono-biały)” z kanwy właściciela (biel,
+  grafit, czerwień marki; ta sama paleta co strona publiczna 0.72.0). Wybór w
+  „Więcej → Wygląd” (klient i trener/admin, każdy dla siebie): dwie karty
+  z podglądem kolorów jako grupa radiowa (strzałki przenoszą fokus, wybór =
+  klik/Enter/Spacja — bez zapisu przy samym fokusie).
+* **Mechanizm:** jeden atrybut `html[data-theme="czerwony"]` przełącza blok
+  tokenów w `styles.css` (`src/theme.ts`, ustawiany w `main.tsx` przed
+  pierwszym renderem — CSP nie dopuszcza skryptu inline), `<meta
+  name="theme-color">` #0b0d0f / #FFFFFF, znak marki: limonkowy dzik w ciemnym,
+  czerwony (`boar-mark-red.png`) w jasnym; `/login` w jasnym pokazuje znak +
+  nazwę zamiast limonkowego `logo-full.png` (zero nowej grafiki).
+* **Zapis na urządzeniu i na koncie:** `localStorage["dzik_theme"]` (świadomy
+  wyjątek w `clearSession` — motyw obowiązuje też po wylogowaniu, na `/login`)
+  oraz kolumna `notification_settings.theme` (migracja 40, addytywna); pole
+  `theme` w `GET/PUT /api/notifications/settings` (`^(ciemny|czerwony)$`, 422
+  inaczej) i w odpowiedzi logowania / `/api/auth/me` — po zalogowaniu wartość
+  z konta nadpisuje lokalną. Sam motyw nie zostawia śladu w audycie (klasa D0
+  wg Warstwy 4 — preferencja wyglądu, bez treści; uzasadnienie w planie
+  sesji); eksport danych zawiera go automatycznie (`export_version` bez
+  zmiany — 2.1 po scaleniu cardio 0.73.0).
+* **Ciemny motyw piksel w piksel:** 11 literałów kolorów w `styles.css`
+  zamienionych na tokeny o wartościach identycznych z literałami (`--nav-bg`,
+  `--scrim`, `--scrim-strong`, `--danger-soft`, `--danger-soft-hover`,
+  `--warn-soft`, `--mmap-*`, `--landing-top-bg`, `--bar-muted`,
+  `--shadow-card`); bramka A/B na jednym serwerze E2E (58 ekranów, ten sam
+  seed, podmiana `dist/` per ekran): 55 identycznych co do bajta, 3 różnice
+  wyjaśnione jako stan danych (`docs/motyw/PROGRESS.md`). `:root` celowo
+  **bez** `color-scheme: dark` — zmieniał natywne kontrolki (pole pliku,
+  checkbox, pasek przewijania), czyli zmieniał ciemny motyw.
+* **„Ciemne wyspy” domknięte przed wdrożeniem:** słupki tygodnia w Postępach
+  (`--accent-ink` byłby bielą na bieli → `--bar-muted`), pasek `/prywatnosc`,
+  scrimy panelu „Dlaczego?” i okna powitania, mapa mięśni, nawigacja.
+* **Dostępność:** `DOSTEPNOSC.md` §„Kontrast (motyw jasny czerwono-biały)” —
+  26 par policzonych wg WCAG; z policzenia dwie korekty względem pliku danych:
+  nawigacja na bieli `.94` (aktywna pozycja 4,75 zamiast 4,41 na różu) i alert
+  informacyjny tekstem `--danger` (5,72 zamiast 3,92). `test_a11y.mjs` z
+  parametrem `DZIK_THEME` i drugim krokiem w CI (jasny motyw).
+* **Testy:** `scripts/test-tokeny.mjs` (zero literałów poza `:root`,
+  `[data-theme]`, `.landing--czerwony` i próbkami „Wygląd”; każdy token koloru
+  z `:root` ma nadpisanie w jasnym; test psujący strażnika),
+  `scripts/test-theme.mjs`, 2 testy API (walidacja, roundtrip, login, obce
+  konto, audyt, eksport), E2E `motyw.spec.ts` (atrybut, meta, znak, reload,
+  wylogowanie, czyste urządzenie → motyw z konta, trener niezależnie).
+* **Narzędzie przeglądu kompletności:** `frontend/scripts/zrzuty-motywy.mjs`
+  — 60 ekranów klienta/trenera/admina/publicznych w obu motywach (po
+  scaleniu `main` także ekrany cardio 0.73.0: Bloki, panel suwaków, pozycja
+  cardio i „Dlaczego takie cardio?” u klienta), tryb A/B do bramki
+  pikselowej; lista z odhaczeniem w `docs/motyw/PROGRESS.md`.
+* **Po niezależnym przeglądzie PR #76 (P1):** motyw z konta synchronizuje się
+  wyłącznie w ścieżkach logowania (`login`/`verifyMfa`), nie w `setSession` —
+  rotacja tokenu (zmiana hasła, włączenie/wyłączenie MFA) woła `setSession`
+  z kopią użytkownika z chwili logowania i cofała świeżo wybrany motyw do
+  ciemnego, choć konto miało „czerwony”; po udanym zapisie w „Wygląd” kopia
+  w sesji dostaje nową wartość (`zapiszMotywWSesji`). E2E `motyw.spec.ts`:
+  wybór jasnego → zmiana hasła tam i z powrotem → motyw zostaje (test
+  sprawdzony na mutancie bez poprawki: czerwony). Wersja backendu
+  (`dzik_os/__init__.py`, `pyproject.toml`) podniesiona do 0.74.0.
+* **Świadomie nie w tej rundzie:** ikony PWA / `favicon` / `og.png` /
+  `manifest` w czerwieni (decyzja o znaku), jasne zrzuty do galerii landingu,
+  motyw „jak w systemie”, zmiany strony publicznej `/`.
 ## 0.73.0 — 2026-09-14
 
 **Rozgrzewka, rozciąganie i cardio z suwakami celów (zlecenie 5 właściciela

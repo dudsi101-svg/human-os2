@@ -382,6 +382,17 @@ zapisaną.
   podmiotu i unieważnia wszystkie sesje — trener nie zachowuje żadnego
   dostępu, a stare tokeny i linki do plików przestają działać.
 
+## Motyw aplikacji (od 0.74.0)
+
+Pole `theme` (`ciemny` | `czerwony`, 422 inaczej) w istniejącej trasie
+`GET/PUT /api/notifications/settings` (klasa `RESOURCE_SCOPED` — wyłącznie
+`current_user`, brak nowej trasy) oraz w odpowiedzi `POST /api/auth/login`
+i `GET /api/auth/me`. Preferencja wyglądu, klasa **D0** (Warstwa 4 modelu
+użytkownika): bez zgody, bez śladu audytu (sam motyw nie emituje
+`NOTIFICATION_SETTINGS_CHANGED`), w eksporcie danych razem z wierszem
+`notification_settings`. Trener i klient wybierają niezależnie (osobne konta
+= osobne wiersze).
+
 ## Testy uprawnień
 
 `tests/test_isolation.py`, `tests/test_consents.py`,

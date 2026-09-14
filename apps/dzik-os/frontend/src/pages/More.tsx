@@ -7,6 +7,7 @@ import {
 } from "../components";
 import { unreadBadge } from "../notificationsUtils";
 import Powitanie from "./client/Powitanie";
+import Wyglad from "./Wyglad";
 
 export default function More() {
   const user = getUser()!;
@@ -35,6 +36,8 @@ export default function More() {
         <div><small>{user.email}</small></div>
         <div><small>Rola: {user.roles.join(", ")}</small></div>
       </div>
+      {/* Wygląd (0.74.0): wybór motywu — klient i trener/admin, każdy dla siebie. */}
+      <Wyglad />
       {!isClient && <PushNotificationsCard />}
       {/* Klient ma sekcje bezpieczeństwa (MFA, sesje, historia) w Profilu;
           trener/admin tutaj. */}
