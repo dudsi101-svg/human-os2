@@ -86,6 +86,9 @@ class Category:
     push_title: str
     # Domyślny ekran docelowy w aplikacji po kliknięciu.
     default_url: str
+    # Tylko centrum powiadomień w aplikacji — bez push i e-maila (np. rekordy
+    # osobiste, spec Postępy §8.3: „bez powiadomień push w v1”).
+    in_app_only: bool = False
 
 
 CATEGORIES: dict[str, Category] = {
@@ -119,6 +122,9 @@ CATEGORIES: dict[str, Category] = {
         # Wywiad (0.59.0): przesłanie → trener, prośba o uzupełnienie /
         # przejrzenie → klient. Push bez treści odpowiedzi.
         Category("WYWIAD", "Wywiad", "Wywiad w aplikacji", "/wywiad"),
+        # Postępy (0.66.0): jedno zbiorcze powiadomienie na sesję („3 nowe
+        # rekordy w tym treningu”), tylko w aplikacji — bez push (§8.3).
+        Category("REKORD", "Nowy rekord", "Nowy wpis w postępach", "/monitoring", in_app_only=True),
     ]
 }
 
@@ -373,7 +379,8 @@ def _dispatch(db: Session, n: Notification, now_utc: datetime | None = None) -> 
     if channel_enabled(db, n.user_id, n.category, "CENTER"):
         channels.append("center")
         metrics.inc("notif_sent_center")
-    if channel_enabled(db, n.user_id, n.category, "PUSH") and not quiet:
+    tylko_w_aplikacji = CATEGORIES[n.category].in_app_only
+    if channel_enabled(db, n.user_id, n.category, "PUSH") and not quiet and not tylko_w_aplikacji:
         cat = CATEGORIES[n.category]
         delivered = push_service.send_to_user(
             db, n.user_id, cat.push_title, PUSH_BODY, n.url
@@ -381,7 +388,7 @@ def _dispatch(db: Session, n: Notification, now_utc: datetime | None = None) -> 
         if delivered:
             channels.append("push")
             metrics.inc("notif_sent_push", delivered)
-    email_wanted = channel_enabled(db, n.user_id, n.category, "EMAIL") and not quiet
+    email_wanted = channel_enabled(db, n.user_id, n.category, "EMAIL") and not quiet and not tylko_w_aplikacji
     if email_wanted and _send_email(user, n.category):
         channels.append("email")
         metrics.inc("notif_sent_email")

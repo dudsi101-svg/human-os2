@@ -72,6 +72,9 @@ def _user_payload(db: Session, user: User) -> dict:
         "must_change_password": user.must_change_password,
         "mfa_enabled": user.totp_confirmed_at is not None,
         "mfa_setup_required": mfa_setup_required(db, user),
+        # Flagi modułów, od których zależy nawigacja (0.66.0): interfejs nie
+        # zgaduje, tylko czyta stan serwera przy logowaniu i w /api/me.
+        "features": {"monitoring_tab": settings.monitoring_tab_enabled},
     }
 
 
@@ -774,6 +777,9 @@ def me(user: User = Depends(current_user), db: Session = Depends(get_db)):
         "roles": sorted(active_roles(db, user.id)),
         "mfa_enabled": user.totp_confirmed_at is not None,
         "mfa_setup_required": mfa_setup_required(db, user),
+        # Flagi modułów, od których zależy nawigacja (0.66.0): interfejs nie
+        # zgaduje, tylko czyta stan serwera przy logowaniu i w /api/me.
+        "features": {"monitoring_tab": settings.monitoring_tab_enabled},
     }
 
 

@@ -142,6 +142,9 @@ domeny endpointu (`sensitive` wynika z katalogu kategorii).
 | POST/GET /api/clients/{id}/observations | W, T | obserwacje klienta (`schedule_item_id` musi należeć do klienta) | T: tak | T: tak | R/W |
 | POST/GET /api/clients/{id}/nutrition-log; GET /monitoring | W, T | dziennik/monitoring klienta | T: tak | T: tak | R/W |
 | GET /api/clients/{id}/personal-records, /strength-series | W, T | rekordy/serie jednego klienta | T: tak | T: tak | R |
+| GET /api/monitoring/summary, /records, /training | W (self), T (`client_id`) | postępy jednego klienta; 404 bez flagi `monitoring_tab_enabled`; trener bez `client_id` → 422; w `summary` waga tylko ze zgodą zdrowotną, dieta tylko ze zgodą żywieniową | T: tak | T: tak (dane treningowe) | R |
+| GET /api/monitoring/body | W (self; klient z flagą zdrowotną → 404), T (`client_id`) | sylwetka: waga (średnia), obwody, zdjęcia; bez zgody na zdjęcia `photos` puste (jak w `clients/{id}`) | T: tak | T: tak (dane zdrowotne) | R |
+| GET /api/monitoring/clients, /clients/{id} | T | własni aktywni klienci z sygnałami; widok jednego klienta (obcy → 404); sekcje bez zgody per domena znikają z odpowiedzi; `health_flag` (pochodna wywiadu, decyzja właściciela 14.09) zawsze | T: tak | T: per domena | R |
 | POST/PUT/status /api/coach/knowledge, /exercises, /food-products | T·own | wyłącznie własne wpisy katalogów | — | — | W |
 | GET /api/coach/knowledge, /exercises, /food-products | T·own | własny katalog (izolacja między trenerami) | — | — | R |
 | GET /api/me/knowledge, /exercises, /food-products | klient | AKTYWNE wpisy trenerów z AKTYWNĄ relacją | tak | nie (broadcast) | R |

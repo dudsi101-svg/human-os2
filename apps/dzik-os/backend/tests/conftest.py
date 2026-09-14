@@ -34,6 +34,8 @@ os.environ["DZIK_DIET_TEMPLATES_ENABLED"] = "true"
 # na PostgreSQL godziny). Testy diety seedują jawnie (`seed.zaseeduj`); ścieżkę
 # startową sprawdza `test_start_aplikacji_seeduje_biblioteke` i E2E.
 os.environ["DZIK_DIET_SEED_ON_STARTUP"] = "false"
+# Postępy (0.66.0): moduł włączony w testach; test wyłączenia flagi przełącza settings punktowo.
+os.environ["DZIK_MONITORING_TAB_ENABLED"] = "true"
 os.environ["DZIK_MAIL_TEST_ENDPOINT_ENABLED"] = "true"
 os.environ["DZIK_CALORIE_INTERVIEW_ENABLED"] = "true"
 

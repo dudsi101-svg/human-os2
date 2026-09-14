@@ -1483,3 +1483,42 @@ MIGRATIONS.append(
         "ALTER TABLE diet_template_meals ADD COLUMN allergens VARCHAR(300) NOT NULL DEFAULT ''",
     ])
 )
+
+MIGRATIONS.append(
+    (36, "postępy: rekordy osobiste (historia) i agregaty tygodnia treningowego", [
+        # Addytywna; wycofanie = ignorowanie tabel. Numer 35 = biblioteka diet.
+        (
+            "CREATE TABLE IF NOT EXISTS exercise_records ("
+            " id VARCHAR(40) PRIMARY KEY,"
+            " client_id VARCHAR(40) NOT NULL REFERENCES users(id),"
+            " exercise_key VARCHAR(300) NOT NULL,"
+            " exercise_name VARCHAR(300) NOT NULL,"
+            " record_type VARCHAR(20) NOT NULL,"
+            " value FLOAT NOT NULL,"
+            " secondary_value FLOAT,"
+            " set_ref VARCHAR(80),"
+            " session_id VARCHAR(40),"
+            " achieved_on VARCHAR(40) NOT NULL,"
+            " previous_value FLOAT,"
+            " equaled_on VARCHAR(40),"
+            " superseded_at VARCHAR(40),"
+            " created_at VARCHAR(40) NOT NULL)"
+        ),
+        "CREATE INDEX IF NOT EXISTS ix_exercise_records_client_id ON exercise_records (client_id)",
+        "CREATE INDEX IF NOT EXISTS ix_exercise_records_exercise_key ON exercise_records (exercise_key)",
+        (
+            "CREATE TABLE IF NOT EXISTS training_week_aggregates ("
+            " id VARCHAR(40) PRIMARY KEY,"
+            " client_id VARCHAR(40) NOT NULL REFERENCES users(id),"
+            " week_start VARCHAR(40) NOT NULL,"
+            " sessions_count INTEGER NOT NULL DEFAULT 0,"
+            " planned_count INTEGER NOT NULL DEFAULT 0,"
+            " tonnage_kg FLOAT NOT NULL DEFAULT 0,"
+            " sets_by_group_json TEXT NOT NULL DEFAULT '{}',"
+            " session_days_json TEXT NOT NULL DEFAULT '[]',"
+            " updated_at VARCHAR(40) NOT NULL,"
+            " UNIQUE (client_id, week_start))"
+        ),
+        "CREATE INDEX IF NOT EXISTS ix_training_week_aggregates_client_id ON training_week_aggregates (client_id)",
+    ])
+)

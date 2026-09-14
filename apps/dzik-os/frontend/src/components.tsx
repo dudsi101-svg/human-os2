@@ -5,7 +5,7 @@ import {
 import { NavLink } from "react-router-dom";
 import {
   api, ApiError, AuthSessionRow, fetchFile, fetchFileBlob, fetchFileUrl,
-  getMfaStatus, getToken, getUser, isCancel, listSecurityEvents, listSessions,
+  getMfaStatus, getToken, getUser, hasFeature, isCancel, listSecurityEvents, listSessions,
   logout, MfaStatus, mfaDisable, mfaEnable, mfaRegenerateRecoveryCodes, mfaSetup,
   openBlobInNewTab, reportFrontendError, revokeOtherSessions, revokeSession,
   saveBlobAs, SecurityEventRow, setSession,
@@ -155,6 +155,7 @@ export function Nav() {
         { to: "/trener", label: "Klienci", icon: "clients" },
         { to: "/trener/szablony", label: "Szablony", icon: "templates" },
         { to: "/trener/wiedza", label: "Wiedza", icon: "knowledge" },
+        ...(hasFeature("monitoring_tab") ? [{ to: "/monitoring", label: "Monitoring", icon: "chart" }] : []),
         { to: "/wiadomosci", label: "Wiadomości", icon: "msg" },
         { to: "/wiecej", label: "Więcej", icon: "more" },
       ]
@@ -167,7 +168,11 @@ export function Nav() {
           { to: "/", label: "Dzisiaj", icon: "today" },
           { to: "/plan", label: "Plan", icon: "plan" },
           { to: "/dieta", label: "Dieta", icon: "diet" },
-          { to: "/raport", label: "Raport", icon: "report" },
+          // 0.66.0: przy włączonej fladze „Postępy” zajmują miejsce „Raportu”
+          // (raport tygodniowy przenosi się do „Więcej”).
+          hasFeature("monitoring_tab")
+            ? { to: "/monitoring", label: "Postępy", icon: "chart" }
+            : { to: "/raport", label: "Raport", icon: "report" },
           { to: "/wiecej", label: "Więcej", icon: "more" },
         ];
   return (

@@ -142,6 +142,12 @@ class Settings:
     calorie_interview_enabled: bool = field(
         default_factory=lambda: _env("DZIK_CALORIE_INTERVIEW_ENABLED", "false") == "true"
     )
+    # Zakładka Monitoring / Postępy (0.66.0): cały moduł (/api/monitoring/*,
+    # trasa /monitoring, etykiety w nawigacji) za flagą — domyślnie WYŁĄCZONA;
+    # przy wyłączonej nawigacja i zachowanie identyczne jak przed zmianą.
+    monitoring_tab_enabled: bool = field(
+        default_factory=lambda: _env("DZIK_MONITORING_TAB_ENABLED", "false") == "true"
+    )
     # AI jest opcjonalne i domyślnie WYŁĄCZONE — aplikacja działa w pełni bez AI.
     ai_enabled: bool = field(default_factory=lambda: _env("DZIK_AI_ENABLED", "false") == "true")
     # Klucz dostawcy WYŁĄCZNIE ze środowiska (sekret Fly) — nigdy w repo.

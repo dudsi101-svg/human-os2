@@ -13,6 +13,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
+from ..config import settings
 from ..db import get_db
 from ..hos_bridge import record_event
 from ..models import (
@@ -146,6 +147,8 @@ def get_notification_settings(
             {"key": c.key, "label": c.label, "push_title": c.push_title,
              "url": c.default_url}
             for c in CATEGORIES.values()
+            # Kategoria modułu za flagą nie pokazuje się w ustawieniach, dopóki moduł jest wyłączony.
+            if c.key != "REKORD" or settings.monitoring_tab_enabled
         ],
         "channels": list(CHANNELS),
         "preferences": prefs,

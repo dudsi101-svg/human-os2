@@ -247,6 +247,12 @@ prawo dostępu RODO) zawiera pełne wiersze `calorie_estimates` także przy
 ukryciu (test `test_eksport_danych_zawiera_szacunki_takze_ukryte`) —
 decyzja świadoma: prawo dostępu ma pierwszeństwo przed prezentacją w UI.
 
+**Klasyfikacja (decyzja właściciela 14.09):** liczba kcal i flaga
+zdrowotna, które widzi trener, są **pochodną** odpowiedzi klienta — nie
+danymi zdrowotnymi; trener widzi je przy zgodzie na współpracę, także po
+cofnięciu zgody zdrowotnej. Surowe odpowiedzi domeny zdrowotnej zostają po
+stronie klienta (bez zgody nie są zadawane ani pokazywane).
+
 **API:** `GET /api/clients/{id}/zapotrzebowanie` (klient: swoje; trener:
 relacja + zgody, dodatkowo `history`), `PUT …/nadpisanie` `{kcal|null,
 reason}` (trener; 800–8000; powód obowiązkowy, widoczny dla klienta;

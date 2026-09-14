@@ -1,5 +1,93 @@
 # Changelog — Dzik OS
 
+## 0.66.0 — 2026-09-14
+
+**Zakładka „Postępy” (klient) / „Monitoring” (trener) — specyfikacja
+właściciela `docs/monitoring-tab/instrukcja_zakladka_monitoring.md`;
+gałąź `agent/monitoring-postepy`, migracja 36, za flagą
+`DZIK_MONITORING_TAB_ENABLED` (domyślnie wyłączona). Numer 0.65.0 jest
+zarezerwowany dla strony publicznej w wariancie czerwono-białym (PR #67,
+decyzja właściciela o scaleniu).**
+
+* **Silnik rekordów** `dzik_os/postepy/rekordy.py` (czyste funkcje, bez
+  bazy): typy WEIGHT / REPS_AT_WEIGHT / SET_VOLUME / SESSION_VOLUME / E1RM
+  (Epley, tylko ≤ 10 powtórzeń, zawsze podpisany „szacowany”); reguły §8:
+  pierwsza sesja = punkt odniesienia (nie rekord), rozgrzewka wykluczona,
+  masa ciała (0 kg) daje tylko REPS_AT_WEIGHT, wyrównanie nie tworzy
+  rekordu (`equaled_on`), pobite rekordy zostają w historii
+  (`superseded_at`). Tożsamość ćwiczenia = znormalizowana nazwa
+  (`exercise_key`); nazwy-bliźniaki są raportowane, nie scalane.
+* **Waga** `dzik_os/postepy/waga.py`: średnia krocząca 7 dni (min. 3
+  pomiary w oknie), trend z regresji liniowej 28 dni (≥ 14 dni i ≥ 6
+  pomiarów), zaokrąglenie 0,1 kg/tydz.; funty w seriach przeliczane na kg
+  przy zapisie, pomiary w innych jednostkach — przy odczycie.
+* **Model + migracja 36 (addytywna):** `exercise_records`,
+  `training_week_aggregates` (tydzień ISO: sesje, zaplanowane z
+  harmonogramu, tonaż, serie per grupa mięśniowa, dni). `WorkoutSetIn`
+  zyskuje `warmup` i `unit` (kg/lb). Przeliczenie przy zapisie sesji
+  (`POST /api/clients/{id}/workouts` zwraca `new_records`),
+  powiadomienie w aplikacji o nowym rekordzie (kategoria REKORD — bez
+  push i e-maila, jedno na sesję), backfill
+  `python -m dzik_os.recalculate_progress [--client ID] [--json]`
+  (idempotentny, z raportem bliźniaków); seed liczy rekordy po zasianiu.
+* **API** `/api/monitoring/*` (404 bez flagi): `summary`, `records`
+  (`history=1`), `training` (`range=12w`), `body` — klient (własne dane)
+  albo trener (`client_id`; relacja + zgoda per domena, obcy klient →
+  404 jak w całej aplikacji); `clients` (lista z sygnałami: brak
+  treningu, spadek frekwencji, spadek tonażu, brak ważenia, trend
+  niezgodny z celem, nowy rekord; progi w zapytaniu), `clients/{id}`
+  (pełny widok). **Flaga zdrowotna** (`hidden_for_client` ostatniego
+  szacunku kalorycznego): klient nie dostaje `body` (404) ani klucza
+  `weight` na żadnym poziomie odpowiedzi — filtr po stronie serwera,
+  test skanuje całą odpowiedź. Stare `personal-records` /
+  `strength-series` liczą według tych samych reguł (rozgrzewka poza,
+  E1RM ≤ 10 powt.). `features.monitoring_tab` w `/api/health`,
+  `/api/auth/me` i odpowiedzi logowania — nawigacja czyta stan z serwera.
+* **Interfejs:** wspólny `PanelPostepow` dla klienta i trenera —
+  kafelki tygodnia (treningi z kropkami dni, seria tygodni, trend
+  wagi), **Rekordy** (wstęga z 30 dni z „poprzednio → teraz”, lista
+  ćwiczeń z mikro-wykresem e1RM, archiwum > 90 dni), **Trening** (tonaż
+  12 tyg. ze średnią 4-tyg., serie na grupę wobec poprzedniego tygodnia,
+  heatmapa 12 tygodni, zmiany planu), **Konsekwencja** (frekwencja 8
+  tyg., aktualna i najdłuższa seria, realizacja diety), **Sylwetka**
+  (waga wyłącznie jako średnia z przełącznikiem pojedynczych pomiarów,
+  obwody z deltą od pierwszego pomiaru, zdjęcia z porównywarką).
+  Klient: `/monitoring` z formularzem pomiaru. Trener: `/monitoring`
+  (lista posortowana po sygnałach, progi konfigurowalne) i
+  `/monitoring/klient/:id` (pełne dane niezależnie od flag klienta,
+  notatki trenera, zmiany planu na tle tonażu). Bez porównań między
+  ludźmi, bez czerwieni, bez „streaków”.
+* **Nawigacja za flagą:** klient ma „Postępy” w miejscu „Raportu”
+  (raport w „Więcej → Raport tygodniowy”, pozycja „Postępy” znika z
+  „Więcej”; `/raport` i `/postepy` przekierowują), trener szóstą pozycję
+  „Monitoring”. Bez flagi nic się nie zmienia: nawigacja, zapis sesji
+  (bez przeliczania rekordów i powiadomień), kategoria REKORD ukryta w
+  ustawieniach powiadomień — pilnują E2E `postepy-flaga.spec.ts` i test
+  API.
+* **Zgody per domena u trenera** (jak w reszcie aplikacji): bez zgody na
+  dane zdrowotne — bez wagi i sylwetki (flaga zdrowotna zostaje: decyzja
+  właściciela z 14.09 — liczba kcal i flaga z wywiadu to **pochodne**
+  odpowiedzi, nie dane zdrowotne; surowe odpowiedzi zostają po stronie
+  klienta); bez zgody na
+  zdjęcia — puste zdjęcia; bez zgody na żywienie — bez realizacji diety;
+  bez zgody na dane treningowe — lista nie zdradza daty ostatniej sesji
+  ani frekwencji. Sesja `SKIPPED` nie liczy się do tygodnia, frekwencji,
+  tonażu ani rekordów. Sygnał spadku tonażu porównuje ostatni **zamknięty**
+  tydzień ze średnią czterech poprzednich.
+* **Prywatność:** eksport `exercise_records` / `training_week_aggregates`
+  (`export_version` 1.9), usunięcie konta kasuje oba zbiory.
+* **Testy:** 24 testy backendu (silnik §14, baza, API: flaga zdrowotna,
+  obcy trener, ≤ 20 zapytań dla 100 klientów, dwa lata danych < 300 ms),
+  macierz dostępu, E2E na drugim serwerze z włączoną flagą
+  (`postepy.spec.ts`: klient, rekord z seedu, pomiar z dowodem po
+  odświeżeniu, przekierowania; trener: lista i widok klienta), a11y
+  nowych ekranów (nagłówki, opisy wykresów, etykiety), PWA offline.
+* **Rozbieżności ze specyfikacją i sprawy otwarte:**
+  `docs/monitoring-tab/PROGRESS.md` (m.in. 404 zamiast 403 dla obcego
+  trenera, cotygodniowe ważenie nie daje średniej 7-dniowej, brak
+  endpointów edycji/usuwania sesji — przeliczenie tylko przy zapisie i w
+  backfillu, backfill na produkcji do wykonania po włączeniu flagi).
+
 ## 0.64.0 — 2026-09-14
 
 **Biblioteka szablonów diet po audycie 14.09 (zgłoszenie właściciela

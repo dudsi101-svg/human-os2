@@ -56,6 +56,7 @@ from .routers import (
     onboarding,
     payments,
     plans,
+    postepy,
     privacy,
     profile,
     public_site,
@@ -194,7 +195,7 @@ def create_app() -> FastAPI:
         challenges.router, notifications_router.router, onboarding.router,
         interview.router, nutrition_templates.router, ocr.router, assistant.router, imports.router,
         public_site.router, konfigurator.router, kulinaria.router, szkice.router, wywiady.router, zapotrzebowanie.router, diet.router, habits.router,
-        mail_admin.router,
+        mail_admin.router, postepy.router,
     ):
         app.include_router(router)
 
@@ -269,7 +270,8 @@ def create_app() -> FastAPI:
             "diet_seed_error": getattr(app.state, "diet_seed_error", None),
             "features": {"diet_templates": settings.diet_templates_enabled,
                          "mail_test_endpoint": settings.mail_test_endpoint_enabled,
-                         "calorie_interview": settings.calorie_interview_enabled},
+                         "calorie_interview": settings.calorie_interview_enabled,
+                         "monitoring_tab": settings.monitoring_tab_enabled},
         }
 
     @app.get("/api/ready")

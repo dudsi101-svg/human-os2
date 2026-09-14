@@ -14,7 +14,7 @@ Jeden wiersz = jedno logiczne powiadomienie do jednego odbiorcy.
 | Pole | Znaczenie |
 |---|---|
 | `user_id` | odbiorca |
-| `category` | `TRENING` / `SUPLEMENT` / `HARMONOGRAM` / `RAPORT` / `WIADOMOSC` / `PLATNOSC` / `DOKUMENT` / `ZMIANA_PLANU` / `KONSULTACJA` / `PODSUMOWANIE` |
+| `category` | `TRENING` / `SUPLEMENT` / `HARMONOGRAM` / `RAPORT` / `WIADOMOSC` / `PLATNOSC` / `DOKUMENT` / `ZMIANA_PLANU` / `KONSULTACJA` / `PODSUMOWANIE` / `WYWIAD` (0.59.0) / `REKORD` (0.66.0: nowy rekord osobisty, jedno na sesję, **tylko w aplikacji** — `in_app_only`, bez push i e-maila; w ustawieniach widoczna tylko przy włączonej fladze `monitoring_tab`) |
 | `title`, `body` | treść dla **centrum w aplikacji** (widoczna po zalogowaniu) |
 | `url` | ekran docelowy kliknięcia (push i centrum), zawsze wewnętrzna ścieżka |
 | `status` | `SCHEDULED` → `SENT` / `CANCELLED` / `SUPPRESSED` |
