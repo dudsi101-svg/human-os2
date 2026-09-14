@@ -534,7 +534,8 @@ table.simple th { color: var(--text-dim); font-weight: 600; font-size: 0.78rem; 
 /* ------------------------------------------------------------------ */
 /* Publiczna strona marketingowa (0.49.0) — reguły bazowe, z których korzysta */
 /* nadal /prywatnosc (Privacy.tsx: .landing, .landing-top, .landing-section,   */
-/* .landing-card, .landing-footer). Wariant czerwono-biały strony / (0.65.0)    */
+/* .landing-card, .landing-footer). Wariant czerwono-biały strony / (0.65.0,    */
+/* domknięcie 0.72.0)                                                          */
 /* jest niżej, scope'owany do .landing--czerwony — te reguły są nietknięte.     */
 /* ------------------------------------------------------------------ */
 .landing { max-width: 1040px; margin: 0 auto; padding: 0 18px 40px; }
@@ -601,7 +602,7 @@ table.simple th { color: var(--text-dim); font-weight: 600; font-size: 0.78rem; 
 .landing-about__foto { width: 100%; border-radius: 14px; margin-bottom: 16px; display: block; }
 
 
-/* Strona publiczna / — wariant czerwono-biały (0.65.0), scope: .landing--czerwony */
+/* Strona publiczna / — wariant czerwono-biały (0.65.0, domknięcie 0.72.0), scope: .landing--czerwony */
 /* ------------------------------------------------------------------ */
 /* Wszystkie tokeny i reguły są scope'owane do `.landing` — aplikacja po
    zalogowaniu, /login i /prywatnosc zostają ciemne (`:root` nietknięty).
@@ -610,6 +611,10 @@ table.simple th { color: var(--text-dim); font-weight: 600; font-size: 0.78rem; 
 .landing--czerwony {
   --l-bg: #FFFFFF; --l-bg-soft: #FBF5F5; --l-band-pink: #FDECEE; --l-glow: #FDE3E5;
   --l-marker: #FFC9CE; --l-border: #ECE4E4; --l-border-strong: #E0CFCF;
+  /* Obrys kontrolek (przyciski ghost, pola formularza) — WCAG 1.4.11 wymaga 3:1 dla granicy
+     komponentu; #E0CFCF na bieli ma 1,50, #B3878A ma 3,11 (wariant A, 0.72.0). Karty
+     i separatory zostają na --l-border/--l-border-strong (to nie są granice kontrolek). */
+  --l-border-ui: #B3878A;
   --l-ink: #101418; --l-ink-2: #566372; --l-ink-3: #3B4652;
   --l-red: #E11D2E; --l-red-link: #B3121F; --l-red-hover: #8E0E19; --l-bordo: #7A0A14;
   --l-coral: #FF6B5A; --l-coral-soft: #FFC7BE;
@@ -667,7 +672,7 @@ table.simple th { color: var(--text-dim); font-weight: 600; font-size: 0.78rem; 
 .landing--czerwony .btn--primary { background: var(--l-red); color: #FFFFFF; box-shadow: 0 6px 18px rgba(225,29,46,.35); }
 .landing--czerwony .btn--primary:hover { filter: brightness(1.06); }
 .landing--czerwony .btn--primary svg { width: 20px; height: 20px; }
-.landing--czerwony .btn--ghost { background: #FFFFFF; color: var(--l-ink); border: 1.5px solid var(--l-border-strong); }
+.landing--czerwony .btn--ghost { background: #FFFFFF; color: var(--l-ink); border: 1.5px solid var(--l-border-ui); }
 .landing--czerwony .btn--ghost:hover { background: var(--l-bg-soft); }
 .landing--czerwony .btn--sm { height: 46px; padding: 0 20px; font-size: 15px; }
 .landing--czerwony .btn--pill { height: 40px; padding: 0 18px; font-size: 14px; }
@@ -686,33 +691,50 @@ table.simple th { color: var(--text-dim); font-weight: 600; font-size: 0.78rem; 
 .landing--czerwony .chip--graphite { background: var(--l-chip2-bg); border-color: var(--l-chip2-border); color: var(--l-chip2-ink); }
 .landing--czerwony .num { width: 76px; height: 76px; display: flex; align-items: center; justify-content: center;
   font-family: var(--font-display); font-weight: 800; font-size: 24px; color: #FFFFFF; }
+/* Numer na kaflu koralowym: biel ma 1,48 na jasnym końcu gradientu (#FFC7BE); grafit daje
+   3,14 / 6,87 / 12,96 na całym gradiencie (spec sama paruje koral z czernią). Wariant A, 0.72.0. */
+.landing--czerwony .num.tile-coral { color: var(--l-graphite-deep); }
 
 /* 5.1 Pasek górny. */
 .landing--czerwony .landing-top { margin: 0; position: sticky; top: 0; z-index: 10; height: 76px; background: rgba(255,255,255,.92);
-  backdrop-filter: blur(8px); border-bottom: 1px solid var(--l-border); margin: 0; }
+  backdrop-filter: blur(8px); border-bottom: 1px solid var(--l-border); }
 .landing--czerwony .landing-top__inner { max-width: 1160px; margin: 0 auto; height: 100%; display: flex; align-items: center; gap: 12px; padding: 0 var(--l-gutter); }
 .landing--czerwony .landing-top__logo { width: 40px; height: 40px; }
 .landing--czerwony .landing-top__name { font-family: var(--font-display); font-weight: 700; font-size: 20px; color: var(--l-ink); }
-.landing--czerwony .landing-top__nav { display: none; gap: 32px; margin: 0 auto; }
-.landing--czerwony .landing-top__nav a { color: var(--l-ink-3); font-weight: 600; font-size: 15px; text-decoration: none; }
+/* Odstęp 20 px + padding 6 px z każdej strony = 32 px optycznie (spec); padding 8 px w pionie
+   daje cel dotyku ≥ 24 px (WCAG 2.2 2.5.8, wcześniej ~18 px). */
+.landing--czerwony .landing-top__nav { display: none; gap: 20px; margin: 0 auto; }
+.landing--czerwony .landing-top__nav a { display: inline-block; padding: 8px 6px; color: var(--l-ink-3); font-weight: 600; font-size: 15px; text-decoration: none; }
 .landing--czerwony .landing-top__nav a:hover { color: var(--l-red-link); }
 .landing--czerwony .landing-top__spacer { flex: 1; }
+/* Po kliknięciu kotwicy nagłówek sekcji ląduje pod paskiem 76 px, nie pod nim schowany. */
+.landing--czerwony section[id] { scroll-margin-top: 76px; }
 
 /* 5.2 Hero. */
 .landing--czerwony .landing-hero { text-align: left; padding: 72px 0 96px; background: radial-gradient(700px 480px at 20% 100%, var(--l-glow), transparent 70%), #FFFFFF; }
-.landing--czerwony .landing-hero__grid { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: center; }
+/* minmax(0,1fr): samo `1fr` to minmax(auto,1fr) — kolumna tekstu z `nowrap` w dowodach wymuszała
+   581 px i ściskała panel do 235 px przy 900 px (P1-a). */
+.landing--czerwony .landing-hero__grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 48px; align-items: center; }
 .landing--czerwony .landing-hero__copy { display: flex; flex-direction: column; gap: 28px; }
 .landing--czerwony .landing-hero__copy .eyebrow { margin-bottom: 0; }
-.landing--czerwony .landing-hero h1 { font-weight: 800; font-size: 58px; line-height: 1.08; letter-spacing: -0.01em; margin: 0; }
+/* 58 px tylko od ~1320 px: w pasie 900–1150 px kolumna ma ~470 px i „prowadzony,” nie mieściło się
+   w wierszu (przecinek lądował sam na początku następnego). 4.4vw: 1024 px → 45 px. */
+.landing--czerwony .landing-hero h1 { font-weight: 800; font-size: clamp(40px, 4.4vw, 58px); line-height: 1.08; letter-spacing: -0.01em; margin: 0; }
 .landing--czerwony .landing-hero .mark { background: linear-gradient(180deg, transparent 58%, var(--l-marker) 58%); padding: 0 4px; }
 .landing--czerwony .landing-hero__sub { color: var(--l-ink-2); font-size: 20px; line-height: 1.6; max-width: 540px; margin: 0; }
 .landing--czerwony .landing-hero__cta { display: flex; gap: 12px; flex-wrap: wrap; }
-.landing--czerwony .landing-proof { display: flex; align-items: center; gap: 22px; list-style: none; padding: 0; margin: 0; }
-.landing--czerwony .landing-proof__item { display: flex; flex-direction: column; white-space: nowrap; }
-.landing--czerwony .landing-proof__item b { font-family: var(--font-display); font-weight: 700; font-size: 22px; line-height: 1.2; }
-.landing--czerwony .landing-proof__item small { color: var(--l-ink-2); font-size: 13px; }
+/* Pasek dowodów: bez `nowrap` na pozycji (to on wymuszał 581 px i ściskał panel, P1-a) i bez
+   `flex-wrap` (w wielowierszowym flexie pozycje spadają do nowego wiersza, zanim się skurczą) —
+   przy `min-width: 0` podpis zawija się wewnątrz pozycji, a pasek zostaje w jednym wierszu. */
+.landing--czerwony .landing-proof { display: flex; align-items: center; gap: 16px; list-style: none; padding: 0; margin: 0; }
+.landing--czerwony .landing-proof__item { display: flex; flex-direction: column; min-width: 0; }
+.landing--czerwony .nowrap { white-space: nowrap; }
+.landing--czerwony .landing-proof__item b { font-family: var(--font-display); font-weight: 700; font-size: clamp(18px, 1.5vw, 22px); line-height: 1.2; white-space: nowrap; }
+.landing--czerwony .landing-proof__item small { color: var(--l-ink-2); font-size: 12.5px; }
 .landing--czerwony .landing-proof__sep { width: 1px; height: 38px; background: var(--l-border); flex: 0 0 auto; }
 .landing--czerwony .landing-panel { position: relative; height: 560px; border-radius: 40px 40px 40px 120px; box-shadow: 0 40px 80px rgba(11,15,20,.35); }
+/* Scena z dekoracjami przycięta do panelu; karty-powiadomienia leżą poza nią i wolno im wystawać. */
+.landing--czerwony .landing-panel__scene { position: absolute; inset: 0; overflow: hidden; border-radius: inherit; }
 .landing--czerwony .landing-panel__tag { position: absolute; left: 32px; top: 28px; font-weight: 700; font-size: 12px; letter-spacing: .14em; color: var(--l-coral); }
 .landing--czerwony .landing-panel__raster { position: absolute; right: 28px; top: 28px; width: 220px; height: 220px; border-radius: 50%;
   background: radial-gradient(rgba(255,255,255,.14) 1.2px, transparent 1.2px); background-size: 16px 16px; }
@@ -722,12 +744,16 @@ table.simple th { color: var(--text-dim); font-weight: 600; font-size: 0.78rem; 
   box-shadow: inset 0 -30px 60px rgba(0,0,0,.25), 0 30px 80px rgba(225,29,46,.45); transform: translate(10px, 14px) rotate(-8deg); }
 .landing--czerwony .landing-panel__ring { position: absolute; left: 50%; top: 50%; width: 520px; height: 520px; margin: -260px 0 0 -260px;
   border-radius: 50%; border: 2px dashed rgba(255,255,255,.35); }
-.landing--czerwony .landing-panel__boar { position: absolute; left: 50%; top: 50%; width: 340px; transform: translate(-55%, -52%);
+.landing--czerwony .landing-panel__boar { position: absolute; left: 50%; top: 50%; width: 340px; height: auto; transform: translate(-55%, -52%);
   filter: drop-shadow(0 24px 40px rgba(16,20,24,.22)); }
 .landing--czerwony .landing-panel__card { display: none; position: absolute; align-items: center; gap: 12px; padding: 12px 16px;
   border-radius: 16px; color: var(--l-ink); box-shadow: 0 12px 30px rgba(11,15,20,.25); }
 .landing--czerwony .landing-panel__card b { display: block; font-size: 14px; }
 .landing--czerwony .landing-panel__card small { color: var(--l-ink-2); font-size: 12px; }
+/* Etykieta „przykład” na kartach z danymi demonstracyjnymi (treść kart niepotwierdzona). */
+.landing--czerwony .landing-panel__demo { position: absolute; top: -9px; right: 12px; height: 18px; padding: 0 8px; border-radius: 999px;
+  font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; line-height: 18px;
+  background: var(--l-chip-bg); border: 1px solid var(--l-chip-border); color: var(--l-chip-ink); }
 .landing--czerwony .landing-panel__card--a { right: 0; top: 28px; }
 .landing--czerwony .landing-panel__card--b { left: -8px; bottom: 26px; }
 .landing--czerwony .landing-panel__card--c { right: -16px; bottom: 92px; padding: 10px 14px; border-radius: 14px; font-weight: 600; font-size: 13px; }
@@ -805,11 +831,10 @@ table.simple th { color: var(--text-dim); font-weight: 600; font-size: 0.78rem; 
 .landing--czerwony .landing-form { display: grid; gap: 16px; max-width: none; padding: 36px; border-radius: 24px; box-shadow: 0 30px 80px rgba(0,0,0,.45); }
 .landing--czerwony .landing-form__row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 .landing--czerwony .landing-form label { display: grid; gap: 6px; font-weight: 600; font-size: 14px; color: var(--l-ink-3); }
-.landing--czerwony .landing-form input, .landing--czerwony .landing-form textarea { height: 50px; border: 1.5px solid var(--l-border-strong); border-radius: 12px;
+.landing--czerwony .landing-form input, .landing--czerwony .landing-form textarea { height: 50px; border: 1.5px solid var(--l-border-ui); border-radius: 12px;
   background: #FFFFFF; color: var(--l-ink); padding: 0 14px; font-family: var(--font-body); font-size: 16px; margin: 0; }
 .landing--czerwony .landing-form textarea { height: auto; padding: 12px 14px; line-height: 1.5; resize: vertical; }
 .landing--czerwony .landing-form input:focus, .landing--czerwony .landing-form textarea:focus { border-color: var(--l-red); box-shadow: 0 0 0 3px rgba(225,29,46,.15); }
-.landing--czerwony .landing-form input:focus-visible, .landing--czerwony .landing-form textarea:focus-visible { outline: 2px solid var(--l-red); outline-offset: 2px; }
 .landing--czerwony .landing-form .btn { justify-self: start; }
 .landing--czerwony .landing-form__note { font-size: 12.5px; color: var(--l-ink-2); margin: 0; line-height: 1.5; }
 /* Honeypot: poza ekranem (display:none pomijają też niektóre boty). */
@@ -834,10 +859,23 @@ table.simple th { color: var(--text-dim); font-weight: 600; font-size: 0.78rem; 
 @media (max-width: 899px) {
   .landing--czerwony .landing-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .landing--czerwony .landing-gallery { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  /* Kroki: 3 kolumny po ~207 px łamały h3 na 88 px — jedna kolumna w pasie 700–899 px. */
+  .landing--czerwony .landing-steps { grid-template-columns: 1fr; }
   .landing--czerwony .landing-about__grid { grid-template-columns: 1fr; gap: 48px; }
+  /* Jedna kolumna „O trenerze”: zdjęcie z marginesem na odznakę (right/bottom −22 px) i czerwony
+     kwadrat (left −18 px) — bez tego odznaka wisiała 70 px od zdjęcia, a kwadrat dawał +4 px
+     przewijania (P1-b). */
+  .landing--czerwony .landing-about__foto-wrap { max-width: 480px; margin: 18px 22px 22px 18px; }
   .landing--czerwony .landing-contact__grid { grid-template-columns: 1fr; gap: 40px; }
   .landing--czerwony .landing-hero__grid { grid-template-columns: 1fr; }
   .landing--czerwony .landing-hero__grid .landing-panel { order: -1; }
+  /* Panel nad tekstem: 560 px spychało h1 na y ≈ 804 przy 768 px (pierwszy ekran = sama
+     dekoracja); 360 px z proporcjonalnie mniejszą plamą, pierścieniem i dzikiem. */
+  .landing--czerwony .landing-panel { height: 360px; }
+  .landing--czerwony .landing-panel__blob { width: 300px; height: 300px; margin: -150px 0 0 -150px; }
+  .landing--czerwony .landing-panel__ring { width: 340px; height: 340px; margin: -170px 0 0 -170px; }
+  .landing--czerwony .landing-panel__boar { width: 230px; }
+  .landing--czerwony .landing-panel__raster { width: 160px; height: 160px; }
 }
 @media (max-width: 699px) {
   .landing--czerwony { font-size: 16px; }
@@ -857,7 +895,8 @@ table.simple th { color: var(--text-dim); font-weight: 600; font-size: 0.78rem; 
   .landing--czerwony .landing-hero__cta .btn { width: 100%; }
   .landing--czerwony .landing-proof { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
   .landing--czerwony .landing-proof__item { white-space: normal; }
-  .landing--czerwony .landing-proof__item b { font-size: 16px; }
+  /* Siatka 3 kolumn po ~117 px: etykieta może się złamać („nawet / −12 kg”), inaczej +4 px przewijania. */
+  .landing--czerwony .landing-proof__item b { font-size: 16px; white-space: normal; }
   .landing--czerwony .landing-proof__item small { font-size: 11.5px; }
   .landing--czerwony .landing-proof__sep { display: none; }
   .landing--czerwony .landing-panel { height: 290px; border-radius: 28px 28px 28px 72px; overflow: hidden; }

@@ -39,7 +39,7 @@ const ATUTY = [
   },
 ];
 
-/* Warstwa wizualna 0.65.0 (wariant czerwono-biały): kafel gradientowy,
+/* Warstwa wizualna 0.65.0 → 0.72.0 (wariant czerwono-biały): kafel gradientowy,
    ikona SVG (siatka 24, bez emoji) i chipy przy każdym atucie — treść
    ATUTY bez zmian. */
 type Kafel = "tile-red" | "tile-graphite" | "tile-coral";
@@ -80,12 +80,12 @@ function Strzalka() {
   );
 }
 
-function Naglowek({ etykieta, tytul, opis, id }: { etykieta: string; tytul: ReactNode; opis?: ReactNode; id?: string }) {
+function Naglowek({ etykieta, tytul, opis }: { etykieta: string; tytul: ReactNode; opis?: ReactNode }) {
   return (
     <div className="sec-head">
       <div>
         <div className="eyebrow">{etykieta}</div>
-        <h2 className="h2" id={id}>{tytul}</h2>
+        <h2 className="h2">{tytul}</h2>
       </div>
       {opis && <p className="sec-head__desc">{opis}</p>}
     </div>
@@ -202,17 +202,35 @@ export default function Landing() {
               <li className="landing-proof__sep" aria-hidden="true" />
               <li className="landing-proof__item"><b>30 000+</b><small>społeczność na Instagramie</small></li>
               <li className="landing-proof__sep" aria-hidden="true" />
-              <li className="landing-proof__item"><b>−12 kg</b><small>w 20 tygodni, bez utraty mięśni</small></li>
+              <li className="landing-proof__item"><b>nawet <span className="nowrap">−12 kg</span></b><small>w 20 tygodni, bez utraty mięśni</small></li>
             </ul>
           </div>
           <div className="landing-panel dark" aria-hidden="true">
-            <span className="landing-panel__tag">LUBELSKI DZIK</span>
-            <span className="landing-panel__raster" />
-            <span className="landing-panel__blob" />
-            <span className="landing-panel__ring" />
-            <img src="/icons/boar-hero-red.png" alt="" className="landing-panel__boar" />
-            {/* PERSONALIZACJA: dane na kartach są przykładowe. */}
+            {/* Scena: dekoracje przycięte do panelu (0.72.0, P1-a — pierścień 520 px
+                i plama 440 px wystawały poza panel i przewijały stronę w pasie 900–1150 px).
+                Karty-powiadomienia zostają poza sceną: mają wystawać poza krawędź. */}
+            <div className="landing-panel__scene">
+              <span className="landing-panel__tag">LUBELSKI DZIK</span>
+              <span className="landing-panel__raster" />
+              <span className="landing-panel__blob" />
+              <span className="landing-panel__ring" />
+              {/* Obraz LCP na telefonie/tablecie: wymiary i priorytet pobierania (0.72.0).
+                  `fetchpriority` małymi literami przez spread — React 18 przepuszcza nieznane
+                  atrybuty pisane małymi literami bez ostrzeżenia, a camelCase zna dopiero React 19. */}
+              <img
+                src="/icons/boar-hero-red.png"
+                alt=""
+                className="landing-panel__boar"
+                width={560}
+                height={721}
+                decoding="async"
+                {...{ fetchpriority: "high" }}
+              />
+            </div>
+            {/* PERSONALIZACJA: dane na kartach są przykładowe — treść NIEPOTWIERDZONA przez
+                właściciela (zlecenie 3, pytanie 14), dlatego każda karta nosi etykietę „przykład”. */}
             <div className="card landing-panel__card landing-panel__card--a">
+              <small className="landing-panel__demo">przykład</small>
               <span className="icon icon--s tile-graphite"><Ikona nazwa="slupki" /></span>
               <span><b>Przysiad 110 kg</b><small>nowy rekord własny</small></span>
               <span className="landing-bars">
@@ -222,10 +240,12 @@ export default function Landing() {
               </span>
             </div>
             <div className="card landing-panel__card landing-panel__card--b">
+              <small className="landing-panel__demo">przykład</small>
               <span className="icon icon--s tile-red"><Ikona nazwa="ptaszek" /></span>
               <span><b>Raport z tygodnia 8</b><small>Odpowiedź trenera: dziś 09:40</small></span>
             </div>
             <div className="card landing-panel__card landing-panel__card--c">
+              <small className="landing-panel__demo">przykład</small>
               <span className="landing-dot" />
               <span>Dieta: 2300 kcal · 180 g białka</span>
             </div>
@@ -276,8 +296,9 @@ export default function Landing() {
       <section className="landing-app" id="aplikacja">
         <div className="wrap">
           <Naglowek etykieta="Aplikacja" tytul="Zobacz aplikację"
-            opis={<span className="landing-dark-desc">Prawdziwe ekrany z danymi demonstracyjnymi — tak wygląda codzienna współpraca. Ciemny motyw aplikacji zostaje: na siłowni ma być czytelny, nie jasny.</span>} />
-          <div className="landing-gallery">
+            opis={<span className="landing-dark-desc">Prawdziwe ekrany z danymi demonstracyjnymi — tak wygląda codzienna współpraca. Motyw wybierasz sam: ciemny na siłownię albo jasny czerwono-biały.</span>} />
+          {/* Region z nazwą: na telefonie galeria przewija się poziomo i jest przystankiem fokusu. */}
+          <div className="landing-gallery" role="region" aria-label="Ekrany aplikacji">
             {[
               { src: "/screens/dzisiaj.jpg", podpis: "Dzisiaj — Twój dzień w pigułce" },
               { src: "/screens/plan.jpg", podpis: "Plan treningowy z techniką" },
@@ -333,7 +354,7 @@ export default function Landing() {
             <div className="landing-stats">
               <div className="landing-stat landing-stat--red"><b>IFBB PRO</b><small>zawodnik scen sylwetkowych</small></div>
               <div className="landing-stat landing-stat--graphite"><b>30 000+</b><small>społeczność na Instagramie</small></div>
-              <div className="landing-stat landing-stat--coral"><b>−12 kg</b><small>w 20 tygodni, bez utraty mięśni</small></div>
+              <div className="landing-stat landing-stat--coral"><b>nawet <span className="nowrap">−12 kg</span></b><small>w 20 tygodni, bez utraty mięśni</small></div>
             </div>
             <p className="landing-about__social">
               <a className="btn btn--ghost btn--pill" href="https://www.instagram.com/lubelski_dzik_ifbbpro/" target="_blank" rel="noopener nofollow">Instagram</a>

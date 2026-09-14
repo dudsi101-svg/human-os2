@@ -53,6 +53,45 @@ Stan po rundzie 0.15.0 (2026-08-18). Punkt odniesienia: **WCAG 2.2 AA**
   rgba(255,255,255,0.14) do **0.34** — ok. 3:1 względem tła karty
   (WCAG 1.4.11 dla granic komponentów: pola, przyciski ghost, taby).
 
+### Strona publiczna `/` (wariant czerwono-biały, 0.65.0 → 0.72.0)
+
+Osobna paleta scope'owana do `.landing--czerwony`; wartości policzone wg
+WCAG (luminancja względna), stan po domknięciu PR #67:
+
+| Para | Współczynnik | Uwaga |
+|---|---|---|
+| link `--l-red-link` #B3121F / biel | 6,95 | AA także dla małego tekstu |
+| link / pasmo różowe #FDECEE | 6,09 | FAQ |
+| `--l-ink-2` #566372 / biel | 6,13 | opisy, podpisy |
+| biel / `--l-red` #E11D2E (przycisk główny) | 4,75 | AA |
+| `--l-dark-text-dim` #B5BDC6 / #0B0F14 | 10,12 | sekcje ciemne |
+| koral #FF6B5A / #0B0F14 (etykiety na ciemnym) | 6,87 | |
+| nawigacja `--l-ink-3` #3B4652 / biel | 9,62 | |
+| **obrys ghost i pól** `--l-border-ui` #B3878A / biel | **3,11** | było #E0CFCF = 1,50; 1.4.11 wymaga 3:1 dla granic kontrolek; karty/separatory zostają na #ECE4E4/#E0CFCF (nie są kontrolkami) |
+| **numer kroku na kaflu koralowym** grafit #0B0F14 / gradient #B3341E → #FF6B5A → #FFC7BE | **3,14 / 6,87 / 12,96** | biel dawała 6,13 / 2,80 / 1,48 |
+| etykieta „przykład” #7A0A14 / #FDECEE | 9,79 | karty demonstracyjne w hero |
+
+* Cele dotyku: nawigacja kotwic (≥ 900 px) `padding: 8px 6px` → wysokość
+  ≥ 24 px (WCAG 2.2 2.5.8; test E2E mierzy `boundingBox`); przyciski 54 px
+  (`btn--sm` 46, pigułki social 40); link RODO w zdaniu = wyjątek 2.5.8.
+* Bez poziomego przewijania na 1440 / 1024 / 768 / 390 (test E2E w pętli;
+  przed domknięciem 1024 dawało +62 px, 768 +4 px). Dekoracje hero
+  w `.landing-panel__scene` z `overflow: hidden`; znaki wodne obcięte
+  przez `overflow: hidden` sekcji.
+* Kotwice: `section[id] { scroll-margin-top: 76px }` — nagłówek sekcji nie
+  chowa się pod przyklejonym paskiem.
+* Panel hero jest w całości `aria-hidden` (dekoracja + karty
+  demonstracyjne z widoczną etykietą „przykład”); trzy dowody (IFBB PRO /
+  30 000+ / nawet −12 kg) są celowo dwa razy — czytnik słyszy oba.
+* Galeria ekranów: `role="region" aria-label="Ekrany aplikacji"` (na
+  telefonie przewija się poziomo i jest przystankiem fokusu).
+* Honeypot formularza: `aria-hidden`, `tabIndex=-1`, poza ekranem
+  (−9999 px); ścieżka błędu w `role="alert"`, potwierdzenie w
+  `role="status"`.
+* Konspekt: jeden `h1`, sześć `h2` sekcji, `h3` w kartach oferty i krokach
+  (E2E pilnuje pełnej listy). Dawne `h2` „Jak zaczynamy” / „O trenerze”
+  są etykietami nad właściwymi `h2` — świadoma zmiana (CHANGELOG 0.72.0).
+
 ### Semantyka i struktura
 
 * `html lang="pl"`, viewport **bez** `maximum-scale`/`user-scalable=no`
