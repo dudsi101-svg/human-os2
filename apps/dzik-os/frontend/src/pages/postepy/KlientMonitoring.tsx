@@ -26,10 +26,12 @@ export default function KlientMonitoring() {
       {!dane && !error && <Spinner />}
       {dane && (
         <>
-          {/* `health_flag` przychodzi tylko ze zgodą na dane zdrowotne (razem z `body`). */}
-          {dane.health_flag && dane.body && (
+          {/* Flaga to pochodna odpowiedzi wywiadu (decyzja właściciela 14.09) — widoczna przy zgodzie
+              na współpracę; same pomiary (sekcja Sylwetka) wymagają zgody zdrowotnej. */}
+          {dane.health_flag && (
             <p className="alert alert--info" role="status">
-              Klient ma flagę zdrowotną z wywiadu: w jego aplikacji sekcja „Sylwetka” i trend wagi są ukryte. Ty widzisz pełne dane.
+              Klient ma flagę zdrowotną z wywiadu: w jego aplikacji sekcja „Sylwetka” i trend wagi są ukryte
+              {dane.body ? " — Ty widzisz pełne dane." : "."}
             </p>
           )}
           <p><Link to={`/trener/klient/${clientId}`}>Karta klienta</Link></p>

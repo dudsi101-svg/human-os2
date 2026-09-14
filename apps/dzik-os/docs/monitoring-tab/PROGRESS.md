@@ -28,6 +28,19 @@ a11y, PWA). Opis w `CHANGELOG.md` 0.66.0.
 | 11 | §6.4 „najdłuższa seria” | liczona w oknie 12 tygodni (jak wykres), nie z całej historii | jedna ścieżka danych; historyczna seria wymaga osobnego zapytania po wszystkich agregatach |
 | 12 | §7.2 zmiany planu „na tle tonażu” | lista dat pod wykresem tonażu, nie znaczniki na wykresie; notatki trenera jako lista pod wagą | prostszy SVG bez biblioteki wykresów; znaczniki na osi czasu — kolejna iteracja |
 
+## Decyzja właściciela 14.09: pochodne odpowiedzi nie są danymi zdrowotnymi
+
+„Sama cyfra, którą widzi trener, nie powinna być klasyfikowana jako dane
+medyczne — to wypadkowa odpowiedzi podopiecznego, które zostają po jego
+stronie.” Zastosowanie: liczba kcal z wywiadu zapotrzebowania i wynikająca
+z niego flaga zdrowotna (`hidden_for_client` → `health_flag`) są widoczne
+dla trenera przy zgodzie na współpracę, także bez zgody na dane zdrowotne
+i po jej cofnięciu. Surowe odpowiedzi pytania zdrowotnego zostają w domenie
+zdrowotnej (klient). Pomiary ciała (waga, obwody, zdjęcia) pozostają danymi
+zdrowotnymi — sekcja Sylwetka i trend wagi wyłącznie ze zgodą. Zamyka
+P2 „flagi widoczne po cofnięciu zgody” z 0.62.0
+(`docs/wywiad-zapotrzebowanie/PROGRESS.md`).
+
 ## Włączenie na produkcji (kolejność)
 
 1. `DZIK_MONITORING_TAB_ENABLED=true` w `fly.toml` (`[env]`) albo jako

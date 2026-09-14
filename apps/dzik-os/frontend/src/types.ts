@@ -1832,8 +1832,8 @@ export interface PostepyProgi {
 }
 export interface PostepyKlientTrenera {
   client_id: string; summary: PostepySummary; records: PostepyRekordy; training: PostepyTrening;
-  /** Tylko ze zgodą na dane zdrowotne (pole nieobecne bez zgody). */
-  health_flag?: boolean;
+  /** Pochodna odpowiedzi wywiadu (decyzja właściciela 14.09) — zawsze obecna u trenera. */
+  health_flag: boolean;
   body?: PostepyBody; notes?: { date: string; text: string; category: string; severity: string }[];
   plan_changes: { date: string; version_no: number; reason: string }[];
 }

@@ -65,7 +65,10 @@ decyzja właściciela o scaleniu).**
   ustawieniach powiadomień — pilnują E2E `postepy-flaga.spec.ts` i test
   API.
 * **Zgody per domena u trenera** (jak w reszcie aplikacji): bez zgody na
-  dane zdrowotne — bez wagi, sylwetki i flagi zdrowotnej; bez zgody na
+  dane zdrowotne — bez wagi i sylwetki (flaga zdrowotna zostaje: decyzja
+  właściciela z 14.09 — liczba kcal i flaga z wywiadu to **pochodne**
+  odpowiedzi, nie dane zdrowotne; surowe odpowiedzi zostają po stronie
+  klienta); bez zgody na
   zdjęcia — puste zdjęcia; bez zgody na żywienie — bez realizacji diety;
   bez zgody na dane treningowe — lista nie zdradza daty ostatniej sesji
   ani frekwencji. Sesja `SKIPPED` nie liczy się do tygodnia, frekwencji,

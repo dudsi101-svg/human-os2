@@ -501,10 +501,13 @@ def client_detail(client_id: str, coach: User = Depends(require_role("COACH")), 
                                           _summary(db, client_id, widok_klienta=False, today=today)),
         "records": _rekordy_klienta(db, client_id, today=today, historia=True),
         "training": _training(db, client_id, today, TYGODNI_TRENING),
+        # Decyzja właściciela (14.09): flaga jest POCHODNĄ odpowiedzi wywiadu (jak liczba kcal),
+        # nie daną zdrowotną — trener widzi ją przy zgodzie na współpracę; surowe odpowiedzi
+        # (w tym pytanie zdrowotne) zostają po stronie klienta. Pomiary (waga, sylwetka) to
+        # nadal dane zdrowotne — poniżej wyłącznie ze zgodą.
+        "health_flag": _flaga_zdrowotna(db, client_id),
     }
     if coach_can_access_client(db, coach.id, client_id, domain=DOMAIN_HEALTH):
-        # Flaga zdrowotna pochodzi z pytania wywiadu w domenie zdrowotnej — bez zgody nie ma klucza.
-        out["health_flag"] = _flaga_zdrowotna(db, client_id)
         out["body"] = _body(db, client_id, today, surowe=True)
         if not coach_can_access_client(db, coach.id, client_id, domain=DOMAIN_PHOTOS):
             out["body"]["photos"] = []

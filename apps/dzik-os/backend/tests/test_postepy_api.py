@@ -236,7 +236,8 @@ def test_trener_bez_zgody_na_domene_nie_dostaje_wagi_diety_flagi_ani_frekwencji(
     po = seeded.get(f"{M}/summary?client_id={cid}", headers=hc).json()
     assert "weight" not in po
     det = seeded.get(f"{M}/clients/{cid}", headers=hc).json()
-    assert "health_flag" not in det and "body" not in det and "weight" not in det["summary"]
+    # Flaga zdrowotna to pochodna odpowiedzi (decyzja właściciela 14.09) — zostaje; pomiary znikają.
+    assert det["health_flag"] is False and "body" not in det and "weight" not in det["summary"]
     assert seeded.get(f"{M}/body?client_id={cid}", headers=hc).status_code == 404
     _cofnij_zgode(seeded, ha, "dane_treningowe")
     a = next(c for c in seeded.get(f"{M}/clients", headers=hc).json()["clients"] if c["client_id"] == cid)

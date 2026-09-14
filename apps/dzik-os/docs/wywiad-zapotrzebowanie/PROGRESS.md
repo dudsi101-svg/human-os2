@@ -32,9 +32,11 @@ i `GET /coach/wywiady/do-przegladu`; PUT/POST zapotrzebowania przez
 `_dostep_pelny` (404 + audyt, spójnie z resztą wywiadu); neutralne
 `summary` audytu odsłonięcia; NUMBER przyjmuje wyłącznie zwykły zapis
 dziesiętny (bez `1e2`, `1_0`, cyfr spoza ASCII) i zapisuje znormalizowany.
-**P2 odnotowane (bez zmiany):** `hidden_for_client`/`safety_flag` widoczne
-dla trenera także po cofnięciu zgody zdrowotnej przez klienta — ten sam
-wzorzec co istniejący `safety_flag` z 0.59.0; do rozstrzygnięcia razem.
+**P2 rozstrzygnięte (decyzja właściciela 14.09, bez zmiany kodu):**
+`hidden_for_client`/`safety_flag` widoczne dla trenera także po cofnięciu
+zgody zdrowotnej — liczba i flaga to pochodne odpowiedzi klienta, nie dane
+zdrowotne; surowe odpowiedzi zostają po stronie klienta. Ten sam wzorzec
+przyjęty w Monitoringu 0.66.0 (`health_flag`).
 
 **Z przeglądu testów/UX naprawione:** komunikat ukrycia dla klienta bez
 trenera; nota o wygasłym ustaleniu przy nowej wersji (+ `override_kcal`
