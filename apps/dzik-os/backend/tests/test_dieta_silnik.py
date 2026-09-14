@@ -25,7 +25,7 @@ def prods() -> S.Products:
 
 @pytest.fixture(scope="module")
 def tpl() -> dict:
-    return json.loads(seed._plik("szablon_standard_v1.json"))
+    return json.loads(seed._szablon("template_standard_v1.json"))
 
 
 def _golden_dni() -> dict[int, dict]:
@@ -129,10 +129,18 @@ def test_grupa_ma_identyczny_wspolczynnik_z_regula_group(prods, tpl):
                     if i.get("group"):
                         grupy.setdefault(i["group"], set()).add(round(i["grams"] / i["base_grams"], 6))
                 assert all(len(f) == 1 for f in grupy.values()), (kcal, r["name"], grupy)
-    # Referencja tej reguły nie wymusza — test dokumentuje różnicę (racuchy dzień 3).
-    r = S.scale_week(tpl, 2000, prods)[2]["meals"][0]
-    f = {i["product"]: i["grams"] / i["base_grams"] for i in r["ingredients"] if i.get("group")}
-    assert len({round(v, 3) for v in f.values()}) > 1
+    # Referencja tej reguły nie wymusza — test dokumentuje różnicę: w bibliotece istnieje
+    # posiłek (ciasto naleśników/racuchów), którego składniki tej samej grupy dostają
+    # bez wymuszenia różne współczynniki (inaczej reguła byłaby pusta).
+    roznice = 0
+    for plik in seed.pliki_szablonow():
+        t = json.loads(plik.read_text(encoding="utf-8"))
+        for d in S.scale_week(t, 2000, prods):
+            for r in d["meals"]:
+                f = {i["product"]: i["grams"] / i["base_grams"] for i in r["ingredients"] if i.get("group")}
+                if len({round(v, 3) for v in f.values()}) > 1:
+                    roznice += 1
+    assert roznice > 0
 
 
 def test_liniowy_bez_korekty_makro_2000_do_3000_to_x1_5(prods):
@@ -149,13 +157,15 @@ def test_liniowy_bez_korekty_makro_2000_do_3000_to_x1_5(prods):
     assert r["k"] == pytest.approx(1.5) and [i["grams"] for i in r["ingredients"]] == [300, 150]
 
 
-def test_swap_candidates_nie_wyprowadza_poza_tolerancje_i_skyr_bez_laktozy_pusty(prods, tpl):
+def test_swap_candidates_nie_wyprowadza_poza_tolerancje_i_skyr_bez_laktozy_ma_zamienniki(prods, tpl):
     week = S.scale_week(tpl, 2000, prods)
     ob = week[0]["meals"][1]
     idx = next(i for i, x in enumerate(ob["ingredients"]) if x["product"] == "Pierś z kurczaka (surowa)")
     cands = S.swap_candidates(ob, idx, prods)
     assert [c["product"] for c in cands] == ["Pierś z indyka (surowa)", "Schab bez kości (surowy)", "Polędwiczka wieprzowa (surowa)"]
-    assert [c["grams"] for c in cands] == [155, 150, 170]
+    # Gramatury kandydatów przypięte z przebiegu silnika v1.1 (golden po audycie nie
+    # zawiera już demo wymiany) — pilnują regresji, nie „prawdy” z dokumentu.
+    assert [c["grams"] for c in cands] == [160, 155, 175]
     for c in cands:
         ok, _ = S.check(c["macros"], ob["target"], S.TOL_MEAL)
         assert ok
@@ -166,7 +176,12 @@ def test_swap_candidates_nie_wyprowadza_poza_tolerancje_i_skyr_bez_laktozy_pusty
                 assert S.check(c["macros"], r["target"], S.TOL_MEAL)[0]
     sn = week[0]["meals"][0]
     idx = next(i for i, x in enumerate(sn["ingredients"]) if x["product"] == "Skyr naturalny")
-    assert S.swap_candidates(sn, idx, prods, exclusions=("lactose",)) == []
+    # Baza 181 produktów (14.09) ma nabiał bez laktozy w tej samej grupie zamienników:
+    # z wykluczeniem `lactose` kandydaci istnieją, ale ŻADEN nie zawiera laktozy
+    # (w bazie 142 produktów lista była pusta — zmiana danych, nie algorytmu).
+    kand = S.swap_candidates(sn, idx, prods, exclusions=("lactose",))
+    assert kand and all("lactose" not in prods[c["product"]].diet_exclusions for c in kand)
+    assert all(S.check(c["macros"], sn["target"], S.TOL_MEAL)[0] for c in kand)
 
 
 def test_day_target_i_bledy_definicji(prods):
@@ -231,3 +246,49 @@ def test_niekompletny_szablon_i_cel_niedodatni_daja_valueerror(prods):
                      {"kcal": 300, "P": 30, "F": 5, "C": 20}, prods)
     with pytest.raises(ValueError, match="brak posiłków"):
         S.scale_day({"day": 1, "meals": []}, {"kcal": 2000, "P": 125, "F": 67, "C": 225}, prods)
+
+
+# --- silnik v1.1 (audyt 14.09): limity porcji jako reguły `fill_defaults` ---
+
+def _posilek(*skl):
+    return {"name": "t", "slot": "obiad", "kcal_share": 1.0, "ingredients": [{"product": p, "grams": g, "role": r} for p, g, r in skl]}
+
+
+def test_v1_1_mieso_liniowe_nie_przekracza_300_g_surowego_na_posilek(prods):
+    # 150 g kurczaka przy celu ×4 → bez limitu byłoby 600 g; limit 300 g i posiłek oflagowany.
+    m = _posilek(("Pierś z kurczaka (surowa)", 150, "P"), ("Ryż biały (suchy)", 60, "C"))
+    baza = S.sum_macros([S.fill_defaults(dict(i), prods) for i in m["ingredients"]], prods)
+    cel = {k: v * 4 for k, v in baza.items()}
+    r = S.scale_meal(m, cel, prods)
+    kur = next(i for i in r["ingredients"] if i["product"] == "Pierś z kurczaka (surowa)")
+    assert kur["grams"] == 300 and kur["max_factor"] == 2.0 and r["status"] != "OK"
+    # Wędlina (grupa `wędlina`) nie podlega limitowi mięsa surowego.
+    ing = S.fill_defaults({"product": "Szynka drobiowa (wędlina)", "grams": 150, "role": "P"}, prods) \
+        if "Szynka drobiowa (wędlina)" in prods else None
+    if ing is not None:
+        assert ing["max_factor"] >= 2.0 or ing["class"] != "LINIOWY"
+
+
+def test_v1_1_jajka_maks_4_sztuki_na_posilek(prods):
+    ing = S.fill_defaults({"product": "Jajko kurze (całe)", "grams": 110, "role": "P", "class": "DYSKRETNY", "unit_g": 55}, prods)
+    assert ing["max_factor"] == 2.0  # 4 × 55 g / 110 g
+    ing1 = S.fill_defaults({"product": "Jajko kurze (całe)", "grams": 330, "role": "P", "class": "DYSKRETNY", "unit_g": 55}, prods)
+    assert ing1["max_factor"] == 1.0  # 6 jajek w bazie → nie rośnie, ale nie spada poniżej 1
+
+
+def test_v1_1_tluszcze_liniowe_skalowane_do_1_g_i_max_factor_3(prods):
+    ing = S.fill_defaults({"product": "Oliwa z oliwek", "grams": 10, "role": "F"}, prods)
+    assert ing["class"] == "LINIOWY" and ing["round_step"] == 1 and ing["max_factor"] >= 3.0
+    m = _posilek(("Oliwa z oliwek", 10, "F"), ("Ryż biały (suchy)", 60, "C"))
+    baza = S.sum_macros([S.fill_defaults(dict(i), prods) for i in m["ingredients"]], prods)
+    r = S.scale_meal(m, {k: v * 1.23 for k, v in baza.items()}, prods)
+    oliwa = next(i for i in r["ingredients"] if i["product"] == "Oliwa z oliwek")
+    assert oliwa["grams"] == 12  # 12,3 g → 12 g (krok 1 g), nie 10/15
+
+
+def test_alergeny_posilku_liczone_z_biezacych_skladnikow(prods):
+    m = _posilek(("Pierś z kurczaka (surowa)", 150, "P"), ("Ryż biały (suchy)", 60, "C"))
+    baza = S.sum_macros([S.fill_defaults(dict(i), prods) for i in m["ingredients"]], prods)
+    assert S.scale_meal(m, baza, prods)["allergens"] == []
+    m2 = _posilek(("Krewetki (surowe)", 150, "P"), ("Ryż biały (suchy)", 60, "C"))
+    assert S.scale_meal(m2, baza, prods)["allergens"] == ["skorupiaki"]

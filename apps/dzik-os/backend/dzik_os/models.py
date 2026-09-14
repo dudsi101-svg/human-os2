@@ -1893,6 +1893,14 @@ class DietTemplateWeek(Base):
     kcal_max: Mapped[int] = mapped_column(Integer, default=3200)
     status: Mapped[str] = mapped_column(String(20), default="DRAFT")  # DRAFT / PUBLISHED
     created_by: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    #: Biblioteka po audycie 14.09 (0.64.0): pochodzenie, notatki autora biblioteki
+    #: (suplementy jako informacja, sód), wynik audytu i skrót pliku źródłowego
+    #: (podmiana treści przy imporcie, gdy plik się zmienił).
+    derived_from: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    supplements_note: Mapped[str] = mapped_column(Text, default="")  # JSON: lista tekstów
+    sodium_note: Mapped[str] = mapped_column(Text, default="")
+    audit_json: Mapped[str] = mapped_column(Text, default="{}")
+    source_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
     created_at: Mapped[str] = mapped_column(String(40), default=now_iso)
     updated_at: Mapped[str] = mapped_column(String(40), default=now_iso)
 
@@ -1922,6 +1930,8 @@ class DietTemplateMeal(Base):
     recipe_steps: Mapped[str] = mapped_column(Text, default="")
     prep_minutes: Mapped[int | None] = mapped_column(Integer, nullable=True)
     tags: Mapped[str] = mapped_column(String(200), default="")
+    #: Alergeny posiłku (CSV, z alergenów produktów — audyt 14.09).
+    allergens: Mapped[str] = mapped_column(String(300), default="")
 
 
 class DietTemplateIngredient(Base):

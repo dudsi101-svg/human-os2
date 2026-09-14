@@ -1,0 +1,891 @@
+[
+ {
+  "profile": "Standard zbilansowana",
+  "variant": 1,
+  "file": "template_standard_v1.json",
+  "macro_pct": [
+   0.25,
+   0.3,
+   0.45
+  ],
+  "base_kcal": 2000,
+  "kcal_min": 1400,
+  "kcal_max": 3200,
+  "meals": 28,
+  "source": "autorska",
+  "audit_remaining": [],
+  "supplements": [
+   "D3 (jesień–zima, 2000 IU) – standardowe zalecenie w Polsce"
+  ]
+ },
+ {
+  "profile": "Standard zbilansowana",
+  "variant": 2,
+  "file": "template_standard_v2.json",
+  "macro_pct": [
+   0.25,
+   0.3,
+   0.45
+  ],
+  "base_kcal": 2000,
+  "kcal_min": 1400,
+  "kcal_max": 3200,
+  "meals": 28,
+  "source": "autorska",
+  "audit_remaining": [],
+  "supplements": [
+   "D3 (jesień–zima, 2000 IU) – standardowe zalecenie w Polsce"
+  ]
+ },
+ {
+  "profile": "Standard zbilansowana",
+  "variant": 3,
+  "file": "template_standard_v3.json",
+  "macro_pct": [
+   0.25,
+   0.3,
+   0.45
+  ],
+  "base_kcal": 2000,
+  "kcal_min": 1400,
+  "kcal_max": 3200,
+  "meals": 28,
+  "source": "autorska",
+  "audit_remaining": [
+   "posiłek główny z białkiem < 20 g (19 g)"
+  ],
+  "supplements": [
+   "D3 (jesień–zima, 2000 IU) – standardowe zalecenie w Polsce"
+  ]
+ },
+ {
+  "profile": "Standard zbilansowana",
+  "variant": 4,
+  "file": "template_standard_v4.json",
+  "macro_pct": [
+   0.25,
+   0.3,
+   0.45
+  ],
+  "base_kcal": 2000,
+  "kcal_min": 1400,
+  "kcal_max": 3200,
+  "meals": 28,
+  "source": "autorska",
+  "audit_remaining": [],
+  "supplements": [
+   "D3 (jesień–zima, 2000 IU) – standardowe zalecenie w Polsce"
+  ]
+ },
+ {
+  "profile": "Standard zbilansowana",
+  "variant": 5,
+  "file": "template_standard_v5.json",
+  "macro_pct": [
+   0.25,
+   0.3,
+   0.45
+  ],
+  "base_kcal": 2000,
+  "kcal_min": 1400,
+  "kcal_max": 3200,
+  "meals": 28,
+  "source": "autorska",
+  "audit_remaining": [],
+  "supplements": [
+   "D3 (jesień–zima, 2000 IU) – standardowe zalecenie w Polsce"
+  ]
+ },
+ {
+  "profile": "Redukcja wysokobiałkowa",
+  "variant": 1,
+  "file": "template_redukcja_v1.json",
+  "macro_pct": [
+   0.35,
+   0.25,
+   0.4
+  ],
+  "base_kcal": 2000,
+  "kcal_min": 1300,
+  "kcal_max": 2800,
+  "meals": 28,
+  "source": "autorska",
+  "audit_remaining": [],
+  "supplements": [
+   "D3 (jesień–zima, 2000 IU) – standardowe zalecenie w Polsce"
+  ]
+ },
+ {
+  "profile": "Redukcja wysokobiałkowa",
+  "variant": 2,
+  "file": "template_redukcja_v2.json",
+  "macro_pct": [
+   0.35,
+   0.25,
+   0.4
+  ],
+  "base_kcal": 2000,
+  "kcal_min": 1300,
+  "kcal_max": 2800,
+  "meals": 28,
+  "source": "autorska",
+  "audit_remaining": [
+   "błonnik < 22 g w dniu (min 21.7 g)"
+  ],
+  "supplements": [
+   "D3 (jesień–zima, 2000 IU) – standardowe zalecenie w Polsce"
+  ]
+ },
+ {
+  "profile": "Redukcja wysokobiałkowa",
+  "variant": 3,
+  "file": "template_redukcja_v3.json",
+  "macro_pct": [
+   0.35,
+   0.25,
+   0.4
+  ],
+  "base_kcal": 2000,
+  "kcal_min": 1300,
+  "kcal_max": 2800,
+  "meals": 28,
+  "source": "autorska",
+  "audit_remaining": [],
+  "supplements": [
+   "D3 (jesień–zima, 2000 IU) – standardowe zalecenie w Polsce"
+  ]
+ },
+ {
+  "profile": "Redukcja wysokobiałkowa",
+  "variant": 4,
+  "file": "template_redukcja_v4.json",
+  "macro_pct": [
+   0.35,
+   0.25,
+   0.4
+  ],
+  "base_kcal": 2000,
+  "kcal_min": 1300,
+  "kcal_max": 2800,
+  "meals": 28,
+  "source": "autorska",
+  "audit_remaining": [],
+  "supplements": [
+   "D3 (jesień–zima, 2000 IU) – standardowe zalecenie w Polsce"
+  ]
+ },
+ {
+  "profile": "Redukcja wysokobiałkowa",
+  "variant": 5,
+  "file": "template_redukcja_v5.json",
+  "macro_pct": [
+   0.35,
+   0.25,
+   0.4
+  ],
+  "base_kcal": 2000,
+  "kcal_min": 1300,
+  "kcal_max": 2800,
+  "meals": 28,
+  "source": "autorska",
+  "audit_remaining": [],
+  "supplements": [
+   "D3 (jesień–zima, 2000 IU) – standardowe zalecenie w Polsce"
+  ]
+ },
+ {
+  "profile": "Sportowa wysokobiałkowa",
+  "variant": 1,
+  "file": "template_sportowa_v1.json",
+  "macro_pct": [
+   0.3,
+   0.22,
+   0.48
+  ],
+  "base_kcal": 2600,
+  "kcal_min": 2000,
+  "kcal_max": 3600,
+  "meals": 35,
+  "source": "autorska",
+  "audit_remaining": [],
+  "supplements": [
+   "D3 (jesień–zima, 2000 IU) – standardowe zalecenie w Polsce"
+  ]
+ },
+ {
+  "profile": "Sportowa wysokobiałkowa",
+  "variant": 2,
+  "file": "template_sportowa_v2.json",
+  "macro_pct": [
+   0.3,
+   0.22,
+   0.48
+  ],
+  "base_kcal": 2600,
+  "kcal_min": 2000,
+  "kcal_max": 3600,
+  "meals": 35,
+  "source": "autorska",
+  "audit_remaining": [],
+  "supplements": [
+   "D3 (jesień–zima, 2000 IU) – standardowe zalecenie w Polsce"
+  ]
+ },
+ {
+  "profile": "Sportowa wysokobiałkowa",
+  "variant": 3,
+  "file": "template_sportowa_v3.json",
+  "macro_pct": [
+   0.3,
+   0.22,
+   0.48
+  ],
+  "base_kcal": 2600,
+  "kcal_min": 2000,
+  "kcal_max": 3600,
+  "meals": 35,
+  "source": "autorska",
+  "audit_remaining": [],
+  "supplements": [
+   "D3 (jesień–zima, 2000 IU) – standardowe zalecenie w Polsce"
+  ]
+ },
+ {
+  "profile": "Sportowa wysokobiałkowa",
+  "variant": 4,
+  "file": "template_sportowa_v4.json",
+  "macro_pct": [
+   0.3,
+   0.22,
+   0.48
+  ],
+  "base_kcal": 2600,
+  "kcal_min": 2000,
+  "kcal_max": 3600,
+  "meals": 35,
+  "source": "autorska",
+  "audit_remaining": [],
+  "supplements": [
+   "D3 (jesień–zima, 2000 IU) – standardowe zalecenie w Polsce"
+  ]
+ },
+ {
+  "profile": "Sportowa wysokobiałkowa",
+  "variant": 5,
+  "file": "template_sportowa_v5.json",
+  "macro_pct": [
+   0.3,
+   0.22,
+   0.48
+  ],
+  "base_kcal": 2600,
+  "kcal_min": 2000,
+  "kcal_max": 3600,
+  "meals": 35,
+  "source": "autorska",
+  "audit_remaining": [],
+  "supplements": [
+   "D3 (jesień–zima, 2000 IU) – standardowe zalecenie w Polsce"
+  ]
+ },
+ {
+  "profile": "Masa / budowa",
+  "variant": 1,
+  "file": "template_masa_v1.json",
+  "macro_pct": [
+   0.25,
+   0.25,
+   0.5
+  ],
+  "base_kcal": 3000,
+  "kcal_min": 2200,
+  "kcal_max": 4000,
+  "meals": 28,
+  "source": "pochodna Standard 1",
+  "audit_remaining": [],
+  "supplements": [
+   "D3 (jesień–zima, 2000 IU) – standardowe zalecenie w Polsce"
+  ]
+ },
+ {
+  "profile": "Masa / budowa",
+  "variant": 2,
+  "file": "template_masa_v2.json",
+  "macro_pct": [
+   0.25,
+   0.25,
+   0.5
+  ],
+  "base_kcal": 3000,
+  "kcal_min": 2200,
+  "kcal_max": 4000,
+  "meals": 28,
+  "source": "pochodna Standard 2",
+  "audit_remaining": [],
+  "supplements": [
+   "D3 (jesień–zima, 2000 IU) – standardowe zalecenie w Polsce"
+  ]
+ },
+ {
+  "profile": "Masa / budowa",
+  "variant": 3,
+  "file": "template_masa_v3.json",
+  "macro_pct": [
+   0.25,
+   0.25,
+   0.5
+  ],
+  "base_kcal": 3000,
+  "kcal_min": 2200,
+  "kcal_max": 4000,
+  "meals": 28,
+  "source": "pochodna Standard 3",
+  "audit_remaining": [],
+  "supplements": [
+   "D3 (jesień–zima, 2000 IU) – standardowe zalecenie w Polsce"
+  ]
+ },
+ {
+  "profile": "Masa / budowa",
+  "variant": 4,
+  "file": "template_masa_v4.json",
+  "macro_pct": [
+   0.25,
+   0.25,
+   0.5
+  ],
+  "base_kcal": 3000,
+  "kcal_min": 2200,
+  "kcal_max": 4000,
+  "meals": 28,
+  "source": "pochodna Standard 4",
+  "audit_remaining": [],
+  "supplements": [
+   "D3 (jesień–zima, 2000 IU) – standardowe zalecenie w Polsce"
+  ]
+ },
+ {
+  "profile": "Masa / budowa",
+  "variant": 5,
+  "file": "template_masa_v5.json",
+  "macro_pct": [
+   0.25,
+   0.25,
+   0.5
+  ],
+  "base_kcal": 3000,
+  "kcal_min": 2200,
+  "kcal_max": 4000,
+  "meals": 28,
+  "source": "pochodna Standard 5",
+  "audit_remaining": [],
+  "supplements": [
+   "D3 (jesień–zima, 2000 IU) – standardowe zalecenie w Polsce"
+  ]
+ },
+ {
+  "profile": "Niskowęglowodanowa",
+  "variant": 1,
+  "file": "template_niskoweglowodanowa_v1.json",
+  "macro_pct": [
+   0.3,
+   0.45,
+   0.25
+  ],
+  "base_kcal": 2000,
+  "kcal_min": 1400,
+  "kcal_max": 2800,
+  "meals": 28,
+  "source": "autorska",
+  "audit_remaining": [
+   "pełne ziarno tylko w 6/7 dni"
+  ],
+  "supplements": [
+   "D3 (jesień–zima, 2000 IU) – standardowe zalecenie w Polsce"
+  ]
+ },
+ {
+  "profile": "Niskowęglowodanowa",
+  "variant": 2,
+  "file": "template_niskoweglowodanowa_v2.json",
+  "macro_pct": [
+   0.3,
+   0.45,
+   0.25
+  ],
+  "base_kcal": 2000,
+  "kcal_min": 1400,
+  "kcal_max": 2800,
+  "meals": 28,
+  "source": "autorska",
+  "audit_remaining": [],
+  "supplements": [
+   "D3 (jesień–zima, 2000 IU) – standardowe zalecenie w Polsce"
+  ]
+ },
+ {
+  "profile": "Niskowęglowodanowa",
+  "variant": 3,
+  "file": "template_niskoweglowodanowa_v3.json",
+  "macro_pct": [
+   0.3,
+   0.45,
+   0.25
+  ],
+  "base_kcal": 2000,
+  "kcal_min": 1400,
+  "kcal_max": 2800,
+  "meals": 28,
+  "source": "autorska",
+  "audit_remaining": [
+   "błonnik < 22 g w dniu (min 21.9 g)"
+  ],
+  "supplements": [
+   "D3 (jesień–zima, 2000 IU) – standardowe zalecenie w Polsce"
+  ]
+ },
+ {
+  "profile": "Niskowęglowodanowa",
+  "variant": 4,
+  "file": "template_niskoweglowodanowa_v4.json",
+  "macro_pct": [
+   0.3,
+   0.45,
+   0.25
+  ],
+  "base_kcal": 2000,
+  "kcal_min": 1400,
+  "kcal_max": 2800,
+  "meals": 28,
+  "source": "autorska",
+  "audit_remaining": [],
+  "supplements": [
+   "D3 (jesień–zima, 2000 IU) – standardowe zalecenie w Polsce"
+  ]
+ },
+ {
+  "profile": "Niskowęglowodanowa",
+  "variant": 5,
+  "file": "template_niskoweglowodanowa_v5.json",
+  "macro_pct": [
+   0.3,
+   0.45,
+   0.25
+  ],
+  "base_kcal": 2000,
+  "kcal_min": 1400,
+  "kcal_max": 2800,
+  "meals": 28,
+  "source": "autorska",
+  "audit_remaining": [],
+  "supplements": [
+   "D3 (jesień–zima, 2000 IU) – standardowe zalecenie w Polsce"
+  ]
+ },
+ {
+  "profile": "Wegetariańska",
+  "variant": 1,
+  "file": "template_wegetarianska_v1.json",
+  "macro_pct": [
+   0.22,
+   0.3,
+   0.48
+  ],
+  "base_kcal": 2000,
+  "kcal_min": 1400,
+  "kcal_max": 3200,
+  "meals": 28,
+  "source": "autorska",
+  "audit_remaining": [],
+  "supplements": [
+   "D3 (jesień–zima, 2000 IU)",
+   "B12 warto kontrolować (nabiał i jajka dają ~2 µg)"
+  ]
+ },
+ {
+  "profile": "Wegetariańska",
+  "variant": 2,
+  "file": "template_wegetarianska_v2.json",
+  "macro_pct": [
+   0.22,
+   0.3,
+   0.48
+  ],
+  "base_kcal": 2000,
+  "kcal_min": 1400,
+  "kcal_max": 3200,
+  "meals": 28,
+  "source": "autorska",
+  "audit_remaining": [],
+  "supplements": [
+   "D3 (jesień–zima, 2000 IU)",
+   "B12 warto kontrolować (nabiał i jajka dają ~2 µg)"
+  ]
+ },
+ {
+  "profile": "Wegetariańska",
+  "variant": 3,
+  "file": "template_wegetarianska_v3.json",
+  "macro_pct": [
+   0.22,
+   0.3,
+   0.48
+  ],
+  "base_kcal": 2000,
+  "kcal_min": 1400,
+  "kcal_max": 3200,
+  "meals": 28,
+  "source": "autorska",
+  "audit_remaining": [],
+  "supplements": [
+   "D3 (jesień–zima, 2000 IU)",
+   "B12 warto kontrolować (nabiał i jajka dają ~2 µg)"
+  ]
+ },
+ {
+  "profile": "Wegetariańska",
+  "variant": 4,
+  "file": "template_wegetarianska_v4.json",
+  "macro_pct": [
+   0.22,
+   0.3,
+   0.48
+  ],
+  "base_kcal": 2000,
+  "kcal_min": 1400,
+  "kcal_max": 3200,
+  "meals": 28,
+  "source": "autorska",
+  "audit_remaining": [],
+  "supplements": [
+   "D3 (jesień–zima, 2000 IU)",
+   "B12 warto kontrolować (nabiał i jajka dają ~2 µg)"
+  ]
+ },
+ {
+  "profile": "Wegetariańska",
+  "variant": 5,
+  "file": "template_wegetarianska_v5.json",
+  "macro_pct": [
+   0.22,
+   0.3,
+   0.48
+  ],
+  "base_kcal": 2000,
+  "kcal_min": 1400,
+  "kcal_max": 3200,
+  "meals": 28,
+  "source": "autorska",
+  "audit_remaining": [],
+  "supplements": [
+   "D3 (jesień–zima, 2000 IU)",
+   "B12 warto kontrolować (nabiał i jajka dają ~2 µg)"
+  ]
+ },
+ {
+  "profile": "Wegańska",
+  "variant": 1,
+  "file": "template_weganska_v1.json",
+  "macro_pct": [
+   0.2,
+   0.3,
+   0.5
+  ],
+  "base_kcal": 2000,
+  "kcal_min": 1400,
+  "kcal_max": 3200,
+  "meals": 28,
+  "source": "autorska",
+  "audit_remaining": [],
+  "supplements": [
+   "B12 (25–100 µg/dzień lub 1000 µg 2×/tydz.)",
+   "D3 (jesień–zima, 2000 IU)",
+   "omega-3 z alg (EPA+DHA 250 mg)"
+  ]
+ },
+ {
+  "profile": "Wegańska",
+  "variant": 2,
+  "file": "template_weganska_v2.json",
+  "macro_pct": [
+   0.2,
+   0.3,
+   0.5
+  ],
+  "base_kcal": 2000,
+  "kcal_min": 1400,
+  "kcal_max": 3200,
+  "meals": 28,
+  "source": "autorska",
+  "audit_remaining": [],
+  "supplements": [
+   "B12 (25–100 µg/dzień lub 1000 µg 2×/tydz.)",
+   "D3 (jesień–zima, 2000 IU)",
+   "omega-3 z alg (EPA+DHA 250 mg)"
+  ]
+ },
+ {
+  "profile": "Wegańska",
+  "variant": 3,
+  "file": "template_weganska_v3.json",
+  "macro_pct": [
+   0.2,
+   0.3,
+   0.5
+  ],
+  "base_kcal": 2000,
+  "kcal_min": 1400,
+  "kcal_max": 3200,
+  "meals": 28,
+  "source": "autorska",
+  "audit_remaining": [],
+  "supplements": [
+   "B12 (25–100 µg/dzień lub 1000 µg 2×/tydz.)",
+   "D3 (jesień–zima, 2000 IU)",
+   "omega-3 z alg (EPA+DHA 250 mg)"
+  ]
+ },
+ {
+  "profile": "Wegańska",
+  "variant": 4,
+  "file": "template_weganska_v4.json",
+  "macro_pct": [
+   0.2,
+   0.3,
+   0.5
+  ],
+  "base_kcal": 2000,
+  "kcal_min": 1400,
+  "kcal_max": 3200,
+  "meals": 28,
+  "source": "autorska",
+  "audit_remaining": [],
+  "supplements": [
+   "B12 (25–100 µg/dzień lub 1000 µg 2×/tydz.)",
+   "D3 (jesień–zima, 2000 IU)",
+   "omega-3 z alg (EPA+DHA 250 mg)"
+  ]
+ },
+ {
+  "profile": "Wegańska",
+  "variant": 5,
+  "file": "template_weganska_v5.json",
+  "macro_pct": [
+   0.2,
+   0.3,
+   0.5
+  ],
+  "base_kcal": 2000,
+  "kcal_min": 1400,
+  "kcal_max": 3200,
+  "meals": 28,
+  "source": "autorska",
+  "audit_remaining": [],
+  "supplements": [
+   "B12 (25–100 µg/dzień lub 1000 µg 2×/tydz.)",
+   "D3 (jesień–zima, 2000 IU)",
+   "omega-3 z alg (EPA+DHA 250 mg)"
+  ]
+ },
+ {
+  "profile": "Bezlaktozowa",
+  "variant": 1,
+  "file": "template_bezlaktozowa_v1.json",
+  "macro_pct": [
+   0.25,
+   0.3,
+   0.45
+  ],
+  "base_kcal": 2000,
+  "kcal_min": 1400,
+  "kcal_max": 3200,
+  "meals": 28,
+  "source": "pochodna Standard 1",
+  "audit_remaining": [],
+  "supplements": [
+   "D3 (jesień–zima, 2000 IU) – standardowe zalecenie w Polsce"
+  ]
+ },
+ {
+  "profile": "Bezlaktozowa",
+  "variant": 2,
+  "file": "template_bezlaktozowa_v2.json",
+  "macro_pct": [
+   0.25,
+   0.3,
+   0.45
+  ],
+  "base_kcal": 2000,
+  "kcal_min": 1400,
+  "kcal_max": 3200,
+  "meals": 28,
+  "source": "pochodna Standard 2",
+  "audit_remaining": [],
+  "supplements": [
+   "D3 (jesień–zima, 2000 IU) – standardowe zalecenie w Polsce"
+  ]
+ },
+ {
+  "profile": "Bezlaktozowa",
+  "variant": 3,
+  "file": "template_bezlaktozowa_v3.json",
+  "macro_pct": [
+   0.25,
+   0.3,
+   0.45
+  ],
+  "base_kcal": 2000,
+  "kcal_min": 1400,
+  "kcal_max": 3200,
+  "meals": 28,
+  "source": "pochodna Standard 3",
+  "audit_remaining": [
+   "posiłek główny z białkiem < 20 g (19 g)"
+  ],
+  "supplements": [
+   "D3 (jesień–zima, 2000 IU) – standardowe zalecenie w Polsce"
+  ]
+ },
+ {
+  "profile": "Bezlaktozowa",
+  "variant": 4,
+  "file": "template_bezlaktozowa_v4.json",
+  "macro_pct": [
+   0.25,
+   0.3,
+   0.45
+  ],
+  "base_kcal": 2000,
+  "kcal_min": 1400,
+  "kcal_max": 3200,
+  "meals": 28,
+  "source": "pochodna Standard 4",
+  "audit_remaining": [],
+  "supplements": [
+   "D3 (jesień–zima, 2000 IU) – standardowe zalecenie w Polsce"
+  ]
+ },
+ {
+  "profile": "Bezlaktozowa",
+  "variant": 5,
+  "file": "template_bezlaktozowa_v5.json",
+  "macro_pct": [
+   0.25,
+   0.3,
+   0.45
+  ],
+  "base_kcal": 2000,
+  "kcal_min": 1400,
+  "kcal_max": 3200,
+  "meals": 28,
+  "source": "pochodna Standard 5",
+  "audit_remaining": [],
+  "supplements": [
+   "D3 (jesień–zima, 2000 IU) – standardowe zalecenie w Polsce"
+  ]
+ },
+ {
+  "profile": "Bezglutenowa",
+  "variant": 1,
+  "file": "template_bezglutenowa_v1.json",
+  "macro_pct": [
+   0.25,
+   0.3,
+   0.45
+  ],
+  "base_kcal": 2000,
+  "kcal_min": 1400,
+  "kcal_max": 3200,
+  "meals": 28,
+  "source": "pochodna Standard 1",
+  "audit_remaining": [
+   "posiłek główny z białkiem < 20 g (18 g)"
+  ],
+  "supplements": [
+   "D3 (jesień–zima, 2000 IU) – standardowe zalecenie w Polsce"
+  ]
+ },
+ {
+  "profile": "Bezglutenowa",
+  "variant": 2,
+  "file": "template_bezglutenowa_v2.json",
+  "macro_pct": [
+   0.25,
+   0.3,
+   0.45
+  ],
+  "base_kcal": 2000,
+  "kcal_min": 1400,
+  "kcal_max": 3200,
+  "meals": 28,
+  "source": "pochodna Standard 2",
+  "audit_remaining": [],
+  "supplements": [
+   "D3 (jesień–zima, 2000 IU) – standardowe zalecenie w Polsce"
+  ]
+ },
+ {
+  "profile": "Bezglutenowa",
+  "variant": 3,
+  "file": "template_bezglutenowa_v3.json",
+  "macro_pct": [
+   0.25,
+   0.3,
+   0.45
+  ],
+  "base_kcal": 2000,
+  "kcal_min": 1400,
+  "kcal_max": 3200,
+  "meals": 28,
+  "source": "pochodna Standard 3",
+  "audit_remaining": [
+   "pełne ziarno tylko w 6/7 dni"
+  ],
+  "supplements": [
+   "D3 (jesień–zima, 2000 IU) – standardowe zalecenie w Polsce"
+  ]
+ },
+ {
+  "profile": "Bezglutenowa",
+  "variant": 4,
+  "file": "template_bezglutenowa_v4.json",
+  "macro_pct": [
+   0.25,
+   0.3,
+   0.45
+  ],
+  "base_kcal": 2000,
+  "kcal_min": 1400,
+  "kcal_max": 3200,
+  "meals": 28,
+  "source": "pochodna Standard 4",
+  "audit_remaining": [
+   "posiłek główny z białkiem < 20 g (19 g)",
+   "pełne ziarno tylko w 5/7 dni"
+  ],
+  "supplements": [
+   "D3 (jesień–zima, 2000 IU) – standardowe zalecenie w Polsce"
+  ]
+ },
+ {
+  "profile": "Bezglutenowa",
+  "variant": 5,
+  "file": "template_bezglutenowa_v5.json",
+  "macro_pct": [
+   0.25,
+   0.3,
+   0.45
+  ],
+  "base_kcal": 2000,
+  "kcal_min": 1400,
+  "kcal_max": 3200,
+  "meals": 28,
+  "source": "pochodna Standard 5",
+  "audit_remaining": [
+   "pełne ziarno tylko w 6/7 dni"
+  ],
+  "supplements": [
+   "D3 (jesień–zima, 2000 IU) – standardowe zalecenie w Polsce"
+  ]
+ }
+]

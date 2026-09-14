@@ -47,7 +47,15 @@ Silnik został zaimplementowany (`engine.py`) i przetestowany na pierwszym pełn
 4. **Dwa przebiegi dnia + dostrojenie.** Po pierwszym przeliczeniu reszta dnia rozkładana jest na wszystkie posiłki proporcjonalnie do udziałów, potem posiłek elastyczny domyka różnicę, a na końcu silnik przesuwa pojedyncze kroki zaokrąglenia (5 g) na składnikach LINIOWY z rolą.
 5. **Tłuszcze dodawane w małych ilościach** (oliwa 5–15 g, orzechy, masło orzechowe) mogą rosnąć do **3×** bazy — nadal praktyczne, a bez tego wysokie kaloryczności nie domykają tłuszczu.
 
-Wynik: 131/133 dni w tolerancji dnia w całym zakresie; 14 % posiłków z flagą (kandydaci do wariantu zastępczego — to działa zgodnie z założeniem).
+6. **Krok zaokrąglenia tłuszczów = 1 g** (oleje, orzechy, nasiona). Przy kroku 5 g dwa gramy oliwy stawały się pięcioma — na redukcji z 56 g tłuszczu dziennie to 8 % błędu z jednego składnika i główna przyczyna flag.
+
+Wynik po poprawkach 1–6 (6 szablonów, 1300–3200 kcal): 0 dni poza tolerancją (Standard 1: jeden), 7–11 % posiłków z flagą — patrz `raport_walidacji_szablonow.md`.
+
+Dodatkowe kryteria jakości szablonu wyniesione z autorstwa 6 tygodni:
+- dzień bazowy w granicach ±10 g każdego makro od celu, nie tylko ±5 % kcal;
+- tłuszcz rozłożony między posiłki — każdy niesie ≥ 10 % tłuszczu dnia; posiłek z tłustą rybą wymaga chudej reszty dnia rozłożonej równo, nie jednego chudego posiłku;
+- tłusta ryba lub tłuste mięso nigdy nie jest jedynym składnikiem z rolą P w posiłku (silnik dodając białko dodaje tłuszcz);
+- strączki dostają rolę C, gdy w posiłku jest inne źródło białka, i rolę P tylko wtedy, gdy są jedynym źródłem.
 
 ## 5. Biblioteka szablonów
 
@@ -63,20 +71,23 @@ Profil diety (np. "Redukcja wysokobiałkowa")
 
 Każdy szablon ma **kaloryczność bazową** (domyślnie 2000 kcal) i **zakres ważności** (np. 1400–3200 kcal). Poza zakresem silnik ostrzega, ale nie blokuje.
 
-### 5.2 Profile na start (v1)
+### 5.2 Profile (stan biblioteki: 9 profili × 5 odsłon = 45 tygodni, wszystkie przetestowane)
 
-| # | Profil | Dla kogo | Makro bazowe (B/T/W % kcal) |
-|---|---|---|---|
-| 1 | Standard zbilansowana | ogół klientów | 25 / 30 / 45 |
-| 2 | Redukcja wysokobiałkowa | odchudzanie z treningiem siłowym | 35 / 25 / 40 |
-| 3 | Masa / budowa | nadwyżka kaloryczna | 25 / 25 / 50 |
-| 4 | Niskowęglowodanowa | preferencja low-carb | 30 / 45 / 25 |
-| 5 | Wegetariańska | bez mięsa i ryb | 22 / 30 / 48 |
-| 6 | Wegańska | bez produktów odzwierzęcych | 20 / 30 / 50 |
-| 7 | Bezlaktozowa | nietolerancja laktozy | jak Standard |
-| 8 | Bezglutenowa | celiakia / nietolerancja | jak Standard |
+| # | Profil | Dla kogo | B/T/W % kcal | Baza | Zakres kcal | Posiłków/dzień | Pochodzenie |
+|---|---|---|---|---|---|---|---|
+| 1 | Standard zbilansowana | ogół klientów | 25/30/45 | 2000 | 1400–3200 | 4 | autorskie |
+| 2 | Redukcja wysokobiałkowa | odchudzanie z treningiem siłowym | 35/25/40 | 2000 | 1300–2800 | 4 | autorskie (odsłona 2 z jadłospisów Łukasza) |
+| 3 | Sportowa wysokobiałkowa | klienci trenujący, wg jadłospisów Łukasza | 30/22/48 | 2600 | 2000–3600 | **5** (dwa obiady) | rotacja z opcji Łukasza |
+| 4 | Masa / budowa | nadwyżka kaloryczna | 25/25/50 | 3000 | 2200–4000 | 4 | pochodna Standard |
+| 5 | Niskowęglowodanowa | preferencja low-carb | 30/45/25 | 2000 | 1400–3000 | 4 | autorskie (pule) |
+| 6 | Wegetariańska | bez mięsa i ryb | 22/30/48 | 2000 | 1400–3200 | 4 | autorskie (pule) |
+| 7 | Wegańska | bez produktów odzwierzęcych | 20/30/50 | 2000 | 1400–3200 | 4 | autorskie (pule) |
+| 8 | Bezlaktozowa | nietolerancja laktozy | 25/30/45 | 2000 | 1400–3200 | 4 | pochodna Standard (mapa zamienników) |
+| 9 | Bezglutenowa | celiakia / nietolerancja | 25/30/45 | 2000 | 1400–3200 | 4 | pochodna Standard (mapa zamienników) |
 
-Dalsze profile (Low FODMAP, 16:8, sportowa wysokowęglowodanowa, dla kobiet w ciąży — wymaga konsultacji dietetyka) trafiają do backlogu.
+Pliki: `template_<profil>_v<n>.json` (seed), `szablon_<profil>_v<n>_<kcal>kcal.md` (podgląd), `biblioteka_index.json` (spis), `raport_walidacji_szablonow.md` (wyniki). Profile pochodne mają `derived_from` w JSON.
+
+**Konsekwencja dla UI:** profil Sportowa ma 5 slotów (`śniadanie, przekąska, obiad_1, obiad_2, kolacja`). Widok dnia klienta i trenera musi renderować dowolną liczbę slotów z szablonu, nie sztywne 4.
 
 ### 5.3 Kryteria jakości szablonu
 

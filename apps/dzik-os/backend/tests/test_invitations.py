@@ -1,3 +1,5 @@
+import re
+
 """Zaproszenia i aktywacja konta klienta (bez hasła startowego).
 
 Trener podaje wyłącznie e-mail i imię; klient otrzymuje jednorazowy link
@@ -152,8 +154,11 @@ def test_invitation_email_has_link_and_no_health_data(seeded, monkeypatch):
     assert "activation_link" not in inv  # trener NIE widzi linku
     assert len(sent) == 1 and sent[0]["to"] == "emailowy@example.com"
     assert "/aktywacja#" in sent[0]["body"]
+    # Losowy token w linku może przypadkiem zawierać zakazane słowo („…uraz…”
+    # zdarzyło się w CI) — sprawdzamy treść bez długich ciągów losowych.
+    tresc = re.sub(r"[A-Za-z0-9_-]{24,}", "", sent[0]["body"].lower())
     for forbidden in ("waga", "uraz", "dieta", "trening", "zdrow"):
-        assert forbidden not in sent[0]["body"].lower()
+        assert forbidden not in tresc
 
 
 def test_activation_token_never_in_audit_chain(seeded):

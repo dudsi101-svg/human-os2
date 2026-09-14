@@ -1688,11 +1688,22 @@ export interface DietProfileRow {
   id: string; name: string; description: string; base_macro_pct: { P: number; F: number; C: number };
   diet_tags: string[]; published_weeks: number; weeks: DietWeekRow[];
 }
-export interface DietTemplatePreview {
+/** Notatki odsłony z biblioteki (audyt 14.09): informacyjne, nie wchodzą do migawki planu. */
+export interface DietNotatkiOdslony { derived_from: string | null; supplements_note: string[]; sodium_note: string }
+export interface DietTemplatePreview extends DietNotatkiOdslony {
   week_id: string; profile: string; profile_id: string; variant_no: number; name: string; status: string;
   base_kcal: number; kcal_min: number; kcal_max: number; macro_pct: number[];
-  days: { day: number; meals: { meal_id: string; name: string; slot: string; kcal_share: number; flexible: boolean; tags: string[]; ingredients: number }[] }[];
+  days: { day: number; meals: { meal_id: string; name: string; slot: string; kcal_share: number; flexible: boolean; tags: string[]; allergens?: string[]; ingredients: number }[] }[];
 }
+/** Etykieta slotu posiłku: „obiad_1"/„obiad_2" (profil Sportowa, 5 posiłków) → „obiad I"/„obiad II". */
+export const SLOT_LABEL: Record<string, string> = { obiad_1: "obiad I", obiad_2: "obiad II" };
+export function slotLabel(slot: string): string { return SLOT_LABEL[slot] ?? slot; }
+/** Alergeny posiłku (klucze z biblioteki szablonów) → etykiety. */
+export const ALERGEN_LABEL: Record<string, string> = {
+  mleko: "mleko", gluten: "gluten", jaja: "jaja", orzechy: "orzechy", orzechy_ziemne: "orzechy ziemne", soja: "soja",
+  ryby: "ryby", skorupiaki: "skorupiaki", gorczyca: "gorczyca", sezam: "sezam", seler: "seler", laktoza: "laktoza",
+};
+export function alergenLabel(a: string): string { return ALERGEN_LABEL[a] ?? a.replace(/_/g, " "); }
 export interface DietIngredientOut {
   product: string; grams: number; base_grams: number; class: string; role: string; ingredient_id: string;
   swappable: boolean; min_factor: number; max_factor: number; factor: number | null; units?: number | null; unit_g?: number | null;
@@ -1702,7 +1713,7 @@ export interface DietIngredientOut {
 export interface DietMealOut {
   meal_id: string; name: string; slot: string; status: DietStatus; macros: DietMacros; target: DietMacros;
   deviation: DietMacros; k: number; steps: string; tags: string[]; flexible: boolean; kcal_share: number;
-  ingredients: DietIngredientOut[]; replaced_from?: string; swaps_locked?: boolean;
+  allergens?: string[]; ingredients: DietIngredientOut[]; replaced_from?: string; swaps_locked?: boolean;
 }
 export interface DietDayOut { day: number; status: DietStatus; macros: DietMacros; target: DietMacros; deviation: DietMacros; meals: DietMealOut[] }
 export interface DietPlanOut {
@@ -1712,7 +1723,7 @@ export interface DietPlanOut {
     meals: Record<string, { replaced_by_meal_id: string }>; accepted_warnings: boolean; accepted_days?: number[] };
 }
 export interface DietMacroIn { mode: "profile" | "per_kg" | "manual"; P?: number; F?: number; C?: number; protein_per_kg?: number; fat_per_kg?: number }
-export interface DietAssignedOut {
+export interface DietAssignedOut extends Partial<DietNotatkiOdslony> {
   id: string; client_id: string; coach_id: string; week_id: string; week_name: string; profile: string;
   target: DietMacros; macro_mode: string; body_weight: number | null; exclusions: string[]; status: string;
   version: number; swaps_enabled: boolean; created_at: string; updated_at: string; plan: DietPlanOut;
@@ -1724,14 +1735,14 @@ export interface DietProductRow {
   fat_100: number; carbs_100: number; default_scaling: string; cooking_tags: string; allergens: string; diet_exclusions: string; source: string;
 }
 export interface DietSweep {
-  days: number; days_ok: number; ok_pct: number; error?: string | null; missing_days?: number[]; publishable: boolean;
+  days: number; days_ok: number; ok_pct: number; kcal_points?: number; error?: string | null; missing_days?: number[]; publishable: boolean;
   meals: { meal_id: string; day: number; name: string; slot: string; flags: number; out_of_range: number }[];
 }
 export interface DietWeekFull {
   week_id: string; profile: string; profile_id: string; variant: number; name: string; base_kcal: number; kcal_min: number;
   kcal_max: number; status: string; macro_pct: number[];
   days: { day: number; day_id: string; meals: { meal_id: string; name: string; slot: string; kcal_share: number; flexible: boolean;
-    steps: string; tags: string[]; prep_minutes: number | null;
+    steps: string; tags: string[]; allergens?: string[]; prep_minutes: number | null;
     ingredients: { product: string; grams: number; role: string; ingredient_id: string; swappable: boolean; class?: string;
       min_factor?: number; max_factor?: number; round_step?: number; unit_g?: number; unit_step?: number; group?: string }[] }[] }[];
 }

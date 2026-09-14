@@ -105,9 +105,10 @@ async def lifespan(app: FastAPI):
     except Exception as exc:  # noqa: BLE001
         log_json("wywiad_migracja_failed", level="error", **exception_fields(exc))
         app.state.wywiad_migracja_error = type(exc).__name__
-    # Szablony diet (0.60.0): seed produktów i odsłony Standard v1 przy
-    # włączonej fladze — idempotentnie; błąd nie zatrzymuje startu.
-    if settings.diet_templates_enabled:
+    # Szablony diet (0.60.0/0.64.0): seed produktów i biblioteki 45 odsłon
+    # przy włączonej fladze — idempotentnie (skrót pliku); błąd nie zatrzymuje
+    # startu. `DZIK_DIET_SEED_ON_STARTUP=false` wyłącza sam seed (testy).
+    if settings.diet_templates_enabled and settings.diet_seed_on_startup:
         try:
             from .dieta import seed as dieta_seed
 

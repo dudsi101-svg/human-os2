@@ -5,6 +5,7 @@ wymiany z walidacją serwerową. Bez I/O poza SQLAlchemy."""
 from __future__ import annotations
 
 import json
+import re
 from typing import Any
 
 from sqlalchemy.orm import Session
@@ -63,7 +64,42 @@ def posilek_dict(db: Session, m: DietTemplateMeal, nazwy: dict[str, str]) -> dic
     return {"meal_id": m.id, "name": m.name, "slot": m.slot, "kcal_share": m.kcal_share,
             "flexible": bool(m.flexible), "steps": m.recipe_steps or "",
             "tags": [t for t in (m.tags or "").split(",") if t], "prep_minutes": m.prep_minutes,
+            "allergens": [a for a in (m.allergens or "").split(",") if a],
             "ingredients": [skladnik_dict(i, nazwy[i.product_id]) for i in ings]}
+
+
+def _nazwa_pochodzenia(db: Session, slug: str | None) -> str | None:
+    """`derived_from` w plikach biblioteki to identyfikator pliku („standard_v1”) —
+    dla ludzi: „Standard zbilansowana, odsłona 1”."""
+    if not slug:
+        return None
+    m = re.fullmatch(r"([a-z_]+)_v(\d+)", slug.strip())
+    if not m:
+        return slug
+    pl = str.maketrans("ąćęłńóśźż", "acelnoszz")
+    for prof in db.query(DietProfile).all():
+        if prof.name.lower().translate(pl).replace(" ", "_").startswith(m.group(1)):
+            return f"{prof.name}, odsłona {m.group(2)}"
+    return slug
+
+
+def notatki_odslony(db: Session, week: DietTemplateWeek | None, *, dla_klienta: bool = False) -> dict[str, Any]:
+    """Notatki biblioteki (audyt 14.09): suplementacja, sód, pochodzenie odsłony.
+    Treść informacyjna — nie wchodzi do migawki planu, czytana z odsłony.
+    Klient dostaje tylko uwagę o sodzie: uwagi o suplementacji zawierają dawki
+    od autora biblioteki, a plan suplementów dla klienta wpisuje człowiek z
+    zapisanym autorem (R-10, ADR-DZIK-003 §4) — trener przenosi je świadomie."""
+    if week is None:
+        return {"derived_from": None, "supplements_note": [], "sodium_note": ""}
+    if dla_klienta:
+        return {"derived_from": None, "supplements_note": [], "sodium_note": week.sodium_note or ""}
+    try:
+        supl = json.loads(week.supplements_note or "[]")
+    except ValueError:
+        supl = [week.supplements_note]
+    return {"derived_from": _nazwa_pochodzenia(db, week.derived_from),
+            "supplements_note": [str(x) for x in (supl if isinstance(supl, list) else [supl]) if x],
+            "sodium_note": week.sodium_note or ""}
 
 
 def szablon_dict(db: Session, week: DietTemplateWeek) -> dict[str, Any]:
@@ -182,7 +218,8 @@ def posilek_out(m: dict[str, Any]) -> dict[str, Any]:
             "target": {k: _r(v) for k, v in m["target"].items()},
             "deviation": {k: _r(v) for k, v in m["deviation"].items()}, "k": _r(m["k"], 3),
             "steps": m.get("steps", ""), "tags": m.get("tags", []), "flexible": m.get("flexible", False),
-            "kcal_share": m.get("kcal_share"), "ingredients": [skladnik_out(i) for i in m["ingredients"]]}
+            "kcal_share": m.get("kcal_share"), "allergens": list(m.get("allergens", []) or []),
+            "ingredients": [skladnik_out(i) for i in m["ingredients"]]}
 
 
 def dzien_out(d: dict[str, Any]) -> dict[str, Any]:
@@ -231,6 +268,7 @@ def przelicz_posilek_out(m: dict[str, Any], prods: S.Products) -> None:
     ok, dev = S.check(cur, m["target"], S.TOL_MEAL)
     m["macros"] = {k: _r(v) for k, v in cur.items()}
     m["deviation"] = {k: _r(v) for k, v in dev.items()}
+    m["allergens"] = S.alergeny(ings, prods, m.get("allergens"))
     if not ok:
         m["status"] = "OSTRZEŻENIE" if m.get("status") != "POZA_ZAKRESEM" else m["status"]
     else:
@@ -463,7 +501,7 @@ def przypisz(db: Session, *, client_id: str, coach_id: str, week: DietTemplateWe
     return a
 
 
-def dieta_out(db: Session, a: DietAssigned, *, z_korektami: bool = True) -> dict[str, Any]:
+def dieta_out(db: Session, a: DietAssigned, *, z_korektami: bool = True, dla_klienta: bool = False) -> dict[str, Any]:
     week = db.get(DietTemplateWeek, a.week_id)
     profil = db.get(DietProfile, week.profile_id) if week else None
     plan = plan_z_korektami(db, a) if z_korektami else migawka(db, a)
@@ -473,4 +511,4 @@ def dieta_out(db: Session, a: DietAssigned, *, z_korektami: bool = True) -> dict
             "macro_mode": a.macro_mode, "body_weight": a.body_weight,
             "exclusions": json.loads(a.exclusions_json or "[]"), "status": a.status, "version": a.version,
             "swaps_enabled": bool(a.swaps_enabled), "created_at": a.created_at, "updated_at": a.updated_at,
-            "plan": plan}
+            **notatki_odslony(db, week, dla_klienta=dla_klienta), "plan": plan}

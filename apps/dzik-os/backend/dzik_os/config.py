@@ -128,6 +128,14 @@ class Settings:
     diet_templates_enabled: bool = field(
         default_factory=lambda: _env("DZIK_DIET_TEMPLATES_ENABLED", "false") == "true"
     )
+    # Seed biblioteki diet przy starcie (0.64.0: 45 odsłon, 1295 posiłków).
+    # Domyślnie włączony (produkcja, E2E); testy backendu wyłączają go, bo
+    # każdy test startuje aplikację na świeżej bazie — 1,8 tys. testów ×
+    # pełny import to dziesiątki minut (na PostgreSQL godziny). Testy
+    # diety seedują jawnie w fixture.
+    diet_seed_on_startup: bool = field(
+        default_factory=lambda: _env("DZIK_DIET_SEED_ON_STARTUP", "true") != "false"
+    )
     # Wywiad „Zapotrzebowanie kaloryczne” (0.62.0): trzeci typ wywiadu +
     # /api/clients/{id}/zapotrzebowanie za flagą; domyślnie WYŁĄCZONY
     # (produkcja włącza w fly.toml). Wyłączenie = 404 na typ i trasę.
