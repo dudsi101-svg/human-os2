@@ -47,6 +47,13 @@ przestaje o nią pytać, a Ty wybierasz „Wymień na nowy" albo „Zostaw tak
 jak jest". Trener może zaproponować nawyki startowe (z notatką) — możesz
 je zmienić.
 
+**Trening na dziś** (od 0.71.0) bierze się z **Twoich dni tygodnia**: jeśli
+masz plan, ale nie wybrałeś jeszcze dni, zobaczysz kartę „Masz plan, ale nie
+wybrałeś dni tygodnia" z przyciskiem do zakładki Plan. Po wyborze trening
+z dzisiejszego dnia pojawia się tutaj z podpisem „Twój wybór" (albo
+„propozycja trenera", jeśli korzystasz z jego układu). Gdy trener zmieni
+plan, dostaniesz łagodną notkę „Plan się zmienił — sprawdź dni tygodnia".
+
 ## Rozmowa startowa
 
 Na początku aplikacja proponuje **rozmowę startową**: kilkanaście pytań
@@ -107,6 +114,13 @@ bez tej propozycji. Model nigdy nie układa planu ani diety.
   a jeśli coś bolało — zaznacz „Zgłaszam ból" i opisz; trener to zobaczy
   od razu na swojej liście;
 * „Historia wersji" — każda zmiana planu ma powód i datę; nic nie znika.
+* **„Twoje dni treningowe"** (od 0.71.0) — nad listą dni: dla każdej
+  jednostki wybierz dzień tygodnia (pon.–niedz.) albo „— (bez dnia)". Na
+  start podpowiadamy propozycję trenera; „Zapisz dni" — i trening
+  z dzisiejszego dnia trafia na ekran „Dzisiaj". Jeden dzień tygodnia to
+  jedna jednostka (przy próbie podwojenia zobaczysz komunikat przy polu).
+  „Wróć do propozycji trenera" przywraca jego układ. Twój wybór nie zmienia
+  planu trenera — to Twoja nakładka; trener ją widzi w Twojej karcie.
 
 ## Wymiana produktu w diecie (zakładka „Dieta")
 

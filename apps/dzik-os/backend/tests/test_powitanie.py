@@ -44,5 +44,5 @@ def test_eksport_bez_znacznika_i_wersja_bez_zmian(seeded):
     ex = seeded.get("/api/me/export", headers=ha).json()
     # Znacznik interfejsu (jak last_login_at) nie jest daną treści — świadomie
     # poza eksportem; wersja eksportu zostaje (decyzja w planie sesji).
-    assert ex["export_version"] == "1.9"
+    assert ex["export_version"] == "2.0"
     assert "welcome_seen_at" not in ex["user"]

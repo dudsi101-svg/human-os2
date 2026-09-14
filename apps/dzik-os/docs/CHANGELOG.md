@@ -1,5 +1,69 @@
 # Changelog — Dzik OS
 
+## 0.71.0 — 2026-09-14
+
+**Dni treningowe na „Dzisiaj” — klient wybiera dni tygodnia dla jednostek planu
+(zlecenie 1 właściciela z 14.09, `docs/zlecenia/README.md`; gałąź
+`agent/dni-treningowe`, migracja 38).** Numer 0.70.0 = powitanie po pierwszym
+logowaniu (PR #70, migracja 37).
+
+Problem (właściciel): „klient posiadający już plan na tydzień od trenera nie ma
+żadnej informacji, w jaki dzień realizuje jego części”. Diagnoza: „Dzisiaj”
+zależało wyłącznie od `weekday` wpisanego przez trenera w wersji planu, a to pole
+jest prawie zawsze puste (edytor, szablony, kopie, import nadają `null`) — klient
+widział „Dziś bez treningu” codziennie i nie miał jak tego zmienić.
+
+* **Nakładka klienta, nie edycja planu** (`dzik_os/dni_treningowe.py`,
+  `PlanWeekdayChoice` — jeden wiersz per klient × plan, `choices_json` =
+  `[{day_key, weekday|null}]`). Wersje planu pozostają niemutowalne; `weekday`
+  trenera jest **propozycją** (prefill formularza). **Bez mieszania źródeł:**
+  zapisany układ klienta obowiązuje w całości (jednostka bez dnia = wolna od niej);
+  brak układu → propozycja trenera jak dotąd. Klucz jednostki = `day.id`
+  (stabilne `id` z publikacji 0.58.0) albo `idx:<n>` dla wersji bez `id`
+  (seed, plany z API). Po nowej wersji planu wpisy z kluczami spoza wersji są
+  ignorowane (`stale_keys`), a klient widzi łagodną notkę „Plan się zmienił —
+  sprawdź dni tygodnia” (bez czerwieni, bez blokady); ponowny zapis je czyści.
+* **API:** `GET/PUT/DELETE /api/clients/{id}/plans/{plan_id}/dni`
+  (CLIENT_SCOPED, domena danych treningowych jak nawyki i harmonogram — bez
+  nowej bramki zgód). Walidacja 422 po polsku we wspólnym modelu błędów
+  (`errors[0].field` = klucz jednostki): jeden dzień tygodnia = jedna jednostka,
+  klucz spoza bieżącej wersji, jednostka podana dwa razy, `weekday` spoza 1–7.
+  Plan innego klienta / szablon pod tym `client_id` = 404 z audytem. DELETE =
+  powrót do propozycji trenera (idempotentny). Trener z relacją i zgodą może
+  zapisać wybór (np. na konsultacji; `author_id` = trener). Audyt
+  `PLAN_WEEKDAYS_SET` (`plan_id`, `version_no`, liczba przypisanych dni, autor)
+  / `PLAN_WEEKDAYS_CLEARED` — bez treści planu. Preferencja nadpisywana
+  kolejnym zapisem (`version` wiersza rośnie), zdarzenia zostają.
+* **`/api/me/today`:** `dzien_na_dzis` zamiast pętli po `weekday` trenera;
+  `workout.weekday_source` (`client` | `coach`) i `workout_hint`
+  (`{kind: "no_weekdays" | "stale", plan_id}` | null). Klucz `day_index`
+  i `POST …/workouts` bez zmian.
+* **Interfejs klienta:** karta „Twoje dni treningowe” w zakładce Plan (`select`
+  pon.–niedz./„— (bez dnia)” per jednostka, prefill z propozycji trenera,
+  „Zapisz dni”, „Wróć do propozycji trenera”, błąd przy właściwym polu
+  z `aria-invalid`/`aria-describedby`); odznaki „pon (Twój wybór)” /
+  „pon (propozycja trenera)” przy dniach; na „Dzisiaj” karta **„Masz plan, ale
+  nie wybrałeś dni tygodnia”** z przyciskiem do Planu zamiast „Dziś bez
+  treningu”, gdy plan istnieje bez przypisań, etykieta źródła przy treningu,
+  notka o nieaktualnych kluczach. **Trener** (karta klienta → Plan): linia
+  „Klient wybrał dni tygodnia: …” i odznaki „pon (wg klienta)” — tylko odczyt
+  w tej rundzie. Zero rekomendacji dni — jedyny automatyzm to prefill. Bez flagi.
+* **Prywatność:** eksport `plan_weekday_choices` (`export_version` 1.9 → 2.0),
+  usunięcie konta kasuje wybór. Seed bez zmian (plany demo A/B nietknięte).
+* **Przyjęte domyślne** (właściciel nie odpowiedział na pytania promptu):
+  trener zapisuje przez API, w UI tylko odczyt; dwie jednostki w jeden dzień =
+  422; plan bez dni = tylko karta „ustaw dni” — system nie zgaduje.
+* **Test INTENDED_PURPOSE §2/§3:** wybór dnia tygodnia dla jednostki = dane
+  treningowe bez treści zdrowotnej i bez interpretacji; klient autorem swojego
+  tygodnia — bez wątpliwości.
+* **Testy:** 5 silnika + 8 API (`test_dni_treningowe.py`: prefill, nakładka
+  w całości, „bez dni” ≠ powrót do trenera, 422, IDOR/szablon/cudzy plan 404,
+  trener z relacją i po cofnięciu zgody, „Dzisiaj” bez/z wyborem, nowa wersja
+  z tymi samymi `id` + `stale_keys`, `day_index` bez zmian, eksport/usunięcie,
+  audyt), macierz dostępu (3 wiersze), E2E `dni-treningowe.spec.ts` (klient B,
+  dzisiejszy dzień liczony w `Europe/Warsaw`, reload jako dowód zapisu, powrót
+  do trenera, duplikat przy polu). Przeklik: `docs/plan-sesji/dni-treningowe.md`
+  („Weryfikacja wykonana”).
 ## 0.70.0 — 2026-09-14
 
 **Powitanie po pierwszym logowaniu — dwuetapowy samouczek (polecenie

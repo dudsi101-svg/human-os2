@@ -1530,3 +1530,24 @@ MIGRATIONS.append(
         "ALTER TABLE users ADD COLUMN welcome_seen_at VARCHAR(40)",
     ])
 )
+
+MIGRATIONS.append(
+    (38, "dni treningowe: wybór dni tygodnia klienta dla jednostek planu (plan_weekday_choices)", [
+        # Addytywna; wycofanie = ignorowanie tabeli. Numer 37 = users.welcome_seen_at (PR #70).
+        (
+            "CREATE TABLE IF NOT EXISTS plan_weekday_choices ("
+            " id VARCHAR(40) PRIMARY KEY,"
+            " client_id VARCHAR(40) NOT NULL REFERENCES users(id),"
+            " plan_id VARCHAR(40) NOT NULL REFERENCES training_plans(id),"
+            " choices_json TEXT NOT NULL DEFAULT '[]',"
+            " author_id VARCHAR(40) NOT NULL,"
+            " author_note TEXT,"
+            " created_at VARCHAR(40) NOT NULL,"
+            " updated_at VARCHAR(40) NOT NULL,"
+            " version INTEGER NOT NULL DEFAULT 1,"
+            " UNIQUE (client_id, plan_id))"
+        ),
+        "CREATE INDEX IF NOT EXISTS ix_plan_weekday_choices_client_id ON plan_weekday_choices (client_id)",
+        "CREATE INDEX IF NOT EXISTS ix_plan_weekday_choices_plan_id ON plan_weekday_choices (plan_id)",
+    ])
+)

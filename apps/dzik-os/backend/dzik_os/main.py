@@ -55,6 +55,7 @@ from .routers import (
     ocr,
     onboarding,
     payments,
+    plan_weekdays,
     plans,
     postepy,
     privacy,
@@ -195,7 +196,7 @@ def create_app() -> FastAPI:
         challenges.router, notifications_router.router, onboarding.router,
         interview.router, nutrition_templates.router, ocr.router, assistant.router, imports.router,
         public_site.router, konfigurator.router, kulinaria.router, szkice.router, wywiady.router, zapotrzebowanie.router, diet.router, habits.router,
-        mail_admin.router, postepy.router,
+        mail_admin.router, postepy.router, plan_weekdays.router,
     ):
         app.include_router(router)
 

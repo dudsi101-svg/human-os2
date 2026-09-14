@@ -1,6 +1,6 @@
 # Stan przekazania — przeczytaj przed rozpoczęciem rundy
 
-**Aktualizacja:** 2026-09-14 · **Wersja w `main`:** 0.64.0 (po scaleniu biblioteki szablonów diet; PR #66) — 0.66.0 w PR #61 czeka na scalenie
+**Aktualizacja:** 2026-09-14 · **Wersja w `main`:** 0.69.0 (PR #69) — 0.70.0 w PR #70 (w scalaniu), **0.71.0 w PR #72 (`agent/dni-treningowe`, gotowy do przeglądu)**
 **Tryb pracy:** jeden piszący i jeden PR `[WRITER]` naraz
 (`KOORDYNACJA.md`, zasada nadrzędna).
 
@@ -32,6 +32,19 @@ pierwszy commit, draft PR `[WRITER]`, reszta agentów read-only.
 **Stan jakości** (`docs/BRAMKA_GO_NOGO.md`): warunkowe GO na pilotaż z
 jednym prawdziwym klientem, **NO-GO na szerszą produkcję** — siedem
 blokerów wypisanych w §5 tamtego dokumentu.
+
+**Runda 0.71.0 (gałąź `agent/dni-treningowe`, PR #72, zlecenie 1 z 14.09):**
+dni treningowe na „Dzisiaj” — nakładka klienta na dni tygodnia planu
+(`PlanWeekdayChoice`, migracja 38; wersje planu nietknięte, propozycja
+trenera jako prefill, bez mieszania źródeł, klucz `day.id` albo `idx:n`),
+API `GET/PUT/DELETE /api/clients/{id}/plans/{plan_id}/dni`, `today` z
+`weekday_source` i `workout_hint`, karta „Twoje dni treningowe” w Planie,
+karta „ustaw dni” na „Dzisiaj”, odczyt u trenera, `export_version` 2.0.
+Przyjęte domyślne: trener zapisuje przez API (UI tylko odczyt), duplikat dnia
+= 422, plan bez dni = karta „ustaw dni”. Otwarte: edycja z karty trenera,
+tygodnie A/B (`docs/dni-treningowe/PROGRESS.md`). Uwaga: migracja 38 zakłada
+37 z PR #70 — `test_migracje_przenosnosc` (ciąg bez luk) jest zielony dopiero
+po scaleniu #70 do `main`.
 
 **Ostatnia runda (0.62.0, gałąź `agent/wywiad-zapotrzebowanie`, PR #60):**
 wywiad „Zapotrzebowanie kaloryczne” — trzeci typ wywiadu w zakładce
@@ -369,6 +382,7 @@ nie uruchamiano, ponieważ runda nie zmienia kodu ani zasobów frontendu.
 | `agent/monitoring-postepy` | 0.66.0 | 36 | **scalona** (PR #61, 14.09), deploy 0.66.0 po CI na `main`; flaga na produkcji wyłączona | włączenie flagi + backfill — decyzja właściciela | — |
 | `agent/ukryj-kreator` | 0.67.0 | — | **scalona** (PR #68, 14.09), deploy 0.67.0 po CI na `main`; kreator na produkcji ukryty (brak flagi w `fly.toml`) | — | — |
 | `agent/wymiany-produktow` | 0.69.0 (0.68.0 = dni treningowe) | — | zlecenie 2 (14.09): silnik wymian v2 (poziom 2, powody, NONE 1:1, bramka „nie pogarsza”), grupy pokrewne (45 par, RO), korelacja katalogu → CSV; przegląd 3 recenzentów naprawiony (P0/P1 ×5, P2 w PROGRESS); `main` 0.67.0 scalony, PR #69 — CI | przegląd CSV przez właściciela (TAK/NIE) → import osobnym PR-em; decyzja o luzie bramki | 1 |
+| `agent/dni-treningowe` | 0.71.0 | 38 (37 = PR #70) | zlecenie 1 (14.09): nakładka klienta na dni tygodnia planu, „Dzisiaj” z układem klienta, karta „ustaw dni”, odczyt u trenera; 13 testów API/silnika, E2E, przeklik; **PR #72 gotowy do przeglądu** | scalenie #70 (migracja 37 — bez niej `test_migracje_przenosnosc` czerwony); odpowiedzi właściciela na 3 pytania (domyślne przyjęte) | po #70 |
 | `agent/wywiad-kaloryczny-rozpoznanie` | — (docs) | — (przyszła: 38 lub 39) | etap 0 rundy „wyrównanie wywiadu kalorycznego do spec 1.0” — `docs/wywiad-zapotrzebowanie/01_rozpoznanie_spec_v1.md` (tabela luk, migracja, testy, ryzyka) | **7 decyzji właściciela** (§5 rozpoznania: nowe pytania zdrowotne i klasyfikacja, zakres flagowania, stare wywiady, wiek vs data urodzenia, flaga a Monitoring, kolejność migracji, minimalne kcal) | po decyzjach |
 | `agent/powitanie-samouczek` | 0.70.0 | 37 (`users.welcome_seen_at`; dni treningowe → 38) | sekcja E promptu „Panel Dzisiaj” (14.09): dwuetapowy samouczek po pierwszym logowaniu (pomoc, nie bramka), znacznik na serwerze, `POST /api/me/welcome-seen`, „Więcej → Pomoc / Samouczek”; testy backend + E2E + a11y + PWA zielone, przeklik ze zrzutami; `main` 0.69.0 scalony, PR #70 — ready | pytanie: treść kroku 2 wspomina wymianę składnika (moduł szablonów diet na produkcji za flagą) — zostawić warunkowo czy usunąć do czasu włączenia flagi? | 2 |
 

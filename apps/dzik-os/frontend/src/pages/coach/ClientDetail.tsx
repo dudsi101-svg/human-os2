@@ -22,6 +22,7 @@ import {
 import {
   CATEGORY_LABELS,
   CheckinData,
+  DniPlanu,
   GoalRow,
   KIND_LABELS,
   MeasurementRow,
@@ -58,6 +59,7 @@ import PublikacjaPanel from "./PublikacjaPanel";
 import PrzypiszDiete, { PrzypisanaDietaTrenera } from "./PrzypiszDiete";
 import WywiadTab from "./WywiadTab";
 import PanelNawykow from "../nawyki/PanelNawykow";
+import DniTreningowe, { etykietaDnia } from "../client/DniTreningowe";
 import ZapotrzebowanieKarta from "../wywiad/Zapotrzebowanie";
 import OcrCapture from "../../OcrCapture";
 import { appendText } from "../../ocrUtils";
@@ -525,6 +527,8 @@ function PlanTab({ clientId }: { clientId: string }) {
   const [error, setError] = useState<string | null>(null);
   // 0.58.0: szkice i publikacja zmian; gdy serwer je wyłączy, wraca „Nowa wersja”.
   const [szkice, setSzkice] = useState(true);
+  // 0.71.0: dni tygodnia wg klienta (odczyt).
+  const [dni, setDni] = useState<DniPlanu | null>(null);
 
   const plan = plans?.find((p) => p.status === "ACTIVE" && !p.is_template) ?? null;
 
@@ -616,9 +620,16 @@ function PlanTab({ clientId }: { clientId: string }) {
             <span className="badge badge--accent">v{plan.current_version_no}</span>
           </div>
           <small>Powód: {plan.current_version.reason}</small>
+          {/* Dni treningowe (0.71.0): dzień wg klienta — tylko odczyt w tej rundzie. */}
+          <DniTreningowe key={`dni-${plan.id}-${plan.current_version_no}`} clientId={clientId} planId={plan.id} tryb="trener" onZmiana={setDni} />
           {plan.current_version.content.days.map((d, i) => (
             <div key={i} style={{ marginTop: 8 }}>
-              <b>{d.name}</b> {d.weekday && <span className="badge">{WEEKDAYS[d.weekday - 1]}</span>}
+              <b>{d.name}</b>{" "}
+              {(() => {
+                const wpis = dni?.source === "client" ? dni.days.find((x) => x.day_index === i) : undefined;
+                if (wpis) return <span className="badge">{etykietaDnia("client", wpis.weekday, "trener")}</span>;
+                return d.weekday ? <span className="badge">{WEEKDAYS[d.weekday - 1]}</span> : null;
+              })()}
               {d.exercises.map((ex, j) => (
                 <div className="exercise" key={j}>
                   <div>{ex.name}</div>

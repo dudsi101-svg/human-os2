@@ -1,6 +1,6 @@
 # Stan wydania — Dzik OS
 
-**Wersja:** 0.70.0 (po scaleniu PR #70; na produkcji 0.69.0 po wdrożeniu PR #69) · **Data:** 2026-09-14 · **Środowisko:** produkcja
+**Wersja:** 0.71.0 (po scaleniu PR #72; na produkcji 0.70.0 po wdrożeniu PR #74) · **Data:** 2026-09-14 · **Środowisko:** produkcja
 (pilotaż) — https://dzik-os-panel.fly.dev
 
 Jedna strona prawdy o tym, co DZIAŁA na produkcji teraz. Aktualizowana
@@ -126,6 +126,16 @@ historii sesji i pomiarów; idempotentny, wypisuje bliźniaki nazw
 ćwiczeń do decyzji trenera). Od włączenia rekordy liczą się przy każdym
 zapisie sesji. Szczegóły i sprawy otwarte: `docs/CHANGELOG.md` 0.66.0,
 `docs/plan-sesji/monitoring-postepy.md`, `docs/monitoring-tab/PROGRESS.md`.
+
+## Dni treningowe na „Dzisiaj” (0.71.0) — bez flagi, na produkcji od deployu
+
+Klient wybiera dni tygodnia dla jednostek planu (karta „Twoje dni treningowe”
+w zakładce Plan; prefill z propozycji trenera, powrót do propozycji jednym
+dotknięciem); „Dzisiaj” pokazuje jednostkę z dzisiejszego dnia albo kartę
+„ustaw dni”, gdy plan istnieje bez przypisań. Nakładka na plan — wersje
+nietknięte; trener widzi wybór (tylko odczyt). Migracja 38 (addytywna).
+Szczegóły: `docs/CHANGELOG.md` 0.71.0, `docs/plan-sesji/dni-treningowe.md`,
+`docs/dni-treningowe/PROGRESS.md`.
 
 ## Panel rozwojowy „Dzisiaj” (0.63.0) — bez flagi, na produkcji od deployu
 
