@@ -251,7 +251,7 @@ def test_niekompletny_szablon_i_cel_niedodatni_daja_valueerror(prods):
 # --- silnik v1.1 (audyt 14.09): limity porcji jako reguły `fill_defaults` ---
 
 def _posilek(*skl):
-    return {"name": "t", "slot": "obiad", "kcal_share": 1.0, "ingredients": [dict(product=p, grams=g, role=r) for p, g, r in skl]}
+    return {"name": "t", "slot": "obiad", "kcal_share": 1.0, "ingredients": [{"product": p, "grams": g, "role": r} for p, g, r in skl]}
 
 
 def test_v1_1_mieso_liniowe_nie_przekracza_300_g_surowego_na_posilek(prods):
