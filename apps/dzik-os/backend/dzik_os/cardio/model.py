@@ -77,9 +77,14 @@ def waliduj_urzadzenia(machines: Any) -> list[str]:
 # --- składowe --------------------------------------------------------------
 
 
+def zaokr(x: float) -> int:
+    """Zaokrąglenie z połówką w górę (bez bankierskiego `round`: 42,5 → 43, nie 42)."""
+    return math.floor(x + 0.5)
+
+
 def hrmax_tanaka(wiek: float) -> int:
     """208 − 0,7 × wiek (Tanaka 2001) — punkt startowy, nigdy pomiar."""
-    return round(S.TANAKA_A - S.TANAKA_B * float(wiek))
+    return zaokr(S.TANAKA_A - S.TANAKA_B * float(wiek))
 
 
 def zaokraglij_do_5(x: float) -> int:
@@ -92,13 +97,13 @@ def intensywnosc(wagi: dict[str, float], klucz: str = "srodek_hrmax") -> float:
     return sum(wagi[c] * S.KOTWICE[c][klucz] for c in S.CELE)
 
 
-def zakres_pct(srodek: float, sufit: int) -> tuple[int, int]:
+def zakres_pct(srodek: float, sufit: int, podloga: int = S.PODLOGA_PCT) -> tuple[int, int]:
     """Zakres ±5 punktów wokół środka, przycięty do podłogi i sufitu poziomu."""
-    mid = round(srodek)
+    mid = zaokr(srodek)
     hi = min(sufit, mid + S.POLOWKA_ZAKRESU_PCT)
     # Przycięcie sufitem nie zwęża zakresu do jednej liczby: zostaje ±5 pod sufitem.
-    lo = max(S.PODLOGA_PCT, min(mid - S.POLOWKA_ZAKRESU_PCT, hi - 2 * S.POLOWKA_ZAKRESU_PCT))
-    return lo, hi
+    lo = max(podloga, min(mid - S.POLOWKA_ZAKRESU_PCT, hi - 2 * S.POLOWKA_ZAKRESU_PCT))
+    return lo, min(hi, max(hi, lo))
 
 
 def czas_min(wagi: dict[str, float], level: str) -> int:
@@ -109,7 +114,7 @@ def czas_min(wagi: dict[str, float], level: str) -> int:
 def rpe_zakres(wagi: dict[str, float]) -> tuple[int, int]:
     lo = sum(wagi[c] * S.KOTWICE[c]["rpe"][0] for c in S.CELE)
     hi = sum(wagi[c] * S.KOTWICE[c]["rpe"][1] for c in S.CELE)
-    lo_i, hi_i = round(lo), round(hi)
+    lo_i, hi_i = zaokr(lo), zaokr(hi)
     if hi_i <= lo_i:
         hi_i = lo_i + 1
     return max(1, lo_i), min(10, hi_i)
@@ -124,11 +129,12 @@ def test_mowy(pct_hrmax: float) -> str:
     return S.KOTWICE["wydolnosc"]["test_mowy"]
 
 
-def struktura(wagi: dict[str, float], level: str, czas: int) -> dict:
+def struktura(wagi: dict[str, float], level: str, czas: int, srodek: float | None = None) -> dict:
     """Struktura sesji wg wagi „Wydolność” (model §4 [C]).
 
-    `wW > 0,5` → interwały wg poziomu; `0,25 ≤ wW ≤ 0,5` → „tempo” (ciągłe
-    o mieszanej intensywności albo 2×10 min); `wW < 0,25` → ciągła. Próg
+    `wW > 0,5` → interwały wg poziomu (czas = suma rund); `0,25 ≤ wW ≤ 0,5`
+    i środek intensywności ≥ 75 % → „tempo” (ciągłe albo 2×10 min); inaczej
+    ciągła (poniżej 75 % praca ≈ przerwa, więc „tempo” nie ma pokrycia). Próg
     interwałów jest OSTRY (przykład kontrolny `(0,5, 0,5, 0)` → tempo 2×10)."""
     ww = wagi["wydolnosc"]
     if ww > S.PROG_INTERWALY:
@@ -136,7 +142,9 @@ def struktura(wagi: dict[str, float], level: str, czas: int) -> dict:
         return {"type": "interwaly", "rounds": rundy, "work_min": praca, "rest_min": przerwa,
                 "label": f"{rundy}×{praca} min / przerwa {przerwa} min",
                 "total_min": rundy * (praca + przerwa)}
-    if ww >= S.PROG_TEMPO:
+    if srodek is None:
+        srodek = intensywnosc(wagi)
+    if ww >= S.PROG_TEMPO and srodek >= S.PROG_TEMPO_PCT:
         rundy, praca, przerwa = S.TEMPO_BLOKI
         return {"type": "tempo", "rounds": rundy, "work_min": praca, "rest_min": przerwa,
                 "label": f"tempo umiarkowane: ciągle {czas} min albo {rundy}×{praca} min / przerwa {przerwa} min",
@@ -154,10 +162,10 @@ def bpm_z_pct(pct_hrmax: tuple[int, int], pct_hrr: tuple[int, int], hrmax: int |
     if resting_hr is not None:
         hrr = hrmax - resting_hr
         if hrr > 0:
-            lo = round(resting_hr + pct_hrr[0] / 100.0 * hrr)
-            hi = round(resting_hr + pct_hrr[1] / 100.0 * hrr)
+            lo = zaokr(resting_hr + pct_hrr[0] / 100.0 * hrr)
+            hi = zaokr(resting_hr + pct_hrr[1] / 100.0 * hrr)
             return (lo, hi), True
-    return (round(pct_hrmax[0] / 100.0 * hrmax), round(pct_hrmax[1] / 100.0 * hrmax)), False
+    return (zaokr(pct_hrmax[0] / 100.0 * hrmax), zaokr(pct_hrmax[1] / 100.0 * hrmax)), False
 
 
 # --- propozycja -----------------------------------------------------------
@@ -188,21 +196,21 @@ def propozycja(
     srodek = intensywnosc(wagi)
     srodek_hrr = intensywnosc(wagi, "srodek_hrr")
     czas = czas_min(wagi, poziom)
-    strukt = struktura(wagi, poziom, czas)
+    strukt = struktura(wagi, poziom, czas, srodek)
     if strukt["type"] == "interwaly":
         praca_pct = zakres_pct(S.KOTWICE["wydolnosc"]["srodek_hrmax"], sufit)
-        praca_hrr = zakres_pct(S.KOTWICE["wydolnosc"]["srodek_hrr"], 100)
+        praca_hrr = zakres_pct(S.KOTWICE["wydolnosc"]["srodek_hrr"], 100, S.PODLOGA_HRR)
         przerwa_pct: tuple[int, int] | None = zakres_pct(S.PRZERWA_HRMAX, sufit)
-        przerwa_hrr: tuple[int, int] | None = zakres_pct(S.PRZERWA_HRR, 100)
-        # Czas z mieszania zostaje (25 min dla czystej wydolności); rundy niosą własną sumę.
-        czas = max(czas, strukt["total_min"])
+        przerwa_hrr: tuple[int, int] | None = zakres_pct(S.PRZERWA_HRR, 100, S.PODLOGA_HRR)
+        # Czas sesji = suma rund (dokładniejsza niż zaokrąglenie z mieszania).
+        czas = strukt["total_min"]
     elif strukt["type"] == "tempo":
         praca_pct = zakres_pct(srodek, sufit)
-        praca_hrr = zakres_pct(srodek_hrr, 100)
-        przerwa_pct, przerwa_hrr = zakres_pct(S.PRZERWA_HRMAX, sufit), zakres_pct(S.PRZERWA_HRR, 100)
+        praca_hrr = zakres_pct(srodek_hrr, 100, S.PODLOGA_HRR)
+        przerwa_pct, przerwa_hrr = zakres_pct(S.PRZERWA_HRMAX, sufit), zakres_pct(S.PRZERWA_HRR, 100, S.PODLOGA_HRR)
     else:
         praca_pct = zakres_pct(srodek, sufit)
-        praca_hrr = zakres_pct(srodek_hrr, 100)
+        praca_hrr = zakres_pct(srodek_hrr, 100, S.PODLOGA_HRR)
         przerwa_pct, przerwa_hrr = None, None
 
     hrmax: int | None = hrmax_tanaka(age) if (age is not None and hr_mode == "normal") else None
@@ -211,23 +219,45 @@ def propozycja(
     przerwa_bpm = None
     if przerwa_pct is not None and przerwa_hrr is not None:
         przerwa_bpm, _ = bpm_z_pct(przerwa_pct, przerwa_hrr, hrmax, tetno_spocz)
-    if hr_mode == "rpe_only":
-        hrmax_source = "none_rpe_only"
-    elif hrmax is None:
+    # Sufit poziomu obowiązuje także w ud./min: tor Karvonena (rezerwa tętna) potrafi
+    # dać więcej niż 85 % HRmax dla początkującego — przycinamy w bpm.
+    if hrmax is not None:
+        sufit_bpm = zaokr(sufit / 100.0 * hrmax)
+
+        def przytnij(z: tuple[int, int]) -> tuple[int, int]:
+            # Sufit przesuwa cały zakres w dół (szerokość zostaje), nie zwęża go do jednej liczby.
+            if z[1] <= sufit_bpm:
+                return z
+            return (max(0, sufit_bpm - (z[1] - z[0])), sufit_bpm)
+
+        if praca_bpm is not None:
+            praca_bpm = przytnij(praca_bpm)
+        if przerwa_bpm is not None:
+            przerwa_bpm = przytnij(przerwa_bpm)
+    # Nazwa źródła jest neutralna: „none” zarówno bez wieku, jak i w trybie bez tętna —
+    # powód (odpowiedź o lekach) jest daną zdrowotną i nie trafia do treści planu ani śladu.
+    if hrmax is None:
         hrmax_source = "none"
     else:
         hrmax_source = "karvonen" if hrr_used else "tanaka"
 
-    rpe = rpe_zakres(wagi)
+    # RPE: przy interwałach kotwica Wydolności w pracy (7–9) i 3 w przerwie (model §4),
+    # niezależnie od mieszania — mieszany RPE nie opisuje pracy 85–95 % HRmax.
+    if strukt["type"] == "interwaly":
+        rpe = tuple(S.KOTWICE["wydolnosc"]["rpe"])
+        rpe_przerwa: tuple[int, int] | None = (3, 3)
+    else:
+        rpe = rpe_zakres(wagi)
+        rpe_przerwa = None
     srodek_pracy = (praca_pct[0] + praca_pct[1]) / 2.0
     zastrzezenia = [S.ZASTRZEZENIA["propozycja"]]
-    if hr_mode == "rpe_only":
+    # To samo zdanie dla braku wieku i dla trybu bez tętna — wynik ma być nieodróżnialny
+    # (powód, odpowiedź o lekach, jest daną zdrowotną i nie trafia do treści planu).
+    if hrmax is None:
         zastrzezenia.append(S.ZASTRZEZENIA["rpe_only"])
-    elif hrmax is not None:
-        zastrzezenia.append(S.ZASTRZEZENIA["zakres"])
     else:
-        zastrzezenia.append(S.ZASTRZEZENIA["bez_pulsometru"])
-    if not has_hr_monitor and hr_mode != "rpe_only":
+        zastrzezenia.append(S.ZASTRZEZENIA["zakres"])
+    if not has_hr_monitor:
         zastrzezenia.append(S.ZASTRZEZENIA["bez_pulsometru"])
     if wagi["redukcja"] > 0:
         zastrzezenia.append(S.ZASTRZEZENIA["bilans"])
@@ -261,8 +291,8 @@ def propozycja(
         "hrmax_estimate": hrmax,
         "hrmax_error_bpm": S.TANAKA_BLAD_BPM if hrmax is not None else None,
         "hrr_used": hrr_used,
-        "hr_mode": hr_mode,
         "rpe_range": list(rpe),
+        "rpe_rest_range": list(rpe_przerwa) if rpe_przerwa else None,
         "talk_test": test_mowy(srodek_pracy),
         "duration_min": czas,
         "structure": strukt,

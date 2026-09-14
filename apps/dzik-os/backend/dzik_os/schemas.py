@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator
+import json
+
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator, model_validator
 
 from .exercise_parser import ENGINES as PARSER_ENGINES
 from .exercise_parser import MAX_INPUT_CHARS as PARSER_MAX_INPUT_CHARS
@@ -87,6 +89,78 @@ class BlockSnapshotIn(BaseModel):
     items: list[BlockItemIn] = Field(default=[], max_length=20)
 
 
+def _zakres(lo_min: int, hi_max: int, *, nazwa: str):
+    """Walidator zakresu [lo, hi]: obie liczby w granicach, lo ≤ hi."""
+    def _v(v):
+        if v is None:
+            return None
+        if not isinstance(v, (list, tuple)) or len(v) != 2:
+            raise ValueError(f"{nazwa}: zakres to para liczb")
+        lo, hi = v
+        for x in (lo, hi):
+            if isinstance(x, bool) or not isinstance(x, (int, float)) or not (lo_min <= x <= hi_max):
+                raise ValueError(f"{nazwa}: wartości w zakresie {lo_min}–{hi_max}")
+        if lo > hi:
+            raise ValueError(f"{nazwa}: dolna granica większa od górnej")
+        return [round(lo), round(hi)]
+    return _v
+
+
+class CardioStructureIn(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    type: str = Field(pattern="^(ciagla|tempo|interwaly)$")
+    rounds: int = Field(ge=1, le=30)
+    work_min: int = Field(ge=0, le=180)
+    rest_min: int = Field(ge=0, le=60)
+    label: str = Field(min_length=1, max_length=120)
+    total_min: int = Field(ge=1, le=600)
+
+
+class CardioPrescriptionIn(BaseModel):
+    """Wynik silnika zapisywany w pozycji planu (0.73.0) — kształt sprawdzany,
+    bo treść wersji trafia do klienta bez dalszej walidacji (pusty albo
+    absurdalny obiekt wywracałby widok planu). Nieznane klucze są pomijane."""
+
+    model_config = ConfigDict(extra="ignore")
+
+    hr_pct_range: list[int]
+    hr_pct_rest_range: list[int] | None = None
+    hrr_pct_range: list[int] | None = None
+    hr_bpm_range: list[int] | None = None
+    hr_bpm_rest_range: list[int] | None = None
+    hrmax_estimate: int | None = Field(default=None, ge=100, le=230)
+    hrmax_error_bpm: int | None = Field(default=None, ge=0, le=30)
+    hrr_used: bool = False
+    rpe_range: list[int]
+    rpe_rest_range: list[int] | None = None
+    talk_test: str = Field(default="", max_length=120)
+    duration_min: int = Field(ge=1, le=600)
+    structure: CardioStructureIn
+    machine_params: list[dict] = Field(default=[], max_length=5)
+    kcal_estimate: int | None = Field(default=None, ge=0, le=5000)
+    caveats: list[str] = Field(default=[], max_length=12)
+
+    _v_hr = field_validator("hr_pct_range", "hr_pct_rest_range", mode="before")(_zakres(30, 100, nazwa="% tętna maks."))
+    _v_hrr = field_validator("hrr_pct_range", mode="before")(_zakres(0, 100, nazwa="% rezerwy tętna"))
+    _v_bpm = field_validator("hr_bpm_range", "hr_bpm_rest_range", mode="before")(_zakres(30, 230, nazwa="ud./min"))
+    _v_rpe = field_validator("rpe_range", "rpe_rest_range", mode="before")(_zakres(1, 10, nazwa="RPE"))
+
+    @field_validator("caveats")
+    @classmethod
+    def _caveats(cls, v: list[str]) -> list[str]:
+        if any(not isinstance(x, str) or len(x) > 300 for x in v):
+            raise ValueError("zastrzeżenia: teksty do 300 znaków")
+        return v
+
+    @field_validator("machine_params")
+    @classmethod
+    def _params(cls, v: list[dict]) -> list[dict]:
+        if len(json.dumps(v, ensure_ascii=False)) > 4000:
+            raise ValueError("machine_params: za duży obiekt")
+        return v
+
+
 class CardioIn(BaseModel):
     """Pozycja cardio z suwakami (0.73.0). `goal_mix` = wagi celów (suma 1,
     sprawdzana przez silnik — nie normalizowana po cichu), `machines` = lista
@@ -97,10 +171,17 @@ class CardioIn(BaseModel):
     goal_mix: dict[str, float]
     level: str = Field(pattern="^(POCZATKUJACY|SREDNIOZAAWANSOWANY|ZAAWANSOWANY)$")
     machines: list[str] = Field(min_length=1, max_length=5)
-    prescription: dict
+    prescription: CardioPrescriptionIn
     trace: dict = Field(default_factory=dict)
     model_version: str = Field(default="cardio_model_v1", max_length=40)
     overridden_by_coach: list[str] = Field(default=[], max_length=20)
+
+    @field_validator("trace")
+    @classmethod
+    def _trace(cls, v: dict) -> dict:
+        if len(json.dumps(v, ensure_ascii=False)) > 4000:
+            raise ValueError("trace: za duży obiekt")
+        return v
 
     @field_validator("goal_mix")
     @classmethod

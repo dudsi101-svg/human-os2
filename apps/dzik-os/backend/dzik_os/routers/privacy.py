@@ -551,6 +551,8 @@ def request_deletion(
         ws.pain_note = None
         for we in db.query(WorkoutEntry).filter(WorkoutEntry.session_id == ws.id).all():
             we.comment = None
+            # Tętno średnie z sesji cardio (0.73.0) to dana zdrowotna — znika razem z treścią.
+            we.avg_hr = None
     for doc in db.query(Document).filter(Document.client_id == client_id).all():
         doc.title = "[usunięto]"
         doc.status = "ARCHIVED"

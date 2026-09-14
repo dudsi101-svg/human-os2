@@ -352,6 +352,11 @@ def log_workout(
         # Wersja planu innego klienta (IDOR na plan_version_id) — logowana
         # odmowa; komunikat nie potwierdza istnienia cudzego planu.
         deny(user.id, f"plan_version:{body.plan_version_id}")
+    # Tętno średnie (0.73.0) zapisuje klient o sobie albo trener z dostępem do domeny
+    # zdrowotnej; trener z samą domeną treningową nie dopisuje danych zdrowotnych — pole ignorowane.
+    tetno_dozwolone = user.id == client_id or coach_can_access_client(
+        db, user.id, client_id, action="write", domain=DOMAIN_HEALTH
+    )
     session = WorkoutSession(
         id=new_id("WKS"),
         client_id=client_id,
@@ -390,7 +395,7 @@ def log_workout(
             file_id=e.file_id,
             # Cardio (0.73.0): pola bez serii; wpis siłowy zostawia NULL-e.
             duration_min=e.duration_min,
-            avg_hr=e.avg_hr,
+            avg_hr=e.avg_hr if tetno_dozwolone else None,
             rpe=e.rpe,
             distance_km=e.distance_km,
             machine=e.machine,

@@ -17,6 +17,7 @@ w danych (`source`, `review`) i wymaga potwierdzenia albo poprawki:
 | Tabela urządzeń: „zacznij od…” (kadencja/opór, prędkość/nachylenie, kroki/min, spm/damper) per pasmo G/R/W | `backend/dzik_os/cardio/urzadzenia.py` | `review = "do przeglądu trenera"` w każdej odpowiedzi API |
 | MET-y do szacunku kcal (rowerek 4,0/6,8/10; bieżnia 3,5/7/10; skos 5,3/6,5/8; steper 4/6/8,8; wioślarz 4,8/7/8,5) | j.w. | [B] |
 | **Kotwice [C] modelu** (do potwierdzenia — model §4 „Mieszanie”): środki intensywności G 60 / R 70 / W 90 % HRmax, przerwa 65 %; czasy G 25 / R 50 / W 25 min; progi struktury (interwały > 0,5 wagi Wydolność, tempo 0,25–0,5); interwały wg poziomu 8×1 / 6×2 / 4×4; sufit początkującego 85 % i czas −20 %; RPE z kotwic; MET | `backend/dzik_os/cardio/stale.py` | komentarze `[C]` |
+| Decyzje wykonawcze po przeglądzie PR #75 [C]: „tempo” tylko przy środku ≥ 75 % HRmax (inaczej ciągła), podłoga 40 % rezerwy tętna, czas interwałów = suma rund, RPE interwałów 7–9 / 3 w przerwie, sufit początkującego także w ud./min | `model.py`, `stale.py` | `[C]` |
 | Kotwice [B]: Redukcja = Fatmax 65–75 % HRmax / 50–65 % HRR / RPE 4–5 / 40–60 min | j.w. | `[B]` |
 | Treść zastrzeżeń w UI (bilans energii, zakres ±10 ud./min, RPE przy lekach) | `stale.py::ZASTRZEZENIA`, `pozycje.tsx` | — |
 | Nazwy celów w UI: „Redukcja (wydatek energii)”, „Wydolność (VO2max)”, „Regeneracja (baza tlenowa)” | `stale.py`, `types.ts` | domyślne z §8 promptu |
@@ -48,15 +49,17 @@ w danych (`source`, `review`) i wymaga potwierdzenia albo poprawki:
 Z trzech przejść tematycznych (plan sesji, „Przegląd”; P1 naprawione: maskowanie
 `avg_hr` dla trenera bez zgody zdrowotnej):
 
-1. `prescription.hrmax_estimate` w treści planu pozwala odtworzyć wiek (208 − 0,7·w);
-   treść planu jest w domenie treningowej — rozważyć pominięcie liczby w treści planu
-   (zostawić tylko zakres ud./min) albo zgodę na to jawnie w PERMISSIONS.
+1. `prescription.hrmax_estimate` i zakres ud./min w treści planu pozwalają odtworzyć
+   HRmax z wzoru (i przybliżyć tętno spoczynkowe) — **decyzja jawna (przegląd PR #75):
+   zostaje**, bo bez tych liczb klient nie ma czym sterować, a treść planu jest w domenie
+   treningowej jak każda wersja; wpisane w R-21 i PERMISSIONS. Odpowiedź o lekach
+   wpływających na tętno nie jest zapisywana w żadnej postaci (test).
 2. Numeracja „Ćwiczenie N” w edytorze liczy indeks w tablicy (blok rozgrzewki jako
    pozycja 1 → pierwsze siłowe to „Ćwiczenie 2”).
 3. Podsumowanie różnic szkicu dla pozycji cardio jest generyczne („zmieniono <nazwa>”),
    bez frazy „zmieniono cel cardio”.
-4. Czas interwałów u zaawansowanych (4×4/3 = 28 min) nie jest wielokrotnością 5 —
-   suma rund wygrywa z zaokrągleniem; potwierdzić z trenerem, czy woli 30 min.
+4. Czas sesji interwałowej = suma rund (24/16/28 min), bez rozgrzewki wejściowej i
+   schłodzenia — potwierdzić z trenerem, czy dokładać „+ X min” w etykiecie.
 5. Klient nie może zmienić urządzenia po zapisaniu wykonania (wybór w dniu treningu
    żyje w widoku, zapis w `WorkoutEntry.machine`) — bez „ulubionego urządzenia” na koncie.
 6. „Dzisiaj” → „Wykonane ✓” zapisuje sesję bez wpisów (jak dotąd); cardio z czasem/RPE

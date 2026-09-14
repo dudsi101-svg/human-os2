@@ -173,36 +173,48 @@ export function PozycjaCardio({ ex, machine, onMachine, dlaczego, kompakt = fals
   testid?: string;
 }) {
   const c = ex.cardio;
-  if (!c) return <div className="exercise"><div><b>{ex.name}</b></div></div>;
-  const rx = c.prescription;
-  const wybrane = machine && c.machines.includes(machine) ? machine : c.machines[0];
-  const params = rx.machine_params.find((p) => p.machine === wybrane) ?? rx.machine_params[0];
+  const rx = c?.prescription;
+  // Strażnik: pozycja bez pełnej propozycji (stara/uszkodzona treść) nie wywraca widoku planu.
+  if (!c || !rx || !Array.isArray(rx.hr_pct_range) || !rx.structure || !Array.isArray(rx.rpe_range)) {
+    return (
+      <div className="exercise" data-testid={testid}>
+        <div><b>{ex.name}</b> <span className="badge badge--accent">{KIND_BADGE.cardio}</span>
+          <div className="meta">Pozycja cardio bez pełnej propozycji — zapytaj trenera o zakres tętna i czas.</div></div>
+      </div>
+    );
+  }
+  const machines = Array.isArray(c.machines) && c.machines.length ? c.machines : ["rowerek"];
+  const paramsList = Array.isArray(rx.machine_params) ? rx.machine_params : [];
+  const wybrane = machine && machines.includes(machine) ? machine : machines[0];
+  const params = paramsList.find((p) => p.machine === wybrane) ?? paramsList[0];
   const interwaly = rx.structure.type === "interwaly";
-  const tetno = rx.hr_mode === "rpe_only"
-    ? "tętno pominięte (leki) — prowadź według RPE i testu mowy"
+  // Bez ud./min (brak wieku albo tryb bez tętna — powód nie jest zapisywany): prowadzi RPE i test mowy.
+  const bezTetna = !rx.hr_bpm_range;
+  const tetno = bezTetna
+    ? `${zakres(rx.hr_pct_range, "% HRmax")} (orientacyjnie) — prowadź według RPE i testu mowy`
     : [zakres(rx.hr_bpm_range, "ud./min"), `${zakres(rx.hr_pct_range, "% HRmax")}`].filter(Boolean).join(" · ");
   return (
     <div className="exercise" data-testid={testid} style={{ gridTemplateColumns: "1fr" }}>
       <div>
         <b>{ex.name}</b> <span className="badge badge--accent">{KIND_BADGE.cardio}</span>
         <PaskiCelow mix={c.goal_mix} testid={testid ? `${testid}-cele` : undefined} />
-        {c.machines.length > 1 && onMachine ? (
+        {machines.length > 1 && onMachine ? (
           <div style={{ marginTop: 8 }}>
             <label htmlFor={`${testid ?? "cardio"}-urzadzenie`}>Urządzenie na dziś</label>
             <select id={`${testid ?? "cardio"}-urzadzenie`} value={wybrane} onChange={(e) => onMachine(e.target.value)}>
-              {c.machines.map((m) => <option key={m} value={m}>{MACHINE_LABELS[m] ?? m}</option>)}
+              {machines.map((m) => <option key={m} value={m}>{MACHINE_LABELS[m] ?? m}</option>)}
             </select>
           </div>
         ) : (
           <div className="meta" style={{ marginTop: 6 }}>
-            Urządzenie: {c.machines.map((m) => MACHINE_LABELS[m] ?? m).join(" / ")}
+            Urządzenie: {machines.map((m) => MACHINE_LABELS[m] ?? m).join(" / ")}
           </div>
         )}
         {params && <ParametryUrzadzenia p={params} interwaly={interwaly} />}
         <div style={{ marginTop: 8, display: "grid", gap: 2, fontSize: "0.9rem" }} data-testid={testid ? `${testid}-zakresy` : undefined}>
-          <div><b>Tętno:</b> {tetno}{interwaly && rx.hr_mode !== "rpe_only" && rx.hr_pct_rest_range && (
-            <> (praca) · przerwa {zakres(rx.hr_bpm_rest_range, "ud./min") ?? zakres(rx.hr_pct_rest_range, "% HRmax")}</>)}</div>
-          <div><b>RPE:</b> {rx.rpe_range[0]}–{rx.rpe_range[1]} / 10 · <b>test mowy:</b> {rx.talk_test}</div>
+          <div><b>Tętno:</b> {tetno}{interwaly && rx.hr_pct_rest_range && (
+            <> (praca) · przerwa {(!bezTetna && zakres(rx.hr_bpm_rest_range, "ud./min")) || zakres(rx.hr_pct_rest_range, "% HRmax")}</>)}</div>
+          <div><b>RPE:</b> {rx.rpe_range[0]}–{rx.rpe_range[1]} / 10{interwaly && rx.rpe_rest_range && <> (praca) · {rx.rpe_rest_range[0]}{rx.rpe_rest_range[1] !== rx.rpe_rest_range[0] ? `–${rx.rpe_rest_range[1]}` : ""} w przerwie</>} · <b>test mowy:</b> {rx.talk_test}</div>
           <div><b>Czas:</b> {rx.duration_min} min · <b>struktura:</b> {rx.structure.label}</div>
           {rx.kcal_estimate != null && params?.kcal_estimate != null && (
             <div className="dim">Szacowany wydatek: ok. {params.kcal_estimate} kcal (tabele MET — przybliżenie).</div>
@@ -221,11 +233,10 @@ export function PozycjaCardio({ ex, machine, onMachine, dlaczego, kompakt = fals
           </div>
         )}
         <p className="dim" style={{ margin: "6px 0 0", fontSize: "0.8rem" }}>
-          {rx.hr_mode === "rpe_only" ? rx.caveats.find((x) => x.startsWith("Leki")) ?? rx.caveats[0]
-            : (rx.hr_bpm_range
+          {(rx.hr_bpm_range
               ? "Zakres, nie jedna liczba: tętno z wzoru wiekowego ma błąd ±10 ud./min — kieruj się też RPE i testem mowy. "
               : "Bez tętna prowadź wysiłek według RPE i testu mowy — to równoprawny wariant. ")
-              + ((c.goal_mix.redukcja ?? 0) > 0
+              + ((c.goal_mix?.redukcja ?? 0) > 0
                 ? "Udział tłuszczu jako paliwa w strefie nie przesądza o utracie tkanki — decyduje bilans energii w skali tygodni."
                 : "To propozycja trenera — zakres, nie jedna liczba.")}
         </p>
@@ -247,7 +258,11 @@ export function opisPozycji(ex: Exercise): string {
   if (rodzaj === "cardio" && ex.cardio) {
     const rx = ex.cardio.prescription;
     const w = zGoalMix(ex.cardio.goal_mix);
-    return `${ex.cardio.machines.map((m) => MACHINE_LABELS[m] ?? m).join(" / ")} · R ${w[0]} % / W ${w[1]} % / G ${w[2]} % · `
+    const urz = (Array.isArray(ex.cardio.machines) ? ex.cardio.machines : []).map((m) => MACHINE_LABELS[m] ?? m).join(" / ");
+    if (!rx || !Array.isArray(rx.hr_pct_range) || !Array.isArray(rx.rpe_range) || !rx.structure) {
+      return `${urz} · R ${w[0]} % / W ${w[1]} % / G ${w[2]} % · bez pełnej propozycji`;
+    }
+    return `${urz} · R ${w[0]} % / W ${w[1]} % / G ${w[2]} % · `
       + `${rx.hr_pct_range[0]}–${rx.hr_pct_range[1]} % HRmax · RPE ${rx.rpe_range[0]}–${rx.rpe_range[1]} · ${rx.duration_min} min · ${rx.structure.label}`;
   }
   if ((rodzaj === "warmup_block" || rodzaj === "stretch_block") && ex.block) {

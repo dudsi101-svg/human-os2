@@ -227,8 +227,7 @@ POZIOMY_KATALOGU = {"POCZATKUJACY": "początkujący", "SREDNIOZAAWANSOWANY": "ś
                     "ZAAWANSOWANY": "zaawansowany"}
 ZRODLA_HRMAX = {"tanaka": "tętno maksymalne z wzoru wiekowego (±10 ud./min)",
                 "karvonen": "tętno z rezerwy tętna (wzór wiekowy + tętno spoczynkowe)",
-                "none": "bez wzoru na tętno (RPE i test mowy)",
-                "none_rpe_only": "tętno pominięte z powodu leków — RPE i test mowy"}
+                "none": "bez wzoru na tętno (RPE i test mowy)"}
 KOREKTY_OPIS = {
     "LOW_RECOVERY_ADJUSTMENT": "objętość obniżono z powodu zadeklarowanej niskiej regeneracji",
     "RETURN_AFTER_BREAK": "po przerwie w treningu serie i zapas są ostrożniejsze",

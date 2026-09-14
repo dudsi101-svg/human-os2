@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { api } from "../../api";
 import { ErrorBox } from "../../components";
-import { naGoalMix, opisWagi, przesun } from "../../suwaki";
+import { WAGI_DOMYSLNE, naGoalMix, opisWagi, przesun } from "../../suwaki";
 import {
   CardioItem,
   CardioPodglad,
@@ -26,15 +26,10 @@ import {
  * Klient nie widzi niczego, dopóki trener nie zapisze/nie opublikuje wersji.
  */
 
-const PYTANIA: [string, string][] = [
-  ["current_red_flag", "Czy obecnie występuje ból lub ucisk w klatce, omdlenie, nietypowa silna duszność albo nowe objawy neurologiczne?"],
-  ["unexplained_exertional_symptoms", "Czy podczas wysiłku pojawiają się niewyjaśnione objawy (ból w klatce, zawroty głowy, nietypowa duszność)?"],
-  ["known_condition", "Czy istnieje rozpoznana choroba przewlekła lub schorzenie istotne dla treningu?"],
-  ["acute_injury_or_surgery", "Czy w ostatnim czasie wystąpił uraz lub zabieg operacyjny?"],
-  ["pregnancy_postpartum", "Czy występuje ciąża lub okres połogu?"],
-  ["active_rehabilitation", "Czy trwa aktywna rehabilitacja?"],
-  ["hr_medication", "Czy klient przyjmuje leki wpływające na tętno (np. beta-blokery)?"],
-];
+/** Klucze pytań bramki w kolejności ekranu; treść pytań przychodzi z `GET /api/cardio/katalog`
+ * (ta sama, co w konfiguratorze) — bez kopii na sztywno. */
+const KLUCZE_PYTAN = ["current_red_flag", "unexplained_exertional_symptoms", "known_condition",
+  "acute_injury_or_surgery", "pregnancy_postpartum", "active_rehabilitation", "hr_medication"] as const;
 const MASZYNY = Object.keys(MACHINE_LABELS);
 
 type Zdrowie = Record<string, boolean | null>;
@@ -44,11 +39,17 @@ export default function CardioPanel({ clientId, onInsert, onClose }: {
   onInsert: (ex: Exercise) => void;
   onClose: () => void;
 }) {
-  const [wagi, setWagi] = useState<number[]>([35, 35, 30]);
+  const [wagi, setWagi] = useState<number[]>([...WAGI_DOMYSLNE]);
+  const [pytania, setPytania] = useState<Record<string, string>>({});
   const [klodki, setKlodki] = useState<boolean[]>([false, false, false]);
   const [level, setLevel] = useState("SREDNIOZAAWANSOWANY");
   const [maszyny, setMaszyny] = useState<string[]>(["rowerek"]);
-  const [zdrowie, setZdrowie] = useState<Zdrowie>(Object.fromEntries(PYTANIA.map(([k]) => [k, null])));
+  const [zdrowie, setZdrowie] = useState<Zdrowie>(Object.fromEntries(KLUCZE_PYTAN.map((k) => [k, null])));
+  useEffect(() => {
+    api.get<{ health_questions: Record<string, string> }>("/api/cardio/katalog")
+      .then((d) => setPytania(d.health_questions))
+      .catch(() => setPytania({}));
+  }, []);
   const [age, setAge] = useState("");
   const [restingHr, setRestingHr] = useState("");
   const [weight, setWeight] = useState("");
@@ -105,17 +106,23 @@ export default function CardioPanel({ clientId, onInsert, onClose }: {
     const cardio: CardioItem = { goal_mix: mix, level, machines: maszyny, prescription: rx,
       trace: wynik.trace ?? {}, model_version: wynik.model_version ?? "cardio_model_v1", overridden_by_coach: nadpisane };
     onInsert({ name: nazwa, kind: "cardio", cardio, sets: "", reps: "", weight: "", rest: "",
-      comment: rx.hr_mode === "rpe_only" ? "Prowadź według RPE i testu mowy (tętno pominięte)." : "" });
+      comment: rx.hr_bpm_range ? "" : "Prowadź według RPE i testu mowy." });
   }
 
+  /** Pole liczbowe: puste albo nieliczbowe nie zmienia wartości (nie daje 0). */
+  const liczbaZ = (v: string, dotychczas: number): number => { const n = Number(v); return v.trim() && isFinite(n) ? n : dotychczas; };
+  /** Zmiana % tętna przelicza ud./min (i odwrotnie), gdy znane HRmax z wzoru; przy rezerwie tętna
+   * (Karvonen) przeliczenie wymaga tętna spoczynkowego — wtedy pola są niezależne. */
+  const pctNaBpm = (pct: number, p: CardioPrescription) => (p.hrmax_estimate && !p.hrr_used ? Math.floor(pct / 100 * p.hrmax_estimate + 0.5) : null);
+  const bpmNaPct = (bpm: number, p: CardioPrescription) => (p.hrmax_estimate && !p.hrr_used ? Math.floor(bpm / p.hrmax_estimate * 100 + 0.5) : null);
   const zakresInput = (etykieta: string, pole: string, get: () => [number, number], set: (lo: number, hi: number) => void) => (
     <div className="row" style={{ gap: 6 }}>
       <span style={{ width: 150, fontSize: "0.85rem" }}>{etykieta}</span>
       <input type="number" style={{ width: 80 }} aria-label={`${etykieta} — od`} value={get()[0]}
-        onChange={(e) => set(Number(e.target.value), get()[1])} />
+        onChange={(e) => set(liczbaZ(e.target.value, get()[0]), get()[1])} />
       <span aria-hidden>–</span>
       <input type="number" style={{ width: 80 }} aria-label={`${etykieta} — do`} value={get()[1]}
-        onChange={(e) => set(get()[0], Number(e.target.value))} />
+        onChange={(e) => set(get()[0], liczbaZ(e.target.value, get()[1]))} />
       {nadpisane.includes(pole) && <span className="badge badge--warn">zmienione ręcznie</span>}
     </div>
   );
@@ -176,7 +183,7 @@ export default function CardioPanel({ clientId, onInsert, onClose }: {
       </div>
       <fieldset style={{ border: 0, padding: 0, marginTop: 8 }}>
         <legend><b>Kwalifikacja zdrowotna</b> (jak w konfiguratorze; brak odpowiedzi = brak propozycji; nie zapisuje się w planie)</legend>
-        {PYTANIA.map(([k, q]) => (
+        {KLUCZE_PYTAN.map((k) => { const q = pytania[k] ?? k; return (
           <div key={k} className="row row--between" style={{ margin: "4px 0", gap: 8 }}>
             <span style={{ flex: 1, fontSize: "0.85rem" }}>{q}</span>
             <span className="row" role="group" aria-label={q} style={{ gap: 4 }}>
@@ -186,7 +193,7 @@ export default function CardioPanel({ clientId, onInsert, onClose }: {
               ))}
             </span>
           </div>
-        ))}
+        ); })}
       </fieldset>
       <div className="field-row-3" style={{ marginTop: 8 }}>
         <div><label htmlFor="cardio-age">Wiek (lata)</label>
@@ -216,9 +223,9 @@ export default function CardioPanel({ clientId, onInsert, onClose }: {
           {rx && (
             <>
               <div className="stat-grid" style={{ marginTop: 6 }}>
-                <div className="stat"><b>{rx.hr_mode === "rpe_only" ? "—" : `${rx.hr_pct_range[0]}–${rx.hr_pct_range[1]} %`}</b><span>tętna maks.</span></div>
+                <div className="stat"><b>{`${rx.hr_pct_range[0]}–${rx.hr_pct_range[1]} %`}</b><span>tętna maks.</span></div>
                 <div className="stat"><b>{rx.hr_bpm_range ? `${rx.hr_bpm_range[0]}–${rx.hr_bpm_range[1]}` : "—"}</b><span>ud./min {rx.hrr_used ? "(rezerwa tętna)" : rx.hrmax_estimate ? "(wzór wiekowy)" : "(brak wieku)"}</span></div>
-                <div className="stat"><b>{rx.rpe_range[0]}–{rx.rpe_range[1]}</b><span>RPE / 10</span></div>
+                <div className="stat"><b>{rx.rpe_range[0]}–{rx.rpe_range[1]}</b><span>RPE / 10{rx.rpe_rest_range ? ` (przerwa ${rx.rpe_rest_range[0]})` : ""}</span></div>
                 <div className="stat"><b>{rx.duration_min} min</b><span>{rx.structure.label}</span></div>
               </div>
               <p className="dim" style={{ fontSize: "0.85rem" }}>Test mowy: {rx.talk_test}{rx.kcal_estimate != null && <> · szacunek {rx.kcal_estimate} kcal (MET)</>}</p>
@@ -239,13 +246,19 @@ export default function CardioPanel({ clientId, onInsert, onClose }: {
               <details style={{ marginTop: 6 }}>
                 <summary>Zmień liczby ręcznie (zapisze się jako Twoja decyzja)</summary>
                 <div style={{ display: "grid", gap: 6, marginTop: 6 }}>
-                  {zakresInput("% tętna maks.", "hr_pct_range", () => rx.hr_pct_range, (lo, hi) => nadpisz("hr_pct_range", (p) => ({ ...p, hr_pct_range: [lo, hi] })))}
-                  {rx.hr_bpm_range && zakresInput("ud./min", "hr_bpm_range", () => rx.hr_bpm_range as [number, number], (lo, hi) => nadpisz("hr_bpm_range", (p) => ({ ...p, hr_bpm_range: [lo, hi] })))}
+                  {zakresInput("% tętna maks.", "hr_pct_range", () => rx.hr_pct_range, (lo, hi) => nadpisz("hr_pct_range", (p) => {
+                    const bpm = p.hr_bpm_range && pctNaBpm(lo, p) !== null ? [pctNaBpm(lo, p)!, pctNaBpm(hi, p)!] as [number, number] : p.hr_bpm_range;
+                    return { ...p, hr_pct_range: [lo, hi], hr_bpm_range: bpm };
+                  }))}
+                  {rx.hr_bpm_range && zakresInput("ud./min", "hr_bpm_range", () => rx.hr_bpm_range as [number, number], (lo, hi) => nadpisz("hr_bpm_range", (p) => {
+                    const pct = bpmNaPct(lo, p) !== null ? [bpmNaPct(lo, p)!, bpmNaPct(hi, p)!] as [number, number] : p.hr_pct_range;
+                    return { ...p, hr_bpm_range: [lo, hi], hr_pct_range: pct };
+                  }))}
                   {zakresInput("RPE", "rpe_range", () => rx.rpe_range, (lo, hi) => nadpisz("rpe_range", (p) => ({ ...p, rpe_range: [lo, hi] })))}
                   <div className="row" style={{ gap: 6 }}>
                     <span style={{ width: 150, fontSize: "0.85rem" }}>Czas (min)</span>
                     <input type="number" style={{ width: 80 }} aria-label="Czas w minutach" value={rx.duration_min}
-                      onChange={(e) => nadpisz("duration_min", (p) => ({ ...p, duration_min: Number(e.target.value) }))} />
+                      onChange={(e) => nadpisz("duration_min", (p) => ({ ...p, duration_min: liczbaZ(e.target.value, p.duration_min) }))} />
                     {nadpisane.includes("duration_min") && <span className="badge badge--warn">zmienione ręcznie</span>}
                   </div>
                 </div>

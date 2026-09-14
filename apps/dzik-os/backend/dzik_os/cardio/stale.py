@@ -47,6 +47,11 @@ POLOWKA_ZAKRESU_PCT = 5
 
 #: Dolna granica sensownego zakresu (%HRmax) — poniżej to spacer.
 PODLOGA_PCT = 40
+#: Osobna podłoga dla rezerwy tętna (ACSM: intensywność umiarkowana od 40 % HRR).
+PODLOGA_HRR = 40
+#: Próg środka intensywności, od którego struktura „tempo” ma pokrycie
+#: (poniżej praca ≈ przerwa, więc sesja jest po prostu ciągła).
+PROG_TEMPO_PCT = 75
 
 #: Sufit intensywności wg poziomu (model §4: początkujący maks. 85 % HRmax).
 SUFIT_PCT: dict[str, int] = {
@@ -96,8 +101,9 @@ ZASTRZEZENIA: dict[str, str] = {
               "tłuszczowej — decyduje bilans energii w skali tygodni.",
     "bez_pulsometru": "Bez pulsometru prowadź wysiłek według RPE i testu mowy — to równoprawny "
                       "wariant.",
-    "rpe_only": "Leki wpływające na tętno: tętno w ud./min nie jest podawane — prowadź wysiłek "
-                "według RPE i testu mowy.",
+    # Neutralnie: to samo zdanie dla braku wieku i dla trybu bez tętna — treść planu
+    # (domena treningowa) nie może zdradzać powodu (odpowiedź o lekach jest daną zdrowotną).
+    "rpe_only": "Tętno w ud./min nie jest podawane — prowadź wysiłek według RPE i testu mowy.",
     "poczatkujacy": "Poziom początkujący: sufit 85 % HRmax, krótsze interwały, czas −20 %.",
     "propozycja": "To propozycja struktury sesji dla trenera, nie porada medyczna — trener "
                   "decyduje i może każdą liczbę zmienić.",

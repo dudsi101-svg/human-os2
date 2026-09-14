@@ -27,15 +27,18 @@ def test_przyklad_rowne_wagi_73_procent_35_min_tempo():
     r = rx(ROWNO)
     assert r["hr_pct_range"] == [68, 78]  # środek ≈ 73 ±5
     assert r["duration_min"] == 35  # 33,3 → 35
-    assert r["structure"]["type"] == "tempo"
+    # Model §4: „ok. 73 % HRmax ciągłe” — „tempo” tylko od 75 % (P2 c z przeglądu).
+    assert r["structure"]["type"] == "ciagla"
     assert r["rpe_range"][0] < r["rpe_range"][1]
 
 
 def test_przyklad_czysta_wydolnosc_interwaly_90_procent_25_min():
     r = rx({"redukcja": 0, "wydolnosc": 1, "regeneracja": 0})
-    assert r["hr_pct_range"] == [85, 95] and r["duration_min"] == 25
+    # Czas = suma rund (6×(2+2) = 24; model podaje „25 min” z mieszania — P2 g z przeglądu).
+    assert r["hr_pct_range"] == [85, 95] and r["duration_min"] == 24
     assert r["structure"]["type"] == "interwaly" and r["structure"]["label"] == "6×2 min / przerwa 2 min"
     assert r["hr_pct_rest_range"] == [60, 70] and r["talk_test"] == "pojedyncze słowa"
+    assert r["rpe_range"] == [7, 9] and r["rpe_rest_range"] == [3, 3]
 
 
 def test_przyklad_czysta_redukcja_70_procent_50_min_ciagle():
@@ -64,7 +67,7 @@ def test_sufit_poczatkujacego_85_procent_i_krotsze_interwaly_i_czas_minus_20():
     r = rx({"redukcja": 0, "wydolnosc": 1, "regeneracja": 0}, "POCZATKUJACY")
     assert r["hr_pct_range"] == [75, 85]  # przycięcie sufitem nie zwęża do jednej liczby
     assert r["structure"]["label"] == "8×1 min / przerwa 1 min"
-    assert r["duration_min"] == 20  # 25 × 0,8
+    assert r["duration_min"] == 16  # suma rund 8×(1+1)
     assert S.ZASTRZEZENIA["poczatkujacy"] in r["caveats"]
     r2 = rx({"redukcja": 1, "wydolnosc": 0, "regeneracja": 0}, "POCZATKUJACY")
     assert r2["duration_min"] == 40
@@ -75,7 +78,7 @@ def test_sufit_poczatkujacego_85_procent_i_krotsze_interwaly_i_czas_minus_20():
 def test_brak_wieku_tylko_rpe_i_test_mowy():
     r = rx(ROWNO)
     assert r["hr_bpm_range"] is None and r["hrmax_estimate"] is None and r["hrr_used"] is False
-    assert S.ZASTRZEZENIA["bez_pulsometru"] in r["caveats"]
+    assert S.ZASTRZEZENIA["rpe_only"] in r["caveats"]  # neutralne, wspólne z trybem bez tętna
     assert r["rpe_range"] and r["talk_test"]
 
 
@@ -100,8 +103,15 @@ def test_karvonen_gdy_tetno_spoczynkowe():
 def test_leki_wplywajace_na_tetno_bez_bpm():
     r = rx(ROWNO, age=40, resting_hr=60, hr_mode="rpe_only")
     assert r["hr_bpm_range"] is None and r["hr_bpm_rest_range"] is None and r["hrmax_estimate"] is None
-    assert r["hr_mode"] == "rpe_only" and S.ZASTRZEZENIA["rpe_only"] in r["caveats"]
+    assert "hr_mode" not in r and S.ZASTRZEZENIA["rpe_only"] in r["caveats"]
     assert r["hr_pct_range"]  # procenty zostają jako orientacja, RPE prowadzi
+    # Treść propozycji nie zdradza powodu (odpowiedź o lekach = dana zdrowotna): wynik jest
+    # nieodróżnialny od „brak wieku”, poza tym, co silnik dostał na wejściu.
+    bez_wieku = rx(ROWNO)
+    assert r == bez_wieku
+    w = M.propozycja(ROWNO, "POCZATKUJACY", ["rowerek"], age=40, hr_mode="rpe_only")
+    tekst = str(w).lower()
+    assert "leki" not in tekst and "lekach" not in tekst and "rpe_only" not in tekst and w["trace"]["hrmax_source"] == "none"
 
 
 # --- Determinizm i walidacja --------------------------------------------------
@@ -190,3 +200,34 @@ def test_bloki_wbudowane_3x3_plus_3_i_pozycje_z_katalogu():
     for b in rozgrzewki:
         assert b["items"][-1]["catalog"] is False and "wprowadzająca" in b["items"][-1]["name"]
         assert 5 <= len(b["items"]) <= 7
+
+
+def test_sufit_poczatkujacego_obowiazuje_takze_w_bpm_z_karvonena():
+    """P1-1 z przeglądu: tor rezerwy tętna dawał 91,6 % HRmax dla początkującego."""
+    r = rx({"redukcja": 0, "wydolnosc": 1, "regeneracja": 0}, "POCZATKUJACY", age=41, resting_hr=62)
+    hrmax = r["hrmax_estimate"]
+    assert hrmax == 179 and r["hr_pct_range"] == [75, 85]
+    assert r["hr_bpm_range"][1] <= 0.85 * hrmax and r["hr_bpm_range"] == [140, 152]
+    assert r["hr_bpm_range"][1] - r["hr_bpm_range"][0] == 12  # szerokość zachowana, zakres przesunięty
+    assert r["hr_bpm_rest_range"][1] <= 0.85 * hrmax
+    # Średniozaawansowany bez przycięcia.
+    r2 = rx({"redukcja": 0, "wydolnosc": 1, "regeneracja": 0}, age=41, resting_hr=62)
+    assert r2["hr_bpm_range"] == [153, 165]  # zaokrąglenie z połówką w górę
+
+
+def test_rpe_interwalow_z_kotwicy_wydolnosci_i_przerwa_3():
+    """P1-2: przy interwałach RPE nie jest mieszany — 7–9 w pracy, 3 w przerwie."""
+    r = rx({"redukcja": 0.2, "wydolnosc": 0.6, "regeneracja": 0.2})
+    assert r["structure"]["type"] == "interwaly" and r["hr_pct_range"] == [85, 95]
+    assert r["rpe_range"] == [7, 9] and r["rpe_rest_range"] == [3, 3]
+    r2 = rx({"redukcja": 0.5, "wydolnosc": 0.5, "regeneracja": 0})
+    assert r2["structure"]["type"] == "tempo" and r2["rpe_rest_range"] is None and r2["rpe_range"] == [6, 7]
+
+
+def test_tempo_tylko_od_75_procent_i_podloga_hrr():
+    """P2 c/d: (0/0,25/0,75) → środek 63 % ≈ przerwa, więc ciągła; %HRR ma własną podłogę 40."""
+    r = rx({"redukcja": 0, "wydolnosc": 0.25, "regeneracja": 0.75})
+    assert r["structure"]["type"] == "ciagla" and r["hr_pct_range"] == [63, 73]
+    g = rx({"redukcja": 0, "wydolnosc": 0, "regeneracja": 1})
+    assert g["hrr_pct_range"] == [40, 48]
+    assert M.zaokr(42.5) == 43 and M.zaokr(0.5) == 1 and M.hrmax_tanaka(45) == 177  # 176,5 → 177

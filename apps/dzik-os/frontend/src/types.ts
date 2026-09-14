@@ -112,8 +112,9 @@ export interface CardioPrescription {
   hrmax_estimate: number | null;
   hrmax_error_bpm: number | null;
   hrr_used: boolean;
-  hr_mode: "normal" | "rpe_only";
   rpe_range: [number, number];
+  /** RPE w przerwie interwałów (model: 3); null przy sesji ciągłej. */
+  rpe_rest_range: [number, number] | null;
   talk_test: string;
   duration_min: number;
   structure: CardioStructure;
@@ -143,6 +144,7 @@ export interface CardioPodglad {
   trace: Record<string, unknown> | null;
   model_version?: string;
   inputs: { age: number | null; resting_hr: number | null; weight_kg: number | null; health_access: boolean; hr_mode: string } | null;
+  health_questions?: Record<string, string>;
 }
 
 /** Model progresji z wbudowanego katalogu szablonów. */

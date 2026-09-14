@@ -92,7 +92,7 @@ def test_bramka_urgent_stop_needs_input_needs_review_i_leki(seeded):
     # Leki wpływające na tętno → bez ud./min.
     r = _podglad(seeded, hc, cid, age=40, health={**ZDROWIE_OK, "hr_medication": True})
     assert r.json()["status"] == "ready" and r.json()["prescription"]["hr_bpm_range"] is None
-    assert r.json()["inputs"]["hr_mode"] == "rpe_only"
+    assert r.json()["inputs"]["hr_mode"] == "rpe_only" and "hr_mode" not in r.json()["prescription"]
     # Blok zdrowotny nie trafia do odpowiedzi ani wejść.
     zrzut = json.dumps(r.json()["inputs"]) + json.dumps(r.json()["trace"]) + json.dumps(r.json()["prescription"])
     assert "red_flag" not in zrzut and "known_condition" not in zrzut and "hr_medication" not in zrzut
@@ -252,7 +252,7 @@ def test_dziennik_cardio_bez_serii_eksport_i_usuniecie(seeded):
     assert r.status_code in (200, 202, 204), r.text
     with SessionLocal() as db:
         wpisy = db.query(WorkoutEntry).filter_by(machine="wioslarz").all()
-        assert all(x.comment is None for x in wpisy)
+        assert wpisy and all(x.comment is None and x.avg_hr is None for x in wpisy)  # P2 a: tętno znika
 
 
 def test_dziennik_cudzego_klienta_404(seeded):
@@ -286,3 +286,82 @@ def test_tetno_srednie_maskowane_dla_trenera_bez_zgody_zdrowotnej(seeded):
     assert wpis["avg_hr"] is None and wpis["duration_min"] == 20 and wpis["machine"] == "rowerek"
     # Klient nadal widzi swoje tętno.
     assert seeded.get(f"/api/clients/{cid}/workouts", headers=ha).json()["workouts"][0]["entries"][0]["avg_hr"] == 140
+
+
+def test_plan_i_slad_nie_zdradzaja_odpowiedzi_o_lekach(seeded):
+    """P1-4: odpowiedź o lekach wpływających na tętno jest daną zdrowotną — wersja planu
+    (domena treningowa) i fakty śladu H_CARDIO nie mogą jej nieść w żadnej postaci."""
+    hc, ha = login(seeded, COACH), login(seeded, CLIENT_A)
+    cid = get_user_id(seeded, ha)
+    plan = _plan_a(seeded, ha, cid)
+    wynik = _podglad(seeded, hc, cid, age=40, health={**ZDROWIE_OK, "hr_medication": True}).json()
+    assert wynik["prescription"]["hr_bpm_range"] is None
+    r = seeded.post(f"/api/plans/{plan['id']}/versions", headers=hc,
+                    json={"reason": "Cardio bez tętna", "days": [{"name": "D", "exercises": [_pozycja_cardio(wynik)]}]})
+    assert r.status_code == 201, r.text
+    nowa = r.json()["version_no"]
+    with SessionLocal() as db:
+        from dzik_os.models import TrainingPlanVersion
+        v = db.query(TrainingPlanVersion).filter_by(plan_id=plan["id"], version_no=nowa).one()
+        tresc = v.content_json.lower()
+        s = db.query(WiedzaSlad).filter_by(plan_id=plan["id"], plan_revision=nowa, target_type="cardio_prescription").one()
+        fakty = s.facts_json.lower()
+    for zakazane in ("leki", "lekach", "leków", "rpe_only", "beta", "hr_medication", "pominięte"):
+        assert zakazane not in tresc and zakazane not in fakty, zakazane
+    assert '"hrmax_source": "none"' in s.facts_json.replace(", ", ", ") or "none" in fakty
+    # „Dlaczego?” też neutralnie.
+    r = seeded.post("/api/wiedza/wyjasnij", headers=ha, json={
+        "plan_kind": "training", "plan_id": plan["id"], "plan_revision": nowa,
+        "target_type": "cardio_prescription", "target_id": "d0:e0", "tryb": "current"})
+    assert r.status_code == 200 and "lek" not in json.dumps(r.json(), ensure_ascii=False).lower()
+
+
+def test_prescription_bez_ksztaltu_422_i_absurdalne_wartosci_422(seeded):
+    """P1-3: pusty albo absurdalny obiekt propozycji nie wchodzi do planu (wywracał widok klienta)."""
+    hc, ha = login(seeded, COACH), login(seeded, CLIENT_A)
+    cid = get_user_id(seeded, ha)
+    plan = _plan_a(seeded, ha, cid)
+    dobra = _podglad(seeded, hc, cid, age=35).json()["prescription"]
+    zle = [
+        {},
+        {**dobra, "hr_pct_range": [150, 900]},
+        {**dobra, "hr_pct_range": [80, 70]},
+        {**dobra, "rpe_range": [0, 99]},
+        {**dobra, "duration_min": -5},
+        {**dobra, "structure": {**dobra["structure"], "type": "sprint"}},
+        {**dobra, "hr_bpm_range": [30, 400]},
+        {**dobra, "caveats": ["x" * 400]},
+    ]
+    for rx in zle:
+        poz = {"name": "Cardio", "kind": "cardio", "cardio": {"goal_mix": ROWNO, "level": "POCZATKUJACY",
+                                                              "machines": ["rowerek"], "prescription": rx}}
+        r = seeded.post(f"/api/plans/{plan['id']}/versions", headers=hc,
+                        json={"reason": "zła", "days": [{"name": "D", "exercises": [poz]}]})
+        assert r.status_code == 422, (rx, r.text)
+    # Nieznane klucze są pomijane, nie odrzucane (kompatybilność z przyszłymi polami silnika).
+    poz = {"name": "Cardio", "kind": "cardio", "cardio": {"goal_mix": ROWNO, "level": "POCZATKUJACY",
+                                                          "machines": ["rowerek"], "prescription": {**dobra, "nowe_pole": 1},
+                                                          "trace": {"x": "y" * 5000}}}
+    r = seeded.post(f"/api/plans/{plan['id']}/versions", headers=hc, json={"reason": "duży ślad", "days": [{"name": "D", "exercises": [poz]}]})
+    assert r.status_code == 422  # trace ponad limit
+    poz["cardio"]["trace"] = {"x": "y"}
+    r = seeded.post(f"/api/plans/{plan['id']}/versions", headers=hc, json={"reason": "ok", "days": [{"name": "D", "exercises": [poz]}]})
+    assert r.status_code == 201
+    ex = _plan_a(seeded, ha, cid)["current_version"]["content"]["days"][0]["exercises"][0]
+    assert "nowe_pole" not in ex["cardio"]["prescription"] and ex["cardio"]["prescription"]["hr_pct_range"] == dobra["hr_pct_range"]
+
+
+def test_trener_bez_zgody_zdrowotnej_nie_dopisuje_tetna(seeded):
+    """P2 b: zapis sesji przez trenera z samą domeną treningową ignoruje `avg_hr`."""
+    hc, ha = login(seeded, COACH), login(seeded, CLIENT_A)
+    cid = get_user_id(seeded, ha)
+    plan = _plan_a(seeded, ha, cid)
+    zgody = seeded.get("/api/me/consents", headers=ha).json()["consents"]
+    zdrowie = next(c for c in zgody if c["category"] == "dane_zdrowotne" and c["revoked_at"] is None and c["denied_at"] is None)
+    assert seeded.post(f"/api/me/consents/{zdrowie['id']}/revoke", headers=ha).status_code == 200
+    r = seeded.post(f"/api/clients/{cid}/workouts", headers=hc, json={
+        "plan_version_id": plan["current_version"]["id"], "day_index": 2, "performed_on": "2026-09-14",
+        "entries": [{"exercise_index": 3, "exercise_name": "Cardio", "duration_min": 20, "avg_hr": 140, "rpe": 5, "machine": "rowerek"}]})
+    assert r.status_code == 201, r.text
+    wpis = seeded.get(f"/api/clients/{cid}/workouts", headers=ha).json()["workouts"][0]["entries"][0]
+    assert wpis["avg_hr"] is None and wpis["duration_min"] == 20

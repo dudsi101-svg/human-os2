@@ -43,6 +43,6 @@ test("wolne suwaki na zerze dzielą resztę po równo", () => {
 test("konwersja do goal_mix i z powrotem oraz aria-valuetext", () => {
   assert.deepEqual(naGoalMix([50, 25, 25]), { redukcja: 0.5, wydolnosc: 0.25, regeneracja: 0.25 });
   assert.deepEqual(zGoalMix({ redukcja: 0.5, wydolnosc: 0.25, regeneracja: 0.25 }), [50, 25, 25]);
-  assert.deepEqual(zGoalMix(null), [33, 33, 34]);
+  assert.deepEqual(zGoalMix(null), [35, 35, 30]); // te same domyślne, co suwaki w panelu
   assert.equal(opisWagi("Redukcja", 50), "Redukcja 50 %");
 });

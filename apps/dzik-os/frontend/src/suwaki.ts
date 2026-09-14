@@ -54,10 +54,14 @@ export function naGoalMix(wagi: number[]): { redukcja: number; wydolnosc: number
   return { redukcja: r / 100, wydolnosc: w / 100, regeneracja: g / 100 };
 }
 
+/** Domyślne wagi (suma 100, krok 5) — te same w panelu trenera i przy braku wag. */
+export const WAGI_DOMYSLNE: number[] = [35, 35, 30];
+
 /** Odwrotność: wagi z planu → procenty do pasków/odczytu. */
 export function zGoalMix(mix: { redukcja?: number; wydolnosc?: number; regeneracja?: number } | null | undefined): number[] {
-  const r = Math.round(((mix?.redukcja ?? 1 / 3) * 100));
-  const w = Math.round(((mix?.wydolnosc ?? 1 / 3) * 100));
+  if (!mix || typeof mix.redukcja !== "number" || typeof mix.wydolnosc !== "number") return [...WAGI_DOMYSLNE];
+  const r = Math.round(mix.redukcja * 100);
+  const w = Math.round(mix.wydolnosc * 100);
   return [r, w, Math.max(0, 100 - r - w)];
 }
 

@@ -223,6 +223,29 @@ z promptu — historia cardio w „Ostatnich treningach” w Planie).
     dla migracji 39 w trzech testach „starej bazy” (`test_migration_19…`,
     `test_migracja_22…`, `test_migracja_23…` — wzorzec stubu `users` z 0.70.0).
 
+11. **Po przeglądzie dwóch niezależnych recenzentów PR #75 (brak P0, cztery P1, P2)** —
+    naprawione w tej rundzie: (P1-1) sufit 85 % HRmax dla początkującego obowiązuje też
+    w ud./min z toru rezerwy tętna (zakres przesuwany w dół, szerokość zachowana; test);
+    (P1-2) przy interwałach RPE z kotwicy Wydolności 7–9 w pracy i `rpe_rest_range` 3 w
+    przerwie, nie mieszany (test); (P1-3) `CardioPrescriptionIn`/`CardioStructureIn` —
+    kształt propozycji sprawdzany przy zapisie (zakresy 30–100 % / 30–230 ud./min / RPE
+    1–10 / czas 1–600, `structure.type` z enumu, limity `machine_params`, `caveats`,
+    `trace`; nieznane klucze pomijane; 8 testów 422) + strażnik w `PozycjaCardio`/
+    `opisPozycji` (uszkodzona pozycja nie wywraca widoku); (P1-4) odpowiedź o lekach
+    wpływających na tętno nie jest zapisywana: `hr_mode` usunięty z propozycji,
+    `hrmax_source` tylko `tanaka|karvonen|none`, zastrzeżenie neutralne, komentarz
+    panelu bez „pominięte”, wynik nieodróżnialny od „brak wieku” (testy silnika, planu,
+    śladu i „Dlaczego?”); P2: (a) usunięcie konta zeruje `avg_hr`; (b) trener bez dostępu
+    zdrowotnego nie dopisuje `avg_hr` (ignorowane, test); (c) „tempo” tylko przy środku
+    ≥ 75 % (model §4: równe wagi → „ok. 73 % ciągłe”); (d) osobna podłoga 40 % dla
+    rezerwy tętna; (e) zaokrąglanie z połówką w górę zamiast bankierskiego; (f) panel:
+    zmiana % tętna przelicza ud./min i odwrotnie (tor wzoru wiekowego), puste pole nie
+    daje 0; (g) czas interwałów = suma rund (6×(2+2) = 24, nie 25 z mieszania);
+    (h) `docs/zlecenia/model-suwakow-cardio.md` i `PROMPT_writer_cardio-i-rozgrzewka.md`
+    dodane do repo (kopie z pakietu); (i) jedne domyślne wagi 35/35/30; (j) pytania
+    bramki z `GET /api/cardio/katalog`. Świadomie zostaje (PROGRESS): `hrmax_estimate`
+    w treści planu — jawna akceptacja pochodnych (R-21, PERMISSIONS).
+
 ## Przegląd (trzy przejścia tematyczne po diffie — patrz odstępstwo 7)
 
 **A. Bezpieczeństwo / zgody / dane zdrowotne / IDOR.** P1 (naprawione): `avg_hr`
