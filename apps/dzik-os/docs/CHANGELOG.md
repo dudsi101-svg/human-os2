@@ -1,5 +1,41 @@
 # Changelog — Dzik OS
 
+## 0.70.0 — 2026-09-14
+
+**Powitanie po pierwszym logowaniu — dwuetapowy samouczek (polecenie
+właściciela z 14.09, sekcja E promptu „Panel Dzisiaj”, jedyna część niewykonana
+w 0.63.0; gałąź `agent/powitanie-samouczek`, migracja 37).** Pomoc, nie
+bramka: pomijalne, nieblokujące, ponownie otwieralne. Dni treningowe (0.68.0)
+przesuwają się na migrację **38**.
+
+* **Znacznik na serwerze:** `users.welcome_seen_at` (migracja 37, addytywna,
+  NULL = jeszcze nie pokazane) — działa między urządzeniami, bez
+  `localStorage`. `POST /api/me/welcome-seen` (zalogowany; idempotentny —
+  drugie wywołanie nie zmienia daty) i pole `welcome_seen` w
+  `GET /api/me/today`. Konta demo z seedu mają znacznik ustawiony (świeże
+  konto z zaproszenia — nie). Znacznik interfejsu jak `last_login_at`:
+  **nie wchodzi do eksportu**, `export_version` bez zmian (1.9).
+* **Okno na „Dzisiaj”** (`pages/client/Powitanie.tsx`), gdy `welcome_seen`
+  jest `false`: krok 1 „Cześć, {imię}! Dobrze Cię widzieć.” (zakładki na
+  dole — Raport albo Postępy wg flagi `monitoring_tab`; dwie rzeczy na
+  start: zgody w Profilu → „Prywatność i zgody”, wywiady w zakładce Wywiad;
+  [Dalej] · [Pomiń na razie]); krok 2 „Co jeszcze warto wiedzieć” (wymiana
+  składnika w diecie z szablonu, postępy, opisy techniki w Wiedzy, zdjęcia
+  w raporcie, nagranie do trenera w wiadomości; [Rozumiem, zaczynajmy]).
+  Opisuje wyłącznie funkcje istniejące na `main` — bez nowej obsługi wideo.
+* **Dostępność:** `role="dialog"`, `aria-modal`, `aria-labelledby`
+  (nagłówek `h2` kroku), fokus startowy na nagłówku, pułapka fokusu
+  Tab/Shift+Tab, Esc = „Pomiń na razie”, zwykłe `<button>` i style
+  `.card`/`.btn`; bez nowych bibliotek; okno przewija się wewnątrz
+  (bez poziomego scrolla strony).
+* **Ponowne otwarcie:** „Więcej → Pomoc / Samouczek” pokazuje to samo okno
+  bez ponownego zapisu znacznika.
+* Testy: `tests/test_powitanie.py` (świeży klient, idempotencja, anonim 401,
+  konta demo, eksport bez pola), macierz dostępu, E2E `powitanie.spec.ts`
+  (konto przez API → brama zgód → oba kroki → pułapka fokusu → reload →
+  „Więcej” → Esc). `playwright.config.ts`: port drugiego serwera
+  konfigurowalny (`DZIK_E2E_PORT_POSTEPY`).
+
 ## 0.69.0 — 2026-09-14
 
 **Wymiany produktów v2 — grupy pokrewne, zgodność funkcji w posiłku, bramka

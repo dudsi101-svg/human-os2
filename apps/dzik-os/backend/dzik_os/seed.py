@@ -50,6 +50,7 @@ from .models import (
     User,
     WeeklyCheckin,
     new_id,
+    now_iso,
 )
 from .muscles import join_muscles
 from .security import hash_password
@@ -164,6 +165,10 @@ def seed() -> dict[str, str]:
         monday = today - timedelta(days=today.isoweekday() - 1)
 
         for client in (client_a, client_b, client_c, client_d, client_e):
+            # Konta demo to „zalogowani od dawna” klienci: okno powitalne
+            # (0.70.0) mają już za sobą — inaczej każdy test E2E i każde demo
+            # zaczynałoby od samouczka. Świeże konto z zaproszenia ma NULL.
+            client.welcome_seen_at = now_iso()
             rel = CoachClientRelationship(
                 id=new_id("REL"), coach_id=coach.id, client_id=client.id,
                 created_by=coach.id,

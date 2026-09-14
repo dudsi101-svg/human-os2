@@ -442,6 +442,8 @@ export interface TodayData {
   checkin_due: string | null;
   next_payment: { record_id: string; due_date: string; amount_cents: number; currency: string; status: string; package_name: string | null; external_link: string | null } | null;
   last_coach_message: { thread_id: string; body: string; created_at: string; unread: boolean } | null;
+  /** Powitanie po pierwszym logowaniu (0.70.0): false = pokaż samouczek. */
+  welcome_seen: boolean;
 }
 
 export interface CoachClientRow {

@@ -137,7 +137,8 @@ domeny endpointu (`sensitive` wynika z katalogu kategorii).
 | GET/POST /api/me/consents; /consents/{id}/confirm, /revoke | podmiot danych | wyłącznie własne zgody | — | — | R/W |
 | GET /api/me/export, /api/me/export.xlsx | zalogowany | wyłącznie własne dane | — | — | R |
 | POST /api/me/deletion-request | CLIENT (self, hasło+fraza) | własne konto; kończy relacje, cofa zgody, unieważnia sesje | — | — | W |
-| GET /api/me/today | CLIENT (self) | agregat własnego dnia | — | — | R |
+| GET /api/me/today | CLIENT (self) | agregat własnego dnia (od 0.70.0 także `welcome_seen`) | — | — | R |
+| POST /api/me/welcome-seen (0.70.0) | zalogowany | znacznik obejrzenia okna powitalnego na własnym koncie (`users.welcome_seen_at`); idempotentny — kolejne wywołania nie zmieniają daty; znacznik interfejsu (jak `last_login_at`) — poza eksportem danych | — | — | W |
 | POST /api/clients/{id}/schedule/{item_id}/complete | W, T | odhaczenie; `item.client_id` musi się zgadzać | T: tak | T: tak | W |
 | POST/GET /api/clients/{id}/observations | W, T | obserwacje klienta (`schedule_item_id` musi należeć do klienta) | T: tak | T: tak | R/W |
 | POST/GET /api/clients/{id}/nutrition-log; GET /monitoring | W, T | dziennik/monitoring klienta | T: tak | T: tak | R/W |
