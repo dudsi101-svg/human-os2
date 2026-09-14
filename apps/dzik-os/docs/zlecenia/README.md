@@ -20,20 +20,20 @@ i migracji w nim są **propozycją do sprawdzenia** tuż przed zmianą (`db.py`,
 | 5. Rozgrzewka (3×3) + rozciąganie + cardio na sprzęcie z suwakami celów (model: 3 strefy/Karvonen/Fatmax/VO2max) | `PROMPT_writer_cardio-i-rozgrzewka.md` + `model-suwakow-cardio.md` | — (plan pisze writer wg §6) | `agent/cardio-i-rozgrzewka` | decyzje z §8; nie równolegle ze zleceniem 1 (te same pliki planu) |
 | 2. Wymiany produktów v2: grupy pokrewne, zgodność funkcji w posiłku, bramka „nie pogarsza”, przycisk dla roli NONE | `PROMPT_writer_wymiany-produktow.md` | `plan-sesji_wymiany-produktow.md` | `agent/wymiany-produktow` | **scalenie `agent/biblioteka-diet`** (te same pliki; sama biblioteka obniża odsetek składników bez zamiennika z 31 % do 11 %) |
 
-**Kolejność scalania i numery wersji** (stan 14.09 po południu; kontrola `changelog`
-wymaga wersji rosnących w kolejności scalania, więc numer przydziela piszący dopiero przy
-starcie, wg tej tabeli):
+**Kolejność scalania i numery wersji** (kontrola `changelog` wymaga wersji rosnących
+w kolejności scalania, więc numer przydziela piszący dopiero przy starcie, wg tej tabeli):
 
-| Krok | Co | Wersja | Migracja | Stan |
+| Krok | Co | Wersja | Migracja | Stan (14.09 wieczór, `main` = 0.69.0, `04d1d58`) |
 |---|---|---|---|---|
-| — | `agent/biblioteka-diet` | 0.64.0 | 35 | **scalona** |
-| — | `agent/monitoring-postepy` (PR #61) | 0.66.0 | 36 | **scalona** — `main` = 0.66.0 |
-| 1 | PR #68 `agent/ukryj-kreator` (zlecenie 0) | 0.67.0 | — | draft otwarty |
-| 2 | PR #67 `agent/landing-czerwony` (zlecenie 3) | 0.68.0 (albo 0.67.0, jeśli właściciel scali go przed #68 — wtedy #68 → 0.68.0) | — | gotowy do przeglądu, wymaga dociągnięcia `main` i poprawek z promptu |
-| 3 | PR #69 `agent/wymiany-produktow` (zlecenie 2) | kolejna wolna | — | draft otwarty |
-| 4 | zlecenie 1 — dni treningowe | kolejna wolna | 37 | nie rozpoczęte |
-| 5 | zlecenie 4 — motyw czerwono-biały (po #67) | kolejna wolna | kolejna wolna (pole `theme` w ustawieniach) lub brak | nie rozpoczęte; podgląd tokenów wykonany 14.09 |
-| 6 | zlecenie 5 — rozgrzewka, rozciąganie, cardio z suwakami | kolejna wolna | kolejna wolna (`exercise_blocks` + pola cardio w dzienniku) | nie rozpoczęte; model i szkic treści gotowe 14.09 |
+| — | `agent/biblioteka-diet` | 0.64.0 | 35 | scalona |
+| — | `agent/monitoring-postepy` (PR #61) | 0.66.0 | 36 | scalona |
+| — | `agent/ukryj-kreator` (PR #68, zlecenie 0) | 0.67.0 | — | **scalona** |
+| — | `agent/wymiany-produktow` (PR #69, zlecenie 2) | 0.69.0 | — | **scalona**; import CSV z decyzjami właściciela = osobny mały PR |
+| 1 | zlecenie 1 — dni treningowe | **0.68.0 (zarezerwowane w CHANGELOG 0.69.0)** | **37 (zarezerwowana)** | nie rozpoczęte |
+| 2 | PR #67 `agent/landing-czerwony` (zlecenie 3) | kolejna wolna (0.70.0, jeśli wejdzie przed dniami treningowymi — wtedy dni → 0.71.0; CHANGELOG musi rosnąć w kolejności scalania) | — | gotowy do przeglądu, wymaga dociągnięcia `main` i poprawek z promptu |
+| 3 | rozpoznanie wywiadu kalorycznego (PR #71, tylko dokument) | — | 38 albo 39 (przyszła) | scalone; 7 decyzji właściciela |
+| 4 | zlecenie 4 — motyw czerwono-biały (po #67) | kolejna wolna | kolejna wolna (pole `theme`) lub brak | nie rozpoczęte; podgląd tokenów wykonany 14.09 |
+| 5 | zlecenie 5 — rozgrzewka, rozciąganie, cardio z suwakami | kolejna wolna | **38+** (37 zajęta; 38/39 może wziąć wywiad kaloryczny — sprawdź `db.py`) | nie rozpoczęte; model i szkic treści gotowe 14.09 |
 
 Decyzje właściciela z trzeciej tury (14.09): docelowo dwa kompletne motywy do wyboru
 użytkownika — czarno-zielony i czerwono-biały (zlecenie 4). Z drugiej tury (14.09): kreator diety odłożony i ukryty; klient na

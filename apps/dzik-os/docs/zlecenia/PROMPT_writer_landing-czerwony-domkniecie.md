@@ -33,9 +33,11 @@ modeli AI. Nie scalasz PR-a.
 git fetch origin && git merge origin/main      # konflikt tylko w frontend/package.json
 ```
 Wersja **wg kolejności scalania z `docs/zlecenia/README.md`** (kontrola `changelog`
-wymaga wersji rosnących w kolejności scalania): domyślnie **0.68.0** (po PR #68
-„ukryj kreator” 0.67.0). Jeśli właściciel scali ten PR **przed** #68 — 0.67.0, a #68
-przesuwa się (to draft, koszt zmiany jednej liczby). **Wersja żyje w sześciu
+wymaga wersji rosnących w kolejności scalania): stan 14.09 wieczór — `main` = **0.69.0**
+(#68 „ukryj kreator” 0.67.0 i #69 „wymiany” 0.69.0 scalone), **0.68.0 zarezerwowane
+w CHANGELOG dla „dni treningowych”** (jeszcze nie rozpoczęte). Ten PR bierze więc
+**0.70.0** (a dni treningowe przesuwają się na 0.71.0 — odnotuj w `STAN_PRZEKAZANIA.md`
+§2), chyba że właściciel zdecyduje inaczej. **Wersja żyje w sześciu
 miejscach i poprzednie rundy podnosiły wszystkie naraz** (0.66.0 jest dziś w każdym):
 `frontend/package.json`, `backend/pyproject.toml`, `backend/dzik_os/__init__.py`
 (`__version__`), `docs/CHANGELOG.md` (nowy nagłówek `## X.Y.Z — data`), `README.md`

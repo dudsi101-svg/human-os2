@@ -17,9 +17,10 @@ Przeczytaj: `/AGENTS.md`, `/CLAUDE.md`, `apps/dzik-os/docs/KARTA_WSPOLPRACY.md`,
 **Gałąź:** `agent/cardio-i-rozgrzewka` od aktualnego `main`. Pierwszy commit wyłącznie
 `docs/plan-sesji/cardio-i-rozgrzewka.md`; draft PR `[WRITER] Rozgrzewka, rozciąganie
 i cardio z suwakami`; dopiero potem kod. **Rezerwacje:** wersja wg kolejności scalania
-z `README.md` tego katalogu; **migracja: kolejna wolna** (na `main` ostatnia = 36;
-37 = dni treningowe; sprawdź `db.py` i tabelę §2 `STAN_PRZEKAZANIA.md` tuż przed
-zmianą). Niezależne od gałęzi w toku (dieta, landing, motyw), ale dotyka `models.py`,
+z `README.md` tego katalogu; **migracja: kolejna wolna, 38 lub wyżej** (na `main` 0.69.0 ostatnia = 36;
+**37 zarezerwowana** dla dni treningowych w CHANGELOG 0.69.0; 38/39 może wziąć runda
+wywiadu kalorycznego — sprawdź `db.py` i tabelę §2 `STAN_PRZEKAZANIA.md` tuż przed zmianą).
+Niezależne od gałęzi w toku (dieta, landing, motyw), ale dotyka `models.py`,
 `schemas.py`, `db.py`, `Plan.tsx`, `Today.tsx`, `PlanEditor.tsx` — te same pliki co
 zlecenie 1 (dni treningowe): **nie pracuj równolegle z nim na tych plikach**; kolejność
 ustala właściciel. Bez force-pusha; commity po polsku, bez nazw modeli AI; nie scalasz PR-a.
@@ -39,7 +40,7 @@ Odpowiedź na „czy jest model”: **tak** — trzy strefy wg progów (Seiler) 
 z uzasadnieniem i dwiema alternatywami w `model-suwakow-cardio.md` §2. Właściciel
 zatwierdza nazwy trzech celów (§8 pyt. 1).
 
-## 2. Rozpoznanie — na czym budujemy (main 0.66.0, zweryfikuj linie)
+## 2. Rozpoznanie — na czym budujemy (main 0.69.0, `04d1d58`; zweryfikuj linie)
 
 | Element | Gdzie | Co z tego wynika |
 |---|---|---|
@@ -52,7 +53,23 @@ zatwierdza nazwy trzech celów (§8 pyt. 1).
 | Propose-only: `POST /api/konfigurator/podglad` (liczy) → `POST /zapisz` (trener tworzy wersję) | | ten sam kształt: `POST /api/cardio/podglad` → wynik trafia do edytora planu jako pozycja `kind: "cardio"`; klient nigdy nie dostaje propozycji bez publikacji |
 | Sprzężone procenty: kreator diety pilnuje tylko „Suma makro = 100 %” (`Knowledge.tsx` l. 1828–1830), **bez sprzęgania suwaków**; jedyny `input[type=range]` to skala w raporcie (`.scale-row`) | | mechanizm „zabieranie pozostałym” trzeba napisać (mały helper + test) |
 | Konfigurator 28 dni: K1 silnik bez rozgrzewki/cardio; `KONFIGURATOR.md` l. 58 wymienia „rozgrzewka vs …” jako temat pilotażu zrozumiałości; monitoring 0.66.0 wprowadził tylko flagę serii | | rozgrzewka jako **blok dnia** to nowość, nie rozszerzenie konfiguratora (K2 może z niej korzystać później) |
-| Dane klienta do modelu: wiek/data urodzenia i doświadczenie w profilu/wywiadzie (`profile_service.py`, `coach_hints.py`), tętno spoczynkowe — brak | | wiek → HRmax (Tanaka); brak → RPE; tętno spoczynkowe jako nowe pole opcjonalne wpisywane przez klienta (`ProfileField`, źródło CLIENT_DECLARED) |
+| Dane klienta do modelu: wiek/data urodzenia i doświadczenie w profilu/wywiadzie (`profile_service.py`, `coach_hints.py`), tętno spoczynkowe — brak | | wiek → HRmax (Tanaka); brak → RPE; tętno spoczynkowe jako metryka `MetricDefinition`/`Measurement` (bez migracji — patrz §2a) |
+
+### 2a. Miejsca, które bez zmiany **po cichu zgubią** nowe pola (wykryte 14.09 — obowiązkowe)
+
+| Miejsce | Co robi | Co zrobić |
+|---|---|---|
+| `publikacja/elementy.py` l. 44–46 — allow-list pól ćwiczenia w szkicach (`name, exercise_id, sets, reps, weight, tempo, rest, comment, video_url, target_rir, progression, konfigurator_id`) | pole spoza listy **znika ze szkicu bez błędu** | dopisz `kind`, `block_id`, `cardio` (obiekt) i na poziomie dnia `warmup_block_id`, `cooldown_block_id`; test: szkic → publikacja zachowuje `cardio.goal_mix` |
+| `wiedza/slad.py` l. 32–45 — słownik dozwolonych jednostek śladu (`minutes`, `seconds`, `sessions_per_week`, `weeks`, `hours`, …); nieznana jednostka = odrzucenie | ślad `H_CARDIO` z tętnem/%/RPE nie zapisze się | dodaj `bpm`, `percent_hrmax`, `percent_hrr`, `rpe`, `kcal`; ślad w **tej samej transakcji** co wersja planu (`slad.py` l. 3–8) — przez publikację 0.58.0, nie przez `/podglad` |
+| `coach_hints.py` `HINT_AREAS` (l. 39–114) + test, że każde pytanie przepływu ma wpis | nowe pytanie wywiadu (leki wpływające na tętno) **czerwieni build** | zarejestruj w `HINT_AREAS` z `AREA_PLAN` |
+| `import_exercises.py` l. 78–92 `CATEGORY_TO_GROUP` + `_assert_maps()` l. 145–156 | biblioteka v2 (`exercise_catalog_v2.py`, 120 wierszy, **wyłącznie siłowe**) twardo pada na kategorię bez mapy | jeśli dokładasz wpisy rozciągania/cardio do v2 — dodaj mapę `CARDIO`/`MOBILNOSC`; jeśli tylko do v1 (`exercise_catalog.py`) — bez zmian |
+| `konfigurator/eksport.py` l. 54–60 | `warmup_minutes` z silnika K1 (budżet 600 s w `katalog.json`) jest **wyrzucany** przy zapisie do planu | nie ruszaj K1; odnotuj w `KONFIGURATOR.md`, że K2 podłączy blok rozgrzewki zamiast budżetu minut |
+| `plan_templates.build_days` l. 52–95 i `plan_templates_data.py` TPL-025 (l. 936–937) / TPL-026 (l. 971–977) | trener dziś przemyca cardio i mobility jako **pseudo-dzień „1. Wytyczne tygodnia”** z `sets='5 / tydz.'`, `reps='20 min'`, notką „Tętno 130–140; rowerek lub orbitrek”, `progression='PRG-TIME'` | to jest **dokładnie to, co zastępujemy**: po rundzie TPL-025/026 dostają blok rozgrzewki (mobility) i pozycję `kind: "cardio"` (mix z notki: 130–140 ud./min ≈ Redukcja/Regeneracja); stare kopie planów zostają bez zmian |
+| `docs/IMPORT_BAZ.md` §3.1 (import szablonów planów: `serie, powtorzenia, ciezar, tempo, przerwa`) | brak kolumn czasu/tętna | v1: bez zmian w imporcie (cardio i bloki tylko z edytora); wpis w „Ograniczenia” |
+| `wywiad/definicje.py` l. 366–403 (`zk_wiek`, `zk_masa`, `zk_plec`, `zk_zaburzenia` z `DOMAIN_HEALTH`, `sensitive=True`) | jedyne źródło wieku; **brak tętna spoczynkowego, maks., daty urodzenia** | wiek z `zk_wiek` (gdy jest); tętno spoczynkowe **bez migracji** przez `MetricDefinition`+`Measurement` (`models.py` l. 438–461: metryka „tętno spoczynkowe”, jednostka ud./min) |
+| `routers/postepy.py` l. 8–12 — filtr flagi zdrowotnej **po stronie serwera** (`hidden_for_client`) | wzorzec dla danych wrażliwych | ta sama reguła dla propozycji cardio: wynik bramki `needs_review` widzi tylko trener |
+| `docs/INTENDED_PURPOSE.md` (korzeń repo) §2 i §3.3 | „każda funkcja dotykająca zdrowia przechodzi test względem §2 **przed** implementacją; wątpliwość = pytanie do foundera” | **wykonaj ten test w planie sesji (etap 0)** i zapisz wynik: propozycja tętna to struktura dla trenera, nie werdykt medyczny; bramka + RPE + propose-only; przy wątpliwości — pytanie do właściciela przed kodem |
+| UI: brak `input[type=range]` w `src/` (martwy CSS `.scale-row` l. 226–231); istniejący wzorzec to segmentowana skala 1–5 z `aria-pressed` w `Checkin.tsx` l. 586–622; suma 100 w `DietWizardIn._suma_procentow` (`schemas.py` l. 684–691, tolerancja ±1) | | suwaki: prawdziwe `input[type=range]` z `aria-valuetext` + helper sprzęgający; serwer waliduje sumę wag (tolerancja 0,01), **nie normalizuje po cichu** |
 
 ## 3. Decyzje projektowe (propose-only → do zatwierdzenia w §8)
 
@@ -156,5 +173,5 @@ później); kasowanie czegokolwiek (archiwizacja).
    treningu? *Domyślnie: tak.*
 6. Kto przegląda treść bloków, nowe wpisy katalogu i tabelę urządzeń — trener Łukasz przed
    włączeniem u prawdziwych klientów? *Domyślnie: tak, wpisy oznaczone „do przeglądu”.*
-7. Pole „tętno spoczynkowe” wpisywane przez klienta w profilu (dane zdrowotne, zgoda)?
-   *Domyślnie: tak, opcjonalne.*
+7. „Tętno spoczynkowe” jako metryka pomiarowa (klient wpisuje w Pomiarach; dane zdrowotne,
+   zgoda)? *Domyślnie: tak, opcjonalne, bez migracji.*
