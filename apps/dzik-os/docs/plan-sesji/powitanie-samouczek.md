@@ -75,12 +75,55 @@ Nie scalam PR-a, nie robię force-pusha, nie ruszam integracji/AI/klucza.
 
 ## Odstępstwa od planu
 
-_(uzupełnione na koniec rundy)_
+* **Port drugiego serwera E2E:** konfiguracja Playwrighta zawsze podnosi drugi serwer
+  na `PORT + 1`; 8096 zajmował cudzy serwer innej sesji (od 03:39, nie zabijany).
+  Zamiast zmieniać przydzielony port 8095, `playwright.config.ts` dostał zmienną
+  `DZIK_E2E_PORT_POSTEPY` (domyślnie nadal `PORT + 1`) — narzędzie zostawione lepsze
+  (Karta §VIII), zachowanie CI bez zmian.
+* **Treść kroku 2 — wymiana składnika:** na `main` wymiany istnieją wyłącznie w diecie
+  z szablonu (moduł za flagą `DZIK_DIET_TEMPLATES_ENABLED`, na produkcji wyłączony;
+  flaga nie jest widoczna dla frontendu przy logowaniu — tylko `monitoring_tab`).
+  Zdanie sformułowane warunkowo („gdy trener przypisze Ci dietę z szablonu…”) zamiast
+  usuwać punkt z polecenia — pytanie do właściciela w STAN §2 i w PR.
+* **„Postępy” przy wyłączonej fladze:** zamiast obiecywać zakładkę, krok 2 wskazuje
+  istniejącą ścieżkę „Więcej → Monitoring i postępy” (przy włączonej fladze — zakładkę
+  „Postępy”, a raport w „Więcej → Raport tygodniowy”).
+* **Nagranie do trenera:** zdanie złagodzone do „nagraj krótkie nagranie i wyślij
+  trenerowi w wiadomości” (Wiadomości mają nagranie głosowe i załączniki wideo mp4);
+  obsługi wideo nie dodano.
+* **Scalenie `main` w trakcie rundy:** PR #69 (0.69.0) wszedł na `main` przed pierwszym
+  pushem kodu — scalony bez konfliktów (commit scalający), wszystkie bramki powtórzone
+  na scalonym drzewie.
+* **Bez zdarzenia audytu** przy `POST /api/me/welcome-seen`: to stan interfejsu, nie
+  decyzja o danych (jak `last_login_at`) — świadomie, żeby nie zaśmiecać audytu.
 
 ## Weryfikacja wykonana
 
-_(uzupełnione na koniec rundy)_
+* Backend: `tests/test_powitanie.py` 3 testy (świeży klient bez znacznika + idempotencja
+  + `today.welcome_seen`; anonim 401 + konta demo; eksport bez pola, `export_version`
+  1.9); macierz dostępu, migracje przenośne (SQLite), `test_db_migracje`, nawyki,
+  onboarding, prywatność — zielone. Pełny zestaw backendu: patrz PR (liczba po
+  ostatnim przebiegu na scalonym drzewie). Core: 275/275. `ruff` czysto.
+* Frontend: `tsc` czysto, build 90,4 kB gzip (budżet 120), `test:helpers` 142/142.
+* E2E (projekt `telefon`, port 8095): 27/27, w tym `powitanie.spec.ts` (konto przez API
+  → brama zgód → krok 1 → krok 2 → pułapka fokusu w obu krokach → reload bez okna →
+  „Więcej → Pomoc / Samouczek” → Esc). `test_a11y.mjs` i `test_pwa_offline.mjs`:
+  wszystkie kontrole przeszły (klient A ze znacznikiem — kontrakty „Dzisiaj”
+  nienaruszone).
+* `tools/spojnosc.py`: czysto (13 kontroli, 1 uwaga — otwarta konsultacja K-001 sprzed
+  rundy). Przeglądy mutacyjne: wynik w PR.
+* **Uruchomienie (ZASADA_URUCHOMIENIA):** serwer E2E na 8095, konto „Kasia Zrzutowa”
+  utworzone przez API (201/200), logowanie formularzem, brama zgód, na „Dzisiaj” okno
+  kroku 1 z fokusem na `h2`, „Dalej” → krok 2 (bez poziomego scrolla 375 px),
+  „Rozumiem, zaczynajmy” → 0 dialogów; po odświeżeniu 0 dialogów, `GET /api/me/today`
+  przez sieć: `welcome_seen: true`; „Więcej → Pomoc / Samouczek” otwiera okno, Esc
+  zamyka; widok 1024 px — okno wyśrodkowane; 0 błędów JS w konsoli. Sześć zrzutów
+  poza repo (scratchpad `powitanie-zrzuty/`).
 
 ## Plan kontra rzeczywistość
 
-_(uzupełnione na koniec rundy)_
+Plan: 4 etapy, jeden komponent, znacznik na serwerze. Rzeczywistość: zgodnie z planem;
+bez podagentów. Nieprzewidziane: zajęty port sąsiedni (rozwiązane konfiguracją, nie
+zabijaniem cudzych procesów) i scalenie `main` w trakcie (bez konfliktów). Usprawnienie
+na następny raz: przy kilku sesjach na jednej maszynie przydzielać od razu **parę**
+portów E2E (Playwright podnosi dwa serwery).
