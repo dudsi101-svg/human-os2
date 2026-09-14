@@ -12,12 +12,11 @@ import { PanelPostepow } from "./PanelPostepow";
    (o tym decyduje serwer). */
 export default function Postepy() {
   const user = getUser()!;
-  const [wersja, setWersja] = useState(0);
   return (
     <div className="page">
       <TopBar title="Postępy" />
-      <PanelPostepow key={wersja} tryb="klient" clientId={user.id}
-        dodatki={<FormularzPomiaru clientId={user.id} onZapis={() => setWersja((w) => w + 1)} />} />
+      <PanelPostepow tryb="klient" clientId={user.id}
+        dodatki={(odswiez) => <FormularzPomiaru clientId={user.id} onZapis={odswiez} />} />
     </div>
   );
 }

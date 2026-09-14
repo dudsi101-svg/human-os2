@@ -16,8 +16,10 @@ from dzik_os.db import db_session, engine
 from dzik_os.models import (
     CalorieEstimate,
     CoachClientRelationship,
+    ExerciseRecord,
     Measurement,
     RoleGrant,
+    TrainingWeekAggregate,
     User,
     WorkoutEntry,
     WorkoutSession,
@@ -206,3 +208,92 @@ def test_summary_dla_2_lat_historii_ponizej_300_ms(seeded):
         assert seeded.get(f"{M}/summary", headers=ha).status_code == 200
     sredni_ms = (time.perf_counter() - t0) / 3 * 1000
     assert sredni_ms < 300, sredni_ms
+
+
+def _cofnij_zgode(seeded, ha, kategoria: str) -> None:
+    dane = seeded.get("/api/me/consents", headers=ha).json()
+    zgody = dane["consents"] if isinstance(dane, dict) and "consents" in dane else dane
+    aktywna = next(c for c in zgody if c["category"] == kategoria and c["revoked_at"] is None)
+    assert seeded.post(f"/api/me/consents/{aktywna['id']}/revoke", headers=ha).status_code in (200, 201)
+
+
+def _wersja_planu(seeded, ha, cid: str) -> str:
+    return seeded.get(f"/api/clients/{cid}/plans", headers=ha).json()["plans"][0]["current_version"]["id"]
+
+
+def test_trener_bez_zgody_na_domene_nie_dostaje_wagi_diety_flagi_ani_frekwencji(seeded):
+    """Zgody per domena jak w reszcie aplikacji: bez `dane_zdrowotne` znika waga, `body` i flaga
+    zdrowotna; bez `zdjecia_progresu` zdjęcia są puste; bez `dane_treningowe` lista nie zdradza
+    daty ostatniej sesji ani frekwencji."""
+    ha = login(seeded, CLIENT_A)
+    cid = get_user_id(seeded, ha)
+    hc = login(seeded, COACH)
+    assert "weight" in seeded.get(f"{M}/summary?client_id={cid}", headers=hc).json()
+    _cofnij_zgode(seeded, ha, "zdjecia_progresu")
+    body = seeded.get(f"{M}/body?client_id={cid}", headers=hc)
+    assert body.status_code == 200 and body.json()["photos"] == [] and "weight" in body.json()
+    _cofnij_zgode(seeded, ha, "dane_zdrowotne")
+    po = seeded.get(f"{M}/summary?client_id={cid}", headers=hc).json()
+    assert "weight" not in po
+    det = seeded.get(f"{M}/clients/{cid}", headers=hc).json()
+    assert "health_flag" not in det and "body" not in det and "weight" not in det["summary"]
+    assert seeded.get(f"{M}/body?client_id={cid}", headers=hc).status_code == 404
+    _cofnij_zgode(seeded, ha, "dane_treningowe")
+    a = next(c for c in seeded.get(f"{M}/clients", headers=hc).json()["clients"] if c["client_id"] == cid)
+    assert a["attendance_4w"] is None and a["last_activity"] is None and a["consents"]["training"] is False
+    assert seeded.get(f"{M}/summary?client_id={cid}", headers=hc).status_code == 404
+
+
+def test_sesja_pominieta_nie_liczy_sie_do_tygodnia_ani_rekordow(seeded):
+    ha = login(seeded, CLIENT_A)
+    cid = get_user_id(seeded, ha)
+    przed = seeded.get(f"{M}/summary", headers=ha).json()
+    poniedzialek = przed["week"]["days"][0]["date"]
+    r = seeded.post(f"/api/clients/{cid}/workouts", headers=ha, json={
+        "plan_version_id": _wersja_planu(seeded, ha, cid), "day_index": 0, "performed_on": poniedzialek,
+        "status": "SKIPPED", "entries": [{"exercise_index": 0, "exercise_name": "Przysiad ze sztangą",
+                                          "sets": [{"weight_kg": 300, "reps": 1}]}],
+    })
+    assert r.status_code == 201 and r.json()["new_records"] == 0
+    po = seeded.get(f"{M}/summary", headers=ha).json()
+    assert po["week"]["done"] == przed["week"]["done"] and po["recent_records"] == przed["recent_records"]
+    assert not any(d["date"] == poniedzialek and d["done"] for d in po["week"]["days"]) or any(
+        d["date"] == poniedzialek and d["done"] for d in przed["week"]["days"])
+
+
+def test_bez_flagi_zapis_sesji_nie_liczy_rekordow_i_nie_powiadamia(seeded, monkeypatch):
+    from dzik_os.models import Notification
+
+    monkeypatch.setattr(settings, "monitoring_tab_enabled", False)
+    ha = login(seeded, CLIENT_A)
+    cid = get_user_id(seeded, ha)
+    with db_session() as db:
+        przed = db.query(ExerciseRecord).filter_by(client_id=cid).count()
+    r = seeded.post(f"/api/clients/{cid}/workouts", headers=ha, json={
+        "plan_version_id": _wersja_planu(seeded, ha, cid), "day_index": 0,
+        "performed_on": local_today(None).isoformat(),
+        "status": "DONE", "entries": [{"exercise_index": 0, "exercise_name": "Przysiad ze sztangą",
+                                       "sets": [{"weight_kg": 200, "reps": 3}]}],
+    })
+    assert r.status_code == 201 and r.json()["new_records"] == 0
+    with db_session() as db:
+        assert db.query(ExerciseRecord).filter_by(client_id=cid).count() == przed
+        assert db.query(Notification).filter_by(user_id=cid, category="REKORD").count() == 0
+    kategorie = [c["key"] for c in seeded.get("/api/notifications/settings", headers=ha).json()["categories"]]
+    assert "REKORD" not in kategorie
+    monkeypatch.setattr(settings, "monitoring_tab_enabled", True)
+    kategorie = [c["key"] for c in seeded.get("/api/notifications/settings", headers=ha).json()["categories"]]
+    assert "REKORD" in kategorie
+
+
+def test_eksport_i_usuniecie_konta_obejmuja_rekordy_i_agregaty(seeded):
+    ha = login(seeded, CLIENT_A)
+    cid = get_user_id(seeded, ha)
+    ex = seeded.get("/api/me/export", headers=ha).json()
+    assert ex["export_version"] == "1.9" and len(ex["exercise_records"]) > 0 and len(ex["training_week_aggregates"]) > 0
+    r = seeded.post("/api/me/deletion-request", headers=ha,
+                    json={"password": CLIENT_A["password"], "confirm": "USUŃ MOJE DANE"})
+    assert r.status_code in (200, 202), r.text
+    with db_session() as db:
+        assert db.query(ExerciseRecord).filter_by(client_id=cid).count() == 0
+        assert db.query(TrainingWeekAggregate).filter_by(client_id=cid).count() == 0

@@ -87,7 +87,7 @@ Nie scalam bez zielonego CI; scalam po #66 i #67 (rezerwacje).
 | 4 API | 6 endpointów + testy | jw.; najpierw test flagi zdrowotnej (skan kluczy), ≤ 20 zapytań / 100 klientów, < 300 ms / 2 lata; obcy trener 404 (polityka aplikacji, nie 403) |
 | 5–6 UI | jeden panel | `PanelPostepow` wspólny; wykresy na `Sparkline` + proste CSS (słupki, heatmapa) bez biblioteki; budżet JS 90,1 kB / 120 kB |
 | 7 nawigacja | trasy + Nav + Więcej | jw. + `hasFeature()` z `features` w sesji; E2E na **drugim serwerze** z flagą (projekt `telefon-postepy`) i spec „bez flagi” |
-| 8 zamknięcie | dokumenty, 3 recenzentów + weryfikator | dokumenty gotowe; przegląd w toku (PR #61) |
+| 8 zamknięcie | dokumenty, 3 recenzentów + weryfikator | dokumenty gotowe; przegląd 3 recenzentów (backend, frontend, dane/dokumenty/CI): **P0 ×1** (podsumowanie trenera omijało zgody zdrowotne/żywieniowe), **P1 ×14** (m.in. RODO: eksport/usunięcie bez nowych tabel; zapis sesji liczył rekordy bez flagi; `SKIPPED` liczone jak wykonane; fałszywy spadek tonażu z niepełnego tygodnia; heatmapa przesunięta o strefę; linia średniej w słupku; progi z przecinkiem → NaN) — wszystkie naprawione w tej samej rundzie z testami; P2 → `docs/monitoring-tab/PROGRESS.md` |
 
 **Największy koszt** faktycznie: UI (etapy 5–7) i dopasowanie E2E/a11y
 do dwóch stanów flagi. **Jedno usprawnienie na przyszłość:** drugi

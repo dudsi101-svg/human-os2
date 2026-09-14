@@ -38,15 +38,19 @@ test("klient widzi Postępy zamiast Raportu, rekord z seedu i dopisuje pomiar", 
   // e1RM zawsze podpisany jako szacunek.
   await expect(page.getByText(/Szacowany 1RM/).first()).toBeVisible();
 
-  // Pomiar wagi: licznik rośnie o 1 po odświeżeniu (stan z serwera).
-  const licznik = page.getByTestId("waga-pomiary");
-  const przed = Number((await licznik.textContent())?.match(/\d+/)?.[0] ?? "0");
+  // Pomiar wagi: seed ma już ważenie z dzisiaj (jeden punkt na dzień), więc dowodem z serwera
+  // jest wartość ostatniego punktu na wykresie pojedynczych pomiarów — przed i po odświeżeniu.
+  await expect(page.getByTestId("waga-pomiary")).toHaveText(/^\(8 pomiarów w \d+ dniach\)$/);
   await page.getByLabel("Rodzaj").selectOption("weight");
   await page.getByRole("textbox", { name: "Wartość" }).fill("84,5");
   await page.getByRole("button", { name: "Zapisz pomiar" }).click();
-  await expect(licznik).toContainText(String(przed + 1), { timeout: 15_000 });
+  await page.getByLabel("pokaż pojedyncze pomiary").check();
+  const surowy = page.getByRole("img", { name: /Masa ciała — pojedyncze pomiary/ });
+  await expect(surowy).toHaveAttribute("aria-label", /ostatnia wartość 84\.5 kg/, { timeout: 15_000 });
   await page.reload();
-  await expect(page.getByTestId("waga-pomiary")).toContainText(String(przed + 1), { timeout: 15_000 });
+  await page.getByLabel("pokaż pojedyncze pomiary").check();
+  await expect(page.getByRole("img", { name: /Masa ciała — pojedyncze pomiary/ })).toHaveAttribute("aria-label", /ostatnia wartość 84\.5 kg/, { timeout: 15_000 });
+  await expect(page.getByTestId("waga-pomiary")).toHaveText(/^\(8 pomiarów w \d+ dniach\)$/);
 
   // Raport tygodniowy nie znika: stary adres przekierowuje do „Więcej”.
   await page.goto("/raport");
@@ -54,7 +58,9 @@ test("klient widzi Postępy zamiast Raportu, rekord z seedu i dopisuje pomiar", 
   await expect(page.getByRole("heading", { level: 1, name: "Raport tygodniowy" })).toBeVisible();
   await page.goto("/wiecej");
   await expect(page.getByRole("link", { name: /Raport tygodniowy/ })).toBeVisible();
-  await expect(page.getByRole("main").getByRole("link", { name: /^Postępy$/ })).toBeVisible();
+  // §13.3: „Postępy” znikają z „Więcej” — są w dolnej nawigacji.
+  await expect(page.getByRole("main").getByRole("link", { name: /^Postępy$/ })).toHaveCount(0);
+  await expect(page.getByRole("main").getByRole("link", { name: /Monitoring i postępy/ })).toHaveCount(0);
   // Stary adres /postepy prowadzi do nowej zakładki.
   await page.goto("/postepy");
   await expect(page).toHaveURL(/\/monitoring$/);

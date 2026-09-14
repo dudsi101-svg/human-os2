@@ -16,28 +16,42 @@ const POLA: [keyof PostepyProgi, string][] = [
 
 export default function Monitoring() {
   const [dane, setDane] = useState<{ clients: PostepyKlientSygnaly[]; thresholds: PostepyProgi } | null>(null);
-  const [progi, setProgi] = useState<Partial<PostepyProgi>>({});
+  // Pola progów jako tekst (przecinek dozwolony, „0.” w trakcie pisania nie znika);
+  // do zapytania trafiają dopiero po 300 ms ciszy i tylko poprawne liczby.
+  const [progi, setProgi] = useState<Partial<Record<keyof PostepyProgi, string>>>({});
+  const [zapytanie, setZapytanie] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [wersja, setWersja] = useState(0);
   useEffect(() => {
+    const t = setTimeout(() => {
+      const q = Object.entries(progi)
+        .map(([k, v]) => [k, (v ?? "").replace(",", ".").trim()] as const)
+        .filter(([, v]) => v !== "" && !Number.isNaN(Number(v)))
+        .map(([k, v]) => `${k}=${encodeURIComponent(v)}`).join("&");
+      setZapytanie(q);
+    }, 300);
+    return () => clearTimeout(t);
+  }, [progi]);
+  useEffect(() => {
+    let aktywne = true;
     setError(null);
-    const q = Object.entries(progi).filter(([, v]) => v !== undefined && v !== null && !Number.isNaN(v))
-      .map(([k, v]) => `${k}=${v}`).join("&");
-    api.get<{ clients: PostepyKlientSygnaly[]; thresholds: PostepyProgi }>(`/api/monitoring/clients${q ? `?${q}` : ""}`)
-      .then(setDane).catch((e) => setError(e.message));
-  }, [progi, wersja]);
+    api.get<{ clients: PostepyKlientSygnaly[]; thresholds: PostepyProgi }>(`/api/monitoring/clients${zapytanie ? `?${zapytanie}` : ""}`)
+      .then((d) => { if (aktywne) setDane(d); })
+      .catch((e) => { if (aktywne) setError((e as Error).message); });
+    return () => { aktywne = false; };
+  }, [zapytanie, wersja]);
   return (
     <div className="page">
       <TopBar title="Monitoring" />
       <ErrorBox error={error} onRetry={() => setWersja((w) => w + 1)} />
       <details className="card">
-        <summary>Progi sygnałów {dane ? "(domyślne wartości ze specyfikacji)" : ""}</summary>
+        <summary>Progi sygnałów <small className="dim">(zmiana działa do końca sesji, nie zapisuje się)</small></summary>
         {dane && (
           <div className="postepy-progi" style={{ marginTop: 8 }}>
             {POLA.map(([k, label]) => (
               <label key={k}>{label}
-                <input inputMode="decimal" value={progi[k] ?? dane.thresholds[k]}
-                  onChange={(e) => setProgi({ ...progi, [k]: e.target.value === "" ? undefined : Number(e.target.value) })} />
+                <input inputMode="decimal" value={progi[k] ?? String(dane.thresholds[k])}
+                  onChange={(e) => setProgi({ ...progi, [k]: e.target.value })} />
               </label>
             ))}
           </div>
@@ -53,9 +67,10 @@ export default function Monitoring() {
             <small className="dim">{c.last_activity ? `ostatnia aktywność ${plDate(c.last_activity)}` : "brak aktywności"}</small>
           </div>
           <small className="dim">
-            Frekwencja 4 tyg.: {c.attendance_4w.pct !== null ? `${c.attendance_4w.pct} % (${c.attendance_4w.done}/${c.attendance_4w.planned})` : `${c.attendance_4w.done} treningów (bez planu)`}
+            {c.attendance_4w
+              ? <>Frekwencja 4 tyg.: {c.attendance_4w.pct !== null ? `${c.attendance_4w.pct} % (${c.attendance_4w.done}/${c.attendance_4w.planned})` : `${c.attendance_4w.done} treningów (bez planu)`}</>
+              : "Brak zgody na dane treningowe"}
             {c.consents.health && <> · trend wagi: {c.weight_trend_kg_week !== null ? `${c.weight_trend_kg_week > 0 ? "+" : ""}${c.weight_trend_kg_week} kg/tydz.` : "za mało danych"}</>}
-            {!c.consents.training && " · brak zgody na dane treningowe"}
           </small>
           <div className="postepy-sygnaly" style={{ marginTop: 4 }}>
             {c.signals.length === 0 && <span className="badge badge--ok">bez sygnałów</span>}

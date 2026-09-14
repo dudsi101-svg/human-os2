@@ -384,9 +384,14 @@ def log_workout(
         wpisy.append(wpis)
     db.flush()
     # Postępy (0.66.0): rekordy ćwiczeń z sesji i agregat tygodnia przeliczane
-    # przy zapisie; jedno zbiorcze powiadomienie na sesję (§8.3).
-    nowe_rekordy = postepy_serwis.po_zapisie_sesji(db, session, wpisy)
-    postepy_serwis.powiadom_o_rekordach(db, client_id, session.id, nowe_rekordy)
+    # przy zapisie; jedno zbiorcze powiadomienie na sesję (§8.3). Za flagą —
+    # bez niej zapis sesji zachowuje się dokładnie jak przed 0.66.0 (tabele
+    # z migracji 36 zostają puste; historię przelicza backfill po włączeniu).
+    nowe_rekordy: list = []
+    powiadomienie = None
+    if settings.monitoring_tab_enabled:
+        nowe_rekordy = postepy_serwis.po_zapisie_sesji(db, session, wpisy)
+        powiadomienie = postepy_serwis.powiadom_o_rekordach(db, client_id, session.id, nowe_rekordy)
     record_event(
         db,
         action="WORKOUT_LOGGED",
@@ -399,6 +404,8 @@ def log_workout(
         + (" (zgłoszono ból)" if body.pain_flag else ""),
     )
     db.commit()
+    if powiadomienie is not None:
+        notifications.publish_realtime(powiadomienie)
     return {"id": session.id, "new_records": len(nowe_rekordy)}
 
 

@@ -1,6 +1,6 @@
 import { ReactNode, useEffect, useState } from "react";
-import { api } from "../../api";
-import { plDate } from "../../dates";
+import { api, ApiError } from "../../api";
+import { plDate, toIsoDate } from "../../dates";
 import { AuthImage, ErrorBox, Icon, PhotoCompare, Sparkline, Spinner } from "../../components";
 import {
   GRUPA_LABELS, KIND_LABELS, PostepyBody, PostepyCwiczenie, PostepyRekord, PostepyRekordy, PostepySummary,
@@ -39,7 +39,7 @@ export function useDanePostepow(tryb: "klient" | "trener", clientId: string) {
       try {
         body = await api.get<PostepyBody>(`/api/monitoring/body${q}`);
       } catch (e) {
-        if (!/404|Nie znaleziono/.test((e as Error).message)) throw e;
+        if (!(e instanceof ApiError && e.status === 404)) throw e;
       }
       if (aktywne) setDane({ summary, records, training, body });
     }).catch((e) => { if (aktywne) setError((e as Error).message); });
@@ -66,7 +66,7 @@ export function KafelkiTygodnia({ s }: { s: PostepySummary }) {
       <div className="stat" role="listitem">
         <span>Treningi</span>
         {s.week.planned > 0 ? <b>{s.week.done} / {s.week.planned}</b> : <b>{s.week.done}</b>}
-        <div className="postepy-dni" aria-label={`Dni z treningiem: ${s.week.days.filter((d) => d.done).length} z 7`}>
+        <div className="postepy-dni" role="img" aria-label={`Dni z treningiem: ${s.week.days.filter((d) => d.done).length} z 7`}>
           {s.week.days.map((d) => <i key={d.date} className={d.done ? "done" : ""} title={plDate(d.date)} />)}
         </div>
         {s.week.message && <small>{s.week.message}</small>}
@@ -110,8 +110,34 @@ function typLabel(r: PostepyRekord): string {
   }
 }
 
+function liczba(r: PostepyRekord, v: number | null | undefined): string {
+  if (v === null || v === undefined) return "—";
+  return r.record_type === "REPS_AT_WEIGHT" ? `${v} powt.` : kgLabel(v);
+}
+
 function wartosc(r: PostepyRekord): string {
-  return r.record_type === "REPS_AT_WEIGHT" ? `${r.value} powt.` : kgLabel(r.value);
+  return liczba(r, r.value);
+}
+
+function delta(r: PostepyRekord): string {
+  if (r.delta === null || r.delta <= 0) return "";
+  return r.record_type === "REPS_AT_WEIGHT" ? `+${r.delta} powt.` : `+${r.delta} kg`;
+}
+
+/** Wspólne słupki (tonaż, frekwencja): kolumna na całą wysokość, w niej słupek i opcjonalna linia średniej. */
+function Slupki({ items, label }: {
+  items: { key: string; pct: number; title: string; biezacy: boolean; srednia?: number }[]; label: string;
+}) {
+  return (
+    <div className="postepy-slupki" role="img" aria-label={label}>
+      {items.map((it) => (
+        <div key={it.key} className="kolumna" title={it.title}>
+          <i className={`slupek${it.biezacy ? " biezacy" : ""}`} style={{ height: `${Math.max(2, Math.round(it.pct))}%` }} />
+          {it.srednia !== undefined && <span className="postepy-srednia" style={{ bottom: `${Math.min(100, Math.round(it.srednia))}%` }} />}
+        </div>
+      ))}
+    </div>
+  );
 }
 
 /* 6.2 Rekordy: wstęga z 30 dni, lista ćwiczeń, archiwum. e1RM zawsze „szacowany”. */
@@ -125,10 +151,11 @@ export function SekcjaRekordy({ r }: { r: PostepyRekordy }) {
           {r.recent.map((x) => (
             <div className="card card--accent" key={x.id}>
               <b>{x.exercise_name}</b>
-              <div>{x.previous_value !== null ? `${kgLabel(x.previous_value)} → ` : ""}{wartosc(x)}
-                {x.delta !== null && x.delta > 0 && <span className="badge badge--accent" style={{ marginLeft: 6 }}>+{x.delta}</span>}</div>
+              <div>{x.previous_value !== null ? `${liczba(x, x.previous_value)} → ` : ""}{wartosc(x)}
+                {delta(x) && <span className="badge badge--accent" style={{ marginLeft: 6 }}>{delta(x)}</span>}</div>
               <small className="dim">{typLabel(x)}{x.estimated ? " (szacowany)" : ""} · {plDate(x.achieved_on)}
-                {x.days_since_previous ? ` · ${x.days_since_previous} dni od poprzedniego` : ""}</small>
+                {x.days_since_previous ? ` · ${x.days_since_previous} dni od poprzedniego` : ""}
+                {x.equaled_on ? ` · wyrównany ${plDate(x.equaled_on)}` : ""}</small>
             </div>
           ))}
         </div>
@@ -137,6 +164,7 @@ export function SekcjaRekordy({ r }: { r: PostepyRekordy }) {
       )}
       {r.exercises.length === 0 && r.archive.length === 0 && <p className="dim">Zapisz serie (ciężar × powtórzenia) w treningu, a pojawią się tu Twoje ćwiczenia.</p>}
       {r.exercises.map((c) => <WierszCwiczenia key={c.exercise_key} c={c} note={r.e1rm_note} />)}
+      {(r.exercises.length > 0 || r.archive.length > 0) && <p className="dim" style={{ marginTop: 8 }}><small>{r.e1rm_note}</small></p>}
       {r.archive.length > 0 && (
         <details open={archiwum} onToggle={(e) => setArchiwum((e.target as HTMLDetailsElement).open)}>
           <summary>Archiwum ({r.archive.length}) — niewykonywane od ponad 90 dni</summary>
@@ -155,8 +183,10 @@ function WierszCwiczenia({ c, note }: { c: PostepyCwiczenie; note: string }) {
         <small className="dim">ostatnio {plDate(c.last_performed_on)}</small>
       </div>
       <div className="row" style={{ gap: 12, flexWrap: "wrap" }}>
-        <small>Rekord ciężaru: <b>{c.max_weight ? kgLabel(c.max_weight.value) : "—"}</b>{c.max_weight && ` (${plDate(c.max_weight.achieved_on)})`}</small>
-        <small title={note}>Szacowany 1RM: <b>{c.e1rm ? kgLabel(c.e1rm.value) : "—"}</b> <span className="dim">(szacunek)</span></small>
+        <small>Rekord ciężaru: <b>{c.max_weight ? kgLabel(c.max_weight.value) : "—"}</b>
+          {c.max_weight && ` (${plDate(c.max_weight.achieved_on)}${c.max_weight.equaled_on ? `, wyrównany ${plDate(c.max_weight.equaled_on)}` : ""})`}</small>
+        <small title={note}>Szacowany 1RM: <b>{c.e1rm ? kgLabel(c.e1rm.value) : "—"}</b> <span className="dim">(szacunek)</span>
+          {c.e1rm && ` (${plDate(c.e1rm.achieved_on)}${c.e1rm.equaled_on ? `, wyrównany ${plDate(c.e1rm.equaled_on)}` : ""})`}</small>
       </div>
       {c.e1rm_series.length >= 2 && (
         <Sparkline unit="kg" label={`Szacowany 1RM — ${c.exercise_name}`}
@@ -186,14 +216,12 @@ export function SekcjaTrening({ t, planChanges }: { t: PostepyTrening; planChang
       {brakDanych ? <p className="dim">Brak zapisanych treningów w ostatnich 12 tygodniach — zapisz trening w zakładce Plan.</p> : (
         <>
           <h3>Tonaż tygodniowy <small className="dim">(suma ciężar × powtórzenia; linia = średnia 4 tyg.)</small></h3>
-          <div className="postepy-slupki" role="img" aria-label={`Tonaż tygodniowy: ${t.weeks.map((w) => `${plDate(w.week_start)} ${Math.round(w.tonnage_kg)} kg`).join(", ")}`}>
-            {t.weeks.map((w, i) => (
-              <div key={w.week_start} className={`slupek${i === t.weeks.length - 1 ? " biezacy" : ""}`}
-                style={{ height: `${Math.max(2, Math.round(100 * w.tonnage_kg / maxTon))}%` }} title={`${plDate(w.week_start)}: ${Math.round(w.tonnage_kg)} kg`}>
-                {w.avg4_tonnage_kg !== undefined && <span className="postepy-srednia" style={{ top: `${100 - Math.round(100 * w.avg4_tonnage_kg / maxTon)}%`, bottom: "auto" }} />}
-              </div>
-            ))}
-          </div>
+          <Slupki label={`Tonaż tygodniowy: ${t.weeks.map((w) => `${plDate(w.week_start)} ${Math.round(w.tonnage_kg)} kg`).join(", ")}`}
+            items={t.weeks.map((w, i) => ({
+              key: w.week_start, pct: 100 * w.tonnage_kg / maxTon, biezacy: i === t.weeks.length - 1,
+              title: `${plDate(w.week_start)}: ${Math.round(w.tonnage_kg)} kg${w.avg4_tonnage_kg !== undefined ? ` (średnia 4 tyg. ${Math.round(w.avg4_tonnage_kg)} kg)` : ""}`,
+              srednia: w.avg4_tonnage_kg !== undefined ? 100 * w.avg4_tonnage_kg / maxTon : undefined,
+            }))} />
           {planChanges && planChanges.length > 0 && (
             <small className="dim">Zmiany planu: {planChanges.map((z) => `${plDate(z.date)} (v${z.version_no})`).join(", ")}</small>
           )}
@@ -229,7 +257,7 @@ function Heatmapa({ weeks, dni }: { weeks: PostepyTydzien[]; dni: Set<string> })
           <div className="tydz" key={w.week_start}>
             {Array.from({ length: 7 }, (_, i) => {
               const d = new Date(start); d.setDate(start.getDate() + i);
-              const iso = d.toISOString().slice(0, 10);
+              const iso = toIsoDate(d); // lokalna data, nie UTC (w Europe/Warsaw UTC cofa dzień)
               return <i key={iso} className={dni.has(iso) ? "on" : ""} title={plDate(iso)} />;
             })}
           </div>
@@ -247,13 +275,11 @@ export function SekcjaKonsekwencja({ s, t }: { s: PostepySummary; t: PostepyTren
       <h2 id="h-konsekwencja"><Icon name="calendar" /> Konsekwencja</h2>
       <h3>Frekwencja <small className="dim">(wykonane / zaplanowane, 8 tygodni)</small></h3>
       {osiem.every((w) => w.planned === 0) ? <p className="dim">Brak zaplanowanych treningów w harmonogramie — poproś trenera o wpisanie dni treningowych.</p> : (
-        <div className="postepy-slupki" role="img" aria-label={`Frekwencja: ${osiem.map((w) => `${plDate(w.week_start)} ${w.sessions}/${w.planned}`).join(", ")}`}>
-          {osiem.map((w, i) => (
-            <div key={w.week_start} className={`slupek${i === osiem.length - 1 ? " biezacy" : ""}`}
-              style={{ height: `${w.planned ? Math.min(100, Math.max(2, Math.round(100 * w.sessions / w.planned))) : 2}%` }}
-              title={`${plDate(w.week_start)}: ${w.sessions} / ${w.planned}`} />
-          ))}
-        </div>
+        <Slupki label={`Frekwencja: ${osiem.map((w) => `${plDate(w.week_start)} ${w.sessions}/${w.planned}`).join(", ")}`}
+          items={osiem.map((w, i) => ({
+            key: w.week_start, pct: w.planned ? Math.min(100, 100 * w.sessions / w.planned) : 0,
+            biezacy: i === osiem.length - 1, title: `${plDate(w.week_start)}: ${w.sessions} / ${w.planned}`,
+          }))} />
       )}
       <div className="stat-grid" style={{ marginTop: 10 }}>
         <div className="stat"><b>{s.streak.weeks}</b><span>aktualna seria tygodni</span></div>
@@ -268,11 +294,13 @@ export function SekcjaKonsekwencja({ s, t }: { s: PostepySummary; t: PostepyTren
 
 /* 6.5 Sylwetka: waga jako średnia (nigdy ostatni pomiar), obwody, zdjęcia. */
 export function SekcjaSylwetka({ b, tryb, children }: { b: PostepyBody; tryb: "klient" | "trener"; children?: ReactNode }) {
-  const [surowe, setSurowe] = useState(tryb === "trener");
+  const [surowe, setSurowe] = useState(false);
   const [wybrane, setWybrane] = useState<string[]>(() => b.circumferences.slice(0, 2).map((c) => c.kind));
-  const [pokazSrednia, setPokazSrednia] = useState(true);
+  // Trener domyślnie widzi pojedyncze pomiary (§7.2, `raw_visible_default` z serwera), klient — średnią.
+  const [pokazSrednia, setPokazSrednia] = useState(!(b.weight.raw_visible_default ?? tryb === "trener"));
   const w = b.weight;
   const punkty = (pokazSrednia ? w.average_points : w.raw_points).map((p) => ({ x: plDate(p.date), y: p.value }));
+  const etykietaWykresu = pokazSrednia ? "Masa ciała — średnia krocząca (7 dni)" : "Masa ciała — pojedyncze pomiary";
   return (
     <section className="card" aria-labelledby="h-sylwetka">
       <h2 id="h-sylwetka"><Icon name="user" /> Sylwetka</h2>
@@ -292,7 +320,8 @@ export function SekcjaSylwetka({ b, tryb, children }: { b: PostepyBody; tryb: "k
               <input type="checkbox" checked={surowe} onChange={(e) => setSurowe(e.target.checked)} /> pokaż pojedyncze pomiary
             </label>
           )}
-          {punkty.length >= 2 ? <Sparkline unit="kg" label="Masa ciała — średnia krocząca" points={punkty} /> : <p className="dim">Za mało pomiarów na wykres średniej (min. 3 w 7 dniach).</p>}
+          {punkty.length >= 2 ? <Sparkline unit="kg" label={etykietaWykresu} points={punkty} />
+            : <p className="dim">{pokazSrednia ? "Za mało pomiarów na wykres średniej (min. 3 w 7 dniach)." : "Za mało pomiarów na wykres."}</p>}
           {tryb === "klient" && surowe && w.raw_points.length >= 2 && (
             <Sparkline unit="kg" label="Masa ciała — pojedyncze pomiary" points={w.raw_points.map((p) => ({ x: plDate(p.date), y: p.value }))} />
           )}
@@ -338,7 +367,10 @@ export function SekcjaSylwetka({ b, tryb, children }: { b: PostepyBody; tryb: "k
 }
 
 export function PanelPostepow({ tryb, clientId, dodatki, planChanges }: {
-  tryb: "klient" | "trener"; clientId: string; dodatki?: ReactNode;
+  tryb: "klient" | "trener"; clientId: string;
+  /** Dodatki w sekcji Sylwetka (np. formularz pomiaru); dostają `odswiez`, żeby po zapisie
+   * przeładować dane bez demontażu panelu. */
+  dodatki?: (odswiez: () => void) => ReactNode;
   planChanges?: { date: string; version_no: number; reason: string }[];
 }) {
   const { dane, error, odswiez } = useDanePostepow(tryb, clientId);
@@ -350,7 +382,7 @@ export function PanelPostepow({ tryb, clientId, dodatki, planChanges }: {
       <SekcjaRekordy r={dane.records} />
       <SekcjaTrening t={dane.training} planChanges={planChanges} />
       <SekcjaKonsekwencja s={dane.summary} t={dane.training} />
-      {dane.body && <SekcjaSylwetka b={dane.body} tryb={tryb}>{dodatki}</SekcjaSylwetka>}
+      {dane.body && <SekcjaSylwetka b={dane.body} tryb={tryb}>{dodatki?.(odswiez)}</SekcjaSylwetka>}
     </>
   );
 }

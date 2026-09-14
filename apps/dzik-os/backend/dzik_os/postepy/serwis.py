@@ -36,16 +36,21 @@ GRUPA_NIEZNANA = "INNE"
 
 def serie_klienta(db: Session, client_id: str, *, exercise_keys: set[str] | None = None) -> list[R.Seria]:
     """Wszystkie serie klienta (jedno zapytanie); opcjonalnie tylko wybrane ćwiczenia."""
+    # Sesja pominięta (SKIPPED) nie jest treningiem — nie daje serii ani rekordu.
+    # Porządek deterministyczny (data, czas zapisu, id): ten sam backfill daje
+    # te same `set_ref`/`session_id` także na PostgreSQL.
     rows = (
         db.query(WorkoutEntry, WorkoutSession.performed_on, WorkoutSession.id)
         .join(WorkoutSession, WorkoutEntry.session_id == WorkoutSession.id)
-        .filter(WorkoutSession.client_id == client_id)
+        .filter(WorkoutSession.client_id == client_id, WorkoutSession.status != "SKIPPED")
+        .order_by(WorkoutSession.performed_on, WorkoutSession.created_at, WorkoutSession.id,
+                  WorkoutEntry.exercise_index, WorkoutEntry.id)
         .all()
     )
     out: list[R.Seria] = []
     for entry, performed_on, session_id in rows:
         klucz = R.klucz_cwiczenia(entry.exercise_name)
-        if exercise_keys is not None and klucz not in exercise_keys:
+        if not klucz or (exercise_keys is not None and klucz not in exercise_keys):
             continue
         out.extend(R.serie_z_wpisu(entry_id=entry.id, exercise_name=entry.exercise_name,
                                    performed_on=performed_on, session_id=session_id,
@@ -68,13 +73,15 @@ def nazwy_cwiczen(db: Session, client_id: str) -> dict[str, str]:
     rows = (
         db.query(WorkoutEntry.exercise_name, WorkoutSession.performed_on)
         .join(WorkoutSession, WorkoutEntry.session_id == WorkoutSession.id)
-        .filter(WorkoutSession.client_id == client_id)
-        .order_by(WorkoutSession.performed_on)
+        .filter(WorkoutSession.client_id == client_id, WorkoutSession.status != "SKIPPED")
+        .order_by(WorkoutSession.performed_on, WorkoutSession.created_at, WorkoutSession.id, WorkoutEntry.id)
         .all()
     )
     out: dict[str, str] = {}
     for name, _d in rows:
-        out[R.klucz_cwiczenia(name)] = name.strip()
+        klucz = R.klucz_cwiczenia(name)
+        if klucz:
+            out[klucz] = name.strip()
     return out
 
 
@@ -151,7 +158,9 @@ def _zaplanowane_z_elementow(items: list[ScheduleItem], tydzien_od: date) -> int
 
 def przelicz_agregaty(db: Session, client_id: str, *, tygodnie: set[date] | None = None) -> int:
     """Przelicza agregaty tygodni (wszystkie z sesjami albo wskazane poniedziałki)."""
-    sesje = (db.query(WorkoutSession).filter(WorkoutSession.client_id == client_id).all())
+    # SKIPPED = trening pominięty: nie liczy się do sesji, frekwencji ani tonażu.
+    sesje = (db.query(WorkoutSession)
+             .filter(WorkoutSession.client_id == client_id, WorkoutSession.status != "SKIPPED").all())
     entries = defaultdict(list)
     for e in (db.query(WorkoutEntry).join(WorkoutSession, WorkoutEntry.session_id == WorkoutSession.id)
               .filter(WorkoutSession.client_id == client_id).all()):
@@ -219,10 +228,11 @@ def po_zapisie_sesji(db: Session, session: WorkoutSession, entries: list[Workout
     return nowe
 
 
-def powiadom_o_rekordach(db: Session, client_id: str, session_id: str, nowe: list[R.Rekord]) -> None:
-    """Maksymalnie jedno powiadomienie na sesję, zbiorcze, tylko w aplikacji (§8.3)."""
+def powiadom_o_rekordach(db: Session, client_id: str, session_id: str, nowe: list[R.Rekord]):
+    """Maksymalnie jedno powiadomienie na sesję, zbiorcze, tylko w aplikacji (§8.3).
+    Zwraca wiersz powiadomienia (do `publish_realtime` PO commit) albo None."""
     if not nowe:
-        return
+        return None
     from ..notifications import notify_now
 
     n = len(nowe)
@@ -232,10 +242,12 @@ def powiadom_o_rekordach(db: Session, client_id: str, session_id: str, nowe: lis
         tytul = f"{n} nowe rekordy w tym treningu"
     else:
         tytul = f"{n} nowych rekordów w tym treningu"
-    cwiczenia = sorted({r.exercise_key for r in nowe})
-    notify_now(db, user_id=client_id, category="REKORD", title=tytul,
-               body="Ćwiczenia: " + ", ".join(cwiczenia[:5]) + ("…" if len(cwiczenia) > 5 else ""),
-               url="/monitoring", dedup_key=f"rekord:{session_id}")
+    # Nazwy wyświetlane (nie klucze): w treści powiadomienia klient widzi to, co wpisał.
+    nazwy = nazwy_cwiczen(db, client_id)
+    cwiczenia = sorted({nazwy.get(r.exercise_key, r.exercise_key) for r in nowe})
+    return notify_now(db, user_id=client_id, category="REKORD", title=tytul,
+                      body="Ćwiczenia: " + ", ".join(cwiczenia[:5]) + ("…" if len(cwiczenia) > 5 else ""),
+                      url="/monitoring", dedup_key=f"rekord:{session_id}")
 
 
 # --- backfill ---------------------------------------------------------------

@@ -145,7 +145,8 @@ szacowany 1RM to zawsze szacunek do obserwacji trendu, nie zalecenie
 obciążenia. Nie ma rankingów między klientami. Po włączeniu modułu na
 produkcji historię sesji sprzed włączenia przelicza jednorazowo
 `python -m dzik_os.recalculate_progress` — wypisuje też nazwy ćwiczeń,
-które różnią się tylko wielkością liter lub diakrytyką („bliźniaki");
+które różnią się tylko diakrytyką albo znakami interpunkcyjnymi
+(„bliźniaki"; wielkość liter i odstępy są już ujednolicane);
 takie wpisy scalasz ręcznie, poprawiając nazwę w treningu.
 
 ## Szablony

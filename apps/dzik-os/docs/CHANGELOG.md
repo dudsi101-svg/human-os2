@@ -19,8 +19,8 @@ decyzja właściciela o scaleniu).**
   (`exercise_key`); nazwy-bliźniaki są raportowane, nie scalane.
 * **Waga** `dzik_os/postepy/waga.py`: średnia krocząca 7 dni (min. 3
   pomiary w oknie), trend z regresji liniowej 28 dni (≥ 14 dni i ≥ 6
-  pomiarów), zaokrąglenie 0,1 kg/tydz.; funty przeliczane na kg przy
-  zapisie serii i pomiaru.
+  pomiarów), zaokrąglenie 0,1 kg/tydz.; funty w seriach przeliczane na kg
+  przy zapisie, pomiary w innych jednostkach — przy odczycie.
 * **Model + migracja 36 (addytywna):** `exercise_records`,
   `training_week_aggregates` (tydzień ISO: sesje, zaplanowane z
   harmonogramu, tonaż, serie per grupa mięśniowa, dni). `WorkoutSetIn`
@@ -58,9 +58,21 @@ decyzja właściciela o scaleniu).**
   notatki trenera, zmiany planu na tle tonażu). Bez porównań między
   ludźmi, bez czerwieni, bez „streaków”.
 * **Nawigacja za flagą:** klient ma „Postępy” w miejscu „Raportu”
-  (raport w „Więcej → Raport tygodniowy”; `/raport` i `/postepy`
-  przekierowują), trener szóstą pozycję „Monitoring”. Bez flagi nic się
-  nie zmienia — pilnuje E2E `postepy-flaga.spec.ts`.
+  (raport w „Więcej → Raport tygodniowy”, pozycja „Postępy” znika z
+  „Więcej”; `/raport` i `/postepy` przekierowują), trener szóstą pozycję
+  „Monitoring”. Bez flagi nic się nie zmienia: nawigacja, zapis sesji
+  (bez przeliczania rekordów i powiadomień), kategoria REKORD ukryta w
+  ustawieniach powiadomień — pilnują E2E `postepy-flaga.spec.ts` i test
+  API.
+* **Zgody per domena u trenera** (jak w reszcie aplikacji): bez zgody na
+  dane zdrowotne — bez wagi, sylwetki i flagi zdrowotnej; bez zgody na
+  zdjęcia — puste zdjęcia; bez zgody na żywienie — bez realizacji diety;
+  bez zgody na dane treningowe — lista nie zdradza daty ostatniej sesji
+  ani frekwencji. Sesja `SKIPPED` nie liczy się do tygodnia, frekwencji,
+  tonażu ani rekordów. Sygnał spadku tonażu porównuje ostatni **zamknięty**
+  tydzień ze średnią czterech poprzednich.
+* **Prywatność:** eksport `exercise_records` / `training_week_aggregates`
+  (`export_version` 1.9), usunięcie konta kasuje oba zbiory.
 * **Testy:** 24 testy backendu (silnik §14, baza, API: flaga zdrowotna,
   obcy trener, ≤ 20 zapytań dla 100 klientów, dwa lata danych < 300 ms),
   macierz dostępu, E2E na drugim serwerze z włączoną flagą

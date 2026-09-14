@@ -59,15 +59,12 @@ export default function More() {
         </Link>
         {isClient && (
           <>
+            {/* 0.66.0 (§13.3): „Postępy” znikają z „Więcej” (są w dolnej nawigacji),
+                raport tygodniowy przechodzi tutaj. */}
             {monitoringTab ? (
-              <>
-                <Link className="card card--nav" to="/wiecej/raport">
-                  <Icon name="report" /><span>Raport tygodniowy</span>
-                </Link>
-                <Link className="card card--nav" to="/monitoring">
-                  <Icon name="chart" /><span>Postępy</span>
-                </Link>
-              </>
+              <Link className="card card--nav" to="/wiecej/raport">
+                <Icon name="report" /><span>Raport tygodniowy</span>
+              </Link>
             ) : (
               <Link className="card card--nav" to="/postepy">
                 <Icon name="chart" /><span>Monitoring i postępy</span>

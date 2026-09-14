@@ -105,8 +105,10 @@ def _agregaty(db: Session, client_id: str, tygodni: int, today: date) -> dict[da
 
 
 def _tydzien_out(w: date, agg: TrainingWeekAggregate | None, planned: int) -> dict:
+    # `planned` zawsze z bieżącego harmonogramu (na żywo): agregat zamraża liczbę z chwili
+    # ostatniego zapisu sesji, a zmiana planu w trakcie tygodnia dawałaby „1 / 3” obok „0 / 4”.
     return {"week_start": w.isoformat(), "sessions": agg.sessions_count if agg else 0,
-            "planned": agg.planned_count if agg else planned,
+            "planned": planned,
             "tonnage_kg": agg.tonnage_kg if agg else 0.0,
             "sets_by_group": json.loads(agg.sets_by_group_json) if agg else {},
             "days": json.loads(agg.session_days_json) if agg else []}
@@ -261,16 +263,31 @@ def _summary(db: Session, client_id: str, *, widok_klienta: bool, today: date) -
     }
     # Waga: dla klienta z flagą zdrowotną kafelek ZNIKA (bez pola), nie pokazuje pustego stanu (§10.1).
     if not (widok_klienta and _flaga_zdrowotna(db, client_id)):
-        out["weight"] = _trend_out(_punkty_wagi(db, client_id, W.OKNO_TRENDU_DNI, today), today)
+        # Okno trendu + długość okna średniej − 1: średnia krocząca na brzegu 28 dni widzi
+        # wcześniejsze pomiary — kafelek i sekcja Sylwetka liczą ten sam trend.
+        out["weight"] = _trend_out(_punkty_wagi(db, client_id, W.OKNO_TRENDU_DNI + W.OKNO_SREDNIEJ_DNI - 1, today), today)
+    return out
+
+
+def _filtruj_zgody_trenera(db: Session, coach: User, client_id: str, out: dict) -> dict:
+    """Trener widzi wagę tylko ze zgodą na dane zdrowotne, a dietę — na żywieniowe (per domena,
+    jak `/measurements` i `/nutrition-log`); relację na dane treningowe sprawdził już `_podmiot`."""
+    from ..authz import coach_can_access_client
+
+    if not coach_can_access_client(db, coach.id, client_id, domain=DOMAIN_HEALTH):
+        out.pop("weight", None)
+    if not coach_can_access_client(db, coach.id, client_id, domain=DOMAIN_NUTRITION):
+        out["diet"] = None
     return out
 
 
 @router.get("/summary", dependencies=[Depends(wymagaj_modulu)])
 def summary(client_id: str | None = Query(default=None), user: User = Depends(current_user),
             db: Session = Depends(get_db)):
-    """Kafelki nagłówka tygodnia (§6.1), filtrowane wg roli i flag."""
+    """Kafelki nagłówka tygodnia (§6.1), filtrowane wg roli, flag i zgód per domena."""
     cid, widok_klienta = _podmiot(db, user, client_id)
-    return _summary(db, cid, widok_klienta=widok_klienta, today=local_today(user))
+    out = _summary(db, cid, widok_klienta=widok_klienta, today=local_today(user))
+    return out if widok_klienta else _filtruj_zgody_trenera(db, user, cid, out)
 
 
 @router.get("/records", dependencies=[Depends(wymagaj_modulu)])
@@ -338,9 +355,14 @@ def body(client_id: str | None = Query(default=None), user: User = Depends(curre
     cid, widok_klienta = _podmiot(db, user, client_id, domain=DOMAIN_HEALTH)
     if widok_klienta and _flaga_zdrowotna(db, cid):
         raise HTTPException(status_code=404, detail="Nie znaleziono")
+    out = _body(db, cid, local_today(user), surowe=not widok_klienta)
     if not widok_klienta:
-        resolve_client_access(db, user, cid, domain=DOMAIN_PHOTOS)
-    return _body(db, cid, local_today(user), surowe=not widok_klienta)
+        from ..authz import coach_can_access_client
+
+        # Bez zgody na zdjęcia sekcja zdjęć jest pusta (jak w `clients/{id}`), reszta sylwetki zostaje.
+        if not coach_can_access_client(db, user.id, cid, domain=DOMAIN_PHOTOS):
+            out["photos"] = []
+    return out
 
 
 # --- trener -----------------------------------------------------------------------------
@@ -360,7 +382,8 @@ def _sygnaly(db: Session, coach_id: str, today: date, progi: dict) -> list[dict]
               .filter(TrainingWeekAggregate.client_id.in_(ids), TrainingWeekAggregate.week_start >= od8.isoformat()).all()):
         aggs[a.client_id][parse_iso_date(a.week_start)] = a
     ostatnia_sesja = dict(db.query(WorkoutSession.client_id, func.max(WorkoutSession.performed_on))
-                          .filter(WorkoutSession.client_id.in_(ids)).group_by(WorkoutSession.client_id).all())
+                          .filter(WorkoutSession.client_id.in_(ids), WorkoutSession.status != "SKIPPED")
+                          .group_by(WorkoutSession.client_id).all())
     od_wagi = (today - timedelta(days=W.OKNO_TRENDU_DNI - 1)).isoformat()
     wagi: dict[str, list] = defaultdict(list)
     for cid, m, v, u in (db.query(Measurement.client_id, Measurement.measured_at, Measurement.value, Measurement.unit)
@@ -406,13 +429,15 @@ def _sygnaly(db: Session, coach_id: str, today: date, progi: dict) -> list[dict]
             if all(t["planned"] > 0 and 100 * t["sessions"] / t["planned"] < int(progi["frekwencja_pct"]) for t in ost2):
                 sygnaly.append({"key": "attendance_drop", "level": "high",
                                 "label": f"Frekwencja poniżej {progi['frekwencja_pct']} % w 2 kolejnych tygodniach"})
-            wszystkie8 = [aggs[cid].get(od8 + timedelta(weeks=i)) for i in range(8)]
-            tonaze = [a.tonnage_kg for a in wszystkie8 if a is not None]
-            if len(tonaze) >= 5:
-                srednia4 = sum(tonaze[-5:-1]) / 4
-                if srednia4 > 0 and tonaze[-1] < srednia4 * (1 - int(progi["spadek_tonazu_pct"]) / 100):
-                    sygnaly.append({"key": "tonnage_drop", "level": "medium",
-                                    "label": f"Tonaż −{round(100 * (1 - tonaze[-1] / srednia4))} % wobec średniej 4 tyg."})
+            # Tylko tygodnie ZAMKNIĘTE: ostatni pełny tydzień wobec średniej czterech poprzednich
+            # (bieżący, niepełny tydzień dawałby fałszywy „spadek” w każdy poniedziałek);
+            # tydzień bez agregatu = 0 kg, nie „brak danych”.
+            tonaze = [(a.tonnage_kg if a is not None else 0.0)
+                      for a in (aggs[cid].get(od8 + timedelta(weeks=i)) for i in range(7))]
+            ostatni_zamkniety, srednia4 = tonaze[6], sum(tonaze[2:6]) / 4
+            if srednia4 > 0 and ostatni_zamkniety < srednia4 * (1 - int(progi["spadek_tonazu_pct"]) / 100):
+                sygnaly.append({"key": "tonnage_drop", "level": "medium",
+                                "label": f"Tonaż −{round(100 * (1 - ostatni_zamkniety / srednia4))} % wobec średniej 4 tyg."})
             if rekordy.get(cid):
                 sygnaly.append({"key": "new_record", "level": "info",
                                 "label": f"{rekordy[cid]} nowych rekordów w {progi['dni_rekordu']} dni"})
@@ -430,8 +455,10 @@ def _sygnaly(db: Session, coach_id: str, today: date, progi: dict) -> list[dict]
                 sygnaly.append({"key": "goal_mismatch", "level": "medium",
                                 "label": f"Cel redukcja, a trend +{trend} kg/tydz."})
         priorytet = sum({"high": 100, "medium": 10, "info": 1}[s["level"]] for s in sygnaly)
+        # Bez zgody na dane treningowe: ani daty ostatniej sesji, ani frekwencji (jak `/workouts` → 404).
         out.append({"client_id": cid, "display_name": u.display_name if u else "", "email": u.email if u else "",
-                    "last_activity": ostatnia, "attendance_4w": frekwencja, "weight_trend_kg_week": trend,
+                    "last_activity": ostatnia if zg.get("training") else None,
+                    "attendance_4w": frekwencja if zg.get("training") else None, "weight_trend_kg_week": trend,
                     "signals": sygnaly, "priority": priorytet,
                     "consents": {"training": bool(zg.get("training")), "health": bool(zg.get("health"))}})
     out.sort(key=lambda c: (-c["priority"], c["display_name"]))
@@ -470,22 +497,20 @@ def client_detail(client_id: str, coach: User = Depends(require_role("COACH")), 
 
     out: dict[str, Any] = {
         "client_id": client_id,
-        "summary": _summary(db, client_id, widok_klienta=False, today=today),
+        "summary": _filtruj_zgody_trenera(db, coach, client_id,
+                                          _summary(db, client_id, widok_klienta=False, today=today)),
         "records": _rekordy_klienta(db, client_id, today=today, historia=True),
         "training": _training(db, client_id, today, TYGODNI_TRENING),
-        "health_flag": _flaga_zdrowotna(db, client_id),
     }
     if coach_can_access_client(db, coach.id, client_id, domain=DOMAIN_HEALTH):
+        # Flaga zdrowotna pochodzi z pytania wywiadu w domenie zdrowotnej — bez zgody nie ma klucza.
+        out["health_flag"] = _flaga_zdrowotna(db, client_id)
         out["body"] = _body(db, client_id, today, surowe=True)
         if not coach_can_access_client(db, coach.id, client_id, domain=DOMAIN_PHOTOS):
             out["body"]["photos"] = []
         out["notes"] = [{"date": o.occurred_on, "text": o.text, "category": o.category, "severity": o.severity}
                         for o in db.query(Observation).filter(Observation.client_id == client_id, Observation.created_by == coach.id)
                         .order_by(Observation.occurred_on.desc()).limit(50).all()]
-    else:
-        out["summary"].pop("weight", None)
-    if not coach_can_access_client(db, coach.id, client_id, domain=DOMAIN_NUTRITION):
-        out["summary"]["diet"] = None
     zmiany = (db.query(TrainingPlanVersion.version_no, TrainingPlanVersion.reason, TrainingPlanVersion.created_at)
               .join(TrainingPlan, TrainingPlan.id == TrainingPlanVersion.plan_id)
               .filter(TrainingPlan.client_id == client_id).order_by(TrainingPlanVersion.created_at).all())

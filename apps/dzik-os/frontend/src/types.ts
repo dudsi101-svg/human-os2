@@ -1822,7 +1822,8 @@ export interface PostepyBody {
 export interface PostepySygnal { key: string; level: "high" | "medium" | "info"; label: string }
 export interface PostepyKlientSygnaly {
   client_id: string; display_name: string; email: string; last_activity: string | null;
-  attendance_4w: { done: number; planned: number; pct: number | null }; weight_trend_kg_week: number | null;
+  /** null = brak zgody na dane treningowe (jak `last_activity`). */
+  attendance_4w: { done: number; planned: number; pct: number | null } | null; weight_trend_kg_week: number | null;
   signals: PostepySygnal[]; priority: number; consents: { training: boolean; health: boolean };
 }
 export interface PostepyProgi {
@@ -1830,7 +1831,9 @@ export interface PostepyProgi {
   trend_wzrost_kg: number; dni_trendu: number; dni_rekordu: number;
 }
 export interface PostepyKlientTrenera {
-  client_id: string; summary: PostepySummary; records: PostepyRekordy; training: PostepyTrening; health_flag: boolean;
+  client_id: string; summary: PostepySummary; records: PostepyRekordy; training: PostepyTrening;
+  /** Tylko ze zgodą na dane zdrowotne (pole nieobecne bez zgody). */
+  health_flag?: boolean;
   body?: PostepyBody; notes?: { date: string; text: string; category: string; severity: string }[];
   plan_changes: { date: string; version_no: number; reason: string }[];
 }
