@@ -98,6 +98,70 @@ wszystko [C] i treści wbudowane są **do przeglądu trenera**
   „Dlaczego?”; klient D widzi pozycję) i `rozgrzewka.spec.ts` (2). Przeklik:
   `docs/plan-sesji/cardio-i-rozgrzewka.md` („Weryfikacja wykonana”).
 
+## 0.72.0 — 2026-09-14
+
+**Strona publiczna: wariant czerwono-biały (projekt zatwierdzony przez
+właściciela 14.09; gałąź `agent/landing-czerwony`, PR #67, bez migracji;
+domknięcie po pomiarze = zlecenie 3 z pakietu 14.09).** Numery 0.70.0
+(PR #70, powitanie po pierwszym logowaniu) i 0.71.0 (zlecenie 1, dni
+treningowe) idą równolegle; 0.68.0 pozostaje zarezerwowane jak w 0.69.0.
+
+* Warstwa wizualna `/` wg kanwy „Wariant czerwono-biały”: tokeny
+  scope'owane do `.landing--czerwony` (aplikacja, `/login` i `/prywatnosc`
+  bez zmian, `:root` nietknięty), rytm sekcji biały → ciemny → różowy →
+  ciemny, pasek górny z nawigacją kotwic (≥ 900 px), hero z ciemnym panelem
+  i kartami-powiadomieniami, oferta z kaflami gradientowymi, ikonami SVG
+  i chipami, ciemny blok kroków i galerii, trener z kaflami statystyk,
+  FAQ 2×2 na różowym paśmie, kontakt na ciemnym tle z formularzem w karcie.
+* Dzik w czerwieni na stronie publicznej (`boar-mark-red.png`,
+  `boar-hero-red.png` wygenerowane z logo); ikony PWA, `logo-full.png`,
+  `og.png` i aplikacja po zalogowaniu nadal limonkowe — do decyzji
+  właściciela o znaku (etap 2 = osobne zlecenie po scaleniu).
+* **Poprawki z pomiaru (domknięcie):** 1024 px `scrollWidth` 1086 → 1024
+  i 768 px 772 → 768 — dekoracje hero (plama, pierścień, raster, dzik)
+  w warstwie `.landing-panel__scene` z `overflow: hidden`, karty poza nią;
+  siatka hero `minmax(0, 1fr)`; pasek dowodów bez `nowrap` na pozycji
+  (etykieta nierozdzielna, podpis zawija się wewnątrz pozycji, „−12 kg”
+  razem); zdjęcie „O trenerze”
+  z marginesem na odznakę w pasie 700–899 px. Cele dotyku nawigacji kotwic
+  ≥ 24 px (WCAG 2.2 2.5.8; było ~18 px). Kontrast obrysu przycisków ghost
+  i pól formularza 1,50 → 3,11 (nowy token `--l-border-ui` #B3878A —
+  wariant A z prompta; karty i separatory bez zmian) i numeru kroku na
+  kaflu koralowym min. 1,48 → 3,14 (grafit zamiast bieli na całym
+  gradiencie). `scroll-margin-top: 76px` dla kotwic (nagłówek nie chował
+  się pod paskiem). Pas 700–899 px: kroki w jednej kolumnie, panel hero
+  360 px (h1 był na y ≈ 804 przy 768 px). H1 hero `clamp(40px, 4.4vw,
+  58px)` — przy 1024 px przecinek z „prowadzony,” lądował sam w wierszu.
+  Obraz dzika z `width/height` i `fetchpriority="high"` (LCP na telefonie).
+  Galeria jako `role="region"` „Ekrany aplikacji”. Nity: zdublowany
+  `margin`, zdublowany `focus-visible`, nieużywany prop `id` w `Naglowek`.
+* **Treść:** „nawet −12 kg” w pasku dowodów i kaflu (bez „nawet” czytało
+  się jak gwarancja); zdanie o motywie w sekcji Aplikacja brzmi „Motyw
+  wybierasz sam: ciemny na siłownię albo jasny czerwono-biały.” (decyzja
+  właściciela z trzeciej tury 14.09: dwa kompletne motywy do wyboru);
+  karty w hero (`aria-hidden`) niosą etykietę „przykład” — ich treść
+  („Przysiad 110 kg”, „Raport z tygodnia 8”, „Dieta: 2300 kcal”) nie jest
+  potwierdzona przez właściciela. Zmiany względem 0.69.0 wpisane jawnie:
+  `logo-full.png` usunięte z hero (plik zostaje, używa go `/login`); akapit
+  wstępu galerii zastąpiony opisem w nagłówku sekcji; numery kroków „1/2/3”
+  → „01/02/03”; dawne `h2` „Jak zaczynamy” i „O trenerze” są etykietami
+  nad `h2` „Trzy kroki do pierwszego planu” i „Łukasz Drygiel — Lubelski
+  Dzik” (świadoma zmiana konspektu; E2E pilnuje pełnej listy h1–h3);
+  trzy dowody (IFBB PRO / 30 000+ / nawet −12 kg) są celowo dwa razy
+  (pasek pod hero i kafle w „O trenerze”). „Zwykle tego samego dnia” nadal
+  **nie** wchodzi — niepotwierdzone przez trenera.
+* **Świadomy kompromis:** precache SW bierze cały `dist/`, więc oba nowe
+  PNG (+110 kB) trafiają do każdej instalacji PWA, choć używa ich tylko
+  wylogowane `/` — w zamian `/` działa offline z grafiką. Nic nie
+  skasowano (`boar-mark.png`, `logo-full.png` nadal w użyciu).
+* **Testy:** `strona-publiczna.spec.ts` 4 → 8: brak poziomego przewijania
+  na 1440/1024/768/390 (przed poprawkami 1024 i 768 padały), nawigacja
+  kotwic widoczna ≥ 900 px i ukryta ≤ 899 z celami ≥ 24 px, kotwica pod
+  paskiem 76 px, panel hero `aria-hidden` + trzy etykiety „przykład”,
+  honeypot poza fokusem i ekranem, konspekt h1–h3, ścieżka błędu formularza
+  (`role="alert"` na podstawionym 429 — bez dotykania limitera i bazy).
+  Zrzuty po poprawkach: `docs/zrzuty/landing-czerwony/` (1440/1024/768/390,
+  JPEG ≤ 150 kB) — dowód uruchomienia wg `ZASADA_URUCHOMIENIA.md`.
 ## 0.71.0 — 2026-09-14
 
 **Dni treningowe na „Dzisiaj” — klient wybiera dni tygodnia dla jednostek planu
