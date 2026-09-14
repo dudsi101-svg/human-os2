@@ -155,7 +155,26 @@ pomocnik walidacji id), `routers/exercise_blocks.py`, `cardio/bloki.py`, `cardio
 
 ## Odstępstwa od planu
 
-(uzupełniane w trakcie)
+1. **`variant` dla CARDIO = pusty napis w bazie, `null` w API** (zamiast NULL w kolumnie
+   z polecenia) — kolumna `NOT NULL` z migracji 39; przebudowa tabeli w SQLite bez
+   precedensu. Migawka w planie i odpowiedzi API mają `variant: null` — semantyka zgodna.
+2. **`cardio.spec.ts`** (istniejący test 0.73.0) wymagał jednej zmiany: `getByRole("button",
+   { name: "+ Cardio" })` trafiał teraz w dwa przyciski („+ Cardio” i „+ Cardio z bloku”) —
+   dopisane `exact: true` (zmiana jawna, KARTA II).
+3. **`test-bloki.mjs`**: `bloki.ts` importuje etykiety z `types.ts`, a tsc zostawia import
+   bez rozszerzenia, którego Node w ESM nie rozwiąże — test dopisuje `.js` po kompilacji
+   (wzorzec `test-suwaki.mjs` nie miał importów). Alternatywą było duplikowanie etykiet.
+4. **Kopiowanie szablonu z ćwiczeniem zarchiwizowanym po zapisie szablonu daje teraz 422**
+   (luka 5 z polecenia: walidacja jak w `POST /plans`). To zaostrzenie względem 0.73.0 —
+   wcześniej kopia przechodziła. Trener naprawia szablon (nowa wersja bez id) — pytanie
+   do właściciela w `docs/bloki-jak-szablony/PROGRESS.md` §2.
+5. **Tylko blok CARDIO ma jeden dominujący cel** (bez suwaków w formularzu bloku) —
+   zgodnie z poleceniem („goal” zamiast wariantu), mieszanki wag w `presety.py` [C].
+6. **Nowy plik `cardio/presety.py`** (nie w liście „pliki nowe” planu) — logika presetu
+   nie mogła trafić do `bloki.py` (cykl importów z `bloki_wbudowane.py`, który liczy
+   9 presetów przy imporcie).
+7. **`PrzypiszPlan.tsx`** jako osobny komponent (plan zakładał przebudowę w `ClientDetail.tsx`) —
+   `ClientDetail.tsx` ma 1936 linii; karta ma 170 linii własnej logiki.
 
 ## Plan kontra rzeczywistość
 
