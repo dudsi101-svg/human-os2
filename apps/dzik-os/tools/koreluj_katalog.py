@@ -56,11 +56,13 @@ KATEGORIE_NIE = {"Dania gotowe i fast food", "Napoje", "Odżywki i suplementy", 
 WYJATKI_NIE = {"Napoje": {"mleko"}, "Odżywki i suplementy": {"białko_proszek"}}
 # Kategorie, w których brak alergenu jest podejrzany → pewność NISKA.
 KATEGORIE_ALERGEN_TYPOWY = {"Nabiał", "Zboża i pieczywo", "Kasze, ryż i makarony", "Ryby i owoce morza",
-                            "Orzechy i nasiona", "Jaja", "Rośliny strączkowe"}
+                            "Orzechy i nasiona", "Jaja", "Rośliny strączkowe", "Odżywki i suplementy"}
 
 # Słowa kluczowe (regex po znormalizowanej nazwie) → grupa; kolejność ma znaczenie (pierwsze trafienie).
 SLOWA_KLUCZOWE: list[tuple[str, str]] = [
-    (r"odzywk|wpc|wpi|izolat|bialko serwat|bialko w proszku|proteinow", "białko_proszek"),
+    # Odżywka WĘGLOWODANOWA (carbo/vitargo) to nie białko w proszku — zostaje bez grupy (NIE z góry).
+    (r"weglowodanow|\bcarbo\b|vitargo|gainer|przedtreningow|kreatyn|bcaa|elektrolit|izotonik", ""),
+    (r"odzywk|wpc|wpi|izolat|bialko serwat|bialko w proszku|proteinow|whey|kazein", "białko_proszek"),
     (r"maslo orzechowe|pasta orzechowa|pasta z orzech|tahini|krem orzechowy|pasta migdalowa", "orzechy_pasty"),
     (r"hummus", "pasta_smarowanie"),
     (r"tofu|tempeh|seitan", "białko_roślinne"),
@@ -148,7 +150,9 @@ def dopasuj_grupe(nazwa_norm: str, kategoria: str, fat_100: float) -> tuple[str 
     """(grupa, metoda) — słowo kluczowe przed kategorią."""
     for wzor, grupa in SLOWA_KLUCZOWE:
         if re.search(wzor, nazwa_norm):
-            return grupa, "SŁOWO_KLUCZOWE"
+            # Pusta grupa w regule = „na pewno nie ta grupa z kategorii” (np. odżywka
+            # węglowodanowa) — wiersz zostaje bez grupy, z pewnością NISKA.
+            return (grupa or None), "SŁOWO_KLUCZOWE"
     g = KATEGORIA_GRUPA.get(kategoria)
     if g == "nabiał_chudy" and fat_100 >= 5:
         g = "nabiał_tłusty"
@@ -175,6 +179,10 @@ def alergeny_i_wykluczenia(nazwa_norm: str, kategoria: str, grupa: str | None, a
             dodaj(e, "lactose", ex)
     if re.search(r"maslo\b|maslo klarowane", nazwa_norm) and not re.search(r"orzech|migdal|klarowane", nazwa_norm):
         dodaj(a, "mleko", al); dodaj(e, "dairy", ex); dodaj(e, "lactose", ex)
+    # Białko serwatkowe/kazeinowe (WPC, WPI, whey, kazeina) pochodzi z mleka — alergen „mleko”
+    # i wykluczenie „dairy” jak w referencyjnym produkty.csv („Odżywka białkowa WPC 80”).
+    if re.search(r"wpc|wpi|whey|serwat|kazein", nazwa_norm) and not re.search(r"roslinn|sojow|grochow|ryzow|konopn|vegan|wegan", nazwa_norm):
+        dodaj(a, "mleko", al); dodaj(e, "dairy", ex)
     if re.search(GLUTEN, nazwa_norm) and not re.search(BEZ_GLUTENU, nazwa_norm):
         dodaj(a, "gluten", al); dodaj(e, "gluten", ex)
     if grupa == "jajka" or re.search(r"jajk|jaja\b|jajo\b|zoltk|bialko jaj|majonez", nazwa_norm):

@@ -9,13 +9,14 @@ import { Alergeny, gramatura, KartaDnia, makro, NotatkiOdslony, StatusDiety } fr
 /**
  * Widok klienta diety z szablonu (0.60.0): dzień z posiłkami, gramatury
  * (dyskretne jako „2 szt. (~110 g)”), makro posiłku, przepis rozwijany;
- * P1: wymiana składnika oznaczonego `swappable` — arkusz z 1–3 zamiennikami
- * (gramatury policzone przez serwer), brak kandydatów → „napisz do trenera”.
+ * Wymiana składnika oznaczonego `swappable` (v2, 0.69.0): arkusz z zamiennikami
+ * z tej samej grupy i z grup pokrewnych (gramatury i delta posiłku policzone przez
+ * serwer), pusta lista z powodem (`reason`) i — gdy to sprawa trenera — linkiem do niego.
  */
 
 /** Zmiana makro posiłku po wymianie, po polsku („posiłek: −12 kcal, białko +1 g”). */
 function deltaTekst(d?: DietMacros): string {
-  if (!d) return "Posiłek nadal mieści się w celu.";
+  if (!d) return "";
   // Znak po zaokrągleniu: −0,3 g to „0 g”, nie „−0 g”.
   const f = (v: number, u: string) => { const r = Math.round(v); return `${r > 0 ? "+" : r < 0 ? "−" : ""}${Math.abs(r)} ${u}`; };
   return `posiłek: ${f(d.kcal, "kcal")}, białko ${f(d.P, "g")}, tłuszcz ${f(d.F, "g")}, węgle ${f(d.C, "g")}`;
@@ -115,7 +116,7 @@ export default function DietaSzablon({ onStan }: { onStan?: (jest: boolean) => v
           {arkusz.blocked && <p className="alert alert--warn">{arkusz.blocked}</p>}
           {arkusz.cands && !arkusz.blocked && arkusz.cands.length === 0 && (
             <p className="alert alert--warn">
-              {arkusz.reason ? DIET_SWAP_REASON_LABELS[arkusz.reason] : "Brak bezpiecznego zamiennika, napisz do trenera."}
+              {(arkusz.reason && DIET_SWAP_REASON_LABELS[arkusz.reason]) || "Brak bezpiecznego zamiennika, napisz do trenera."}
               {(!arkusz.reason || arkusz.reason === "TOLERANCE" || arkusz.reason === "SINGLETON" || arkusz.reason === "PORTION") && (
                 <Link to="/wiadomosci" className="btn btn--small" style={{ marginLeft: 6 }}>Napisz do trenera</Link>
               )}
@@ -126,9 +127,10 @@ export default function DietaSzablon({ onStan }: { onStan?: (jest: boolean) => v
               {arkusz.cands.slice(0, 5).map((c) => (
                 <li key={c.product_id} style={{ marginBottom: 6 }}>
                   <b>{c.product}</b> — {Math.round(c.grams)} g{" "}
-                  <span className={c.tier === 2 ? "badge" : "badge badge--ok"} title={c.tier === 2 && c.tier_reason ? c.tier_reason : undefined}>
+                  <span className={c.tier === 2 ? "badge" : "badge badge--ok"}>
                     {c.tier === 2 ? `grupa pokrewna: ${c.group ?? ""}` : "z tej samej grupy"}
                   </span>{" "}
+                  {c.tier === 2 && c.tier_reason && <small className="dim">({c.tier_reason})</small>}{" "}
                   <small className="dim">({deltaTekst(c.meal_delta)}; posiłek po wymianie: {makro(c.macros)})</small>{" "}
                   <button type="button" className="btn btn--small" disabled={busy} onClick={() => void wymien(c)}>{busy ? "Zapisuję…" : "Wybierz"}</button>
                 </li>

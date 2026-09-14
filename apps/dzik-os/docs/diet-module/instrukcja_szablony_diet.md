@@ -187,9 +187,9 @@ Trener widzi propozycję z porównaniem makro i zatwierdza lub wybiera inną. Do
 
 1. Klient klika „↔ wymień” przy składniku — także przy warzywach i dodatkach
    (rola NONE), jeśli grupa zamienników ma ≥ 2 produkty; składniki STAŁE bez przycisku.
-2. Widzi do **5 zamienników** z etykietą poziomu: **„z tej samej grupy”** (poziom 1,
+2. Widzi do **3 zamienników** (limit `n` silnika bez zmian) z etykietą poziomu: **„z tej samej grupy”** (poziom 1,
    ta sama `substitution_group`) albo **„grupa pokrewna: …”** (poziom 2, z tabeli
-   powiązań `dieta/dane/grupy_pokrewne.json`; powód powiązania w dymku).
+   powiązań `dieta/dane/grupy_pokrewne.json`; powód powiązania obok etykiety).
 3. Przy każdym zamienniku: gramatura policzona przez serwer (zachowanie roli makro;
    dla NONE 1:1 wagowo) i **delta posiłku** po polsku („posiłek: −12 kcal, białko +1 g”).
 4. Po wyborze posiłek się przelicza; serwer zapisuje wymianę z poziomem.
@@ -205,8 +205,10 @@ Trener widzi propozycję z porównaniem makro i zatwierdza lub wybiera inną. Do
 3. **Limity porcji** v1.1: ≤ 300 g surowego mięsa/ryby, ≤ 4 jajka.
 4. **Bramka posiłku „w tolerancji ALBO nie pogarsza”:** posiłek po wymianie mieści się
    w `TOL_MEAL` **albo** żadne odchylenie (kcal, P, F, C) nie jest większe niż przed
-   wymianą — w posiłku już poza tolerancją wymiana neutralna lub poprawiająca jest
-   dozwolona. `TOL_MEAL`/`TOL_DAY` bez zmian.
+   wymianą (z luzem 5 kcal / 0,5 g poniżej rozdzielczości wyświetlania) — w posiłku
+   już poza tolerancją wymiana neutralna lub poprawiająca jest dozwolona.
+   `TOL_MEAL`/`TOL_DAY` bez zmian. Gramatura z klienta (POST) przechodzi te same
+   limity porcji i tę samą bramkę.
 
 Ranking: poziom (1 przed 2) → suma |Δ| posiłku po wymianie → odległość makro produktu.
 Wynik deterministyczny.
@@ -219,7 +221,9 @@ każdy pogarsza posiłek). Interfejs pokazuje właściwy komunikat po polsku.
 ### 7.3 Uprawnienia trenera
 
 - domyślnie wymiany włączone dla składników z rolą `P`/`C`/`F` oraz `NONE` z grupą
-  ≥ 2 produktów (liczone przy odczycie — także dla przypisań sprzed 0.69.0),
+  ≥ 2 produktów (seed, edytor i odczyt tą samą regułą — dla `NONE` także w przypisaniach
+  sprzed 0.69.0); jawne `swappable: false` trenera dla `P`/`C`/`F` jest honorowane,
+  dla `NONE` blokada per składnik czeka na migrację (do tego czasu blokada posiłku),
 - trener może zablokować wymiany globalnie dla klienta lub dla konkretnego posiłku,
 - trener widzi historię wymian klienta (co, kiedy, na co, **z jakiego poziomu**),
 - tabela grup pokrewnych w panelu szablonów **tylko do odczytu** (status PROPOZYCJA,

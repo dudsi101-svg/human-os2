@@ -54,11 +54,14 @@ def test_kategorie_z_gory_na_nie_z_wyjatkami(kk, diet_rows):
                          _row(kk, "Cola testowa", "Napoje"), _row(kk, "Napój sojowy testowy", "Napoje"),
                          _row(kk, "Kreatyna testowa", "Odżywki i suplementy"),
                          _row(kk, "Odżywka białkowa testowa", "Odżywki i suplementy"),
+                         _row(kk, "Odżywka węglowodanowa testowa", "Odżywki i suplementy"),
                          _row(kk, "Chipsy testowe", "Przekąski i słodycze")], diet_rows)
     dec = {o["name"]: (o["proposed_group"], o["decision"]) for o in out}
     assert dec["Pizza testowa"][1] == "NIE" and dec["Chipsy testowe"][1] == "NIE"
     assert dec["Napój sojowy testowy"] == ("mleko", "")
     assert dec["Odżywka białkowa testowa"] == ("białko_proszek", "")
+    # Odżywka węglowodanowa to nie białko w proszku — bez grupy, NIE z góry (przegląd 14.09).
+    assert dec["Odżywka węglowodanowa testowa"] == ("", "NIE")
     # Kategorie z góry NIE zostają w CSV (człowiek może zmienić na TAK), także bez dopasowanej grupy.
     assert dec["Cola testowa"] == ("", "NIE") and dec["Kreatyna testowa"] == ("", "NIE")
 

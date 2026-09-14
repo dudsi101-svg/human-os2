@@ -352,7 +352,7 @@ def test_bramka_nie_pogarsza_w_posilku_poza_tolerancja(prods, tpl):
     dev0 = S._odchylenia(S.sum_macros(zly["ingredients"], prods), zly["target"])
     for o in out:
         dev = S._odchylenia(o["macros"], zly["target"])
-        assert S.check(o["macros"], zly["target"], S.TOL_MEAL)[0] or all(dev[k] <= dev0[k] + 1e-9 for k in dev)
+        assert S.check(o["macros"], zly["target"], S.TOL_MEAL)[0] or all(dev[k] <= dev0[k] + S.EPS_NIE_POGARSZA[k] for k in dev)
         assert set(o["meal_delta"]) == {"kcal", "P", "F", "C"}
 
 
@@ -411,13 +411,41 @@ def test_powody_pustej_listy(prods, tpl):
                                   "F": idealny["target"]["F"], "C": idealny["target"]["C"]})
     _, meta = S.swap_candidates_z_powodami(daleki, i2, prods, n=10, related=_pokrewne(),
                                            exclusions=tuple(p.name_pl for p in prods.values() if p.protein_100 > prods["Pierś z kurczaka (surowa)"].protein_100))
-    assert meta["reason"] in ("TOLERANCE", "EXCLUDED")  # zależnie od tego, czy ktokolwiek dotarł do bramki
-    # PORTION: kandydat mięsny musiałby przekroczyć 300 g.
+    assert meta["reason"] == "TOLERANCE"  # 14 kandydatów doszło do bramki — najdalszy etap wygrywa
+    # PORTION: każdy kandydat mięsny musiałby przekroczyć 300 g (chude mięsa/ryby wykluczone po nazwie,
+    # żeby żaden nie przeszedł — powód pustej listy musi być PORTION, nie None).
     duzy = dict(m2, ingredients=[dict(x) for x in m2["ingredients"]])
     duzy["ingredients"][i2] = dict(duzy["ingredients"][i2], grams=290)
     duzy["target"] = S.sum_macros(duzy["ingredients"], prods)
-    _, meta = S.swap_candidates_z_powodami(duzy, i2, prods, n=10, exclusions=("Pierś z indyka (surowa)",))
-    assert "PORTION" in meta["rejected"]
+    grupa = prods["Pierś z kurczaka (surowa)"].substitution_group
+    lekkie = tuple(p.name_pl for p in prods.values()
+                   if p.substitution_group == grupa and p.name_pl != "Pierś z kurczaka (surowa)"
+                   and p.protein_100 >= prods["Pierś z kurczaka (surowa)"].protein_100 * 290 / 300)
+    out, meta = S.swap_candidates_z_powodami(duzy, i2, prods, n=10, exclusions=lekkie)
+    assert out == [] and meta["reason"] == "PORTION" and meta["rejected"].get("PORTION"), meta
+
+
+def test_bramka_nie_pogarsza_ma_luz_ponizej_rozdzielczosci_wyswietlania(prods, tpl):
+    """Klon produktu o identycznych makrach, gramatura zaokrąglona w dół o krok (66 → 65 g):
+    pogorszenie o setne grama nie odrzuca kandydata (przegląd 14.09, masło → oliwa)."""
+    week = S.scale_week(tpl, 2000, prods)
+    m, i = _skladnik(week, "Kurczak stir-fry", "Pierś z kurczaka (surowa)")
+    zly = dict(m, ingredients=[dict(x) for x in m["ingredients"]])
+    zly["ingredients"][i] = dict(zly["ingredients"][i], grams=66, round_step=5)
+    zly["target"] = {**S.sum_macros(zly["ingredients"], prods)}
+    zly["target"] = {k: v for k, v in zly["target"].items() if k in ("kcal", "P", "F", "C")}
+    zly["target"]["P"] += 60  # posiłek poza tolerancją, żeby działała gałąź „nie pogarsza”
+    assert not S.check(S.sum_macros(zly["ingredients"], prods), zly["target"], S.TOL_MEAL)[0]
+    kurczak = prods["Pierś z kurczaka (surowa)"]
+    prods2 = dict(prods)
+    prods2["Klon kurczaka"] = S.Produkt("Klon kurczaka", kurczak.category, kurczak.substitution_group, kurczak.kcal_100,
+                                       kurczak.protein_100, kurczak.fat_100, kurczak.carbs_100, kurczak.cooking_tags)
+    inni = tuple(p.name_pl for p in prods.values() if p.substitution_group == kurczak.substitution_group and p.name_pl != kurczak.name_pl)
+    out, meta = S.swap_candidates_z_powodami(zly, i, prods2, n=10, exclusions=inni, related=_pokrewne())
+    assert [o["product"] for o in out] == ["Klon kurczaka"] and out[0]["grams"] == 65, meta
+    # Bez luzu (stara reguła 1e-9) ten sam kandydat odpada za pogorszenie o ~0,3 g białka.
+    assert not S.nie_pogarsza(out[0]["macros"], zly["target"],
+                              {k: v - S.EPS_NIE_POGARSZA[k] for k, v in S._odchylenia(S.sum_macros(zly["ingredients"], prods), zly["target"]).items()})
 
 
 def test_puste_tagi_kandydata_to_wildcard_na_poziomie_1_ale_nie_na_2(prods):

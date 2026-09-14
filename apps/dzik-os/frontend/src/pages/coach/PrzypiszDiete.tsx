@@ -227,7 +227,7 @@ export default function PrzypiszDiete({ clientId, onPrzypisano, onAnuluj }: {
           )}
           <label>Wykluczenia (alergeny / diety)</label>
           <div className="row" style={{ gap: 6 }}>
-            {(["gluten", "mleko", "lactose", "jaja", "orzechy", "ryby", "soja", "meat", "dairy", "fish", "egg"] as const).map((a) => (
+            {(["gluten", "mleko", "lactose", "jaja", "orzechy", "orzechy_ziemne", "ryby", "skorupiaki", "soja", "sezam", "gorczyca", "meat", "dairy", "fish", "egg"] as const).map((a) => (
               <button key={a} type="button" aria-pressed={alergeny.has(a)} className={alergeny.has(a) ? "btn btn--small" : "btn btn--ghost btn--small"}
                 onClick={() => setAlergeny((s) => { const n = new Set(s); if (n.has(a)) n.delete(a); else n.add(a); return n; })}>{a}</button>
             ))}

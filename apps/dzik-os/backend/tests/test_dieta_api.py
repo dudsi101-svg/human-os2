@@ -220,7 +220,7 @@ def test_wymiana_kandydaci_walidacja_gramatury_i_historia(dieta):
     indyk = cands[0]
     body = {"day": 1, "meal_id": m["meal_id"], "ingredient_id": kur["ingredient_id"], "to_product_id": indyk["product_id"]}
     # Niepoprawna gramatura z klienta → odrzucona po walidacji serwerowej.
-    r = c.post(f"{D}/assigned/{a['id']}/swaps", headers=dieta["ha"], json={**body, "grams": 999})
+    r = c.post(f"{D}/assigned/{a['id']}/swaps", headers=dieta["ha"], json={**body, "grams": 290})
     assert r.status_code == 422 and "tolerancj" in r.json()["detail"]
     # Produkt spoza kandydatów → 422.
     prod = c.get(f"{D}/products", headers=dieta["hc"]).json()["products"]
@@ -448,7 +448,73 @@ def test_wymiana_v2_powod_pustej_listy_i_poziom_2(dieta):
     d2, m2, aw2 = _skladnik_z_planu(a2, "Awokado")
     r = c.get(f"{D}/assigned/{a2['id']}/swaps", headers=dieta["ha"],
               params={"day": d2["day"], "meal": m2["meal_id"], "ingredient": aw2["ingredient_id"]})
-    assert r.status_code == 200 and r.json()["candidates"] == [] and r.json()["reason"] in ("EXCLUDED", "TOLERANCE", "FUNCTION")
+    assert r.status_code == 200 and r.json()["candidates"] == [] and r.json()["reason"] == "EXCLUDED"
+
+
+def test_wymiana_v2_post_odrzuca_produkt_spoza_listy_takze_na_poziomie_2(dieta):
+    """Kandydat z grupy pokrewnej, który odpadł sitem (albo w ogóle nie był liczony),
+    nie przechodzi POST-em — ta sama ścieżka co GET (przegląd 14.09, brakujący test §6)."""
+    c = dieta["c"]
+    a = _assign(dieta).json()
+    d, m, aw = _skladnik_z_planu(a, "Awokado")
+    body = c.get(f"{D}/assigned/{a['id']}/swaps", headers=dieta["ha"],
+                 params={"day": d["day"], "meal": m["meal_id"], "ingredient": aw["ingredient_id"]}).json()
+    na_liscie = {x["product"] for x in body["candidates"]}
+    prods = {p["name_pl"]: p for p in c.get(f"{D}/products", headers=dieta["hc"]).json()["products"]}
+    # Masło i Skwarki są w grupie pokrewnej „tłuszcz” (poziom 2), ale nie na liście kandydatów.
+    for nazwa in ("Masło", "Skwarki"):
+        assert nazwa in prods and nazwa not in na_liscie, (nazwa, na_liscie)
+        r = c.post(f"{D}/assigned/{a['id']}/swaps", headers=dieta["ha"],
+                   json={"day": d["day"], "meal_id": m["meal_id"], "ingredient_id": aw["ingredient_id"], "to_product_id": prods[nazwa]["id"]})
+        assert r.status_code == 422, r.text
+    assert c.get(f"{D}/clients/{dieta['cid']}/current", headers=dieta["hc"]).json()["swap_events"] == []
+
+
+def test_wymiana_v2_gramatura_klienta_przechodzi_limity_porcji(dieta):
+    """Gramatura z POST przechodzi te same limity v1.1 co gramatura silnika (≤ 300 g mięsa/ryby)."""
+    c = dieta["c"]
+    a = _assign(dieta).json()
+    d, m, ku = _skladnik_z_planu(a, "Pierś z kurczaka (surowa)")
+    body = c.get(f"{D}/assigned/{a['id']}/swaps", headers=dieta["ha"],
+                 params={"day": d["day"], "meal": m["meal_id"], "ingredient": ku["ingredient_id"]}).json()
+    kand = next(x for x in body["candidates"] if x["product"] == "Pierś z indyka (surowa)")
+    zle = {"day": d["day"], "meal_id": m["meal_id"], "ingredient_id": ku["ingredient_id"], "to_product_id": kand["product_id"], "grams": 305}
+    r = c.post(f"{D}/assigned/{a['id']}/swaps", headers=dieta["ha"], json=zle)
+    assert r.status_code == 422 and "limit" in r.json()["detail"], r.text
+    r = c.post(f"{D}/assigned/{a['id']}/swaps", headers=dieta["ha"], json={**zle, "grams": kand["grams"]})
+    assert r.status_code == 201, r.text
+
+
+def test_wymiana_v2_swappable_efektywne_dla_starej_migawki_tylko_none(dieta):
+    """Migawka sprzed 0.69.0: NONE z grupą ≥ 2 dostaje przycisk przy odczycie, jawne
+    `swappable: false` trenera dla roli P zostaje (przegląd 14.09)."""
+    from dzik_os.models import DietAssigned
+    c = dieta["c"]
+    a = _assign(dieta).json()
+    with db_session() as db:
+        row = db.get(DietAssigned, a["id"])
+        plan = json.loads(row.computed_plan_json)
+        for dd in plan["days"]:
+            for mm in dd["meals"]:
+                for ii in mm["ingredients"]:
+                    if ii["product"] in ("Brokuł", "Pierś z kurczaka (surowa)"):
+                        ii["swappable"] = False
+        row.computed_plan_json = json.dumps(plan, ensure_ascii=False)
+        db.commit()
+    cur = c.get(f"{D}/assigned/current", headers=dieta["ha"]).json()["assigned"]
+    _, _, br = _skladnik_z_planu(cur, "Brokuł")
+    _, m, ku = _skladnik_z_planu(cur, "Pierś z kurczaka (surowa)")
+    assert br["role"] == "NONE" and br["swappable"] is True
+    assert ku["role"] == "P" and ku["swappable"] is False
+    d = next(x for x in cur["plan"]["days"] if any(mm["meal_id"] == m["meal_id"] for mm in x["meals"]))
+    body = c.get(f"{D}/assigned/{a['id']}/swaps", headers=dieta["ha"],
+                 params={"day": d["day"], "meal": m["meal_id"], "ingredient": ku["ingredient_id"]}).json()
+    assert body["blocked"] == "Ten składnik nie podlega wymianie." and body["candidates"] == []
+    # Migawka w bazie nie została przepisana.
+    with db_session() as db:
+        zapis = json.loads(db.get(DietAssigned, a["id"]).computed_plan_json)
+    assert any(ii["product"] == "Brokuł" and ii["swappable"] is False
+               for dd in zapis["days"] for mm in dd["meals"] for ii in mm["ingredients"])
 
 
 def test_wymiana_v2_rola_none_1_do_1_i_swappable_efektywne(dieta):

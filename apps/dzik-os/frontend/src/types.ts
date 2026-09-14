@@ -1736,7 +1736,7 @@ export interface DietSwapCandidate {
 /** Powód pustej listy zamienników (wymiany v2) — każdy ma własny komunikat po polsku. */
 export type DietSwapReason = "SINGLETON" | "EXCLUDED" | "FUNCTION" | "PORTION" | "TOLERANCE";
 export const DIET_SWAP_REASON_LABELS: Record<DietSwapReason, string> = {
-  SINGLETON: "Ten produkt nie ma jeszcze zamienników w bazie — napisz do trenera, jeśli chcesz go zmienić.",
+  SINGLETON: "Ten produkt nie ma jeszcze zamienników w bazie.",
   EXCLUDED: "Wszystkie zamienniki odpadły przez Twoje wykluczenia (alergeny, dieta, „nie lubię”).",
   FUNCTION: "Zamienniki z tej grupy nie pasują do tego posiłku (inny sposób przygotowania albo inna rola makro).",
   PORTION: "Zamienniki wymagałyby porcji poza rozsądnym zakresem — poproś trenera o korektę posiłku.",

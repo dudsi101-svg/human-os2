@@ -1,9 +1,10 @@
 """Test-strażnik pokrycia zamienników (wymiany v2, 0.69.0).
 
 Pomiar z 14.09.2026 (`tools/pomiar_wymian.py`, Standard v1, bez wykluczeń, poziom 1 + 2,
-bramka „nie pogarsza”, limity porcji v1.1): składników z rolą P/C/F bez ŻADNEGO kandydata —
-1600 kcal: 9/108 (8 %), 2000 kcal: 3/108 (3 %), 2600 kcal: 9/108 (8 %); rola NONE przy
-2000 kcal: 3/124 (2 %). Przed rundą (poziom 1, bramka absolutna): 20/108, 12/108, 18/108.
+bramka „nie pogarsza” z luzem poniżej rozdzielczości wyświetlania, limity porcji v1.1):
+składników z rolą P/C/F bez ŻADNEGO kandydata — 1600 kcal: 7/108 (6 %), 2000 kcal: 3/108
+(3 %), 2600 kcal: 9/108 (8 %); rola NONE przy 2000 kcal: 3/124 (2 %). Przed rundą (poziom 1,
+bramka absolutna): 20/108, 12/108, 18/108.
 Progi poniżej = pomiar + margines 3 punktów procentowych — nie „≤ 0” (kłamstwo), nie 50 %
 (ozdoba). Gdy test spadnie: coś zepsuło podaż kandydatów (dane albo silnik)."""
 
@@ -15,7 +16,7 @@ from pathlib import Path
 import pytest
 
 TOOLS = Path(__file__).resolve().parents[2] / "tools"
-PROGI_PCF = {1600: 0.11, 2000: 0.06, 2600: 0.11}  # pomiar 14.09 + 3 pp
+PROGI_PCF = {1600: 0.10, 2000: 0.06, 2600: 0.11}  # pomiar 14.09 (po przeglądzie) + 3 pp
 PROG_NONE_2000 = 0.05
 
 

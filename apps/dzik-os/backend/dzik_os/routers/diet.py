@@ -384,6 +384,10 @@ def swap(diet_id: str, body: SwapIn, user: User = Depends(current_user), db: Ses
         raise HTTPException(status_code=422, detail="Ten produkt nie jest bezpiecznym zamiennikiem w tym posiłku.")
     grams = float(body.grams) if body.grams is not None else kand["grams"]
     prods, rows = serwis.produkty(db)
+    # Gramatura z klienta przechodzi te same limity porcji co gramatura silnika (przegląd 14.09).
+    if not S.limit_porcji(prods[kand["product"]], grams):
+        raise HTTPException(status_code=422, detail=f"Porcja {grams:.0f} g przekracza limit dla tego produktu "
+                                                    f"(≤ 300 g surowego mięsa/ryby, ≤ 4 jajka); dopuszczalna: {kand['grams']:.0f} g.")
     ings = [{"product": x["product"], "grams": x["grams"]} for x in m["ingredients"]]
     przed = S.sum_macros(ings, prods)
     dev_przed = S._odchylenia(przed, m["target"])
@@ -511,7 +515,8 @@ class IngredientIn(BaseModel):
     unit_g: float | None = Field(default=None, gt=0, le=1000)
     unit_step: float | None = Field(default=None, gt=0, le=10)
     group_name: str | None = Field(default=None, max_length=60)
-    # Brak = domyślnie wymienialne składniki z rolą P/C/F (§7.3), jak w seedzie.
+    # Brak = domyślnie wymienialne składniki z rolą P/C/F oraz NONE z grupą ≥ 2 produktów
+    # (§7.3, wymiany v2) — ta sama reguła co w seedzie.
     swappable: bool | None = None
 
 
@@ -528,7 +533,12 @@ def _skladnik_z_wejscia(db: Session, body: IngredientIn) -> dict[str, Any]:
         raise HTTPException(status_code=422, detail="min_factor nie może być większy niż max_factor.")
     dane = body.model_dump()
     if dane["swappable"] is None:
-        dane["swappable"] = body.macro_role in ("P", "C", "F")
+        if body.macro_role in ("P", "C", "F"):
+            dane["swappable"] = True
+        else:
+            licznosc = (db.query(DietProduct).filter(DietProduct.substitution_group == prod.substitution_group).count()
+                        if prod.substitution_group else 0)
+            dane["swappable"] = klasa != "STAŁY" and licznosc >= 2
     return dane
 
 

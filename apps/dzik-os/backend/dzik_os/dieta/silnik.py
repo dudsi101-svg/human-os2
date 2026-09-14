@@ -391,7 +391,7 @@ MIN_BIALKO_100 = 15.0  # rola P na poziomie 2: nabiał chudy ma dużo wody — 1
 
 
 def _tagi(p: Produkt) -> set[str]:
-    return {t for t in str(p.cooking_tags).split(",") if t}
+    return {t.strip() for t in str(p.cooking_tags).split(",") if t.strip()}
 
 
 def _makro_dominujace(q: Produkt) -> str:
@@ -411,13 +411,33 @@ def _odchylenia(cur: dict, target: dict) -> dict[str, float]:
     return {k: abs(cur[k] - target[k]) for k in ("kcal", "P", "F", "C")}
 
 
+# Luz bramki „nie pogarsza” poniżej rozdzielczości, jaką widzi klient (makro migawki
+# zaokrąglone do 0,1 g, gramatura do kroku 5 g): pogorszenie osi o setne grama przez
+# zaokrąglenie gramatury kandydata nie jest pogorszeniem posiłku (przegląd 14.09: masło
+# 6 g → oliwa 5 g odpadało za +0,05 g białka). Interpretacja spec §4 pkt 5 („wymiana
+# neutralna lub poprawiająca jest dozwolona”) — do potwierdzenia przez właściciela.
+EPS_NIE_POGARSZA = {"kcal": 5.0, "P": 0.5, "F": 0.5, "C": 0.5}
+JAJKO = "Jajko kurze (całe)"
+JAJKO_UNIT_G = 55.0  # jednostka jajka w szablonach (2 szt. ≈ 110 g)
+
+
 def nie_pogarsza(cur: dict, target: dict, dev_przed: dict) -> bool:
     """Bramka „nie pogarsza”: posiłek po wymianie mieści się w TOL_MEAL ALBO żadne
-    odchylenie (kcal, P, F, C) co do modułu nie jest większe niż przed wymianą."""
+    odchylenie (kcal, P, F, C) co do modułu nie jest większe niż przed wymianą
+    (z luzem `EPS_NIE_POGARSZA` poniżej rozdzielczości wyświetlania)."""
     if check(cur, target, TOL_MEAL)[0]:
         return True
     dev = _odchylenia(cur, target)
-    return all(dev[k] <= dev_przed[k] + 1e-9 for k in dev)
+    return all(dev[k] <= dev_przed[k] + EPS_NIE_POGARSZA[k] for k in dev)
+
+
+def limit_porcji(q: Produkt, g: float) -> bool:
+    """Limity porcji v1.1 po kategorii KANDYDATA — ta sama reguła przy doborze
+    kandydatów i przy gramaturze z klienta w POST: ≤ 300 g surowego mięsa/ryby
+    (wędlina bez limitu), ≤ 4 jajka (jednostka 55 g)."""
+    if q.category in ("mięso", "ryby") and q.substitution_group != "wędlina" and g > 300:
+        return False
+    return not (q.name_pl == JAJKO and g > 4 * JAJKO_UNIT_G)
 
 
 def swap_candidates_z_powodami(meal_result: dict, ing_index: int, products: Products, exclusions=(), n: int = 3,
@@ -448,7 +468,8 @@ def swap_candidates_z_powodami(meal_result: dict, ing_index: int, products: Prod
     odrzucone: dict[str, int] = {}
     najdalej = 0
     step = ing.get("round_step") or 5
-    unit_g = float(ing.get("unit_g") or 0)
+    # Wykluczenia bez wrażliwości na wielkość liter („Mleko” z pola „nielubiane” = „mleko”).
+    wykluczenia = tuple(str(x).casefold() for x in exclusions)
     cands = []
     rozwazani = 0
     for q in products.values():
@@ -469,7 +490,8 @@ def swap_candidates_z_powodami(meal_result: dict, ing_index: int, products: Prod
             odrzucone[powod] = odrzucone.get(powod, 0) + 1
             najdalej = max(najdalej, _ETAP[powod])
 
-        if any(x in str(q.diet_exclusions) or x in str(q.allergens) or x == q.name_pl for x in exclusions):
+        if any(x in str(q.diet_exclusions).casefold() or x in str(q.allergens).casefold() or x == q.name_pl.casefold()
+               for x in wykluczenia):
             odrzuc("EXCLUDED")
             continue
         qtags = _tagi(q)
@@ -494,10 +516,7 @@ def swap_candidates_z_powodami(meal_result: dict, ing_index: int, products: Prod
         # gęstość produktów różni się kilkukrotnie (50 g awokado ↔ 8 g oliwy to poprawna
         # wymiana tłuszczu), pomiar z 14.09: zakres factor dawał 6/108 pustych list zamiast 3
         # przy 2000 kcal i 51/124 zamiast 3 dla roli NONE (docs/diet-module/PROGRESS.md).
-        if q.category in ("mięso", "ryby") and q.substitution_group != "wędlina" and g > 300:
-            odrzuc("PORTION")
-            continue
-        if q.name_pl == "Jajko kurze (całe)" and unit_g > 0 and g > 4 * unit_g:
+        if not limit_porcji(q, g):
             odrzuc("PORTION")
             continue
         ings = [dict(x) for x in meal_result["ingredients"]]
@@ -519,7 +538,7 @@ def swap_candidates_z_powodami(meal_result: dict, ing_index: int, products: Prod
         if rozwazani == 0:
             reason = "SINGLETON"
         else:
-            reason = next(k for k, v in _ETAP.items() if v == najdalej)
+            reason = next((k for k, v in _ETAP.items() if v == najdalej), None)
     return out, {"reason": reason, "rejected": odrzucone, "considered": rozwazani}
 
 

@@ -128,8 +128,8 @@ Klient wymienia składniki sam; Ty decydujesz, czy wymiany są włączone
 lub „grupa pokrewna". Grupy pokrewne (np. kasza ↔ makaron, jogurt ↔ jajka)
 to tabela tylko do odczytu w panelu „Szablony diet" — propozycja do Twojego
 przeglądu; pary oznaczone „?" są wyłączone, dopóki właściciel ich nie
-włączy. Wymiana nigdy nie pogarsza makr posiłku i nie omija alergenów
-i wykluczeń klienta. Poprawki powiązań zgłaszasz właścicielowi (edycja
+włączy. Wymiana nie wyprowadza posiłku poza tolerancję, a posiłku już
+poza nią nie pogarsza; nigdy nie omija alergenów i wykluczeń klienta. Poprawki powiązań zgłaszasz właścicielowi (edycja
 z panelu to osobna runda). Katalog produktów z Bazy wiedzy nie zasila
 wymian bezpośrednio — trafia tam tylko przez przeglądany import (CSV
 propozycji z decyzjami TAK/NIE, alergeny do potwierdzenia przez Ciebie).
