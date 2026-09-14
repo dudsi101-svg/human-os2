@@ -66,6 +66,12 @@ class User(Base):
     # aplikacji (DZIK_TZ). Odczytywana przez dates.tz_for_user() — steruje
     # datami kalendarzowymi i porami przypomnień (migracja nr 14).
     timezone: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    # Znacznik obejrzenia okna powitalnego (0.70.0): data pierwszego zamknięcia
+    # dwuetapowego samouczka („Pomiń na razie” albo „Rozumiem, zaczynajmy”).
+    # NULL = jeszcze nie pokazane. Trzymany na serwerze, żeby działał między
+    # urządzeniami; znacznik interfejsu jak last_login_at — nie wchodzi do
+    # eksportu danych (migracja nr 37).
+    welcome_seen_at: Mapped[str | None] = mapped_column(String(40), nullable=True)
 
 
 class RoleGrant(Base):

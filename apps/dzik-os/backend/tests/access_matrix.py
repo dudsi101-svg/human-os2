@@ -335,6 +335,7 @@ MATRIX: dict[tuple[str, str], Access] = {
     ("GET", "/api/me/export.xlsx"): Access.AUTHENTICATED,
     ("GET", "/api/me/food-products"): Access.AUTHENTICATED,
     ("GET", "/api/me/knowledge"): Access.AUTHENTICATED,
+    ("POST", "/api/me/welcome-seen"): Access.AUTHENTICATED,
     ("GET", "/api/wiedza/artykuly"): Access.AUTHENTICATED,
     ("GET", "/api/wiedza/artykuly/{article_id}"): Access.AUTHENTICATED,
     ("POST", "/api/wiedza/odczyty/{article_id}"): Access.AUTHENTICATED,
