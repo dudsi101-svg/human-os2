@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api, getUser, money } from "../../api";
 import { plDate } from "../../dates";
@@ -6,6 +6,8 @@ import {
   ErrorBox, ExerciseTechniqueLink, Icon, PushContextPrompt, Spinner, TopBar,
 } from "../../components";
 import { CATEGORY_LABELS, ConsultSlotRow, TodayData } from "../../types";
+import { powitanie } from "../../powitanie";
+import PanelNawykow from "../nawyki/PanelNawykow";
 
 export default function Today() {
   const [data, setData] = useState<TodayData | null>(null);
@@ -20,10 +22,10 @@ export default function Today() {
   const [interviewDismissed, setInterviewDismissed] = useState(false);
   const user = getUser();
 
-  const load = () => {
+  const load = useCallback(() => {
     setError(null);
     api.get<TodayData>("/api/me/today").then(setData).catch((e) => setError(e.message));
-  };
+  }, []);
   useEffect(() => {
     load();
     if (user) {
@@ -91,6 +93,15 @@ export default function Today() {
   return (
     <div className="page">
       <TopBar title="Dzisiaj" />
+      {/* Panel rozwojowy (0.63.0): powitanie → hasło dnia → nawyki. */}
+      <p className="powitanie" data-testid="powitanie">{powitanie(new Date().getHours(), data.greeting_name)}</p>
+      <div className="card card--accent" style={{ marginBottom: 10 }} data-testid="haslo-dnia">
+        <p style={{ margin: 0, fontSize: "1.05rem", color: "var(--text)" }}>
+          <Icon name="sparkle" /> <i>„{data.daily_message.text}”</i>
+        </p>
+        <small className="dim">— {data.daily_message.author}{data.daily_message.note ? ` (${data.daily_message.note})` : ""}</small>
+      </div>
+      {user && <PanelNawykow clientId={user.id} tryb="klient" habits={data.habits} onZmiana={load} />}
       {needsIntake && (
         <div className="card card--accent" style={{ marginBottom: 10 }}>
           <b style={{ color: "var(--text)" }}>👋 Zacznijmy od rozmowy startowej</b>
