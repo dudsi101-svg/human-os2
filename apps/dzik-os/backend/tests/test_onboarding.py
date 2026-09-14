@@ -945,7 +945,7 @@ def test_eksport_obejmuje_rozmowe_z_historia_poprawek(seeded):
     # 1.5 = wersja eksportu po dołożeniu zadań przepisywania tekstu ze
     # zdjęcia (ocr_tasks); rozmowa startowa wchodzi do eksportu jak wcześniej.
     # 1.8 = po dołożeniu nawyków (habits, habit_completions).
-    assert export["export_version"] == "1.8"
+    assert export["export_version"] == "1.9"
     assert len(export["onboarding_sessions"]) == 1
     wartosci = {a["value"] for a in export["onboarding_answers"]}
     assert {"Pierwsza wersja celu", "Druga wersja celu"} <= wartosci

@@ -142,12 +142,16 @@ domeny endpointu (`sensitive` wynika z katalogu kategorii).
 | POST/GET /api/clients/{id}/observations | W, T | obserwacje klienta (`schedule_item_id` musi należeć do klienta) | T: tak | T: tak | R/W |
 | POST/GET /api/clients/{id}/nutrition-log; GET /monitoring | W, T | dziennik/monitoring klienta | T: tak | T: tak | R/W |
 | GET /api/clients/{id}/personal-records, /strength-series | W, T | rekordy/serie jednego klienta | T: tak | T: tak | R |
+| GET /api/monitoring/summary, /records, /training | W (self), T (`client_id`) | postępy jednego klienta; 404 bez flagi `monitoring_tab_enabled`; trener bez `client_id` → 422; w `summary` waga tylko ze zgodą zdrowotną, dieta tylko ze zgodą żywieniową | T: tak | T: tak (dane treningowe) | R |
+| GET /api/monitoring/body | W (self; klient z flagą zdrowotną → 404), T (`client_id`) | sylwetka: waga (średnia), obwody, zdjęcia; bez zgody na zdjęcia `photos` puste (jak w `clients/{id}`) | T: tak | T: tak (dane zdrowotne) | R |
+| GET /api/monitoring/clients, /clients/{id} | T | własni aktywni klienci z sygnałami; widok jednego klienta (obcy → 404); sekcje bez zgody per domena znikają z odpowiedzi; `health_flag` (pochodna wywiadu, decyzja właściciela 14.09) zawsze | T: tak | T: per domena | R |
 | POST/PUT/status /api/coach/knowledge, /exercises, /food-products | T·own | wyłącznie własne wpisy katalogów | — | — | W |
 | GET /api/coach/knowledge, /exercises, /food-products | T·own | własny katalog (izolacja między trenerami) | — | — | R |
 | GET /api/me/knowledge, /exercises, /food-products | klient | AKTYWNE wpisy trenerów z AKTYWNĄ relacją | tak | nie (broadcast) | R |
 | GET /api/diet/assigned/{id}/swaps; POST /api/diet/assigned/{id}/swaps | W (własna dieta), T (klient prowadzony) | przypisanie jednego klienta; kandydaci liczeni po stronie serwera (alergeny, wykluczenia, limity porcji, bramka posiłku), POST tylko dla kandydata z listy; blokady trenera → 409 | T: tak | T: tak | R / W |
 | GET /api/diet/products | COACH, ADMIN | katalog produktów diet + statyczne powiązania grup (`related_groups`, tylko do odczytu) | — | — | R |
-| POST /api/coach/diet-suggestion | T·own | wyłącznie własne produkty (422 dla cudzych); nic nie zapisuje | — | — | R |
+| POST /api/coach/diet-suggestion | T·own | wyłącznie własne produkty (422 dla cudzych); nic nie zapisuje; od 0.67.0 za flagą `DZIK_DIET_WIZARD_ENABLED` (bez niej 404) | — | — | R |
+| POST /api/coach/diet-wizard | T·own | propozycja diety z własnego katalogu (propose-only, nic nie zapisuje); od 0.67.0 za flagą `DZIK_DIET_WIZARD_ENABLED` (bez niej 404) | — | — | R |
 | GET /api/coach/food-products/export | T·own | eksport CSV wyłącznie własnego katalogu (prawo wyjścia) | — | — | R |
 | POST /api/coach/food-products/import | T·own | import CSV dopisuje/aktualizuje wyłącznie własne produkty — nigdy cudze (dopasowanie po nazwie w obrębie katalogu trenera) | — | — | W |
 | POST /api/food-products/portion | zalogowany | kalkulator porcji: własny produkt (trener) albo AKTYWNY produkt trenera z AKTYWNĄ relacją (klient); 404 poza tym | tak (klient) | nie | R |

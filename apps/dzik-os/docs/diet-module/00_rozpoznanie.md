@@ -35,7 +35,7 @@ zasięgiem; 275 testów musi zostać zielone).
 |---|---|---|
 | Plan żywieniowy klienta (wersje, sekcje/posiłki/suplementy), szkice i publikacja (0.58.0) | `routers/nutrition.py`, `publikacja/*`, `NutritionPlan(Version)` | zostaje — nowy moduł jest równoległy |
 | Szablony diety trenera (kopia do klienta, 0.54.0) | `routers/nutrition_templates.py`, `NutritionTemplate` | zostaje |
-| „Kreator diety” / kompozycja wg uznanych diet (0.44–0.48) + kreator dań z receptur (0.57.0) | `routers/kulinaria.py`, `kulinaria/*`, `KreatorDan.tsx` | to jest „stary konfigurator diet” z instrukcji — **nie naprawiamy, nie usuwamy**; wyłączenie flagą to osobna decyzja właściciela (poza tą rundą) |
+| „Kreator diety” / kompozycja wg uznanych diet (0.44–0.48) + kreator dań z receptur (0.57.0) | `routers/kulinaria.py`, `kulinaria/*`, `KreatorDan.tsx` | to jest „stary konfigurator diet” z instrukcji — **nie naprawiamy, nie usuwamy**; wyłączenie flagą to osobna decyzja właściciela — **podjęta 14.09 (zlecenie 0): od 0.67.0 kreator za `DZIK_DIET_WIZARD_ENABLED`, domyślnie ukryty; kreator dań bez flagi na API, ale bez wejścia w UI (zakładka)** |
 | Konfigurator 28 dni (trening, K1) | `routers/konfigurator.py` | niezwiązany |
 | Baza produktów spożywczych (~2000, `FoodProduct`) | `routers/food_catalog.py` | inna tabela; moduł ma własną `diet_products` (142 z CSV, z `substitution_group`, tagami, `source`) — bez łączenia w v1 |
 

@@ -13,6 +13,9 @@ const Plan = lazy(() => import("./pages/client/Plan"));
 const Nutrition = lazy(() => import("./pages/client/Nutrition"));
 const Checkin = lazy(() => import("./pages/client/Checkin"));
 const Progress = lazy(() => import("./pages/client/Progress"));
+const Postepy = lazy(() => import("./pages/postepy/Postepy"));
+const Monitoring = lazy(() => import("./pages/postepy/Monitoring"));
+const KlientMonitoring = lazy(() => import("./pages/postepy/KlientMonitoring"));
 const Payments = lazy(() => import("./pages/client/Payments"));
 const Profile = lazy(() => import("./pages/client/Profile"));
 const Documents = lazy(() => import("./pages/client/Documents"));
@@ -34,7 +37,7 @@ const WeeklyDigest = lazy(() => import("./pages/coach/WeeklyDigest"));
 const Templates = lazy(() => import("./pages/coach/Templates"));
 const CoachKnowledge = lazy(() => import("./pages/coach/Knowledge"));
 const Admin = lazy(() => import("./pages/Admin"));
-import { getUser } from "./api";
+import { getUser, hasFeature } from "./api";
 import { ErrorBoundary, Nav } from "./components";
 import { maskPathIds } from "./errorUtils";
 import Login from "./pages/Login";
@@ -50,6 +53,7 @@ export default function App() {
   const user = getUser();
   const location = useLocation();
   const roles = user?.roles ?? [];
+  const monitoringTab = hasFeature("monitoring_tab");
   const isClient = roles.includes("CLIENT");
   const needsPassword = user?.must_change_password === true;
   const needsMfaSetup = user?.mfa_setup_required === true;
@@ -111,8 +115,22 @@ export default function App() {
             <Route path="/ankieta" element={<Intake />} />
             <Route path="/plan" element={<Plan />} />
             <Route path="/dieta" element={<Nutrition />} />
-            <Route path="/raport" element={<Checkin />} />
-            <Route path="/postepy" element={<Progress />} />
+            {/* Zakładka „Postępy” (0.66.0) za flagą serwera: przy włączonej
+                raport przechodzi do „Więcej” (/wiecej/raport), a stare adresy
+                /raport i /postepy przekierowują — zakładki i linki nie giną. */}
+            {monitoringTab ? (
+              <>
+                <Route path="/monitoring" element={<Postepy />} />
+                <Route path="/wiecej/raport" element={<Checkin />} />
+                <Route path="/raport" element={<Navigate to="/wiecej/raport" replace />} />
+                <Route path="/postepy" element={<Navigate to="/monitoring" replace />} />
+              </>
+            ) : (
+              <>
+                <Route path="/raport" element={<Checkin />} />
+                <Route path="/postepy" element={<Progress />} />
+              </>
+            )}
             <Route path="/platnosci" element={<Payments />} />
             <Route path="/profil" element={<Profile />} />
             <Route path="/dokumenty" element={<Documents />} />
@@ -131,6 +149,8 @@ export default function App() {
             <Route path="/trener/wyzwania" element={<CoachChallenges />} />
             <Route path="/trener/rozliczenia" element={<Reconciliation />} />
             <Route path="/trener/podsumowanie" element={<WeeklyDigest />} />
+            {monitoringTab && <Route path="/monitoring" element={<Monitoring />} />}
+            {monitoringTab && <Route path="/monitoring/klient/:clientId" element={<KlientMonitoring />} />}
           </>
         )}
         {roles.includes("ADMIN") && <Route path="/admin" element={<Admin />} />}

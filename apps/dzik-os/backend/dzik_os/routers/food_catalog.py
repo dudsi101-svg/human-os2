@@ -601,7 +601,15 @@ def load_builtin_food_products(
     }
 
 
-@router.post("/coach/diet-wizard")
+def _wymagaj_kreatora() -> None:
+    """Kreator diety za flagą (0.67.0): bez niej trasy nie istnieją (404, nie 403 —
+    tak jak pozostałe moduły za flagą). Kod i testy zostają; produkcja bez wpisu
+    w fly.toml = kreator ukryty."""
+    if not settings.diet_wizard_enabled:
+        raise HTTPException(status_code=404, detail="Not Found")
+
+
+@router.post("/coach/diet-wizard", dependencies=[Depends(_wymagaj_kreatora)])
 def diet_wizard(
     body: DietWizardIn,
     coach: User = Depends(require_role("COACH")),
@@ -643,7 +651,7 @@ def diet_wizard(
     )
 
 
-@router.post("/coach/diet-suggestion")
+@router.post("/coach/diet-suggestion", dependencies=[Depends(_wymagaj_kreatora)])
 def diet_suggestion(
     body: DietSuggestionIn,
     coach: User = Depends(require_role("COACH")),
