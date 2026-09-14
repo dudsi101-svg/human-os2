@@ -945,3 +945,6 @@ table.simple th { color: var(--text-dim); font-weight: 600; font-size: 0.78rem; 
 }
 .wiedza-lista a.card, .wiedza-lista button.card { margin-bottom: 10px; }
 .wiedza-lista .meta { color: var(--text-dim); font-size: 0.85rem; }
+
+/* Panel rozwojowy „Dzisiaj” (0.63.0): powitanie nad kartami. */
+.powitanie { font-family: var(--font-display); font-size: 1.35rem; font-weight: 600; margin: 4px 0 10px; }

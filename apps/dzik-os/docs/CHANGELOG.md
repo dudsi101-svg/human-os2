@@ -1,5 +1,48 @@
 # Changelog — Dzik OS
 
+## 0.63.0 — 2026-09-14
+
+**Panel rozwojowy na ekranie „Dzisiaj” (polecenie właściciela z 14.09;
+gałąź `agent/nawyki-dzisiaj`, migracja 34).**
+
+* **Powitanie** wg lokalnej pory dnia urządzenia + imię (`greeting_name`
+  w `/api/me/today`, pierwszy człon nazwy wyświetlanej).
+* **Hasło dnia** — `dzik_os/daily_messages.py` 1:1 od właściciela
+  (60 sentencji z autorem i adnotacją o proweniencji), rotacja
+  deterministyczna po dacie lokalnej, zero AI; pole `daily_message`.
+* **Nawyki** (`Habit`, `HabitCompletion`): do trzech aktywnych naraz,
+  dni tygodnia, termin 14–254 dni (domyślnie 66), autor (trener albo
+  klient) z notatką. Codzienne odhaczanie **cofalne i idempotentne**
+  (`POST …/habits/{id}/complete` `{done}`), postęp liczony przy odczycie
+  (`dzik_os/nawyki.py`): wykonany dzień +1, miniony zaplanowany dzień bez
+  wykonania **−1 (łagodny decay, decyzja foundera — nie reset)**, podłoga 0
+  sekwencyjnie, dni poza planem neutralne, dziś nie karze. Postęp ≥ termin =
+  **absolutorium** (GRADUATED): karta z gratulacjami, „to już Twój nawyk”,
+  wybór „Wymień na nowy” / „Zostaw tak jak jest”; utrwalone zwalniają
+  miejsce. Rusztowanie samowygaszające, nie streak — zasada Human OS
+  „zmniejszać zależność od systemu w czasie”.
+* **Interfejs:** panel „Nawyki” na „Dzisiaj” (klient: odhaczanie, delikatny
+  opis postępu bez zawstydzania, zarządzanie: dodaj/edytuj/usuń) i w karcie
+  klienta → Harmonogram (trener: proponuje startowe z notatką, odhacza
+  wspólnie). Zero czerwieni, zero „passa”, zero komunikatów-kar.
+* **API:** `GET/POST /api/clients/{id}/habits`, `PATCH …/{habit_id}`
+  (edycja tylko aktywnego, `status=ARCHIVED` / `ACTIVE` = przywrócenie
+  z listy przy wolnym miejscu, `ack`; notatkę zmienia tylko autor),
+  `POST …/{habit_id}/complete` (CLIENT_SCOPED, domena danych
+  treningowych — bez nowej bramki zgód). Absolutorium datowane na dzień
+  osiągnięcia terminu; po nim postęp zamrożony. Audyt `HABIT_CREATED` /
+  `HABIT_UPDATED` (nazwy pól) / `HABIT_ARCHIVED` / `HABIT_RESTORED` /
+  `HABIT_GRADUATED` — bez treści nazwy i notatki.
+* **Prywatność:** eksport `habits`/`habit_completions` (`export_version`
+  1.8), usuwanie konta kasuje nawyki. Seed: 3 nawyki demo klienta A
+  (bliski absolutorium, z opuszczeniami, świeży).
+* **Test INTENDED_PURPOSE §2/§3:** nawyk = tekst + odhaczenia
+  (samoobserwacja, bez interpretacji), hasła bez treści medycznych —
+  bez wątpliwości. Decyzja o decay odnotowana w `ANALIZA_RYNKU` §E
+  i `RISK_REGISTER` R-20.
+* **Testy:** 7 silnika, 6 API, `test-powitanie` (helpers 142), E2E
+  `nawyki.spec.ts`, a11y, PWA offline.
+
 ## 0.62.0 — 2026-09-14
 
 **Wywiad „Zapotrzebowanie kaloryczne” (zgłoszenie właściciela z 14.09;

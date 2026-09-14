@@ -103,7 +103,12 @@ klientów wymagających uwagi.
 * **Harmonogram** — elementy z kategorią, porą i dniami tygodnia.
   Dla suplementów musisz wpisać **autora/źródło zalecenia** — aplikacja
   tylko przypomina o planie wpisanym przez człowieka i nigdy sama nie
-  ustala dawek.
+  ustala dawek. U góry zakładki (0.63.0) panel **„Nawyki"** klienta:
+  możesz zaproponować do trzech startowych nawyków (nazwa, dni, termin
+  14–254 dni, notatka dla klienta — zapisany jesteś jako autor), odhaczyć
+  dzień wspólnie z klientem i zobaczyć postęp. Klient odhacza je na swoim
+  ekranie „Dzisiaj" i może je zmienić; po osiągnięciu terminu nawyk dostaje
+  absolutorium i przestaje być odhaczany (rusztowanie, nie streak).
 * **Raporty** — raporty tygodniowe klienta (masa, skale 1–5, zdjęcia,
   pytania, ból). Opcjonalnie skorzystaj z podsumowania AI (jeśli
   skonfigurowane), odpowiedz, opcjonalnie oceń raport (1–5 — to ocena
