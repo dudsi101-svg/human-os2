@@ -27,7 +27,7 @@ PR #75 rozgrzewka/cardio, migracja 39, scalony przed tą rundą).**
   z konta nadpisuje lokalną. Sam motyw nie zostawia śladu w audycie (klasa D0
   wg Warstwy 4 — preferencja wyglądu, bez treści; uzasadnienie w planie
   sesji); eksport danych zawiera go automatycznie (`export_version` bez
-  zmiany, 2.0).
+  zmiany — 2.1 po scaleniu cardio 0.73.0).
 * **Ciemny motyw piksel w piksel:** 11 literałów kolorów w `styles.css`
   zamienionych na tokeny o wartościach identycznych z literałami (`--nav-bg`,
   `--scrim`, `--scrim-strong`, `--danger-soft`, `--danger-soft-hover`,

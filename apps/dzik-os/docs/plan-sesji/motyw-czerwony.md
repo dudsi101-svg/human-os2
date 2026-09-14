@@ -138,3 +138,68 @@ Porównanie programowe (`PIL.ImageChops.difference(a, b).getbbox()`), Chromium P
 * Nowa kontrola w `tools/spojnosc.py` (plik integracyjny, inna runda) — kontrola literałów
   jest testem w `test:helpers`.
 * Core `hos_engine/`, `tests/` w korzeniu — nietykalne.
+
+## Odstępstwa od planu
+
+* **Restart kontenera w trakcie rundy** (po etapie 6, przed końcowymi bramkami):
+  praca była w worktree z 4 niewypchniętymi commitami; dokończenie = wypchnięcie,
+  ponowne przejście wszystkich bramek na `2b12ed6`+, przegląd, opis PR. Kod z etapów
+  0–6 nie był przepisywany. Narzędzie mutacyjne przerwane restartem zostawiło
+  zmodyfikowany `sheet_import.py` — przywrócony z `git checkout` przed startem.
+* `:root` **bez** `color-scheme: dark` (prompt je zakładał) — bramka pikselowa
+  wykazała zmianę natywnych kontrolek w ciemnym motywie (PROGRESS).
+* `--nav-bg` w jasnym motywie = biel `.94`, nie róż z pliku danych (kontrast 4,75
+  zamiast 4,41); `.alert--info` w jasnym tekstem `--danger` (5,72 zamiast 3,92).
+* Synchronizacja motywu z konta polem `theme` w odpowiedzi logowania / `/api/auth/me`
+  zamiast osobnego `GET` ustawień po zalogowaniu.
+* Migracja **40** wymagała scalenia `main` z #75 (39) w trakcie rundy, żeby ciąg
+  migracji był bez luk; trzy testy „starej bazy” dostały stub `notification_settings`.
+* `export_version` po scaleniu cardio = **2.1** (plan mówił „2.0” przed scaleniem) —
+  bez podbicia przez tę rundę; test asertuje 2.1.
+* Przegląd 3 recenzentów: narzędzie `Agent` niedostępne w obu sesjach (przed i po
+  restarcie) — trzy przejścia tematyczne wykonał piszący (**nieniezależne**), a po
+  restarcie powtórzył je na świeżo: (a) 12 par kontrastu przeliczonych niezależnym
+  skryptem = tabela w `DOSTEPNOSC.md` co do setnych; (b) `grep` literałów kolorów w
+  `src/**/*.{ts,tsx}` poza `Landing.tsx`/`theme.ts` = 0, diff `:root` tylko addytywny;
+  (c) ekrany cardio 0.73.0 w skrypcie i w PROGRESS, zrzuty obejrzane (edytor cardio
+  z suwakami, Bloki, Dzisiaj z pozycją cardio, „Wygląd”, `/login`), dokumenty —
+  2 poprawki P2 (CHANGELOG `export_version` 2.1; cudzysłowy w instrukcji trenera).
+* E2E: `npx playwright test motyw nawyki powitanie strona-publiczna cardio
+  --project=telefon` uruchomiło **cały projekt `telefon`** (40 testów) — nadzbiór
+  zlecenia, wynik zapisany dla całości.
+
+## Weryfikacja wykonana (po restarcie, na `2b12ed6` + poprawki dokumentów)
+
+| Bramka | Wynik |
+|---|---|
+| `ruff check backend tools` | All checks passed |
+| pełny pytest backendu (`PYTHONPATH=.`, bez wykluczeń) | 1926 passed, 1 skipped (14:49) |
+| Core `python -m pytest tests -q` (korzeń repo) | 275 passed |
+| `tools/spojnosc.py` | czysto — 13 kontroli, 1 uwaga (K-001 otwarte 646 h — sprzed rundy) |
+| `tools/mutacje.py` | 17/17 mutacji wykrytych (po przywróceniu: 37 passed) |
+| `tools/mutacje_bezpieczenstwa.py` | zabitych 9/9 (oryginały przywrócone) |
+| `npx tsc --noEmit -p .` | 0 błędów |
+| `npm run build` | `index-*.js` 93,2 kB gzip (budżet 120 kB) |
+| `npm run test:helpers` | 156/156 (w tym `test-tokeny.mjs` 4, `test-theme.mjs` 5) |
+| E2E Playwright, projekt `telefon` (porty 8120/8121) | 40/40 w 2,5 min — `motyw.spec.ts` 1/1, `cardio.spec.ts` 3/3, nawyki 1/1, powitanie 1/1, strona-publiczna 8/8 |
+| `test_a11y.mjs` ciemny / `DZIK_THEME=czerwony` | oba: „Wszystkie kontrole dostępności/responsywności przeszły” (axe-core 4.13.0 wstrzykiwane) |
+| `test_pwa_offline.mjs` | „Wszystkie kontrole PWA/offline przeszły” |
+| bramka pikselowa ciemnego (tryb A/B) | 58 ekranów: 55 identycznych co do bajta, 3 różnice = stan danych (PROGRESS) |
+| przegląd kompletności (`zrzuty-motywy.mjs`) | 58 ekranów bazowych + 6 cardio 0.73.0 + 4 stany dodatkowe, × 2 motywy (`scratchpad/motyw-zrzuty/{oba,cardio,nowe}`) |
+| kontrast jasnego motywu | 26 par w `DOSTEPNOSC.md`; 12 przeliczonych ponownie niezależnie — zgodne |
+| `git status` po mutacjach | czysty (tylko 4 pliki dokumentów tej rundy) |
+
+## Plan kontra rzeczywistość
+
+* Etapy 0–6 wykonane w zaplanowanej kolejności; największy koszt zgodnie z
+  przewidywaniem w etapie 5 (przegląd ekranów), drugi — bramka pikselowa etapu 1
+  (dwa podejścia, bo pierwsze mierzyło szum seedu, nie CSS).
+* Nieplanowane: (1) scalenie `main` 0.73.0 w trakcie rundy (wymuszone przez ciąg
+  migracji) i przegląd 6 ekranów cardio; (2) instalacja axe-core jako devDependency
+  i naprawa `scrollable-region-focusable` z 0.66.0; (3) `reducedMotion` w kontekstach
+  a11y (axe liczył kontrast w połowie animacji wejścia); (4) restart kontenera —
+  bramki końcowe przechodzone dwa razy.
+* Nie zrobione, zgodnie z planem: PWA/favicon/og/manifest w czerwieni, jasne zrzuty
+  galerii landingu, motyw „jak w systemie”, zmiany strony `/`, kontrola w
+  `spojnosc.py`.
+* Bezpiecznik 3× planu nie został uruchomiony.

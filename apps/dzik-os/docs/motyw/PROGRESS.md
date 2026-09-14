@@ -126,6 +126,11 @@ bez „jak w systemie” · zapis na koncie i urządzeniu · „Ciemny (czarno-z
   jako osobne czytania z listą kontrolną; **to nie jest niezależna recenzja** — patrz
   sekcja niżej.
 
+* **Restart kontenera po etapie 6:** bramki końcowe (pełny pytest, mutacje, E2E,
+  a11y ×2, PWA) przeszły ponownie po restarcie na `2b12ed6` — wyniki z liczbami
+  w planie sesji §„Weryfikacja wykonana”. Przy okazji dwie poprawki P2 w dokumentach
+  (`export_version` 2.1 w CHANGELOG, cudzysłowy w instrukcji trenera).
+
 ## P2 / do rozważenia (nie blokują)
 
 * Ciemne natywne kontrolki w ciemnym motywie (`color-scheme: dark`) — zmiana wyglądu,
