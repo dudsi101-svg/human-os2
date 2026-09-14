@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { api, ApiError } from "../../api";
 import { WEEKDAYS } from "../../dates";
 import { KIND_BADGE, opisPozycji, rodzajPozycji } from "../../pozycje";
+import { LinkKartyTrenera } from "../../opisCwiczenia";
 import { Exercise } from "../../types";
 import { ErrorBox, Spinner } from "../../components";
 import {
@@ -425,6 +426,7 @@ function EdytorTreningu({ tresc, ustaw, operacja, usun }: { tresc: SzkicTrening;
               <div className="row row--between" style={{ alignItems: "flex-end", gap: 8 }}>
                 <div style={{ flex: 1 }}>
                   <label htmlFor={`sz-ex-${ex.id}`}>Ćwiczenie {ei + 1}{ex.exercise_id && <span className="badge" style={{ marginLeft: 8 }}>z bazy</span>}</label>
+                  <LinkKartyTrenera exerciseId={ex.exercise_id} />
                   <input id={`sz-ex-${ex.id}`} value={ex.name} placeholder="nazwa ćwiczenia"
                     onChange={(e) => ustaw(ex.id, { name: e.target.value, exercise_id: e.target.value === ex.name ? ex.exercise_id ?? null : null })} />
                 </div>

@@ -1,6 +1,6 @@
 # Stan wydania — Dzik OS
 
-**Wersja:** 0.74.0 (PR #76, motyw jasny czerwono-biały; `main` 0.73.0 po scaleniu PR #75; na produkcji 0.73.0 po wdrożeniu) · **Data:** 2026-09-14 · **Środowisko:** produkcja
+**Wersja:** 0.75.0 (PR #77 — szablony rozwijane po nazwie i opisy ćwiczeń z Wiedzy; `main` 0.74.0 po scaleniu PR #76 motyw; na produkcji 0.74.0 po wdrożeniu) · **Data:** 2026-09-14 · **Środowisko:** produkcja
 (pilotaż) — https://dzik-os-panel.fly.dev
 
 Jedna strona prawdy o tym, co DZIAŁA na produkcji teraz. Aktualizowana
@@ -144,6 +144,18 @@ historii sesji i pomiarów; idempotentny, wypisuje bliźniaki nazw
 ćwiczeń do decyzji trenera). Od włączenia rekordy liczą się przy każdym
 zapisie sesji. Szczegóły i sprawy otwarte: `docs/CHANGELOG.md` 0.66.0,
 `docs/plan-sesji/monitoring-postepy.md`, `docs/monitoring-tab/PROGRESS.md`.
+
+## Szablony rozwijane po nazwie i opisy ćwiczeń z Wiedzy (0.75.0) — bez flagi, bez migracji
+
+Lista szablonów treningowych pokazuje nazwy z meta „dni · pozycje · data”;
+treść rozwija się po kliknięciu w nazwę. Przy każdym ćwiczeniu w planie
+klienta (Plan, „Dzisiaj”, pozycje bloków) „Opis ćwiczenia” rozwija skrót
+z bazy trenera (po `exercise_id` albo po znormalizowanej nazwie — trasy
+`GET /api/me/exercises/by-name`, `GET /api/coach/exercises/by-name`) i
+prowadzi do pełnej karty w Wiedzy (`/wiedza?cwiczenie=<id>&powrot=/plan`)
+z powrotem. Brak dopasowania = jawny komunikat. Na produkcji działa od
+deployu; opis pojawia się tylko dla ćwiczeń, które trener ma w bazie pod tą
+samą nazwą.
 
 ## Rozgrzewka, rozciąganie i cardio z suwakami (0.73.0) — bez flagi, treści do przeglądu trenera
 

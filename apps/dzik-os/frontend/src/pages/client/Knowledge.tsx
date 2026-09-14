@@ -16,7 +16,8 @@ import {
   WiedzaWynikSzukania,
 } from "../../types";
 import { Dlaczego } from "../../wiedza/Dlaczego";
-import KnowledgeLegacy, { ExercisesTab, ProductsTab } from "./KnowledgeLegacy";
+import { bezpiecznyPowrot } from "../../nazwy";
+import KnowledgeLegacy, { ExercisesTab, KartaCwiczeniaTrenera, ProductsTab } from "./KnowledgeLegacy";
 
 /**
  * Wiedza (0.56.0, P0 pakietu właściciela): „Zrozum swój trening i odżywianie”.
@@ -56,6 +57,9 @@ function Wiedza({ start, reload }: { start: WiedzaStart; reload: () => void }) {
   const czesc = (CZESCI.some(([k]) => k === params.get("czesc")) ? params.get("czesc") : "dla-ciebie") as Czesc;
   const karta = params.get("karta");
   const widok = params.get("widok"); // zapisane | historia
+  // Karta ćwiczenia z bazy trenera (0.75.0): cel linku z planu; ma pierwszeństwo,
+  // bo przychodzi z zewnątrz Wiedzy (z Planu / Dzisiaj).
+  const cwiczenie = params.get("cwiczenie");
   const scrollRef = useRef(0);
 
   function ustaw(zmiany: Record<string, string | null>) {
@@ -83,7 +87,11 @@ function Wiedza({ start, reload }: { start: WiedzaStart; reload: () => void }) {
           Na produkcji pojawiają się wyłącznie karty opublikowane po recenzji.
         </p>
       )}
-      {karta ? (
+      {cwiczenie ? (
+        <KartaCwiczeniaTrenera id={cwiczenie} url={`/api/me/exercises/${encodeURIComponent(cwiczenie)}`}
+          powrot={bezpiecznyPowrot(params.get("powrot"))}
+          onZamknij={() => ustaw({ cwiczenie: null, powrot: null, czesc: "training" })} />
+      ) : karta ? (
         <KartaWidok id={karta} start={start} onBack={wroc} onOpen={otworzKarte} />
       ) : (
         <>

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { api } from "../../api";
 import { plDate } from "../../dates";
-import { ErrorBox, Spinner } from "../../components";
+import { ErrorBox, Icon, Spinner } from "../../components";
 
 /** Zakładka „Dieta" ekranu Szablony (0.54.0).
  *
@@ -115,8 +115,16 @@ export default function DietTemplatesTab() {
       )}
       {mine.map((t) => (
         <div className="card" key={t.id}>
-          <div className="row row--between">
-            <h2>{t.title}</h2>
+          {/* 0.75.0: nazwa jest tym samym przełącznikiem co „Podgląd” (spójnie
+              z szablonami treningowymi); logika diet bez zmian. */}
+          <div className="row row--between" style={{ alignItems: "flex-start", gap: 8 }}>
+            <h2 style={{ margin: 0, flex: 1 }}>
+              <button type="button" className="knowledge-card__toggle" aria-expanded={open === t.id}
+                aria-controls={`dieta-tresc-${t.id}`} onClick={() => setOpen(open === t.id ? null : t.id)}>
+                <span style={{ fontSize: "1.1rem", fontWeight: 700 }}>{t.title}</span>
+                <span className="dim"><Icon name={open === t.id ? "chevron-up" : "chevron-down"} size={18} /></span>
+              </button>
+            </h2>
             <small>{plDate(t.updated_at)}</small>
           </div>
           <small className="dim">
@@ -135,7 +143,7 @@ export default function DietTemplatesTab() {
             </button>
           </div>
           {open === t.id && (
-            <div>
+            <div id={`dieta-tresc-${t.id}`}>
               {t.content.meals.map((m, i) => (
                 <div key={i} style={{ marginBottom: 8 }}>
                   <b>{m.name}</b>

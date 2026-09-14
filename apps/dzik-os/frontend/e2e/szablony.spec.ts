@@ -72,3 +72,37 @@ test("trener widzi grupy pokrewne zamienników tylko do odczytu", async ({ page 
   await expect(karta.getByText(/wyłączona \(propozycja niepewna\)/).first()).toBeVisible();
   await expect(karta.getByRole("button", { name: /zapisz|usuń|dodaj|edytuj/i })).toHaveCount(0);
 });
+
+/**
+ * 0.75.0 (polecenie właściciela): lista szablonów pokazuje NAZWY, a treść
+ * (dni, ćwiczenia, panel publikacji) rozwija się dopiero po kliknięciu
+ * w nazwę — i zwija tym samym przyciskiem. Test chodzi na obu projektach
+ * (telefon i desktop-trener); niczego nie zapisuje.
+ */
+test("trener rozwija i zwija szablon kliknięciem w nazwę", async ({ page }) => {
+  await zaloguj(page, KONTA.trener);
+  await page.goto("/trener/szablony");
+  const karta = page.getByTestId("szablon-karta").filter({ hasText: "Szablon: Push/Pull/Legs" }).first();
+  await expect(karta).toBeVisible({ timeout: 15_000 });
+  const nazwa = karta.getByTestId("szablon-nazwa");
+  // Zwinięte: meta (dni · pozycje) widoczna, ćwiczenia i publikacja — nie.
+  await expect(nazwa).toHaveAttribute("aria-expanded", "false");
+  await expect(karta).toContainText(/3 dni · 6 pozycji/);
+  await expect(karta).not.toContainText("Wyciskanie sztangi leżąc");
+  await expect(karta.getByRole("heading", { level: 2 })).toHaveCount(1);
+
+  await nazwa.click();
+  await expect(nazwa).toHaveAttribute("aria-expanded", "true");
+  await expect(karta).toContainText("Push");
+  await expect(karta).toContainText("Wyciskanie sztangi leżąc");
+  await expect(karta).toContainText(/4×8/);
+  // Pozycja z bazy prowadzi do własnej karty ćwiczenia w Wiedzy.
+  await expect(karta.getByRole("link", { name: "Karta w Wiedzy" }).first()).toHaveAttribute("href", /\/trener\/wiedza\?cwiczenie=/);
+  await expect(karta).toContainText("Kopiowanie do klienta");
+
+  // Klawiatura: Enter na przycisku zwija.
+  await nazwa.focus();
+  await page.keyboard.press("Enter");
+  await expect(nazwa).toHaveAttribute("aria-expanded", "false");
+  await expect(karta).not.toContainText("Wyciskanie sztangi leżąc");
+});

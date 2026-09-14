@@ -21,7 +21,7 @@ from ..config import settings
 from ..db import get_db
 from ..exercise_catalog_v2 import LIBRARY_REF
 from ..hos_bridge import record_event
-from ..import_exercises import import_library
+from ..import_exercises import import_library, normalize_name
 from ..models import (
     CoachClientRelationship,
     Exercise,
@@ -514,6 +514,48 @@ async def exercises_import_file(
     return out
 
 
+def _dopasuj_po_nazwie(rows: list[Exercise], name: str) -> Exercise | None:
+    """Deterministyczne dopasowanie pozycji planu do bazy po nazwie (0.75.0).
+
+    Pozycja planu bez `exercise_id` (import z pliku, szablon wbudowany, wpis
+    ręczny) ma tylko nazwę. Porównujemy ten sam klucz, którym import
+    rozpoznaje duplikaty (`normalize_name`: bez wielkości liter, polskich
+    znaków i nadmiarowych spacji) — bez wyszukiwania rozmytego i bez AI:
+    albo nazwa jest ta sama, albo dopasowania nie ma. Przy kilku trafieniach
+    (np. dwóch trenerów z aktywną relacją) wygrywa najstarszy wpis, żeby ten
+    sam plan zawsze prowadził do tej samej karty."""
+    klucz = normalize_name(name)
+    if not klucz:
+        return None
+    kandydaci = [r for r in rows if normalize_name(r.name) == klucz]
+    if not kandydaci:
+        return None
+    return min(kandydaci, key=lambda r: (r.created_at or "", r.id))
+
+
+# Trasa STAŁA przed `/coach/exercises/{item_id}` — inaczej zostałaby
+# przesłonięta (lekcja z `import-schema`, docs/ZASADA_URUCHOMIENIA.md).
+@router.get("/coach/exercises/by-name")
+def get_own_exercise_by_name(
+    name: str = Query("", max_length=300),
+    coach: User = Depends(require_role("COACH")),
+    db: Session = Depends(get_db),
+):
+    """Własne ćwiczenie trenera po znormalizowanej nazwie (link z pozycji
+    planu bez `exercise_id` do karty w Wiedzy). Brak = 404."""
+    if not normalize_name(name):
+        raise HTTPException(status_code=422, detail="Podaj nazwę ćwiczenia")
+    rows = (
+        db.query(Exercise)
+        .filter(Exercise.coach_id == coach.id, Exercise.status == "ACTIVE")
+        .all()
+    )
+    item = _dopasuj_po_nazwie(rows, name)
+    if item is None:
+        raise HTTPException(status_code=404, detail="Nie znaleziono ćwiczenia")
+    return _out(item, for_coach=True)
+
+
 @router.get("/coach/exercises/{item_id}")
 def get_own_exercise(
     item_id: str,
@@ -599,6 +641,33 @@ def list_exercises_for_client(
         .all()
     )
     return _page(rows, limit=limit, offset=offset, filters=filters)
+
+
+# Trasa STAŁA przed `/me/exercises/{item_id}` (patrz wyżej — przesłanianie).
+@router.get("/me/exercises/by-name")
+def get_exercise_for_client_by_name(
+    name: str = Query("", max_length=300),
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    """Karta ćwiczenia po znormalizowanej nazwie — dla pozycji planu bez
+    `exercise_id`. Ten sam zbiór co lista (`_client_coach_ids`: trenerzy
+    z aktywną relacją, wpisy ACTIVE), więc trasa niczego nie poszerza.
+    Brak dopasowania i brak relacji to jedno 404 — bez rozróżniania."""
+    if not normalize_name(name):
+        raise HTTPException(status_code=422, detail="Podaj nazwę ćwiczenia")
+    coach_ids = _client_coach_ids(db, user)
+    item = None
+    if coach_ids:
+        rows = (
+            db.query(Exercise)
+            .filter(Exercise.coach_id.in_(coach_ids), Exercise.status == "ACTIVE")
+            .all()
+        )
+        item = _dopasuj_po_nazwie(rows, name)
+    if item is None:
+        raise HTTPException(status_code=404, detail="Nie znaleziono ćwiczenia")
+    return _out(item)
 
 
 @router.get("/me/exercises/{item_id}")

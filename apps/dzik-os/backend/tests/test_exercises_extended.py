@@ -434,20 +434,24 @@ def test_plan_without_exercise_id_still_works(seeded):
 
 def test_seeded_plans_and_templates_are_linked_to_library(seeded):
     """Demo pokazuje docelowy przepływ: każda pozycja planów i szablonów
-    wskazuje istniejące, aktywne ćwiczenie z bazy trenera."""
+    wskazuje istniejące, aktywne ćwiczenie z bazy trenera — po `exercise_id`,
+    a od 0.75.0 jedna pozycja celowo BEZ identyfikatora (jak z importu
+    pliku) musi trafiać w bazę po znormalizowanej nazwie."""
     import json
 
     from dzik_os.db import db_session
+    from dzik_os.import_exercises import normalize_name
     from dzik_os.models import Exercise, TrainingPlanVersion
 
     with db_session() as db:
-        active_ids = {
-            r.id for r in db.query(Exercise).filter(Exercise.status == "ACTIVE").all()
-        }
+        active = db.query(Exercise).filter(Exercise.status == "ACTIVE").all()
+        active_ids = {r.id for r in active}
+        active_names = {normalize_name(r.name) for r in active}
         versions = db.query(TrainingPlanVersion).all()
         payloads = [json.loads(v.content_json) for v in versions]
 
     checked = 0
+    po_nazwie = 0
     for content in payloads:
         for day in content["days"]:
             for item in day["exercises"]:
@@ -457,10 +461,17 @@ def test_seeded_plans_and_templates_are_linked_to_library(seeded):
                     assert item.get("block_id") and item.get("block"), item["name"]
                     assert all(p["exercise_id"] in active_ids for p in item["block"]["items"] if p.get("exercise_id"))
                     continue
-                assert item.get("exercise_id"), item["name"]
+                if not item.get("exercise_id"):
+                    # Pozycja tylko po nazwie (0.75.0): dopasowanie po nazwie musi
+                    # istnieć, inaczej demo obiecywałoby opis, którego nie ma.
+                    assert normalize_name(item["name"]) in active_names, item["name"]
+                    po_nazwie += 1
+                    continue
                 assert item["exercise_id"] in active_ids, item["name"]
                 checked += 1
     assert checked >= 10
+    # Pozycja żyje w v1 i v2 planu klienta A (v2 = kopia v1 z progresją).
+    assert po_nazwie >= 1
 
 
 def test_picker_search_uses_same_filters_as_library(seeded):
