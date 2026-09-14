@@ -111,13 +111,16 @@ def szkic(db: Session, client_id: str, typ: str) -> InterviewDraft | None:
 
 
 def odpowiedzi_szkicu(d: InterviewDraft | None) -> dict[str, dict]:
+    """Odpowiedzi szkicu odfiltrowane o te, których dzisiejsza definicja już
+    nie przyjmie (`D.odfiltruj_nieaktualne`) — szkic sprzed zmiany pytań nie
+    może wnieść do nowej wersji wartości spoza listy."""
     if d is None:
         return {}
     try:
         data = json.loads(d.answers_json or "{}")
     except ValueError:
         return {}
-    return data if isinstance(data, dict) else {}
+    return D.odfiltruj_nieaktualne(d.typ, data) if isinstance(data, dict) else {}
 
 
 def utworz_lub_pobierz_szkic(db: Session, *, client_id: str, typ: str, actor: User,
@@ -127,7 +130,7 @@ def utworz_lub_pobierz_szkic(db: Session, *, client_id: str, typ: str, actor: Us
         return d
     ostatnia = ostatnie_przeslanie(db, client_id, typ)
     d = InterviewDraft(
-        id=new_id("IVD"), client_id=client_id, typ=typ, definition_version=D.WERSJA,
+        id=new_id("IVD"), client_id=client_id, typ=typ, definition_version=D.definicja(typ).version,
         answers_json=ostatnia.answers_json if ostatnia else "{}", revision=1,
         dirty=ostatnia is None, collection_mode=collection_mode,
         created_by=actor.id, updated_by=actor.id,

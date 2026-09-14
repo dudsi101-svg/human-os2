@@ -1,8 +1,10 @@
-"""Zapotrzebowanie kaloryczne (0.62.0) — odczyt wyniku, nadpisanie i
-odblokowanie przez trenera. Za flagą DZIK_CALORIE_INTERVIEW_ENABLED (404).
-Dostęp jak w zakładce Wywiad (`wywiady._dostep`): klient — swoje dane;
-trener — aktywna relacja i zgody. Filtr flagi zdrowotnej jest w
-`zapotrzebowanie_serwis.widok`, nie w interfejsie."""
+"""Bilans kaloryczny — odczyt wyniku, nadpisanie i odblokowanie przez
+trenera. Za flagą DZIK_CALORIE_INTERVIEW_ENABLED (404). Dostęp jak
+w zakładce Wywiad (`wywiady._dostep`): klient — swoje dane; trener —
+aktywna relacja i zgody. Filtry są w `zapotrzebowanie_serwis.widok`, nie
+w interfejsie: ukrycie wyniku przed klientem (zaburzenia odżywiania,
+osoba niepełnoletnia) oraz flagi zdrowotne widoczne trenerowi wyłącznie
+przy aktywnej zgodzie `DOMAIN_HEALTH`."""
 
 from __future__ import annotations
 
@@ -10,6 +12,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
+from ..authz import DOMAIN_HEALTH
 from ..config import settings
 from ..db import get_db
 from ..models import User
@@ -37,10 +40,16 @@ def _odpowiedz(db: Session, d: dict, client_id: str) -> dict:
     if not d["ok"]:
         return {**out, "status": "no_access", "estimate": None}
     est = ZS.ostatni(db, client_id)
-    out.update(ZS.widok(est, viewer=d["viewer"], has_coach=d["has_coach"]))
+    zdrowie = DOMAIN_HEALTH in d["visible_domains"]
+    out.update(ZS.widok(est, viewer=d["viewer"], has_coach=d["has_coach"], zdrowie=zdrowie))
     if d["viewer"] == "coach":
+        # Historia (spec §6.2): porównanie masy i wyniku w czasie. Bez odpowiedzi
+        # zdrowotnych — te zostają w wywiadzie, za zgodą domeny.
         out["history"] = [{"version_no": e.version_no, "kcal": e.kcal, "kcal_effective": ZS.kcal_obowiazujace(e),
-                           "override_kcal": e.override_kcal, "created_at": e.created_at}
+                           "override_kcal": e.override_kcal, "created_at": e.created_at,
+                           "formulas_version": e.formulas_version or "0.62.0-pal",
+                           "legacy": ZS.stary_wzor(e), "cpm": e.cpm,
+                           "masa_kg": ZS.wejscia(e).get("masa_kg")}
                           for e in ZS.historia(db, client_id)]
     return out
 

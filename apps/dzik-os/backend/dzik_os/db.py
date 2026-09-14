@@ -1589,3 +1589,32 @@ MIGRATIONS.append(
         "ALTER TABLE notification_settings ADD COLUMN theme VARCHAR(20)",
     ])
 )
+
+MIGRATIONS.append(
+    (42, "bilans kaloryczny wg specyfikacji 1.0: rozbicie CPM, makro i flagi w calorie_estimates", [
+        # Addytywna; wycofanie = ignorowanie kolumn. Stare kolumny (ppm, pal,
+        # cpm, korekta_pct, kcal) ZOSTAJĄ — wyniki sprzed wyrównania nie są
+        # przeliczane (brak danych wejściowych) i żyją dalej jako historia
+        # z `formulas_version = "0.62.0-pal"`. Numer 41 = bloki jak szablony
+        # (runda równoległa, scalana przed tą).
+        # ALTER ADD COLUMN bez DEFAULT (jak migracja 39) — poza
+        # `formulas_version`, gdzie domyślna wartość JEST treścią migracji:
+        # to ona oznacza istniejące wiersze jako policzone starym silnikiem.
+        "ALTER TABLE calorie_estimates ADD COLUMN formulas_version VARCHAR(30) NOT NULL DEFAULT '0.62.0-pal'",
+        "ALTER TABLE calorie_estimates ADD COLUMN ppm_mifflin INTEGER",
+        "ALTER TABLE calorie_estimates ADD COLUMN ppm_katch INTEGER",
+        "ALTER TABLE calorie_estimates ADD COLUMN ppm_used INTEGER",
+        "ALTER TABLE calorie_estimates ADD COLUMN ppm_source VARCHAR(30)",
+        "ALTER TABLE calorie_estimates ADD COLUMN neat_multiplier FLOAT",
+        "ALTER TABLE calorie_estimates ADD COLUMN training_kcal_day INTEGER",
+        "ALTER TABLE calorie_estimates ADD COLUMN tef INTEGER",
+        "ALTER TABLE calorie_estimates ADD COLUMN cpm_min INTEGER",
+        "ALTER TABLE calorie_estimates ADD COLUMN cpm_max INTEGER",
+        "ALTER TABLE calorie_estimates ADD COLUMN target_kcal INTEGER",
+        "ALTER TABLE calorie_estimates ADD COLUMN macro_json TEXT",
+        "ALTER TABLE calorie_estimates ADD COLUMN tempo_json TEXT",
+        "ALTER TABLE calorie_estimates ADD COLUMN flags_json TEXT",
+        "ALTER TABLE calorie_estimates ADD COLUMN expected_weekly_change_kg FLOAT",
+        "ALTER TABLE calorie_estimates ADD COLUMN bmi FLOAT",
+    ])
+)

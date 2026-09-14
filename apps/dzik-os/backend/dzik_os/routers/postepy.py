@@ -396,14 +396,14 @@ def _sygnaly(db: Session, coach_id: str, today: date, progi: dict) -> list[dict]
     rekordy = dict(db.query(ExerciseRecord.client_id, func.count(ExerciseRecord.id))
                    .filter(ExerciseRecord.client_id.in_(ids), ExerciseRecord.superseded_at.is_(None),
                            ExerciseRecord.achieved_on >= od_rek).group_by(ExerciseRecord.client_id).all())
-    cele = {}
+    # Cel z ostatniego bilansu kalorycznego. `cel_redukcja` rozumie kod silnika
+    # 1.0 („cut”) i etykietę silnika 0.62.0 — porównanie z samym „redukcja”
+    # (stan do 0.76.0) nie zapalało się nigdy, bo tej wartości nikt nie zapisywał.
+    redukcja: dict[str, bool] = {}
     for est in (db.query(zapotrzebowanie_serwis.CalorieEstimate)
                 .filter(zapotrzebowanie_serwis.CalorieEstimate.client_id.in_(ids))
                 .order_by(zapotrzebowanie_serwis.CalorieEstimate.version_no).all()):
-        try:
-            cele[est.client_id] = json.loads(est.inputs_json).get("cel")
-        except ValueError:
-            continue
+        redukcja[est.client_id] = zapotrzebowanie_serwis.cel_redukcja(est)
     items_by_client: dict[str, list[ScheduleItem]] = defaultdict(list)
     for it in (db.query(ScheduleItem).filter(ScheduleItem.client_id.in_(ids), ScheduleItem.category == "TRENING",
                                             ScheduleItem.status == "ACTIVE").all()):
@@ -450,7 +450,7 @@ def _sygnaly(db: Session, coach_id: str, today: date, progi: dict) -> list[dict]
             if dni_bez_wazenia is None or dni_bez_wazenia >= int(progi["dni_bez_wazenia"]):
                 sygnaly.append({"key": "no_weighing", "level": "medium",
                                 "label": f"Brak ważenia od {dni_bez_wazenia} dni" if dni_bez_wazenia is not None else "Brak pomiarów wagi"})
-            if (cele.get(cid) == "redukcja" and trend is not None and trend >= float(progi["trend_wzrost_kg"])
+            if (redukcja.get(cid) and trend is not None and trend >= float(progi["trend_wzrost_kg"])
                     and punkty and (today - punkty[0].day).days + 1 >= int(progi["dni_trendu"])):
                 sygnaly.append({"key": "goal_mismatch", "level": "medium",
                                 "label": f"Cel redukcja, a trend +{trend} kg/tydz."})
