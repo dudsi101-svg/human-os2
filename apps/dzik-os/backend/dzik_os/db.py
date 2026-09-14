@@ -1522,6 +1522,14 @@ MIGRATIONS.append(
         "CREATE INDEX IF NOT EXISTS ix_training_week_aggregates_client_id ON training_week_aggregates (client_id)",
     ])
 )
+MIGRATIONS.append(
+    (37, "powitanie po pierwszym logowaniu: users.welcome_seen_at", [
+        # Addytywna (ALTER ADD COLUMN bez DEFAULT — jak migracja 14);
+        # NULL = okno powitalne jeszcze nie pokazane. Wycofanie = ignorowanie
+        # kolumny. Numer 37 = ta runda; dni treningowe przesunięte na 38.
+        "ALTER TABLE users ADD COLUMN welcome_seen_at VARCHAR(40)",
+    ])
+)
 
 MIGRATIONS.append(
     (38, "dni treningowe: wybór dni tygodnia klienta dla jednostek planu (plan_weekday_choices)", [

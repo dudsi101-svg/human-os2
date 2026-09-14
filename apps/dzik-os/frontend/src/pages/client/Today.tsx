@@ -8,6 +8,7 @@ import {
 import { CATEGORY_LABELS, ConsultSlotRow, TodayData } from "../../types";
 import { powitanie } from "../../powitanie";
 import PanelNawykow from "../nawyki/PanelNawykow";
+import Powitanie from "./Powitanie";
 
 export default function Today() {
   const [data, setData] = useState<TodayData | null>(null);
@@ -20,6 +21,11 @@ export default function Today() {
   // pierwszym wysłanym raporcie i tylko, jeśli wywiad nigdy nie ruszył.
   const [inviteInterview, setInviteInterview] = useState(false);
   const [interviewDismissed, setInterviewDismissed] = useState(false);
+  // Samouczek (0.70.0): zamknięty w tej sesji widoku od razu znika; znacznik
+  // idzie na serwer w tle (POST idempotentny) — błąd sieci nie wraca oknem
+  // w tej samej chwili, a przy następnym wejściu okno po prostu pokaże się
+  // ponownie (pomoc, nie bramka).
+  const [welcomeClosed, setWelcomeClosed] = useState(false);
   const user = getUser();
 
   const load = useCallback(() => {
@@ -87,12 +93,20 @@ export default function Today() {
     }
   }
 
+  function closeWelcome() {
+    setWelcomeClosed(true);
+    api.post("/api/me/welcome-seen").catch(() => undefined);
+  }
+
   if (error) return <div className="page"><ErrorBox error={error} onRetry={load} /></div>;
   if (!data) return <div className="page"><Spinner /></div>;
 
   return (
     <div className="page">
       <TopBar title="Dzisiaj" />
+      {!data.welcome_seen && !welcomeClosed && (
+        <Powitanie imie={data.greeting_name} onZamknij={closeWelcome} />
+      )}
       {/* Panel rozwojowy (0.63.0): powitanie → hasło dnia → nawyki. */}
       <p className="powitanie" data-testid="powitanie">{powitanie(new Date().getHours(), data.greeting_name)}</p>
       <div className="card card--accent" style={{ marginBottom: 10 }} data-testid="haslo-dnia">

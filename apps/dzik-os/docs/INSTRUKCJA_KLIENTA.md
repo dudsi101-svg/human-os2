@@ -23,6 +23,13 @@ hasło zresetujesz przez „Nie pamiętasz hasła?" na ekranie logowania.
 
 ## Ekran „Dzisiaj"
 
+Przy **pierwszym logowaniu** (od 0.70.0) zobaczysz krótki, dwuetapowy
+**samouczek**: co gdzie jest, dlaczego warto zacząć od zgód i wywiadów,
+i co jeszcze potrafi aplikacja. To pomoc, nie warunek — „Pomiń na razie"
+(albo Esc) zamyka go od razu, „Rozumiem, zaczynajmy" kończy. Nie wróci sam
+(także na innym telefonie), a otworzysz go ponownie w każdej chwili:
+**„Więcej" → „Pomoc / Samouczek"**.
+
 Po zalogowaniu widzisz wszystko na dziś: trening z przyciskiem
 **„Wykonane ✓"**, cele diety, harmonogram (posiłki, suplementy, pomiary),
 termin raportu, status płatności i ostatnią wiadomość trenera.
@@ -176,6 +183,8 @@ to ocena kompletności raportu, nie Ciebie.
   (każdy element ma zapisanego autora);
 * **Płatności** — terminy i statusy; aplikacja nie przechowuje danych kart;
 * **Wiadomości** — pisz do trenera, wysyłaj zdjęcia i filmy;
+* **Pomoc / Samouczek** — ponownie otwiera powitanie z pierwszego
+  logowania (dwa kroki: gdzie co jest, co jeszcze warto wiedzieć);
 * **Profil, zgody i moje dane** — Twoje dane należą do Ciebie:
   * edytuj profil (historia wersji zostaje),
   * **cofnij zgodę** na dostęp trenera jednym przyciskiem (i udziel ponownie),

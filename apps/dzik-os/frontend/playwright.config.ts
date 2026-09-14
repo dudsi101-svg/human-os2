@@ -17,7 +17,9 @@ import { defineConfig, devices } from "@playwright/test";
 // `postepy.spec.ts` chodzi tylko na drugim (projekt `telefon-postepy`);
 // reszta zestawu nie widzi flagi i sprawdza, że bez niej nic się nie zmienia.
 const PORT = Number(process.env.DZIK_E2E_PORT || 8099);
-const PORT_POSTEPY = PORT + 1;
+// Drugi port domyślnie sąsiedni; przy kilku sesjach na jednej maszynie
+// (KOORDYNACJA §0) da się go wskazać osobno, gdy sąsiedni jest zajęty.
+const PORT_POSTEPY = Number(process.env.DZIK_E2E_PORT_POSTEPY || PORT + 1);
 const DIR = process.env.DZIK_E2E_DIR || "/tmp/dzik-e2e";
 
 export default defineConfig({

@@ -43,6 +43,8 @@ def test_migration_19_adds_nullable_columns_to_existing_database(tmp_path):
         # Stub dla migracji nr 30 (kolumny pochodzenia kopii na wersjach planów).
         conn.execute(text("CREATE TABLE training_plan_versions (id VARCHAR(40) PRIMARY KEY)"))
         conn.execute(text("CREATE TABLE nutrition_plan_versions (id VARCHAR(40) PRIMARY KEY)"))
+        # Stub dla migracji nr 37 (znacznik powitania `welcome_seen_at` na users).
+        conn.execute(text("CREATE TABLE users (id VARCHAR(40) PRIMARY KEY)"))
         conn.execute(text(
             "CREATE TABLE food_products (id VARCHAR(40) PRIMARY KEY, "
             "coach_id VARCHAR(40), name VARCHAR(300), kcal_100g FLOAT)"))
