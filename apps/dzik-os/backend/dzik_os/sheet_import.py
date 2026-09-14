@@ -1173,7 +1173,7 @@ def undo_import(db: Session, coach_id: str, row: ImportSnapshot) -> dict[str, An
                 continue
             for attr, value in entry.get("before", {}).items():
                 if attr in SNAPSHOT_FIELDS:
-                    pass
+                    setattr(item, attr, value)
             item.updated_at = now_iso()
             restored += 1
     else:
