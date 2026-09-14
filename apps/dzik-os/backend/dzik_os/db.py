@@ -1580,3 +1580,12 @@ MIGRATIONS.append(
         "ALTER TABLE workout_entries ADD COLUMN machine VARCHAR(40)",
     ])
 )
+
+MIGRATIONS.append(
+    (40, "motyw aplikacji: notification_settings.theme (ciemny/czerwony)", [
+        # Addytywna (ALTER ADD COLUMN bez DEFAULT — jak migracja 37); NULL =
+        # motyw domyślny (ciemny). Wycofanie = ignorowanie kolumny. Numer 39 =
+        # rozgrzewka/cardio (PR #75, scalony przed tą rundą).
+        "ALTER TABLE notification_settings ADD COLUMN theme VARCHAR(20)",
+    ])
+)

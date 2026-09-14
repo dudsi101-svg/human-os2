@@ -1005,6 +1005,12 @@ class NotificationSetting(Base):
     # DAILY = przypomnienie o raporcie w każdy zaplanowany dzień;
     # WEEKLY = raz w tygodniu (klucz idempotencji per tydzień ISO).
     raport_frequency: Mapped[str] = mapped_column(String(10), default="DAILY")
+    # Motyw aplikacji (0.74.0, migracja 40): "ciemny" | "czerwony" | NULL
+    # (= domyślny ciemny). Preferencja wyglądu, klasa D0 (Warstwa 4 modelu
+    # użytkownika) — bez zgody, bez śladu audytu; wchodzi do eksportu danych
+    # razem z resztą wiersza. Trzymana tu, bo to jedyny wiersz „ustawień
+    # użytkownika” z gotowym GET/PUT — a nie nowa tabela dla jednego pola.
+    theme: Mapped[str | None] = mapped_column(String(20), nullable=True)
     updated_at: Mapped[str] = mapped_column(String(40), default=now_iso)
 
 

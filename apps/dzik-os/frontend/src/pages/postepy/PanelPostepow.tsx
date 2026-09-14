@@ -146,8 +146,11 @@ export function SekcjaRekordy({ r }: { r: PostepyRekordy }) {
   return (
     <section className="card" aria-labelledby="h-rekordy">
       <h2 id="h-rekordy"><Icon name="trophy" /> Rekordy</h2>
+      {/* Przewijany poziomo region musi być osiągalny klawiaturą (axe:
+          scrollable-region-focusable — bramka a11y z 0.74.0, gdy axe-core
+          stał się zależnością). */}
       {r.recent.length > 0 ? (
-        <div className="postepy-wstega" aria-label="Rekordy z ostatnich 30 dni">
+        <div className="postepy-wstega" role="region" tabIndex={0} aria-label="Rekordy z ostatnich 30 dni">
           {r.recent.map((x) => (
             <div className="card card--accent" key={x.id}>
               <b>{x.exercise_name}</b>

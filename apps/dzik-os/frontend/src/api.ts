@@ -8,6 +8,7 @@ import {
   filenameFromDisposition,
   redactStack,
 } from "./errorUtils";
+import { zsynchronizujMotyw } from "./theme";
 
 export interface SessionUser {
   id: string;
@@ -21,6 +22,8 @@ export interface SessionUser {
   mfa_setup_required?: boolean;
   /** Flagi modułów z serwera (0.66.0): nawigacja nie zgaduje, czyta stan przy logowaniu. */
   features?: { monitoring_tab?: boolean };
+  /** Motyw zapisany na koncie (0.74.0): "ciemny" | "czerwony" | null (brak wyboru). */
+  theme?: string | null;
 }
 
 /** Czy moduł za flagą jest włączony dla zalogowanego użytkownika (stan z serwera). */
@@ -49,11 +52,27 @@ export function getUser(): SessionUser | null {
 export function setSession(token: string, user: SessionUser) {
   sessionStorage.setItem(TOKEN_KEY, token);
   sessionStorage.setItem(USER_KEY, JSON.stringify(user));
+  // Celowo BEZ synchronizacji motywu: setSession woła też rotacja tokenu
+  // (zmiana hasła, włączenie/wyłączenie MFA) z kopią użytkownika z sessionStorage,
+  // której `theme` jest z chwili logowania — synchronizacja tutaj cofałaby
+  // świeży wybór z „Wygląd” (przegląd PR #76, P1). Motyw z konta czyta się
+  // wyłącznie w ścieżkach logowania (login / verifyMfa).
+}
+
+/** Po udanym zapisie motywu na koncie (Wyglad.tsx): kopia użytkownika w sesji
+ * dostaje nową wartość, żeby żadna późniejsza rotacja tokenu nie niosła starej. */
+export function zapiszMotywWSesji(theme: string): void {
+  const token = sessionStorage.getItem(TOKEN_KEY);
+  const user = getUser();
+  if (token && user) setSession(token, { ...user, theme });
 }
 
 export function clearSession() {
   sessionStorage.removeItem(TOKEN_KEY);
   sessionStorage.removeItem(USER_KEY);
+  // ŚWIADOMY WYJĄTEK (0.74.0): localStorage["dzik_theme"] (theme.ts) zostaje.
+  // Motyw to preferencja urządzenia, nie stan sesji — ekran logowania po
+  // wylogowaniu ma wyglądać tak, jak użytkownik wybrał. Nie zawiera danych.
   // Wersje robocze formularzy (mogą zawierać dane zdrowotne — raport
   // tygodniowy: waga, ból, sen, stres, komentarze) nie mogą przeżyć
   // wylogowania ani usunięcia konta.
@@ -342,6 +361,8 @@ export async function login(email: string, password: string): Promise<LoginResul
     return { kind: "mfa", mfaToken: data.mfa_token };
   }
   setSession(data.token, data.user);
+  // Motyw z konta (0.74.0) nadpisuje wybór z urządzenia — tylko przy logowaniu.
+  zsynchronizujMotyw(data.user.theme);
   return { kind: "ok", user: data.user };
 }
 
@@ -352,6 +373,7 @@ export async function verifyMfa(mfaToken: string, code: string): Promise<Session
     code,
   });
   setSession(data.token, data.user);
+  zsynchronizujMotyw(data.user.theme);
   return data.user;
 }
 
@@ -590,6 +612,8 @@ export interface NotificationSettingsData {
     active_days: string;
     raport_frequency: string;
     timezone: string | null;
+    /** Motyw na koncie (0.74.0): "ciemny" | "czerwony" | null. */
+    theme: string | null;
   };
 }
 
@@ -599,6 +623,7 @@ export interface NotificationSettingsUpdate {
   active_days?: string;
   raport_frequency?: string;
   timezone?: string;
+  theme?: "ciemny" | "czerwony";
   preferences?: { category: string; channel: string; enabled: boolean }[];
 }
 

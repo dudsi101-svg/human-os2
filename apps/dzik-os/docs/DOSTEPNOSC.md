@@ -92,6 +92,45 @@ WCAG (luminancja względna), stan po domknięciu PR #67:
   (E2E pilnuje pełnej listy). Dawne `h2` „Jak zaczynamy” / „O trenerze”
   są etykietami nad właściwymi `h2` — świadoma zmiana (CHANGELOG 0.72.0).
 
+### Kontrast (motyw jasny czerwono-biały, 0.74.0)
+
+Drugi, pełny motyw aplikacji (`html[data-theme="czerwony"]`, wybór w „Więcej →
+Wygląd”). Wartości policzone wg WCAG (luminancja względna) dla tokenów z bloku
+jasnego motywu w `styles.css`; próg AA: 4,5 tekst, 3,0 duży tekst i granice
+kontrolek (1.4.11):
+
+| Para | Współczynnik | Uwaga |
+|---|---|---|
+| `--text` #101418 / biel (tło, karta) | 18,50 | |
+| `--text` / pole `--bg-raised` #FBF5F5 | 17,16 | |
+| `--text-dim` #566372 / biel | 6,13 | opisy, podpisy, etykiety pól |
+| `--text-dim` / `--bg-raised` (plakietki, kafle, nawigacja) | 5,69 | |
+| `--text-dim` / `--bg-hover` #FDECEE | 5,38 | karta pod kursorem |
+| biel `--accent-ink` / `--accent` #E11D2E (przycisk, aktywna zakładka, `.badge--accent`, własna wiadomość) | 4,75 | AA |
+| link / ikona `--accent` / biel | 4,75 | AA; fokus: obrys `--accent` na bieli 4,75 |
+| aktywna pozycja nawigacji `--accent` / `--nav-bg` (biel .94) | 4,75 | **korekta**: na różu #FBF5F5 (plik danych) byłoby 4,41 — pasek jest biały |
+| alert informacyjny: tekst `--danger` #B3121F / `--accent-soft` #FDE3E5 | 5,72 | **korekta**: `--accent` na poświacie ma 3,92 — w jasnym motywie `.alert--info` bierze `--danger` |
+| `--danger` #B3121F / biel; / `--danger-soft` | 6,95; 5,81 | |
+| `--warn` #8A5A00 / biel; / `--warn-soft`; / `--bg-raised` | 5,93; 5,00; 5,50 | żółć #FFC94D ze spec nie ma AA na bieli — stąd ciemny bursztyn |
+| `--ok` #1E7A46 / biel; / `--bg-raised` | 5,35; 4,96 | |
+| obrys kontrolek `--border-strong` #B3878A / biel | 3,11 | 1.4.11; pole stoi na `--bg-raised` (2,89), ale jego granicą jest sąsiednia biel karty |
+| tekst na `--accent-soft` (plakietki tła) | 15,23 | |
+| tekst karty nad scrimem rgba(16,20,24,.35) | 8,21 | panel „Dlaczego?”, okno powitania |
+| słupek `--bar-muted` #E0CFCF / karta | 1,50 | grafika (słupek tygodnia poza bieżącym), liczby obok jako tekst — jak w ciemnym |
+
+* Ciemny motyw pozostaje **piksel w piksel** taki sam (bramka A/B 58 ekranów —
+  `docs/motyw/PROGRESS.md`); wartości z sekcji „Kontrast (ciemny motyw marki)”
+  wyżej są nadal aktualne.
+* Wybór motywu: grupa radiowa (`role="radiogroup"` + `aria-labelledby`,
+  `role="radio"` + `aria-checked`, roving tabindex; strzałki/Home/End przenoszą
+  fokus **bez zapisu**, Enter/Spacja/klik wybiera); status zapisu w `role="status"`;
+  próbki kolorów `aria-hidden`.
+* Znak marki: w jasnym motywie czerwony dzik (`boar-mark-red.png`); `/login`
+  pokazuje znak + nazwę (blok `aria-hidden`, nazwa strony jest w `h1.sr-only`).
+* Test: `DZIK_THEME=czerwony node e2e/test_a11y.mjs` — ten sam zestaw asercji
+  w jasnym motywie (drugi krok w CI); axe-core od 0.74.0 jest devDependency,
+  więc kontrola kontrastu i reszty WCAG A/AA chodzi w obu motywach.
+
 ### Semantyka i struktura
 
 * `html lang="pl"`, viewport **bez** `maximum-scale`/`user-scalable=no`
@@ -228,10 +267,11 @@ landscape bez przewijania walki o logo, nawigacja czytelna (12 px+).
 * **Brak formalnego audytu** WCAG i testu z użytkownikami czytników —
   powyższe to inżynierska implementacja + testy automatyczne; audyt
   zewnętrzny pozostaje do zlecenia przed deklaracją zgodności.
-* **axe-core nie jest zależnością projektu** — test e2e używa go tylko
-  wtedy, gdy jest dostępny w środowisku (w CI/sandboxie bez niego
-  działają asercje własne). Dodanie `axe-core` do devDependencies to
-  proste rozszerzenie.
+* **axe-core jest devDependency od 0.74.0** (`axe-core@4.13.0`) — test e2e
+  wstrzykuje je zawsze (wcześniej tylko, gdy było zainstalowane; pierwsze
+  obowiązkowe uruchomienie złapało `scrollable-region-focusable` na wstędze
+  rekordów w Postępach — naprawione `role="region"` + `tabIndex=0`). Nadal
+  bez formalnego audytu.
 * **Natywne `confirm()`/`prompt()`** są dostępne, ale nieostylowane pod
   markę; przy przejściu na własne modale trzeba będzie dodać focus trap,
   Escape i zwrot fokusu (dokumentowane wyżej).
