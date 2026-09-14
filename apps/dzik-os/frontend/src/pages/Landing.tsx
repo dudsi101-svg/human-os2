@@ -163,7 +163,7 @@ export default function Landing() {
   }
 
   return (
-    <div className="landing">
+    <div className="landing landing--czerwony">
       <header className="landing-top">
         <div className="landing-top__inner">
           <img src="/icons/boar-mark-red.png" alt="" className="landing-top__logo" />
@@ -197,13 +197,13 @@ export default function Landing() {
               <a className="btn btn--primary" href="#kontakt">Umów bezpłatną konsultację <Strzalka /></a>
               <a className="btn btn--ghost" href="/login">Mam już konto</a>
             </div>
-            <div className="landing-proof" aria-label="W skrócie">
-              <div className="landing-proof__item"><b>IFBB PRO</b><small>trener i zawodnik</small></div>
-              <span className="landing-proof__sep" aria-hidden="true" />
-              <div className="landing-proof__item"><b>30 000+</b><small>społeczność na Instagramie</small></div>
-              <span className="landing-proof__sep" aria-hidden="true" />
-              <div className="landing-proof__item"><b>−12 kg</b><small>w 20 tygodni, bez utraty mięśni</small></div>
-            </div>
+            <ul className="landing-proof" role="list">
+              <li className="landing-proof__item"><b>IFBB PRO</b><small>trener i zawodnik</small></li>
+              <li className="landing-proof__sep" aria-hidden="true" />
+              <li className="landing-proof__item"><b>30 000+</b><small>społeczność na Instagramie</small></li>
+              <li className="landing-proof__sep" aria-hidden="true" />
+              <li className="landing-proof__item"><b>−12 kg</b><small>w 20 tygodni, bez utraty mięśni</small></li>
+            </ul>
           </div>
           <div className="landing-panel dark" aria-hidden="true">
             <span className="landing-panel__tag">LUBELSKI DZIK</span>
@@ -261,7 +261,7 @@ export default function Landing() {
         <div className="wrap">
           <Naglowek etykieta="Jak zaczynamy" tytul="Trzy kroki do pierwszego planu"
             opis={<span className="landing-dark-desc">Bez sklepu z aplikacjami i bez arkuszy w wiadomościach. Zaczynasz od rozmowy, kończysz z planem w telefonie.</span>} />
-          <ol className="landing-steps">
+          <ol className="landing-steps" role="list">
             {KROKI.map((k, i) => (
               <li className="card--dark" key={k.tytul}>
                 <span className={`num leaf ${KAFLE_KROKOW[i]}`}>0{i + 1}</span>
@@ -285,7 +285,7 @@ export default function Landing() {
               { src: "/screens/postepy.jpg", podpis: "Postępy i rekordy" },
             ].map((e) => (
               <figure key={e.src}>
-                <img src={e.src} alt={e.podpis} loading="lazy" />
+                <img src={e.src} alt={e.podpis} width={780} height={1560} loading="lazy" />
                 <figcaption>{e.podpis}</figcaption>
               </figure>
             ))}
@@ -365,7 +365,8 @@ export default function Landing() {
           <div>
             <div className="eyebrow">Kontakt</div>
             <h2 className="h2">Napisz do mnie</h2>
-            {/* PERSONALIZACJA: fraza o czasie odpowiedzi — do potwierdzenia przez właściciela. */}
+            {/* PERSONALIZACJA: projekt proponował dopisek „— zwykle tego samego dnia”;
+                niepotwierdzony przez właściciela, więc zostaje dotychczasowe zdanie. */}
             <p className="landing-contact__desc">
               Opisz cel i dotychczasowe doświadczenie. Odpowiadam na każde zgłoszenie.
             </p>

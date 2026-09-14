@@ -68,4 +68,10 @@ test("wariant czerwono-biały: kroki, statystyki trenera, chipy, brak poziomego 
   await expect(page.getByRole("heading", { name: "Trening prowadzony, nie zgadywany" })).toBeVisible();
   const szerokosc = await page.evaluate(() => document.documentElement.scrollWidth);
   expect(szerokosc).toBeLessThanOrEqual(390);
+
+  // /prywatnosc korzysta z bazowych klas .landing i ma pozostać ciemna (bez zmian).
+  await page.goto("/prywatnosc");
+  await expect(page.getByRole("heading", { name: "Informacja o przetwarzaniu danych osobowych" })).toHaveCSS("color", "rgb(238, 240, 242)");
+  const tlo = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);
+  expect(tlo).toBe("rgb(11, 13, 15)");
 });
