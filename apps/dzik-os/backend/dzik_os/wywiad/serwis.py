@@ -49,7 +49,7 @@ from ..models import (
     new_id,
     now_iso,
 )
-from ..onboarding_flow import scan_safety_signals
+from ..onboarding_flow import KIND_MULTI, scan_safety_signals
 from ..profile_service import FieldWrite, apply_profile_fields
 from . import definicje as D
 
@@ -425,7 +425,10 @@ def _flaga_bezpieczenstwa(defn: D.Definicja, answers: dict[str, dict]) -> bool:
         if not isinstance(a, dict) or a.get("skipped"):
             continue
         v = a.get("value") or ""
-        if q.flag_options and any(p.strip() in q.flag_options for p in v.split(",")):
+        # MULTI: lista po przecinku; pozostałe rodzaje: cała wartość (opcja
+        # sama może zawierać przecinek, np. „Tak, obecnie lub w przeszłości”).
+        czesci = [p.strip() for p in v.split(",")] if q.type == KIND_MULTI else [v.strip()]
+        if q.flag_options and any(p in q.flag_options for p in czesci):
             return True
         if q.scan_safety and scan_safety_signals(v):
             return True

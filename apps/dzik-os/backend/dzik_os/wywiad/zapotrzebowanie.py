@@ -12,6 +12,7 @@ dziesiętny (formularz po polsku).
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 
 PLEC_K = "Kobieta"
@@ -66,8 +67,8 @@ TEMPO_MASA = {
 #: PPM i oznaczany ostrzeżeniem (deficyt nie schodzi poniżej metabolizmu
 #: podstawowego bez decyzji trenera).
 ZAOKRAGLENIE_WYNIKU = 10
-OSTRZEZENIE_PONIZEJ_PPM = ("Wynik po korekcie wypadł poniżej PPM — podniesiony do PPM. "
-                           "Większy deficyt wymaga decyzji trenera.")
+OSTRZEZENIE_PONIZEJ_PPM = ("Po korekcie wynik spadł poniżej tego, co organizm spala w spoczynku (PPM) — "
+                           "podnieśliśmy go do tej granicy. Większy deficyt może ustalić tylko trener.")
 
 
 class BrakDanych(ValueError):
@@ -117,7 +118,8 @@ def liczba(tekst: str | None) -> float | None:
 
 
 def _fmt(x: float) -> str:
-    s = f"{x:.1f}".rstrip("0").rstrip(".")
+    """Do 2 miejsc po przecinku, bez zer końcowych: 70 → „70”, 1,35 → „1,35”."""
+    s = f"{x:.2f}".rstrip("0").rstrip(".")
     return s.replace(".", ",")
 
 
@@ -190,26 +192,31 @@ def _sprawdz(w: Wejscie) -> None:
 
 
 def oblicz(w: Wejscie) -> Wynik:
-    """Pełne wyliczenie z podstawieniem. BrakDanych przy niepełnym wejściu."""
+    """Pełne wyliczenie z podstawieniem. BrakDanych przy niepełnym wejściu.
+    CPM liczony z PPM niezaokrąglonego (wiersz podstawienia pokazuje PPM
+    zaokrąglone — różnica najwyżej 1 kcal)."""
     _sprawdz(w)
     ppm_f = ppm_mifflin(w.plec, w.masa_kg, w.wzrost_cm, w.wiek)
     ppm = round(ppm_f)
     p, wiersze_pal = pal(w.praca, w.treningi, w.kroki)
     cpm = round(ppm_f * p)
     kor = korekta(w.cel, w.tempo)
-    wynik_f = cpm * (1.0 + kor)
+    po_korekcie = round(cpm * (1.0 + kor))
+    kcal = int(round(po_korekcie / ZAOKRAGLENIE_WYNIKU) * ZAOKRAGLENIE_WYNIKU)
     ostrzezenia: list[str] = []
-    if wynik_f < ppm_f:
+    podniesione = False
+    if kcal < ppm_f:
+        # Bezpiecznik PO zaokrągleniu: wynik nigdy poniżej PPM (w górę do 10 kcal).
+        kcal = int(math.ceil(ppm_f / ZAOKRAGLENIE_WYNIKU) * ZAOKRAGLENIE_WYNIKU)
         ostrzezenia.append(OSTRZEZENIE_PONIZEJ_PPM)
-        wynik_f = ppm_f
-    kcal = int(round(wynik_f / ZAOKRAGLENIE_WYNIKU) * ZAOKRAGLENIE_WYNIKU)
+        podniesione = True
     stala = "+ 5" if w.plec == PLEC_M else "− 161"
     wiersz_ppm = (f"PPM (Mifflin-St Jeor, {w.plec.lower()}): 10 × {_fmt(w.masa_kg)} kg + 6,25 × "
                   f"{_fmt(w.wzrost_cm)} cm − 5 × {_fmt(w.wiek)} lat {stala} = {ppm} kcal")
     podst = [
         wiersz_ppm,
         *wiersze_pal,
-        f"PAL = {_fmt(p).replace(',', ',')}",
+        f"PAL = {_fmt(p)}",
         f"CPM = {ppm} × {_fmt(p)} = {cpm} kcal",
     ]
     if kor == 0.0:
@@ -217,7 +224,9 @@ def oblicz(w: Wejscie) -> Wynik:
     else:
         znak = "−" if kor < 0 else "+"
         podst.append(f"cel: {w.cel.lower()}, {w.tempo.lower() if w.tempo else ''} → {cpm} {znak} {abs(round(kor * 100))} % "
-                     f"= {round(cpm * (1.0 + kor))} kcal")
+                     f"= {po_korekcie} kcal")
+    if podniesione:
+        podst.append(f"{po_korekcie} kcal to mniej niż PPM ({ppm}) → podniesione do {kcal} kcal")
     podst.append(f"wynik zaokrąglony do {ZAOKRAGLENIE_WYNIKU} kcal: ≈ {kcal} kcal / dzień")
     return Wynik(ppm=ppm, pal=p, cpm=cpm, korekta_pct=round(kor * 100), kcal=kcal,
                  ostrzezenia=tuple(ostrzezenia), podstawienie=tuple(podst))

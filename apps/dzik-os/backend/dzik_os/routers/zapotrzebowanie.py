@@ -16,7 +16,7 @@ from ..models import User
 from ..security import current_user
 from ..wywiad import definicje as D
 from ..wywiad import zapotrzebowanie_serwis as ZS
-from .wywiady import _dostep
+from .wywiady import _dostep, _dostep_pelny
 
 router = APIRouter(prefix="/api", tags=["zapotrzebowanie"])
 
@@ -37,10 +37,11 @@ def _odpowiedz(db: Session, d: dict, client_id: str) -> dict:
     if not d["ok"]:
         return {**out, "status": "no_access", "estimate": None}
     est = ZS.ostatni(db, client_id)
-    out.update(ZS.widok(est, viewer=d["viewer"]))
+    out.update(ZS.widok(est, viewer=d["viewer"], has_coach=d["has_coach"]))
     if d["viewer"] == "coach":
         out["history"] = [{"version_no": e.version_no, "kcal": e.kcal, "kcal_effective": ZS.kcal_obowiazujace(e),
-                           "created_at": e.created_at} for e in ZS.historia(db, client_id)]
+                           "override_kcal": e.override_kcal, "created_at": e.created_at}
+                          for e in ZS.historia(db, client_id)]
     return out
 
 
@@ -52,11 +53,10 @@ def pobierz(client_id: str, user: User = Depends(current_user), db: Session = De
 
 
 def _trener_z_wynikiem(db: Session, user: User, client_id: str):
-    d = _dostep(db, user, client_id)
+    # Brak zgody współpracy = 404 z audytem, jak w pozostałych trasach wywiadu.
+    d = _dostep_pelny(db, user, client_id)
     if d["viewer"] != "coach":
         raise HTTPException(status_code=403, detail="Tylko trener może zmieniać wynik.")
-    if not d["ok"]:
-        raise HTTPException(status_code=403, detail=d["reason"])
     est = ZS.ostatni(db, client_id)
     if est is None:
         raise HTTPException(status_code=404, detail="Klient nie przesłał jeszcze wywiadu zapotrzebowania.")

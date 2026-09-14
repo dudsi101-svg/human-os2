@@ -7,7 +7,9 @@ import { KONTA, zaloguj } from "./helpers";
  * wynik z podstawieniem w zakładkach Wywiad i Dieta; trener widzi ten sam
  * wynik w karcie klienta, nadpisuje go z powodem, a w „Przypisz dietę”
  * przycisk „Zaproponuj kcal” wypełnia pole kcal ustaleniem trenera.
- * Projekt „telefon” (zapisuje).
+ * Projekt „telefon” (zapisuje). Założenie: świeża baza z `serve.sh`; spec
+ * zostawia klientowi A przesłaną wersję i ustalenie 1800 kcal (inne specy
+ * nie czytają zapotrzebowania).
  */
 
 async function klik(loc: Locator) {
@@ -66,9 +68,11 @@ test("klient liczy zapotrzebowanie, trener nadpisuje i proponuje kcal w diecie",
   await klik(page.getByRole("button", { name: "Przypisz dietę" }));
   await klik(page.getByRole("button", { name: /Standard zbilansowana/ }));
   await klik(page.getByRole("button", { name: /Odsłona 1/ }));
-  await klik(page.getByRole("button", { name: "Zaproponuj kcal" }));
+  await klik(page.getByRole("button", { name: /Zaproponuj kcal/ }));
   await expect(page.getByLabel("kcal / dzień")).toHaveValue("1800");
   await expect(page.getByLabel(/Masa ciała \(kg/)).toHaveValue("70");
+  // Samo wstawienie nie przypisuje diety.
+  await expect(page.getByText(/Przypisano dietę/)).toHaveCount(0);
 
   // Klient widzi ustalenie trenera i powód.
   await page.evaluate(() => sessionStorage.clear());

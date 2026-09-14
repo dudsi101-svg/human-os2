@@ -8,6 +8,8 @@ from conftest import CLIENT_A, COACH, create_user_with_role, get_user_id, login
 
 from dzik_os.config import settings
 from dzik_os.dates import local_today
+from dzik_os.db import SessionLocal
+from dzik_os.models import CalorieEstimate
 from dzik_os.wywiad import zapotrzebowanie as Z
 
 W = "/api/clients/{}/wywiady"
@@ -101,7 +103,8 @@ def test_przeslanie_liczy_wynik_widoczny_dla_klienta_i_trenera(seeded):
     assert "history" not in k
     t = seeded.get(f"/api/clients/{cid}/zapotrzebowanie", headers=hc).json()
     assert t["status"] == "ok" and t["estimate"]["kcal_effective"] == 1960 and t["estimate"]["override"] is None
-    assert t["history"] == [{"version_no": 1, "kcal": 1960, "kcal_effective": 1960, "created_at": t["estimate"]["created_at"]}]
+    assert t["history"] == [{"version_no": 1, "kcal": 1960, "kcal_effective": 1960, "override_kcal": None,
+                             "created_at": t["estimate"]["created_at"]}]
     # Druga wersja (nowa masa) = nowy szacunek; historia rośnie.
     _patch(seeded, ha, cid, {**KOMPLET, "zk_masa": "68,5"})
     _przeslij(seeded, ha, cid)
@@ -113,15 +116,19 @@ def test_przeslanie_liczy_wynik_widoczny_dla_klienta_i_trenera(seeded):
 def test_flaga_zdrowotna_klient_nie_dostaje_zadnej_liczby(seeded):
     ha, hc = login(seeded, CLIENT_A), login(seeded, COACH)
     cid = get_user_id(seeded, ha)
+    # Opcja z przecinkiem w treści („Tak, obecnie lub w przeszłości”) też ustawia flagę.
+    _patch(seeded, ha, cid, {**KOMPLET, "zk_zaburzenia": "Tak, obecnie lub w przeszłości"})
+    assert _przeslij(seeded, ha, cid)["safety_flag"] is True
     _patch(seeded, ha, cid, {**KOMPLET, "zk_zaburzenia": "Wolę omówić z trenerem"})
     assert _przeslij(seeded, ha, cid)["safety_flag"] is True
     k = seeded.get(f"/api/clients/{cid}/zapotrzebowanie", headers=ha).json()
     assert k["status"] == "hidden" and k["estimate"] is None and "omówi" in k["message"]
     # Żadnego klucza z liczbą (kcal, ppm, masa…) na żadnym poziomie odpowiedzi.
     assert not ({"kcal", "kcal_effective", "ppm", "cpm", "pal", "masa_kg", "inputs", "podstawienie"} & _klucze(k))
-    assert _liczby(k) == [1]  # wyłącznie numer wersji
+    assert _liczby(k) == [2]  # wyłącznie numer wersji
     t = seeded.get(f"/api/clients/{cid}/zapotrzebowanie", headers=hc).json()
     assert t["status"] == "ok" and t["estimate"]["hidden_for_client"] is True and t["estimate"]["kcal"] == 1960
+    assert t["estimate"]["version_no"] == 2
     # Trener po rozmowie odsłania — klient widzi liczby.
     r = seeded.post(f"/api/clients/{cid}/zapotrzebowanie/odblokuj", headers=hc)
     assert r.status_code == 200 and r.json()["estimate"]["hidden_for_client"] is False
@@ -182,9 +189,95 @@ def test_placeholder_masy_z_ostatniego_pomiaru(seeded):
 def test_flaga_instalacji_wylacza_typ_i_trase(seeded, monkeypatch):
     ha = login(seeded, CLIENT_A)
     cid = get_user_id(seeded, ha)
+    assert seeded.get("/api/health").json()["features"]["calorie_interview"] is True
     monkeypatch.setattr(settings, "calorie_interview_enabled", False)
     assert seeded.get(f"/api/clients/{cid}/zapotrzebowanie", headers=ha).status_code == 404
     assert seeded.get(f"{W.format(cid)}/{TYP}/definicja", headers=ha).status_code == 404
     typy = [w["typ"] for w in seeded.get(W.format(cid), headers=ha).json()["wywiady"]]
     assert typy == ["wstepny", "gleboki"]
     assert seeded.get("/api/health").json()["features"]["calorie_interview"] is False
+
+
+def test_number_odrzuca_notacje_i_normalizuje_zapis(seeded):
+    ha = login(seeded, CLIENT_A)
+    cid = get_user_id(seeded, ha)
+    r = _patch(seeded, ha, cid, {"zk_masa": "1e2", "zk_wzrost": "1_80", "zk_wiek": "٣٠"})
+    assert set(r["errors"]) == {"zk_masa", "zk_wzrost", "zk_wiek"}
+    r = _patch(seeded, ha, cid, {"zk_masa": "72.5", "zk_wzrost": "1 80"})
+    assert r["errors"] == {}
+    odp = {a["question_id"]: a["value"] for a in _def(seeded, ha, cid)["answers"]}
+    assert odp["zk_masa"] == "72,5" and odp["zk_wzrost"] == "180"
+
+
+def test_eksport_danych_zawiera_szacunki_takze_ukryte(seeded):
+    """Prawo dostępu (RODO) ma pierwszeństwo przed ukryciem w aplikacji: eksport
+    zawiera pełne wiersze, także gdy wynik jest ukryty przed klientem w UI."""
+    ha = login(seeded, CLIENT_A)
+    cid = get_user_id(seeded, ha)
+    _patch(seeded, ha, cid, {**KOMPLET, "zk_zaburzenia": "Nie wiem"})
+    _przeslij(seeded, ha, cid)
+    r = seeded.get("/api/me/export", headers=ha)
+    assert r.status_code == 200, r.text
+    rows = r.json()["calorie_estimates"]
+    assert len(rows) == 1 and rows[0]["kcal"] == 1960 and rows[0]["hidden_for_client"] is True
+    assert r.json()["export_version"] == "1.7"
+
+
+def test_flaga_wylaczona_ukrywa_istniejace_przeslania_trenerowi(seeded, monkeypatch):
+    ha, hc = login(seeded, CLIENT_A), login(seeded, COACH)
+    cid = get_user_id(seeded, ha)
+    _patch(seeded, ha, cid, KOMPLET)
+    sid = _przeslij(seeded, ha, cid)["submission_id"]
+    assert seeded.get(f"/api/wywiady/zgloszenia/{sid}", headers=hc).status_code == 200
+    monkeypatch.setattr(settings, "calorie_interview_enabled", False)
+    assert seeded.get(f"/api/wywiady/zgloszenia/{sid}", headers=hc).status_code == 404
+    lista = seeded.get("/api/coach/wywiady/do-przegladu", headers=hc).json()
+    typy = {p["typ"] for k in lista["clients"] for p in k["wywiady"]}
+    assert TYP not in typy
+
+
+def test_trener_bez_przeslania_404_odblokowanie_noop_i_wygasanie_nadpisania(seeded):
+    ha, hc = login(seeded, CLIENT_A), login(seeded, COACH)
+    cid = get_user_id(seeded, ha)
+    url = f"/api/clients/{cid}/zapotrzebowanie"
+    # Przed przesłaniem: nie ma czego nadpisywać ani odsłaniać.
+    assert seeded.put(f"{url}/nadpisanie", headers=hc, json={"kcal": 1800, "reason": "x"}).status_code == 404
+    assert seeded.post(f"{url}/odblokuj", headers=hc).status_code == 404
+    _patch(seeded, ha, cid, KOMPLET)
+    _przeslij(seeded, ha, cid)
+    # Odblokowanie wyniku, który nie jest ukryty = no-op bez śladu.
+    r = seeded.post(f"{url}/odblokuj", headers=hc)
+    assert r.status_code == 200 and r.json()["estimate"]["unhidden_at"] is None
+    # Cofnięcie nadpisania, którego nie było = no-op.
+    assert seeded.put(f"{url}/nadpisanie", headers=hc, json={"kcal": None, "reason": "nic"}).json()["estimate"]["override"] is None
+    # Nadpisanie dotyczy wersji: nowa wersja wywiadu = wynik ze wzoru, poprzednie ustalenie w historii.
+    seeded.put(f"{url}/nadpisanie", headers=hc, json={"kcal": 1800, "reason": "łagodniej"})
+    _patch(seeded, ha, cid, {**KOMPLET, "zk_masa": "69"})
+    _przeslij(seeded, ha, cid)
+    t = seeded.get(url, headers=hc).json()
+    assert t["estimate"]["version_no"] == 2 and t["estimate"]["override"] is None
+    assert [h["override_kcal"] for h in t["history"]] == [None, 1800]
+    # Eksport ma nadpisanie z v1; usunięcie konta kasuje szacunki.
+    ex = seeded.get("/api/me/export", headers=ha).json()["calorie_estimates"]
+    assert sorted((e["version_no"], e["override_kcal"]) for e in ex) == [(1, 1800), (2, None)]
+    r = seeded.post("/api/me/deletion-request", headers=ha,
+                    json={"password": CLIENT_A["password"], "confirm": "USUŃ MOJE DANE"})
+    assert r.status_code in (200, 202), r.text
+    with SessionLocal() as db:
+        assert db.query(CalorieEstimate).filter_by(client_id=cid).count() == 0
+
+
+def test_komunikat_ukrycia_bez_trenera(seeded):
+    """Klient bez trenera widzi komunikat, który mówi, co dalej."""
+    create_user_with_role("sam.klient@example.com", "SamKlient#2026!", "Sam", "CLIENT")
+    hs = login(seeded, {"email": "sam.klient@example.com", "password": "SamKlient#2026!"})
+    cid = get_user_id(seeded, hs)
+    d = _def(seeded, hs, cid)
+    aktywne = {q["question_id"] for q in d["questions"] if q["active"]}
+    _patch(seeded, hs, cid, {k: v for k, v in KOMPLET.items() if k in aktywne} | ({"zk_zaburzenia": "Nie wiem"} if "zk_zaburzenia" in aktywne else {}))
+    sub = _przeslij(seeded, hs, cid)
+    k = seeded.get(f"/api/clients/{cid}/zapotrzebowanie", headers=hs).json()
+    if sub["safety_flag"]:
+        assert k["status"] == "hidden" and "nawiążesz współpracę" in k["message"]
+    else:
+        assert k["status"] == "ok"  # bez zgody zdrowotnej pytanie nie pada — wynik jawny

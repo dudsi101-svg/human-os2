@@ -240,7 +240,12 @@ nie jest zadawane) z `flag_options` „Tak / Nie wiem / Wolę omówić” →
 i komunikat — żadnej liczby na żadnym poziomie (test
 `test_flaga_zdrowotna_klient_nie_dostaje_zadnej_liczby`). Trener widzi
 pełne dane i po rozmowie odsłania (`POST …/odblokuj`, audyt
-`CALORIE_ESTIMATE_UNHIDDEN`).
+`CALORIE_ESTIMATE_UNHIDDEN`). Zakres filtru: **wynik i wejścia wzoru na
+trasie `/zapotrzebowanie`**. Własne odpowiedzi (w tym masa) klient nadal
+widzi w zakładce Wywiad — to jego dane; eksport danych (`/api/me/export`,
+prawo dostępu RODO) zawiera pełne wiersze `calorie_estimates` także przy
+ukryciu (test `test_eksport_danych_zawiera_szacunki_takze_ukryte`) —
+decyzja świadoma: prawo dostępu ma pierwszeństwo przed prezentacją w UI.
 
 **API:** `GET /api/clients/{id}/zapotrzebowanie` (klient: swoje; trener:
 relacja + zgody, dodatkowo `history`), `PUT …/nadpisanie` `{kcal|null,

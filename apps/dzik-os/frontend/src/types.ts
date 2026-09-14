@@ -1737,5 +1737,5 @@ export interface ZapotrzebowanieOut {
   estimate: ZapotrzebowanieSzacunek | null;
   message?: string;
   version_no?: number;
-  history?: { version_no: number; kcal: number; kcal_effective: number; created_at: string }[];
+  history?: { version_no: number; kcal: number; kcal_effective: number; override_kcal: number | null; created_at: string }[];
 }

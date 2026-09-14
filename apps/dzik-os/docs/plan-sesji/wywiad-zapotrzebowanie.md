@@ -56,6 +56,8 @@ i jeden pełny przebieg `przeslij` jako wzorzec; UI buduję na istniejących kom
   zakładki Pomiary; pomiar zasila tylko podpowiedź (placeholder).
 * Flaga na produkcji włączona w `fly.toml` w tej rundzie (patrz
   RELEASE_STATUS) — właściciel może wyłączyć jedną linią.
+* Klasa dostępu: pytania o ciało i aktywność mają klasę podstawową (nie
+  żywieniową, jak zapowiadał etap 2); tylko `zk_zaburzenia` = zdrowotna.
 
 ## Weryfikacja wykonana
 

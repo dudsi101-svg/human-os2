@@ -3,8 +3,11 @@
 Liczy szacunek przy przesłaniu wywiadu „zapotrzebowanie” (wywołanie z
 `serwis.przeslij`), trzyma jedną wersję na przesłanie, obsługuje nadpisanie
 i odblokowanie przez trenera oraz WIDOK zależny od roli: gdy z wywiadu
-wynika flaga zdrowotna (zaburzenia odżywiania), klient nie dostaje żadnej
-liczby (kcal, PPM, masa) — filtr po stronie serwera, nie interfejsu.
+wynika flaga zdrowotna (zaburzenia odżywiania), klient nie dostaje z tej
+trasy żadnej liczby WYNIKU ani wejść wzoru (kcal, PPM, CPM, masa) — filtr
+po stronie serwera, nie interfejsu. Własne odpowiedzi na pytania wywiadu
+(w tym masa) klient nadal widzi w zakładce Wywiad — to jego dane; eksport
+danych (RODO) także zawiera pełne wiersze `calorie_estimates`.
 """
 
 from __future__ import annotations
@@ -24,6 +27,9 @@ NADPISANIE_MIN, NADPISANIE_MAX = 800, 8000
 
 KOMUNIKAT_UKRYTY = ("Wynik jest gotowy, ale najpierw omówi go z Tobą trener — tak wynika z Twojej "
                     "odpowiedzi w części „Bezpieczeństwo”. Liczby pojawią się tutaj po rozmowie.")
+KOMUNIKAT_UKRYTY_BEZ_TRENERA = ("Wynik jest gotowy, ale pokażemy go dopiero po rozmowie z trenerem — tak "
+                                "wynika z Twojej odpowiedzi w części „Bezpieczeństwo”. Gdy nawiążesz "
+                                "współpracę z trenerem, omówicie go razem.")
 
 
 def przelicz_po_przeslaniu(db: Session, *, submission: InterviewSubmission,
@@ -33,11 +39,11 @@ def przelicz_po_przeslaniu(db: Session, *, submission: InterviewSubmission,
     tak) = brak szacunku, bez wyjątku: przesłanie i tak jest ważne."""
     if submission.typ != D.ZAPOTRZEBOWANIE:
         return None
+    wejscie = Z.z_odpowiedzi(D.wartosci(answers))
     try:
-        wynik = Z.oblicz(Z.z_odpowiedzi(D.wartosci(answers)))
+        wynik = Z.oblicz(wejscie)
     except Z.BrakDanych:
         return None
-    wejscie = Z.z_odpowiedzi(D.wartosci(answers))
     est = CalorieEstimate(
         id=new_id("CAL"), client_id=submission.client_id, submission_id=submission.id,
         version_no=submission.version_no,
@@ -85,14 +91,15 @@ def _pelny(est: CalorieEstimate) -> dict[str, Any]:
     }
 
 
-def widok(est: CalorieEstimate | None, *, viewer: str) -> dict[str, Any]:
+def widok(est: CalorieEstimate | None, *, viewer: str, has_coach: bool = True) -> dict[str, Any]:
     """Odpowiedź API. Trener: pełne dane. Klient: pełne, chyba że
-    `hidden_for_client` — wtedy wyłącznie status i komunikat (żadnych liczb,
-    także wejść: masa ciała też jest liczbą)."""
+    `hidden_for_client` — wtedy wyłącznie status i komunikat (żadnych liczb
+    wyniku ani wejść wzoru; masa ciała też jest liczbą)."""
     if est is None:
         return {"status": "none", "estimate": None}
     if viewer == "client" and est.hidden_for_client:
-        return {"status": "hidden", "estimate": None, "message": KOMUNIKAT_UKRYTY,
+        return {"status": "hidden", "estimate": None,
+                "message": KOMUNIKAT_UKRYTY if has_coach else KOMUNIKAT_UKRYTY_BEZ_TRENERA,
                 "version_no": est.version_no}
     return {"status": "ok", "estimate": _pelny(est)}
 
@@ -104,6 +111,8 @@ def nadpisz(db: Session, est: CalorieEstimate, *, actor: User, kcal: int | None,
     if not reason.strip():
         raise ValueError("Podaj powód nadpisania (klient go zobaczy).")
     poprzednie = est.override_kcal
+    if kcal is None and poprzednie is None:
+        return est  # nie ma czego cofać — bez zdarzenia
     est.override_kcal = kcal
     est.override_by = actor.id if kcal is not None else None
     est.override_at = now_iso() if kcal is not None else None
@@ -125,7 +134,7 @@ def odblokuj(db: Session, est: CalorieEstimate, *, actor: User) -> CalorieEstima
         est.unhidden_at = now_iso()
         record_event(
             db, action="CALORIE_ESTIMATE_UNHIDDEN", actor_id=actor.id, subject_ids=[est.client_id],
-            payload={"estimate_id": est.id}, summary="Trener odsłonił klientowi wynik zapotrzebowania",
+            payload={"estimate_id": est.id}, summary="Zmieniono widoczność wyniku zapotrzebowania dla klienta",
         )
         db.flush()
     return est

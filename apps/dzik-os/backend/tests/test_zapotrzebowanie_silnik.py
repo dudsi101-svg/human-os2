@@ -72,8 +72,14 @@ def test_oblicz_masa_mezczyzna():
 def test_wynik_nie_schodzi_ponizej_ppm():
     # PAL 1,2 (siedząca, nie trenuję) i −20 %: 1451,5·1,2·0,8 = 1393 < PPM → podniesione.
     w = Z.oblicz(_w(treningi="Nie trenuję", cel=Z.CEL_REDUKCJA, tempo="Szybsze (−20 %)"))
-    assert w.kcal == 1450
-    assert w.ostrzezenia and "poniżej PPM" in w.ostrzezenia[0]
+    assert w.kcal == 1460  # nigdy poniżej PPM 1451,5 → w górę do 10 kcal
+    assert w.ostrzezenia and "spoczynku (PPM)" in w.ostrzezenia[0]
+    assert any("podniesione do 1460" in p for p in w.podstawienie)
+
+
+def test_podstawienie_pokazuje_pal_z_dwoma_miejscami():
+    w = Z.oblicz(_w())
+    assert "PAL = 1,35" in w.podstawienie and "CPM = 1452 × 1,35 = 1960 kcal" in w.podstawienie
 
 
 def test_brak_danych_wskazuje_pola():

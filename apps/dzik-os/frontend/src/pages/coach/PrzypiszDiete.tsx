@@ -196,7 +196,7 @@ export default function PrzypiszDiete({ clientId, onPrzypisano, onAnuluj }: {
           <div className="field-row">
             <div><label htmlFor="pd-kcal">kcal / dzień</label>
               <input id="pd-kcal" inputMode="numeric" value={kcal} onChange={(e) => setKcal(e.target.value)} />
-              <ZaproponujKcal clientId={clientId} onPropozycja={(k, m) => { setKcal(String(k)); if (m && !masa) setMasa(String(m).replace(".", ",")); }} /></div>
+              <ZaproponujKcal clientId={clientId} onPropozycja={(k, m) => { setKcal(String(k)); if (m && !masa) setMasa(String(m)); }} /></div>
             <div><label htmlFor="pd-masa">Masa ciała (kg, do presetu na kg)</label>
               <input id="pd-masa" inputMode="decimal" value={masa} onChange={(e) => setMasa(e.target.value)} /></div>
           </div>
@@ -427,8 +427,9 @@ function ZaproponujKcal({ clientId, onPropozycja }: { clientId: string; onPropoz
   if (!e) return null;
   return (
     <small className="dim" style={{ display: "block", marginTop: 4 }}>
-      Z wywiadu: ≈ {e.kcal_effective} kcal{e.override ? " (ustalenie trenera)" : " (wzór)"}{" "}
-      <button type="button" className="btn btn--ghost btn--small" onClick={() => onPropozycja(e.kcal_effective, e.inputs.masa_kg)}>
+      Z wywiadu: ≈ {e.kcal_effective} kcal{e.override ? " (ustalenie trenera)" : " (wzór)"} — samo wstawienie nie przypisuje diety.{" "}
+      <button type="button" className="btn btn--ghost btn--small" aria-label={`Zaproponuj kcal: wstaw ${e.kcal_effective} kcal do pola`}
+        onClick={() => onPropozycja(e.kcal_effective, e.inputs.masa_kg)}>
         Zaproponuj kcal
       </button>
     </small>

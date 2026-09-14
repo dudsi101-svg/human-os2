@@ -18,6 +18,7 @@ pokazuje wynik.
 
 from __future__ import annotations
 
+import re
 from collections.abc import Callable
 from dataclasses import dataclass
 
@@ -45,6 +46,9 @@ TYPY = (WSTEPNY, GLEBOKI, ZAPOTRZEBOWANIE)
 #: Rodzaj pytania liczbowego (tylko w wywiadzie zapotrzebowania): odpowiedź
 #: tekstowa walidowana serwerowo jako liczba z zakresu `Pytanie.zakres`.
 KIND_NUMBER = "NUMBER"
+#: Dopuszczalny zapis liczby w NUMBER: do 3 cyfr, opcjonalnie 1–2 po
+#: przecinku lub kropce (bez notacji 1e2, 1_0, cyfr spoza ASCII).
+_LICZBA_RE = re.compile(r"[0-9]{1,3}(?:[.,][0-9]{1,2})?")
 
 #: Wersja definicji obu formularzy. Podbicie = nowa wersja pytań; stare
 #: przesłania trzymają swoją.
@@ -363,7 +367,7 @@ _PYTANIA_ZAPOTRZEBOWANIE: tuple[Pytanie, ...] = (
         "zk_dane", options=Z.PLCI),
     _zk("zk_wiek", KIND_NUMBER, "Wiek (lata)", "Z wiekiem podstawowa przemiana materii maleje — wzór to uwzględnia.",
         "zk_dane", placeholder="np. 32", zakres=Z.ZAKRES_WIEK, max_len=5),
-    _zk("zk_wzrost", KIND_NUMBER, "Wzrost (cm)", "Wzrost wchodzi do wzoru na PPM.",
+    _zk("zk_wzrost", KIND_NUMBER, "Wzrost (cm)", "Wzrost wchodzi do wzoru na podstawową przemianę materii (PPM) — im wyższa osoba, tym więcej spala w spoczynku.",
         "zk_dane", placeholder="np. 176", zakres=Z.ZAKRES_WZROST, max_len=6),
     _zk("zk_masa", KIND_NUMBER, "Aktualna masa ciała (kg)",
         "Masa ma największy wpływ na wynik. Podaj poranną, po toalecie, przed jedzeniem.",
@@ -514,13 +518,16 @@ def waliduj(q: Pytanie, value: str) -> str:
             raise ValueError("Wybierz jedną z dostępnych odpowiedzi.")
         return cleaned
     if q.type == KIND_NUMBER:
-        n = Z.liczba(cleaned)
+        bez_spacji = cleaned.replace(" ", "")
+        if not _LICZBA_RE.fullmatch(bez_spacji):
+            raise ValueError("Wpisz liczbę (np. 72,5).")
+        n = Z.liczba(bez_spacji)
         if n is None:
             raise ValueError("Wpisz liczbę (np. 72,5).")
         if q.zakres and not (q.zakres[0] <= n <= q.zakres[1]):
             lo, hi = (int(x) if float(x).is_integer() else x for x in q.zakres)
             raise ValueError(f"Wartość poza zakresem {lo}–{hi}.")
-        return cleaned.replace(" ", "")
+        return bez_spacji.replace(".", ",")
     if q.type == KIND_MULTI:
         parts = [p.strip() for p in cleaned.split(",") if p.strip()]
         if not parts:
