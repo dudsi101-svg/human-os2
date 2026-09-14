@@ -123,8 +123,15 @@ test("trener tworzy plan „tylko bloki” na 2 dni; klient widzi dwa dni po aer
  * sprzecznie (nagłówek „≈40 min”, a preset liczył 25 min) i ta sprzeczność
  * szła migawką do planu klienta. Po poprawce zmiana celu czyści oba pola,
  * a serwer wypełnia je presetem.
+ *
+ * Test pracuje na WŁASNYM bloku trenera i archiwizuje go na końcu: bloki
+ * wbudowane są policzone w `rozgrzewka.spec.ts` (21 kart), a baza E2E jest
+ * wspólna dla wszystkich plików. Tylko projekt „telefon” — nazwa pliku wpada
+ * także w `testMatch` projektu „desktop-trener” (`szablony.spec.ts`), a dwa
+ * przebiegi na jednej bazie kolidowałyby ze sobą.
  */
-test("zmiana celu bloku aerobowego przelicza czas i pozycje opisowe", async ({ page }) => {
+test("zmiana celu bloku aerobowego przelicza czas i pozycje opisowe", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "telefon", "zapisuje do wspólnej bazy — jeden projekt");
   await page.emulateMedia({ reducedMotion: "reduce" });
   await zaloguj(page, KONTA.trener);
   await page.goto("/trener/szablony");
@@ -132,23 +139,40 @@ test("zmiana celu bloku aerobowego przelicza czas i pozycje opisowe", async ({ p
   const tab = page.getByTestId("bloki-tab");
   await expect(tab).toBeVisible({ timeout: 15_000 });
 
-  // Blok wbudowany „redukcja / średniozaawansowany”: ciągła 40 min.
-  const karta = tab.getByTestId("blok-karta")
-    .filter({ hasText: "Aeroby — redukcja (średniozaawansowany)" }).first();
-  await expect(karta).toContainText("≈40 min");
-  await klik(karta.getByRole("button", { name: "Edytuj" }));
+  const NAZWA = "Aeroby własne — próba przeliczenia";
+  try {
+    // Nowy blok: cel redukcja, poziom średniozaawansowany, bez czasu i pozycji
+    // → serwer liczy presetem (ciągła 40 min).
+    await klik(tab.getByRole("button", { name: "+ Nowy blok" }));
+    const formularz = page.getByTestId("blok-formularz");
+    await expect(formularz).toBeVisible();
+    await formularz.locator("#bl-name").fill(NAZWA);
+    await formularz.locator("#bl-kind").selectOption("CARDIO");
+    await formularz.locator("#bl-goal").selectOption("redukcja");
+    await formularz.locator("#bl-level").selectOption("SREDNIOZAAWANSOWANY");
+    await klik(formularz.getByRole("button", { name: "Zapisz blok" }));
 
-  const formularz = page.getByTestId("blok-formularz");
-  await expect(formularz).toBeVisible();
-  await expect(formularz.locator("#bl-duration")).toHaveValue("40");
-  await formularz.locator("#bl-goal").selectOption("regeneracja");
-  // Zmiana celu czyści oba pola — puste znaczy „policz presetem”.
-  await expect(formularz.locator("#bl-duration")).toHaveValue("");
-  await expect(formularz.locator("#bl-items")).toHaveValue("");
-  await klik(formularz.getByRole("button", { name: "Zapisz blok" }));
+    const karta = tab.getByTestId("blok-karta").filter({ hasText: NAZWA }).first();
+    await expect(karta).toContainText("≈40 min", { timeout: 15_000 });
 
-  const po = tab.getByTestId("blok-karta")
-    .filter({ hasText: "Aeroby — redukcja (średniozaawansowany)" }).first();
-  await expect(po).toContainText("≈25 min", { timeout: 15_000 });
-  await expect(po).not.toContainText("≈40 min");
+    await klik(karta.getByRole("button", { name: "Edytuj" }));
+    const edycja = page.getByTestId("blok-formularz");
+    await expect(edycja.locator("#bl-duration")).toHaveValue("40");
+    await edycja.locator("#bl-goal").selectOption("regeneracja");
+    // Zmiana celu czyści oba pola — puste znaczy „policz presetem”.
+    await expect(edycja.locator("#bl-duration")).toHaveValue("");
+    await expect(edycja.locator("#bl-items")).toHaveValue("");
+    await klik(edycja.getByRole("button", { name: "Zapisz blok" }));
+
+    const po = tab.getByTestId("blok-karta").filter({ hasText: NAZWA }).first();
+    await expect(po).toContainText("≈25 min", { timeout: 15_000 });
+    await expect(po).not.toContainText("≈40 min");
+  } finally {
+    // Sprzątanie: archiwum znika z domyślnej listy, więc liczba bloków wraca do 21.
+    const doSprzatania = tab.getByTestId("blok-karta").filter({ hasText: NAZWA }).first();
+    if (await doSprzatania.count()) {
+      await klik(doSprzatania.getByRole("button", { name: "Archiwizuj" }));
+      await expect(tab.getByTestId("blok-karta").filter({ hasText: NAZWA })).toHaveCount(0, { timeout: 15_000 });
+    }
+  }
 });
