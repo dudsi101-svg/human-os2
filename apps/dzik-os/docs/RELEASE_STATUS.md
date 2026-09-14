@@ -1,6 +1,6 @@
 # Stan wydania — Dzik OS
 
-**Wersja:** 0.75.0 (PR #77 — szablony rozwijane po nazwie i opisy ćwiczeń z Wiedzy; `main` 0.74.0 po scaleniu PR #76 motyw; na produkcji 0.74.0 po wdrożeniu) · **Data:** 2026-09-14 · **Środowisko:** produkcja
+**Wersja:** 0.75.1 (PR #78 — dolna nawigacja na iPhonie; `main` 0.75.0 po scaleniu PR #77 szablony i opisy; na produkcji 0.75.0 po wdrożeniu) · **Data:** 2026-09-14 · **Środowisko:** produkcja
 (pilotaż) — https://dzik-os-panel.fly.dev
 
 Jedna strona prawdy o tym, co DZIAŁA na produkcji teraz. Aktualizowana

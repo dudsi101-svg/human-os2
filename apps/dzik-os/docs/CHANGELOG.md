@@ -1,5 +1,27 @@
 # Changelog — Dzik OS
 
+## 0.75.1 — 2026-09-14
+
+**Dolna nawigacja na iPhonie: ikony ściskane przez wcięcie systemowe (zgłoszenie
+właściciela z 14.09, zrzut z telefonu; gałąź `agent/nawigacja-safe-area`, PR #78,
+bez migracji).** Numer 0.75.0 = szablony rozwijane po nazwie i opisy ćwiczeń (PR #77).
+
+* **Przyczyna:** `.nav` miał `height: var(--nav-h)` (62 px) i jednocześnie
+  `padding-bottom: env(safe-area-inset-bottom)` przy `box-sizing: border-box`.
+  Na iPhonie (wcięcie ≈ 34 px) pole treści paska malało do ~28 px, a ikony
+  `svg` bez `flex-shrink: 0` były ściskane do ~12 px. Na Androidzie i desktopie
+  wcięcie = 0, dlatego Playwright ani przeklik na komputerze tego nie łapały.
+* **Zmiana:** nowy token `--safe-bottom: env(safe-area-inset-bottom, 0px)`;
+  pasek ma `height: calc(var(--nav-h) + var(--safe-bottom))` (pole treści zawsze
+  62 px), `.nav svg { flex-shrink: 0 }`, odstęp dolny `.page` powiększony o wcięcie
+  (ostatnia karta nie chowa się pod wyższym paskiem). Rozmiar ikony 22 px — decyzja
+  produktowa — bez zmian; przywrócone jest jej faktyczne renderowanie.
+* **Test:** `e2e/nawigacja-safe-area.spec.ts` (projekt „telefon”) nadpisuje token
+  na 34 px przez CSSOM (CSP `style-src 'self'` blokuje `<style>`) i sprawdza:
+  padding 34, pole treści ≥ 61 (clientHeight bez 1 px obramowania), ikona 22×22,
+  link ≥ 44 px. Emulacja `env()` w Chromium Playwrighta nie istnieje
+  (`Emulation.setSafeAreaInsets` niedostępne) — stąd token.
+
 ## 0.75.0 — 2026-09-14
 
 **Szablony rozwijane po nazwie i opisy ćwiczeń z Wiedzy w planie klienta

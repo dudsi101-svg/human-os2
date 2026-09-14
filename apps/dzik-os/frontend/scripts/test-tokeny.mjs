@@ -78,7 +78,7 @@ test("strażnik wykrywa literał wstrzyknięty do zwykłej reguły", () => {
 });
 
 test("każdy token koloru z :root ma nadpisanie w jasnym motywie", () => {
-  const NIEKOLOROWE = new Set(["radius-sm", "radius", "radius-lg", "font-display", "font-body", "ease-out", "nav-h"]);
+  const NIEKOLOROWE = new Set(["radius-sm", "radius", "radius-lg", "font-display", "font-body", "ease-out", "nav-h", "safe-bottom"]);
   const root = tokenyBloku(":root").filter((t) => !NIEKOLOROWE.has(t));
   const jasny = new Set(tokenyBloku('html[data-theme="czerwony"]'));
   const brak = root.filter((t) => !jasny.has(t));

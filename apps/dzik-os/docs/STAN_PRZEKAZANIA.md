@@ -1,6 +1,6 @@
 # Stan przekazania — przeczytaj przed rozpoczęciem rundy
 
-**Aktualizacja:** 2026-09-14 · **Wersja w `main`:** 0.74.0 (po scaleniu PR #76 motyw, `26a03af`) — **0.75.0 w PR #77 (`agent/szablony-i-opisy`, po przeglądzie, `main` dociągnięty)**, 0.75.1 w PR #78 (`agent/nawigacja-safe-area`, dolna nawigacja na iPhonie).
+**Aktualizacja:** 2026-09-14 · **Wersja w `main`:** 0.75.0 (po scaleniu PR #77 szablony i opisy, `3ca4a51`; 0.74.0 motyw = PR #76, `26a03af`) — **0.75.1 w PR #78** (`agent/nawigacja-safe-area`: dolna nawigacja na iPhonie — ikony ściskane przez wcięcie systemowe; poprawka CSS + test E2E).
 **Tryb pracy:** jeden piszący i jeden PR `[WRITER]` naraz
 (`KOORDYNACJA.md`, zasada nadrzędna).
 
