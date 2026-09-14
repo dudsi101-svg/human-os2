@@ -124,3 +124,75 @@ test("wybór jasnego motywu: atrybut, meta, znak, urządzenie, konto; trener nie
   await zapisB;
   expect((await motyw(page)).atrybut).toBeNull();
 });
+
+/**
+ * Przegląd PR #76, P1: rotacja tokenu (zmiana hasła, włączenie/wyłączenie MFA)
+ * woła setSession z kopią użytkownika z sessionStorage, której `theme` pochodzi
+ * z chwili logowania. Wcześniej setSession synchronizował motyw z tej kopii —
+ * po wyborze „Jasny” zmiana hasła cofała motyw do ciemnego, choć konto miało
+ * „czerwony”. Scenariusz odtwarza dokładnie ten rozjazd: konto ma „ciemny”
+ * w chwili logowania, użytkownik wybiera „Jasny”, potem dwa razy zmienia hasło
+ * (tam i z powrotem) — motyw ma zostać jasny po każdej rotacji.
+ */
+test("rotacja tokenu (zmiana hasła) nie cofa motywu wybranego po zalogowaniu", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  const haslo = KONTA.klientB.haslo;
+  const nowe = "KlientB#2026!tymczasowe";
+
+  async function kliknijZZapisem(nazwa: RegExp) {
+    const zapis = page.waitForResponse((r) => r.url().endsWith("/api/notifications/settings") && r.request().method() === "PUT" && r.ok());
+    await page.getByRole("radiogroup", { name: "Wygląd" }).getByRole("radio", { name: nazwa }).click();
+    await zapis;
+  }
+  /** Zapis motywu na koncie ZAWSZE wysyła PUT: już zaznaczona karta nie wysyła
+   * (wybierz() wychodzi wcześnie), więc wtedy najpierw klik w drugą kartę.
+   * Potrzebne, bo konto po seedzie ma NULL, a rozjazd wymaga jawnego "ciemny". */
+  async function zapiszMotyw(nazwa: RegExp) {
+    await page.goto("/wiecej");
+    const karta = page.getByRole("radiogroup", { name: "Wygląd" }).getByRole("radio", { name: nazwa });
+    await expect(karta).toBeVisible();
+    if ((await karta.getAttribute("aria-checked")) === "true") await kliknijZZapisem(nazwa.source.startsWith("Ciemny") ? /Jasny/ : /Ciemny/);
+    await kliknijZZapisem(nazwa);
+  }
+  async function zmienHaslo(obecne: string, nastepne: string) {
+    await page.goto("/haslo");
+    await page.getByLabel("Obecne hasło").fill(obecne);
+    await page.getByLabel("Nowe hasło (min. 10 znaków)").fill(nastepne);
+    await page.getByLabel("Powtórz nowe hasło").fill(nastepne);
+    await page.getByRole("button", { name: /Zmień hasło|Zapisz/ }).click();
+    await expect(page.getByRole("heading", { level: 1, name: "Dzisiaj" })).toBeVisible({ timeout: 15_000 });
+  }
+
+  // Konto ma „ciemny” jawnie (nie NULL), żeby kopia w sesji po logowaniu niosła "ciemny".
+  await zaloguj(page, KONTA.klientB);
+  await expect(page.getByRole("heading", { level: 1, name: "Dzisiaj" })).toBeVisible({ timeout: 15_000 });
+  await zapiszMotyw(/Ciemny/);
+  await page.getByRole("button", { name: "Wyloguj", exact: true }).click();
+  await expect(page).toHaveURL(/\/login/, { timeout: 15_000 });
+  await zaloguj(page, KONTA.klientB);
+  await expect(page.getByRole("heading", { level: 1, name: "Dzisiaj" })).toBeVisible({ timeout: 15_000 });
+  expect((await motyw(page)).atrybut).toBeNull();
+
+  await zapiszMotyw(/Jasny/);
+  expect((await motyw(page)).atrybut).toBe("czerwony");
+
+  let hasloTymczasowe = false;
+  try {
+    await zmienHaslo(haslo, nowe);
+    hasloTymczasowe = true;
+    let m = await motyw(page);
+    expect(m.atrybut).toBe("czerwony");
+    expect(m.lokalny).toBe("czerwony");
+    await zmienHaslo(nowe, haslo);
+    hasloTymczasowe = false;
+    m = await motyw(page);
+    expect(m.atrybut).toBe("czerwony");
+    expect(m.lokalny).toBe("czerwony");
+  } finally {
+    // Hasło z powrotem, gdyby asercja przerwała test między zmianami (inne testy
+    // logują klienta B seedowym hasłem).
+    if (hasloTymczasowe) await zmienHaslo(nowe, haslo);
+  }
+  await zapiszMotyw(/Ciemny/);
+  expect((await motyw(page)).atrybut).toBeNull();
+});

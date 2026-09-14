@@ -131,6 +131,10 @@ bez „jak w systemie” · zapis na koncie i urządzeniu · „Ciemny (czarno-z
   w planie sesji §„Weryfikacja wykonana”. Przy okazji dwie poprawki P2 w dokumentach
   (`export_version` 2.1 w CHANGELOG, cudzysłowy w instrukcji trenera).
 
+* **Niezależny przegląd PR #76:** P0 brak, 2 P1 naprawione (synchronizacja motywu
+  tylko przy logowaniu + kopia w sesji po zapisie; wersja backendu 0.74.0), P2
+  komentarz kontrastu — szczegóły w planie sesji i CHANGELOG.
+
 ## P2 / do rozważenia (nie blokują)
 
 * Ciemne natywne kontrolki w ciemnym motywie (`color-scheme: dark`) — zmiana wyglądu,

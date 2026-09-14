@@ -56,6 +56,15 @@ PR #75 rozgrzewka/cardio, migracja 39, scalony przed tą rundą).**
   scaleniu `main` także ekrany cardio 0.73.0: Bloki, panel suwaków, pozycja
   cardio i „Dlaczego takie cardio?” u klienta), tryb A/B do bramki
   pikselowej; lista z odhaczeniem w `docs/motyw/PROGRESS.md`.
+* **Po niezależnym przeglądzie PR #76 (P1):** motyw z konta synchronizuje się
+  wyłącznie w ścieżkach logowania (`login`/`verifyMfa`), nie w `setSession` —
+  rotacja tokenu (zmiana hasła, włączenie/wyłączenie MFA) woła `setSession`
+  z kopią użytkownika z chwili logowania i cofała świeżo wybrany motyw do
+  ciemnego, choć konto miało „czerwony”; po udanym zapisie w „Wygląd” kopia
+  w sesji dostaje nową wartość (`zapiszMotywWSesji`). E2E `motyw.spec.ts`:
+  wybór jasnego → zmiana hasła tam i z powrotem → motyw zostaje (test
+  sprawdzony na mutancie bez poprawki: czerwony). Wersja backendu
+  (`dzik_os/__init__.py`, `pyproject.toml`) podniesiona do 0.74.0.
 * **Świadomie nie w tej rundzie:** ikony PWA / `favicon` / `og.png` /
   `manifest` w czerwieni (decyzja o znaku), jasne zrzuty do galerii landingu,
   motyw „jak w systemie”, zmiany strony publicznej `/`.

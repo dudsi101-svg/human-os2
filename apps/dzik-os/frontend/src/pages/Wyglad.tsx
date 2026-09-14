@@ -1,5 +1,5 @@
 import { KeyboardEvent, useRef, useState } from "react";
-import { updateNotificationSettings } from "../api";
+import { updateNotificationSettings, zapiszMotywWSesji } from "../api";
 import { MOTYWY, Motyw, NAZWY_MOTYWOW, odczytajMotyw, ustawMotyw } from "../theme";
 
 /**
@@ -25,6 +25,7 @@ export default function Wyglad() {
     setStatus(null);
     try {
       await updateNotificationSettings({ theme: m });
+      zapiszMotywWSesji(m); // kopia w sesji = konto (rotacja tokenu nie cofnie wyboru)
       setStatus({ tekst: "Zapisano na koncie — obowiązuje po zalogowaniu na innym urządzeniu.", blad: false });
     } catch {
       setStatus({

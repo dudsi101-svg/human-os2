@@ -69,7 +69,7 @@ html[data-theme="czerwony"] {
   --bg-hover: #FDECEE;       /* pasmo różowe */
   --border: #ECE4E4;         /* obrys kart i separatory (nie kontrolki) */
   --border-strong: #B3878A;  /* obrys pól / ghost / chipów — 3,11:1 na bieli (WCAG 1.4.11) */
-  --text: #101418;           /* grafit — 17,6:1 na bieli */
+  --text: #101418;           /* grafit — 18,5:1 na bieli */
   --text-dim: #566372;       /* 6,13:1 na bieli, 5,69:1 na różu popielatym */
   --accent: #E11D2E;         /* czerwień marki — przyciski, aktywna zakładka, linki; biały tekst 4,75:1 */
   --accent-soft: #FDE3E5;    /* poświata — tła plakietek i alertów informacyjnych */

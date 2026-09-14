@@ -168,6 +168,13 @@ Porównanie programowe (`PIL.ImageChops.difference(a, b).getbbox()`), Chromium P
   --project=telefon` uruchomiło **cały projekt `telefon`** (40 testów) — nadzbiór
   zlecenia, wynik zapisany dla całości.
 
+* **Niezależny przegląd PR #76 (po przekazaniu):** P0 brak; dwa P1 naprawione —
+  (1) `setSession` synchronizował motyw z nieświeżej kopii użytkownika (rotacja tokenu
+  po zmianie hasła / MFA cofała wybór) → synchronizacja tylko w `login`/`verifyMfa`
+  + `zapiszMotywWSesji` po udanym PUT w `Wyglad.tsx`, E2E odtwarzający rozjazd
+  (mutant bez poprawki: czerwony); (2) wersja backendu `dzik_os/__init__.py` i
+  `pyproject.toml` 0.73.0 → 0.74.0. P2: komentarz kontrastu `--text` 18,5:1.
+
 ## Weryfikacja wykonana (po restarcie, na `2b12ed6` + poprawki dokumentów)
 
 | Bramka | Wynik |
@@ -203,3 +210,11 @@ Porównanie programowe (`PIL.ImageChops.difference(a, b).getbbox()`), Chromium P
   galerii landingu, motyw „jak w systemie”, zmiany strony `/`, kontrola w
   `spojnosc.py`.
 * Bezpiecznik 3× planu nie został uruchomiony.
+
+## Weryfikacja po przeglądzie P1 (na commicie poprawki)
+
+`tsc` 0 błędów · build 93,2 kB gzip · `test:helpers` 156/156 ·
+`pytest tests/test_notifications.py` 24 passed · `spojnosc.py` czysto (13 kontroli,
+1 uwaga sprzed rundy) · E2E `motyw.spec.ts` projekt `telefon` (port 8120) **2/2**;
+test rotacji tokenu uruchomiony na mutancie (poprawka cofnięta, build): **czerwony**
+(`Expected "czerwony", Received null`) — łapie wadę.

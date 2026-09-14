@@ -52,9 +52,19 @@ export function getUser(): SessionUser | null {
 export function setSession(token: string, user: SessionUser) {
   sessionStorage.setItem(TOKEN_KEY, token);
   sessionStorage.setItem(USER_KEY, JSON.stringify(user));
-  // Motyw z konta (0.74.0) nadpisuje wybór z urządzenia — ekran po logowaniu
-  // (pełne przeładowanie w Login.tsx) czyta już zsynchronizowany localStorage.
-  zsynchronizujMotyw(user.theme);
+  // Celowo BEZ synchronizacji motywu: setSession woła też rotacja tokenu
+  // (zmiana hasła, włączenie/wyłączenie MFA) z kopią użytkownika z sessionStorage,
+  // której `theme` jest z chwili logowania — synchronizacja tutaj cofałaby
+  // świeży wybór z „Wygląd” (przegląd PR #76, P1). Motyw z konta czyta się
+  // wyłącznie w ścieżkach logowania (login / verifyMfa).
+}
+
+/** Po udanym zapisie motywu na koncie (Wyglad.tsx): kopia użytkownika w sesji
+ * dostaje nową wartość, żeby żadna późniejsza rotacja tokenu nie niosła starej. */
+export function zapiszMotywWSesji(theme: string): void {
+  const token = sessionStorage.getItem(TOKEN_KEY);
+  const user = getUser();
+  if (token && user) setSession(token, { ...user, theme });
 }
 
 export function clearSession() {
@@ -351,6 +361,8 @@ export async function login(email: string, password: string): Promise<LoginResul
     return { kind: "mfa", mfaToken: data.mfa_token };
   }
   setSession(data.token, data.user);
+  // Motyw z konta (0.74.0) nadpisuje wybór z urządzenia — tylko przy logowaniu.
+  zsynchronizujMotyw(data.user.theme);
   return { kind: "ok", user: data.user };
 }
 
@@ -361,6 +373,7 @@ export async function verifyMfa(mfaToken: string, code: string): Promise<Session
     code,
   });
   setSession(data.token, data.user);
+  zsynchronizujMotyw(data.user.theme);
   return data.user;
 }
 
