@@ -382,39 +382,148 @@ def scale_week(template: dict, kcal: float, products: Products, pct=None, *,
     return [scale_day(d, t, products, enforce_groups_=enforce_groups_) for d in template["days"]]
 
 
-def swap_candidates(meal_result: dict, ing_index: int, products: Products, exclusions=(), n: int = 3) -> list[dict]:
-    """Wymiana produktu: kandydaci z tej samej substitution_group, zgodni z metodą przygotowania,
-    przeliczeni izokalorycznie z zachowaniem roli makro; odpadają ci, którzy wyprowadzą posiłek poza tolerancję."""
+POWODY_PUSTEJ_LISTY = ("SINGLETON", "EXCLUDED", "FUNCTION", "PORTION", "TOLERANCE")
+# Etap, na którym odpadł kandydat — powód pustej listy to NAJDALSZY etap, do którego doszedł
+# którykolwiek kandydat („kandydaci istnieją, ale każdy pogarsza posiłek” → TOLERANCE).
+_ETAP = {"EXCLUDED": 1, "FUNCTION": 2, "PORTION": 3, "TOLERANCE": 4}
+ROLA_KEY = {"P": "protein_100", "C": "carbs_100", "F": "fat_100"}
+MIN_BIALKO_100 = 15.0  # rola P na poziomie 2: nabiał chudy ma dużo wody — 15 g/100 g wystarczy
+
+
+def _tagi(p: Produkt) -> set[str]:
+    return {t for t in str(p.cooking_tags).split(",") if t}
+
+
+def _makro_dominujace(q: Produkt) -> str:
+    kcal = {"P": q.protein_100 * 4, "F": q.fat_100 * 9, "C": q.carbs_100 * 4}
+    return max(kcal, key=lambda k: (kcal[k], k))
+
+
+def rola_zgodna(q: Produkt, role: str) -> bool:
+    """Poziom 2: kandydat musi mieć dominujące makro zgodne z rolą składnika
+    (dla P wystarczy `protein_100 ≥ 15 g`)."""
+    if role == "P" and q.protein_100 >= MIN_BIALKO_100:
+        return True
+    return _makro_dominujace(q) == role
+
+
+def _odchylenia(cur: dict, target: dict) -> dict[str, float]:
+    return {k: abs(cur[k] - target[k]) for k in ("kcal", "P", "F", "C")}
+
+
+def nie_pogarsza(cur: dict, target: dict, dev_przed: dict) -> bool:
+    """Bramka „nie pogarsza”: posiłek po wymianie mieści się w TOL_MEAL ALBO żadne
+    odchylenie (kcal, P, F, C) co do modułu nie jest większe niż przed wymianą."""
+    if check(cur, target, TOL_MEAL)[0]:
+        return True
+    dev = _odchylenia(cur, target)
+    return all(dev[k] <= dev_przed[k] + 1e-9 for k in dev)
+
+
+def swap_candidates_z_powodami(meal_result: dict, ing_index: int, products: Products, exclusions=(), n: int = 3,
+                               related: dict[str, dict[str, str]] | None = None) -> tuple[list[dict], dict]:
+    """Wymiana produktu v2 (0.69.0) — TU silnik przestaje być 1:1 z prototypem
+    `docs/diet-module/engine.py` (skalowanie, `check`, `fit_*` bez zmian).
+
+    Poziom 1 = ta sama `substitution_group`; poziom 2 = grupa pokrewna (`related`,
+    z `dane/grupy_pokrewne.json`). Kolejność sit (każde odrzucenie liczone z powodem):
+    wykluczenia (alergeny/diety/„nie lubię” — PRZED poziomem 2, żeby poziom 2 nie
+    przemycił alergenu) → funkcja w posiłku (metoda: `cooking_tags` z `*`/pustym jako
+    wildcard; na poziomie 2 wildcard kandydata nie wystarcza; rola makro: `per > 0`,
+    na poziomie 2 dominujące makro zgodne z rolą) → gramatura w zakresie składnika
+    (`min_factor..max_factor`, zaokrąglona `round_step`) → bramka posiłku „w tolerancji
+    ALBO nie pogarsza”. Rola NONE: tylko poziom 1, gramatura 1:1 wagowo.
+    Ranking: poziom → suma |Δ| posiłku po wymianie → odległość makro produktu.
+    Zwraca (kandydaci, {"reason", "rejected"}); wynik deterministyczny."""
     ing = meal_result["ingredients"][ing_index]
     p = products[ing["product"]]
-    ctags = set(p.cooking_tags.split(","))
+    ctags = _tagi(p)
     orig = macros(ing, products)
-    role_key = {"P": "protein_100", "C": "carbs_100", "F": "fat_100"}.get(ing["role"], "kcal_100")
+    role = ing["role"] if ing["role"] in ("P", "C", "F") else "NONE"
+    grupa = p.substitution_group
+    pokrewne = (related or {}).get(grupa, {}) if grupa else {}
+    ings0 = [dict(x) for x in meal_result["ingredients"]]
+    cur0 = sum_macros(ings0, products)
+    dev0 = _odchylenia(cur0, meal_result["target"])
+    odrzucone: dict[str, int] = {}
+    najdalej = 0
+    step = ing.get("round_step") or 5
+    unit_g = float(ing.get("unit_g") or 0)
     cands = []
+    rozwazani = 0
     for q in products.values():
-        if q.name_pl == p.name_pl or q.substitution_group != p.substitution_group:
+        if q.name_pl == p.name_pl or not q.substitution_group:
             continue
-        if any(x in str(q.diet_exclusions) or x in str(q.allergens) for x in exclusions):
+        if q.substitution_group == grupa:
+            tier = 1
+        elif q.substitution_group in pokrewne:
+            tier = 2
+        else:
             continue
-        qtags = set(str(q.cooking_tags).split(","))
-        if "*" not in qtags and not (ctags & qtags):
+        if role == "NONE" and tier == 2:
+            continue  # NONE: funkcja = objętość/smak, tylko ta sama grupa
+        rozwazani += 1
+
+        def odrzuc(powod: str) -> None:
+            nonlocal najdalej
+            odrzucone[powod] = odrzucone.get(powod, 0) + 1
+            najdalej = max(najdalej, _ETAP[powod])
+
+        if any(x in str(q.diet_exclusions) or x in str(q.allergens) or x == q.name_pl for x in exclusions):
+            odrzuc("EXCLUDED")
             continue
-        per = getattr(q, role_key) / 100
-        if per <= 0:
+        qtags = _tagi(q)
+        if tier == 1:
+            ok_tagi = "*" in qtags or not qtags or "*" in ctags or not ctags or bool(ctags & qtags)
+        else:
+            ok_tagi = "*" in ctags or not ctags or bool(ctags & qtags)
+        if not ok_tagi:
+            odrzuc("FUNCTION")
             continue
-        # gramatura zachowująca makro roli (dla NONE: kcal)
-        key = ing["role"] if ing["role"] in ("P", "C", "F") else "kcal"
-        g = orig[key] / per
-        step = ing.get("round_step") or 5
+        if role == "NONE":
+            g = float(ing["grams"])
+        else:
+            per = getattr(q, ROLA_KEY[role]) / 100
+            if per <= 0 or (tier == 2 and not rola_zgodna(q, role)):
+                odrzuc("FUNCTION")
+                continue
+            g = orig[role] / per
         g = max(step, round(g / step) * step)
-        new = dict(ing, product=q.name_pl, grams=g)
-        ings = [dict(x) for x in meal_result["ingredients"]]
-        ings[ing_index] = new
-        cur = sum_macros(ings, products)
-        ok, _dev = check(cur, meal_result["target"], TOL_MEAL)
-        if not ok:
+        # Limity porcji v1.1 (twarde, po kategorii KANDYDATA): ≤ 300 g surowego mięsa/ryby,
+        # ≤ 4 jajka. Zakres min/max_factor składnika NIE jest przenoszony na kandydata —
+        # gęstość produktów różni się kilkukrotnie (50 g awokado ↔ 8 g oliwy to poprawna
+        # wymiana tłuszczu), pomiar z 14.09: zakres factor dawał 6/108 pustych list zamiast 3
+        # przy 2000 kcal i 51/124 zamiast 3 dla roli NONE (docs/diet-module/PROGRESS.md).
+        if q.category in ("mięso", "ryby") and q.substitution_group != "wędlina" and g > 300:
+            odrzuc("PORTION")
             continue
+        if q.name_pl == "Jajko kurze (całe)" and unit_g > 0 and g > 4 * unit_g:
+            odrzuc("PORTION")
+            continue
+        ings = [dict(x) for x in meal_result["ingredients"]]
+        ings[ing_index] = dict(ing, product=q.name_pl, grams=g)
+        cur = sum_macros(ings, products)
+        if not nie_pogarsza(cur, meal_result["target"], dev0):
+            odrzuc("TOLERANCE")
+            continue
+        dev = _odchylenia(cur, meal_result["target"])
         dist = sum(abs(getattr(q, k) - getattr(p, k)) for k in ("protein_100", "fat_100", "carbs_100"))
-        cands.append((dist, q.name_pl, g, cur))
+        delta = {k: round(cur[k] - cur0[k], 1) for k in ("kcal", "P", "F", "C")}
+        cands.append((tier, round(sum(dev.values()), 6), round(dist, 6), q.name_pl, g, cur, delta,
+                      pokrewne.get(q.substitution_group) if tier == 2 else None, q.substitution_group))
     cands.sort()
-    return [{"product": c[1], "grams": c[2], "macros": c[3]} for c in cands[:n]]
+    out = [{"product": c[3], "grams": c[4], "macros": c[5], "tier": c[0], "meal_delta": c[6],
+            "group": c[8], "tier_reason": c[7]} for c in cands[:n]]
+    reason = None
+    if not out:
+        if rozwazani == 0:
+            reason = "SINGLETON"
+        else:
+            reason = next(k for k, v in _ETAP.items() if v == najdalej)
+    return out, {"reason": reason, "rejected": odrzucone, "considered": rozwazani}
+
+
+def swap_candidates(meal_result: dict, ing_index: int, products: Products, exclusions=(), n: int = 3,
+                    related: dict[str, dict[str, str]] | None = None) -> list[dict]:
+    """Lista kandydatów (bez statystyki) — ta sama ścieżka co `swap_candidates_z_powodami`."""
+    return swap_candidates_z_powodami(meal_result, ing_index, products, exclusions, n, related)[0]

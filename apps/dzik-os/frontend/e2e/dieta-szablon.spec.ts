@@ -52,18 +52,38 @@ test("trener przypisuje dietę z szablonu, klient wymienia produkt", async ({ pa
   await expect(page.getByText(/szt\. \(~/).first()).toBeVisible();
   await klik(page.getByRole("button", { name: "Wymień Pierś z kurczaka (surowa)" }));
   await expect(page.getByText(/Pierś z indyka \(surowa\)/).first()).toBeVisible({ timeout: 15_000 });
-  await klik(page.getByRole("button", { name: "Wybierz" }).first());
+  // Wymiany v2 rankują po poziomie i wpływie na posiłek, więc indyk nie musi być pierwszy — wybieramy go po nazwie.
+  await klik(page.getByRole("listitem").filter({ hasText: "Pierś z indyka (surowa)" }).getByRole("button", { name: "Wybierz" }));
   await expect(page.getByText(/Wymieniono: Pierś z kurczaka \(surowa\) → Pierś z indyka/)).toBeVisible({ timeout: 15_000 });
   await expect(page.getByText("(wymienione)").first()).toBeVisible();
 
-  // Trener widzi historię wymian.
+  // Wymiany v2 (0.69.0): warzywo z rolą NONE ma przycisk (na `main` 0.64.0 nie miało),
+  // zamiennik 1:1 wagowo z tej samej grupy i deltą posiłku po polsku.
+  await klik(page.getByRole("button", { name: "Wymień Brokuł" }));
+  const arkuszBrokul = page.getByRole("dialog", { name: /Zamienniki: Brokuł/ });
+  await expect(arkuszBrokul.getByText("z tej samej grupy").first()).toBeVisible({ timeout: 15_000 });
+  await expect(arkuszBrokul.getByText(/posiłek: [−+]?\d+ kcal/).first()).toBeVisible();
+  await klik(arkuszBrokul.getByRole("button", { name: "Wybierz" }).first());
+  await expect(page.getByText(/Wymieniono: Brokuł → /)).toBeVisible({ timeout: 15_000 });
+
+  // Poziom 2: awokado (dzień 2) było singletonem bez zamiennika — teraz grupa pokrewna.
+  await klik(page.getByRole("tab", { name: "Dzień 2" }));
+  await klik(page.getByRole("button", { name: "Wymień Awokado" }));
+  const arkuszAwokado = page.getByRole("dialog", { name: /Zamienniki: Awokado/ });
+  await expect(arkuszAwokado.getByText(/grupa pokrewna: (orzechy|tłuszcz)/).first()).toBeVisible({ timeout: 15_000 });
+  await klik(arkuszAwokado.getByRole("button", { name: "Wybierz" }).first());
+  await expect(page.getByText(/Wymieniono: Awokado → /)).toBeVisible({ timeout: 15_000 });
+
+  // Trener widzi historię wymian z poziomem.
   await page.evaluate(() => sessionStorage.clear());
   await zaloguj(page, KONTA.trener);
   await page.goto("/trener");
   await page.getByRole("link", { name: /Klient Testowy B/ }).first().click();
   await page.getByRole("tab", { name: "Dieta" }).click();
-  await klik(page.getByText(/Historia wymian klienta \(1\)/));
+  await klik(page.getByText(/Historia wymian klienta \(3\)/));
   await expect(page.getByText(/Pierś z kurczaka \(surowa\) \d+ g → Pierś z indyka/)).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByText("grupa pokrewna").first()).toBeVisible();
+  await expect(page.getByText("ta sama grupa").first()).toBeVisible();
 });
 
 /**

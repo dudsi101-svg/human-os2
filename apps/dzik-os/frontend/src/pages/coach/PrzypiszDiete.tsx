@@ -360,7 +360,7 @@ function PosilekEdycja({ d, m, overrides, zamiana, onGram, onBiblioteka, onCofni
 
 export function PrzypisanaDietaTrenera({ clientId, onZmiana }: { clientId: string; onZmiana: () => void }) {
   const [dane, setDane] = useState<{ assigned: DietAssignedOut | null; history: { id: string; version: number; status: string; kcal: number; created_at: string }[];
-    swap_events: { id: string; day: number; from: string; to: string; from_grams: number; to_grams: number; created_at: string }[] } | null>(null);
+    swap_events: { id: string; day: number; from: string; to: string; from_grams: number; to_grams: number; created_at: string; tier?: 1 | 2 | null }[] } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [bladZapisu, setBladZapisu] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -410,7 +410,8 @@ export function PrzypisanaDietaTrenera({ clientId, onZmiana }: { clientId: strin
         <details>
           <summary>Historia wymian klienta ({dane.swap_events.length})</summary>
           <ul style={{ fontSize: "0.85rem", paddingLeft: 18 }}>
-            {dane.swap_events.map((s) => <li key={s.id}>D{s.day}: {s.from} {Math.round(s.from_grams)} g → {s.to} {Math.round(s.to_grams)} g · {plDateTime(s.created_at)}</li>)}
+            {dane.swap_events.map((s) => <li key={s.id}>D{s.day}: {s.from} {Math.round(s.from_grams)} g → {s.to} {Math.round(s.to_grams)} g
+              {s.tier ? <span className={s.tier === 2 ? "badge" : "badge badge--ok"} style={{ marginLeft: 4 }}>{s.tier === 2 ? "grupa pokrewna" : "ta sama grupa"}</span> : null} · {plDateTime(s.created_at)}</li>)}
           </ul>
         </details>
       )}

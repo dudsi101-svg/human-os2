@@ -18,6 +18,7 @@ from pathlib import Path
 BACKEND = Path(__file__).resolve().parents[1] / "backend"
 sys.path.insert(0, str(BACKEND))
 
+from dzik_os.dieta import grupy
 from dzik_os.dieta import silnik as S
 
 DANE = BACKEND / "dzik_os" / "dieta" / "dane"
@@ -36,10 +37,12 @@ def produkty() -> S.Products:
     return out
 
 
-def pomiar(szablon: str, kcal: float, role: tuple[str, ...], prods: S.Products, *, kandydaci=None) -> dict:
+def pomiar(szablon: str, kcal: float, role: tuple[str, ...], prods: S.Products, *, kandydaci=None,
+           pokrewne: bool = True) -> dict:
     t = json.loads((DANE / "szablony" / f"{szablon}.json").read_text(encoding="utf-8"))
     dni = S.scale_week(t, kcal, prods)
-    kandydaci = kandydaci or (lambda m, i: S.swap_candidates(m, i, prods, exclusions=(), n=len(prods)))
+    related = grupy.pokrewne() if pokrewne else None
+    kandydaci = kandydaci or (lambda m, i: S.swap_candidates(m, i, prods, exclusions=(), n=len(prods), related=related))
     posilki = [m for d in dni for m in d["meals"]]
     nie_ok = [m for m in posilki if m["status"] != "OK"]
     puste, razem = [], 0
@@ -59,12 +62,13 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--szablon", default="template_standard_v1")
     ap.add_argument("--role", nargs="+", default=["P", "C", "F"])
     ap.add_argument("--lista", action="store_true", help="wypisz składniki bez kandydata")
+    ap.add_argument("--bez-pokrewnych", action="store_true", help="tylko poziom 1 (ta sama grupa) — jak przed v2")
     a = ap.parse_args(argv)
     prods = produkty()
     print(f"| szablon | kcal | posiłki nie-OK | składników ({'/'.join(a.role)}) bez kandydata |")
     print("|---|---|---|---|")
     for k in a.kcal:
-        w = pomiar(a.szablon, k, tuple(a.role), prods)
+        w = pomiar(a.szablon, k, tuple(a.role), prods, pokrewne=not a.bez_pokrewnych)
         pct = 100 * len(w["puste"]) / w["skladniki"] if w["skladniki"] else 0
         print(f"| {a.szablon} | {k:.0f} | {w['nie_ok']}/{w['posilki']} | **{len(w['puste'])} z {w['skladniki']} ({pct:.0f} %)** |")
         if a.lista:

@@ -406,3 +406,68 @@ def test_import_odrzuca_nadmiarowe_notatki_i_zly_zakres_kcal(dieta):
         raport = seed.zaseeduj(db)
     assert raport["szablony_pominiete"] == 1
     assert c.get(f"{D}/templates/{dieta['week']}", headers=hc).json()["days"][0]["meals"][0]["name"] == "Owsianka trenera"
+
+
+# --- wymiany v2 (0.69.0): powód pustej listy, rola NONE, poziom 2, historia z poziomem ---
+
+
+def _skladnik_z_planu(a, produkt: str):
+    for d in a["plan"]["days"]:
+        for m in d["meals"]:
+            for i in m["ingredients"]:
+                if i["product"] == produkt:
+                    return d, m, i
+    raise AssertionError(produkt)
+
+
+def test_wymiana_v2_powod_pustej_listy_i_poziom_2(dieta):
+    c = dieta["c"]
+    a = _assign(dieta).json()
+    d, m, aw = _skladnik_z_planu(a, "Awokado")
+    q = {"day": d["day"], "meal": m["meal_id"], "ingredient": aw["ingredient_id"]}
+    r = c.get(f"{D}/assigned/{a['id']}/swaps", headers=dieta["ha"], params=q)
+    assert r.status_code == 200, r.text
+    body = r.json()
+    # Awokado = singleton poziomu 1 → kandydaci wyłącznie z grup pokrewnych (orzechy/tłuszcz), z etykietą i deltą posiłku.
+    assert body["reason"] is None and body["candidates"], body
+    assert all(x["tier"] == 2 and x["group"] and x["tier_reason"] and set(x["meal_delta"]) == {"kcal", "P", "F", "C"} for x in body["candidates"])
+    assert isinstance(body["rejected"], dict)
+    # POST przyjmuje kandydata poziomu 2 i zapisuje poziom w korekcie; historia trenera pokazuje poziom.
+    kand = body["candidates"][0]
+    r = c.post(f"{D}/assigned/{a['id']}/swaps", headers=dieta["ha"],
+               json={"day": d["day"], "meal_id": m["meal_id"], "ingredient_id": aw["ingredient_id"], "to_product_id": kand["product_id"]})
+    assert r.status_code == 201, r.text
+    cur = c.get(f"{D}/assigned/current", headers=dieta["ha"]).json()["assigned"]
+    assert cur["plan"]["overrides"]["ingredients"][f"{d['day']}:{m['meal_id']}:{aw['ingredient_id']}"]["tier"] == 2
+    hist = c.get(f"{D}/clients/{dieta['cid']}/current", headers=dieta["hc"]).json()["swap_events"]
+    assert hist and hist[0]["to"] == kand["product"] and hist[0]["tier"] == 2
+    # Powód pustej listy: wykluczenie wszystkich kandydatów po nazwie („nie lubię”) → EXCLUDED.
+    a2 = _assign(dieta, exclusions=[x["product"] for x in body["candidates"]] + ["Orzechy włoskie", "Migdały", "Orzechy nerkowca",
+                 "Oliwa z oliwek", "Masło", "Olej rzepakowy", "Skwarki", "Masło orzechowe", "Tahini", "Śmietana 18%",
+                 "Oliwki", "Mleczko kokosowe", "Śmietanka bez laktozy"]).json()
+    d2, m2, aw2 = _skladnik_z_planu(a2, "Awokado")
+    r = c.get(f"{D}/assigned/{a2['id']}/swaps", headers=dieta["ha"],
+              params={"day": d2["day"], "meal": m2["meal_id"], "ingredient": aw2["ingredient_id"]})
+    assert r.status_code == 200 and r.json()["candidates"] == [] and r.json()["reason"] in ("EXCLUDED", "TOLERANCE", "FUNCTION")
+
+
+def test_wymiana_v2_rola_none_1_do_1_i_swappable_efektywne(dieta):
+    c = dieta["c"]
+    a = _assign(dieta).json()
+    d, m, br = _skladnik_z_planu(a, "Brokuł")
+    # Warzywo (rola NONE) ma przycisk — swappable liczone przy odczycie, migawka bez przepisywania.
+    assert br["role"] == "NONE" and br["swappable"] is True
+    q = {"day": d["day"], "meal": m["meal_id"], "ingredient": br["ingredient_id"]}
+    body = c.get(f"{D}/assigned/{a['id']}/swaps", headers=dieta["ha"], params=q).json()
+    assert body["blocked"] is None and body["candidates"], body
+    assert all(x["grams"] == br["grams"] and x["tier"] == 1 for x in body["candidates"])
+    kal = next((x for x in body["candidates"] if x["product"] == "Kalafior"), body["candidates"][0])
+    r = c.post(f"{D}/assigned/{a['id']}/swaps", headers=dieta["ha"],
+               json={"day": d["day"], "meal_id": m["meal_id"], "ingredient_id": br["ingredient_id"], "to_product_id": kal["product_id"]})
+    assert r.status_code == 201, r.text
+    # Składnik STAŁY (przyprawa) nadal bez przycisku.
+    for dd in a["plan"]["days"]:
+        for mm in dd["meals"]:
+            for ii in mm["ingredients"]:
+                if ii["class"] == "STAŁY":
+                    assert ii["swappable"] is False

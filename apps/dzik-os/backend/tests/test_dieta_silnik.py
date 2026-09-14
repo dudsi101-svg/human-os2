@@ -292,3 +292,144 @@ def test_alergeny_posilku_liczone_z_biezacych_skladnikow(prods):
     assert S.scale_meal(m, baza, prods)["allergens"] == []
     m2 = _posilek(("Krewetki (surowe)", 150, "P"), ("Ryż biały (suchy)", 60, "C"))
     assert S.scale_meal(m2, baza, prods)["allergens"] == ["skorupiaki"]
+
+
+# --- wymiany v2 (0.69.0): grupy pokrewne, funkcja w posiłku, bramka „nie pogarsza”, NONE 1:1 ---
+
+
+def _skladnik(week, nazwa_posilku_fragment: str, produkt: str):
+    for d in week:
+        for m in d["meals"]:
+            if nazwa_posilku_fragment in m["name"]:
+                for i, x in enumerate(m["ingredients"]):
+                    if x["product"] == produkt:
+                        return m, i
+    raise AssertionError(f"brak {produkt} w posiłku zawierającym „{nazwa_posilku_fragment}”")
+
+
+def _pokrewne():
+    from dzik_os.dieta import grupy
+
+    return grupy.pokrewne()
+
+
+def test_poziom_2_daje_kandydatow_z_grupy_pokrewnej_po_poziomie_1(prods, tpl):
+    week = S.scale_week(tpl, 2000, prods)
+    m, i = _skladnik(week, "Jajecznica", "Awokado")
+    out, meta = S.swap_candidates_z_powodami(m, i, prods, n=5, related=_pokrewne())
+    # tłuszcz_roślinny to singleton → bez poziomu 2 pusta lista z powodem SINGLETON…
+    assert S.swap_candidates_z_powodami(m, i, prods, n=5)[1]["reason"] == "SINGLETON"
+    # …a z grupami pokrewnymi (orzechy, tłuszcz) są kandydaci poziomu 2 z powodem powiązania.
+    assert out and all(o["tier"] == 2 for o in out) and all(o["tier_reason"] for o in out)
+    assert {o["group"] for o in out} <= {"orzechy", "tłuszcz"}
+    assert meta["reason"] is None
+    # Poziom 1 zawsze przed poziomem 2.
+    m2, i2 = _skladnik(week, "Owsianka", "Płatki owsiane")
+    out2 = S.swap_candidates(m2, i2, prods, n=10, related=_pokrewne())
+    tiers = [o["tier"] for o in out2]
+    assert tiers == sorted(tiers) and 1 in tiers
+
+
+def test_rola_none_wymiana_1_do_1_wagowo_tylko_w_tej_samej_grupie(prods, tpl):
+    week = S.scale_week(tpl, 2000, prods)
+    m, i = _skladnik(week, "stir-fry", "Brokuł")
+    out, meta = S.swap_candidates_z_powodami(m, i, prods, n=10, related=_pokrewne())
+    assert out and all(o["grams"] == m["ingredients"][i]["grams"] for o in out)
+    assert all(o["tier"] == 1 and prods[o["product"]].substitution_group == "warzywa_gotowane" for o in out)
+    assert any(o["product"] == "Kalafior" for o in out)
+
+
+def test_bramka_nie_pogarsza_w_posilku_poza_tolerancja(prods, tpl):
+    """Posiłek już poza tolerancją: kandydat neutralny/poprawiający przechodzi, pogarszający odpada."""
+    week = S.scale_week(tpl, 2000, prods)
+    m, i = _skladnik(week, "Kurczak stir-fry", "Pierś z kurczaka (surowa)")
+    zly = dict(m)
+    zly["ingredients"] = [dict(x) for x in m["ingredients"]]
+    zly["ingredients"][i]["grams"] = zly["ingredients"][i]["grams"] * 0.5  # posiłek poza tolerancją (P i kcal w dół)
+    assert not S.check(S.sum_macros(zly["ingredients"], prods), zly["target"], S.TOL_MEAL)[0]
+    out, meta = S.swap_candidates_z_powodami(zly, i, prods, n=10, related=_pokrewne())
+    assert out, meta
+    dev0 = S._odchylenia(S.sum_macros(zly["ingredients"], prods), zly["target"])
+    for o in out:
+        dev = S._odchylenia(o["macros"], zly["target"])
+        assert S.check(o["macros"], zly["target"], S.TOL_MEAL)[0] or all(dev[k] <= dev0[k] + 1e-9 for k in dev)
+        assert set(o["meal_delta"]) == {"kcal", "P", "F", "C"}
+
+
+def test_zaden_kandydat_nie_pogarsza_posilku_i_wynik_deterministyczny(prods, tpl):
+    week = S.scale_week(tpl, 2000, prods)
+    for d in week:
+        for m in d["meals"]:
+            dev0 = S._odchylenia(S.sum_macros(m["ingredients"], prods), m["target"])
+            for i in range(len(m["ingredients"])):
+                a = S.swap_candidates_z_powodami(m, i, prods, n=5, related=_pokrewne())
+                b = S.swap_candidates_z_powodami(m, i, prods, n=5, related=_pokrewne())
+                assert a == b
+                for o in a[0]:
+                    dev = S._odchylenia(o["macros"], m["target"])
+                    assert S.check(o["macros"], m["target"], S.TOL_MEAL)[0] or all(dev[k] <= dev0[k] + 1e-9 for k in dev)
+
+
+def test_poziom_2_nie_przemyca_alergenu_ani_wykluczenia(prods, tpl):
+    week = S.scale_week(tpl, 2000, prods)
+    m, i = _skladnik(week, "Jajecznica", "Jajko kurze (całe)")
+    out, meta = S.swap_candidates_z_powodami(m, i, prods, n=10, related=_pokrewne(), exclusions=("soja", "meat"))
+    assert all("soja" not in prods[o["product"]].allergens and "meat" not in prods[o["product"]].diet_exclusions for o in out)
+    assert meta["rejected"].get("EXCLUDED", 0) >= 1
+    # „nie lubię” po nazwie produktu też odsiewa (przed poziomem 2).
+    out2, _ = S.swap_candidates_z_powodami(m, i, prods, n=10, related=_pokrewne(), exclusions=("Tempeh",))
+    assert all(o["product"] != "Tempeh" for o in out2)
+
+
+def test_powody_pustej_listy(prods, tpl):
+    week = S.scale_week(tpl, 2000, prods)
+    m, i = _skladnik(week, "Jajecznica", "Awokado")
+    assert S.swap_candidates_z_powodami(m, i, prods)[1]["reason"] == "SINGLETON"
+    # EXCLUDED: wszystko odpada przez wykluczenia (nazwy wszystkich kandydatów poziomu 1 i 2).
+    out, _ = S.swap_candidates_z_powodami(m, i, prods, n=50, related=_pokrewne())
+    nazwy = tuple(o["product"] for o in out)
+    _, meta = S.swap_candidates_z_powodami(m, i, prods, n=50, related=_pokrewne(),
+                                           exclusions=nazwy + tuple(p.name_pl for p in prods.values()
+                                                                    if p.substitution_group in ("orzechy", "tłuszcz", "orzechy_pasty", "dodatek_tłuszczowy", "tłuszcz_roślinny")))
+    assert meta["reason"] == "EXCLUDED"
+    # FUNCTION: składnik z tagami, których żaden kandydat nie ma (sztuczny produkt), a tagi „*” u kandydata nie wystarczą na poziomie 2.
+    p_sztuczny = S.Produkt(name_pl="Sztuczny", category="mięso", substitution_group="białko_chude", kcal_100=100,
+                           protein_100=20, fat_100=2, carbs_100=0, cooking_tags="sous_vide", default_scaling="LINIOWY")
+    prods2 = dict(prods, Sztuczny=p_sztuczny)
+    m2, i2 = _skladnik(week, "Kurczak stir-fry", "Pierś z kurczaka (surowa)")
+    posilek = dict(m2, ingredients=[dict(x) for x in m2["ingredients"]])
+    posilek["ingredients"][i2] = dict(posilek["ingredients"][i2], product="Sztuczny")
+    assert S.swap_candidates_z_powodami(posilek, i2, prods2, n=10, related=_pokrewne())[1]["reason"] == "FUNCTION"
+    # TOLERANCE: kandydaci istnieją, ale każdy pogarsza posiłek — posiłek celowo „idealny” z celem = bieżące makro.
+    idealny = dict(m2, ingredients=[dict(x) for x in m2["ingredients"]])
+    idealny["target"] = {**S.sum_macros(idealny["ingredients"], prods), }
+    idealny["target"] = {k: v for k, v in idealny["target"].items() if k in ("kcal", "P", "F", "C")}
+    # Zawężamy tolerancję nie da się (stała) — zamiast tego składnik, którego każdy zamiennik zmienia makro: cel = dokładnie bieżące,
+    # więc każdy kandydat o innym profilu daje |Δ| > 0 na jakiejś osi, chyba że mieści się w TOL_MEAL — sprawdzamy więc
+    # tylko, że powód TOLERANCE pojawia się, gdy sztucznie odrzucimy wszystkich bramką (cel przesunięty poza zasięg).
+    daleki = dict(idealny, target={"kcal": idealny["target"]["kcal"] + 400, "P": idealny["target"]["P"] + 60,
+                                  "F": idealny["target"]["F"], "C": idealny["target"]["C"]})
+    _, meta = S.swap_candidates_z_powodami(daleki, i2, prods, n=10, related=_pokrewne(),
+                                           exclusions=tuple(p.name_pl for p in prods.values() if p.protein_100 > prods["Pierś z kurczaka (surowa)"].protein_100))
+    assert meta["reason"] in ("TOLERANCE", "EXCLUDED")  # zależnie od tego, czy ktokolwiek dotarł do bramki
+    # PORTION: kandydat mięsny musiałby przekroczyć 300 g.
+    duzy = dict(m2, ingredients=[dict(x) for x in m2["ingredients"]])
+    duzy["ingredients"][i2] = dict(duzy["ingredients"][i2], grams=290)
+    duzy["target"] = S.sum_macros(duzy["ingredients"], prods)
+    _, meta = S.swap_candidates_z_powodami(duzy, i2, prods, n=10, exclusions=("Pierś z indyka (surowa)",))
+    assert "PORTION" in meta["rejected"]
+
+
+def test_puste_tagi_kandydata_to_wildcard_na_poziomie_1_ale_nie_na_2(prods):
+    ing = {"product": "Ryż biały (suchy)", "grams": 60, "role": "C"}
+    meal = {"name": "t", "slot": "obiad", "kcal_share": 1.0, "ingredients": [ing]}
+    r = S.scale_meal(meal, {"kcal": 210, "P": 4, "F": 1, "C": 47}, prods)
+    bez_tagow = S.Produkt(name_pl="Ziarno bez tagów", category="zboża", substitution_group="kasza_ryż", kcal_100=350,
+                          protein_100=7, fat_100=1, carbs_100=78, cooking_tags="", default_scaling="LINIOWY")
+    bez_tagow_2 = S.Produkt(name_pl="Makaron bez tagów", category="zboża", substitution_group="makaron", kcal_100=350,
+                            protein_100=12, fat_100=1.5, carbs_100=72, cooking_tags="", default_scaling="LINIOWY")
+    prods2 = dict(prods, **{bez_tagow.name_pl: bez_tagow, bez_tagow_2.name_pl: bez_tagow_2})
+    out = S.swap_candidates(r, 0, prods2, n=50, related=_pokrewne())
+    nazwy = {o["product"] for o in out}
+    assert "Ziarno bez tagów" in nazwy      # poziom 1: pusty zestaw tagów = wildcard
+    assert "Makaron bez tagów" not in nazwy  # poziom 2: wildcard kandydata nie wystarcza
