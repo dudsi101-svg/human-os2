@@ -28,6 +28,7 @@ from ..models import (
     DietAssigned,
     DietSwapEvent,
     Document,
+    ExerciseRecord,
     Goal,
     Habit,
     HabitCompletion,
@@ -57,6 +58,7 @@ from ..models import (
     StoredFile,
     TrainingPlan,
     TrainingPlanVersion,
+    TrainingWeekAggregate,
     User,
     WeeklyCheckin,
     WorkoutEntry,
@@ -358,8 +360,12 @@ def _collect_export(db: Session, user: User) -> dict:
     # Nawyki (0.63.0): definicje (autor, termin) i odhaczenia — dane klienta.
     habits = _rows(db, Habit, client_id=client_id)
     habit_completions = _rows(db, HabitCompletion, client_id=client_id)
+    # Postępy (0.66.0): rekordy ćwiczeń i agregaty tygodni — dane pochodne z sesji,
+    # ale klient ma prawo je zobaczyć w eksporcie.
+    exercise_records = _rows(db, ExerciseRecord, client_id=client_id)
+    training_week_aggregates = _rows(db, TrainingWeekAggregate, client_id=client_id)
     return {
-        "export_version": "1.8",
+        "export_version": "1.9",
         "user": {
             "id": user.id, "email": user.email, "display_name": user.display_name,
             "identity_id": user.identity_id, "created_at": user.created_at,
@@ -408,6 +414,8 @@ def _collect_export(db: Session, user: User) -> dict:
         "calorie_estimates": calorie_estimates,
         "habits": habits,
         "habit_completions": habit_completions,
+        "exercise_records": exercise_records,
+        "training_week_aggregates": training_week_aggregates,
     }
 
 
@@ -617,6 +625,9 @@ def request_deletion(
     # Nawyki i odhaczenia znikają w całości.
     db.query(HabitCompletion).filter(HabitCompletion.client_id == client_id).delete()
     db.query(Habit).filter(Habit.client_id == client_id).delete()
+    # Postępy (0.66.0): rekordy i agregaty to dane pochodne — znikają w całości.
+    db.query(ExerciseRecord).filter(ExerciseRecord.client_id == client_id).delete()
+    db.query(TrainingWeekAggregate).filter(TrainingWeekAggregate.client_id == client_id).delete()
     # Klucze idempotencji (metadane operacyjne z identyfikatorami zapisów)
     # znikają razem z kontem.
     db.query(IdempotencyKey).filter(IdempotencyKey.user_id == client_id).delete()

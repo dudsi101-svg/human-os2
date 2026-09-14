@@ -26,6 +26,8 @@ from ..models import (
     new_id,
     now_iso,
 )
+from ..postepy import rekordy as R
+from ..postepy import serwis as postepy_serwis
 from ..schemas import PlanCreateIn, PlanDayIn, PlanVersionIn, WorkoutSessionIn
 from ..security import current_user, require_role
 from ..storage import _read_limited
@@ -357,24 +359,39 @@ def log_workout(
     # więc bez tego pozycje trafiają do bazy przed sesją, na którą wskazują
     # (klucz obcy session_id).
     db.flush()
+    wpisy: list[WorkoutEntry] = []
     for e in body.entries:
         if e.file_id is not None:
             # Załącznik wpisu treningowego musi być plikiem tego klienta.
             require_attachable_file(db, user, e.file_id, owner_id=client_id)
-        db.add(
-            WorkoutEntry(
-                id=new_id("WKE"),
-                session_id=session.id,
-                exercise_index=e.exercise_index,
-                exercise_name=e.exercise_name,
-                result=e.result,
-                sets_json=(
-                    json.dumps([s.model_dump() for s in e.sets]) if e.sets else None
-                ),
-                comment=e.comment,
-                file_id=e.file_id,
-            )
+        wpis = WorkoutEntry(
+            id=new_id("WKE"),
+            session_id=session.id,
+            exercise_index=e.exercise_index,
+            exercise_name=e.exercise_name,
+            result=e.result,
+            # Jednostki normalizowane do kg PRZY ZAPISIE (Postępy §8.2.6);
+            # w bazie zostaje {"weight_kg", "reps"} + "warmup": true tylko dla
+            # rozgrzewki — seria robocza ma ten sam kształt co przed 0.66.0.
+            sets_json=(
+                json.dumps([{"weight_kg": R.normalizuj_ciezar(s.weight_kg, s.unit), "reps": s.reps,
+                             **({"warmup": True} if s.warmup else {})} for s in e.sets]) if e.sets else None
+            ),
+            comment=e.comment,
+            file_id=e.file_id,
         )
+        db.add(wpis)
+        wpisy.append(wpis)
+    db.flush()
+    # Postępy (0.66.0): rekordy ćwiczeń z sesji i agregat tygodnia przeliczane
+    # przy zapisie; jedno zbiorcze powiadomienie na sesję (§8.3). Za flagą —
+    # bez niej zapis sesji zachowuje się dokładnie jak przed 0.66.0 (tabele
+    # z migracji 36 zostają puste; historię przelicza backfill po włączeniu).
+    nowe_rekordy: list = []
+    powiadomienie = None
+    if settings.monitoring_tab_enabled:
+        nowe_rekordy = postepy_serwis.po_zapisie_sesji(db, session, wpisy)
+        powiadomienie = postepy_serwis.powiadom_o_rekordach(db, client_id, session.id, nowe_rekordy)
     record_event(
         db,
         action="WORKOUT_LOGGED",
@@ -387,7 +404,9 @@ def log_workout(
         + (" (zgłoszono ból)" if body.pain_flag else ""),
     )
     db.commit()
-    return {"id": session.id}
+    if powiadomienie is not None:
+        notifications.publish_realtime(powiadomienie)
+    return {"id": session.id, "new_records": len(nowe_rekordy)}
 
 
 @router.get("/clients/{client_id}/workouts")

@@ -9,4 +9,8 @@ Frontend nigdy nie podejmuje decyzji bezpieczeństwa — wszystkie reguły
 uprawnień i zgód egzekwuje ten backend.
 """
 
+<<<<<<< HEAD
 __version__ = "0.67.0"
+=======
+__version__ = "0.66.0"
+>>>>>>> origin/main

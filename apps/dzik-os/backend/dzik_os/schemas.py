@@ -113,8 +113,14 @@ class PlanCreateIn(BaseModel):
 
 
 class WorkoutSetIn(BaseModel):
+    """Seria: ciężar w polu `weight_kg` w jednostce `unit` (kg albo lb —
+    normalizacja do kilogramów przy zapisie, §8.2.6), `warmup` = seria
+    rozgrzewkowa wykluczona z rekordów (§8.2.4; decyzja właściciela 14.09)."""
+
     weight_kg: float = Field(ge=0, le=1000)
     reps: int = Field(ge=0, le=200)
+    warmup: bool = False
+    unit: str = Field(default="kg", pattern="^(kg|lb)$")
 
 
 class WorkoutEntryIn(BaseModel):
