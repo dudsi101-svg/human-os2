@@ -2023,3 +2023,43 @@ class CalorieEstimate(Base):
     override_at: Mapped[str | None] = mapped_column(String(40), nullable=True)
     override_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[str] = mapped_column(String(40), default=now_iso)
+
+
+class Habit(Base):
+    """Nawyk podopiecznego (0.63.0): rusztowanie z terminem, nie streak.
+    Proweniencja: `author_id` (trener albo klient). Postęp liczony przy
+    odczycie (`dzik_os.nawyki`); GRADUATED = absolutorium (utrwalony),
+    ARCHIVED = wymieniony/usunięty (historia odhaczeń zostaje)."""
+
+    __tablename__ = "habits"
+
+    id: Mapped[str] = mapped_column(String(40), primary_key=True)
+    client_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
+    name: Mapped[str] = mapped_column(String(200))
+    days_of_week: Mapped[str] = mapped_column(String(30), default="1,2,3,4,5,6,7")
+    target_days: Mapped[int] = mapped_column(Integer, default=66)
+    author_id: Mapped[str] = mapped_column(String(40))
+    author_note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    started_on: Mapped[str] = mapped_column(String(40))  # YYYY-MM-DD
+    status: Mapped[str] = mapped_column(String(20), default="ACTIVE")  # ACTIVE / GRADUATED / ARCHIVED
+    graduated_on: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    #: Klient przyjął absolutorium („Zostaw tak jak jest”) — karta zwija się do jednej linii.
+    ack_on: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    created_at: Mapped[str] = mapped_column(String(40), default=now_iso)
+    updated_at: Mapped[str] = mapped_column(String(40), default=now_iso)
+
+
+class HabitCompletion(Base):
+    """Odhaczenie nawyku na dzień — jeden wpis na (nawyk, dzień); cofnięcie
+    usuwa wpis (idempotentne w obie strony)."""
+
+    __tablename__ = "habit_completions"
+    __table_args__ = (UniqueConstraint("habit_id", "completed_on"),)
+
+    id: Mapped[str] = mapped_column(String(40), primary_key=True)
+    habit_id: Mapped[str] = mapped_column(ForeignKey("habits.id"), index=True)
+    client_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
+    completed_on: Mapped[str] = mapped_column(String(40))  # YYYY-MM-DD
+    status: Mapped[str] = mapped_column(String(20), default="DONE")
+    created_by: Mapped[str] = mapped_column(String(40))
+    created_at: Mapped[str] = mapped_column(String(40), default=now_iso)

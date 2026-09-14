@@ -5,7 +5,9 @@ import json
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
+from .. import nawyki as N
 from ..authz import require_client_self
+from ..daily_messages import message_for
 from ..dates import local_today, parse_iso_date
 from ..db import get_db
 from ..models import (
@@ -26,6 +28,7 @@ from ..models import (
 )
 from ..payment_state import DUE_STATUSES
 from ..security import current_user
+from . import habits as habits_router
 
 router = APIRouter(prefix="/api", tags=["today"])
 
@@ -206,9 +209,16 @@ def today_view(user: User = Depends(current_user), db: Session = Depends(get_db)
                 "unread": msg.read_at is None,
             }
 
+    # Panel rozwojowy (0.63.0): powitanie, hasło dnia (deterministyczne, bez AI),
+    # nawyki z postępem liczonym przy odczycie (absolutorium utrwalane tutaj).
+    habits = habits_router.lista(db, client_id, today)
+    db.commit()
     return {
         "date": today.isoformat(),
         "weekday": weekday,
+        "greeting_name": N.imie(user.display_name),
+        "daily_message": message_for(today),
+        "habits": habits,
         "workout": todays_workout,
         "nutrition": nutrition_summary,
         "schedule": schedule_today,
