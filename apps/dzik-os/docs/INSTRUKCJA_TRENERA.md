@@ -203,6 +203,22 @@ takie wpisy scalasz ręcznie, poprawiając nazwę w treningu.
 Zakładka „Szablony": twórz plany bez przypisanego klienta i odtwarzaj je
 przy zakładaniu planu klientowi.
 
+* **Lista po nazwach** (od 0.75.0) — każdy szablon to nazwa z meta „dni ·
+  pozycje · data”; kliknięcie w nazwę rozwija dni, ćwiczenia, panel publikacji
+  (szkic → sprawdź zmiany → publikuj) i notkę o kopiowaniu; drugie kliknięcie
+  zwija. Przy ćwiczeniu z Twojej bazy jest link „Karta w Wiedzy” (z powrotem do
+  szablonów). W zakładce Dieta nazwa szablonu diety działa tak samo jak „Podgląd”.
+* **Opis ćwiczenia u klienta** (od 0.75.0) — podopieczny widzi pod każdym
+  ćwiczeniem planu „Opis ćwiczenia” (skrót z Twojej bazy: technika w punktach,
+  błędy, mięśnie) i „Pełny opis w Wiedzy”. Dopasowanie: po powiązaniu z bazą
+  („z bazy” w edytorze), a bez niego **po nazwie** — ćwiczenie z importu pliku
+  albo wpisane ręcznie dostanie opis, jeśli w Wiedzy → Ćwiczenia masz wpis pod tą
+  samą nazwą (wielkość liter i polskie znaki bez znaczenia; przy dwóch wpisach o
+  tej samej nazwie wygrywa starszy). Ten sam „Opis ćwiczenia” widzisz w karcie
+  klienta → Plan, a w edytorze i szkicu — link „Karta w Wiedzy”. Brak wpisu =
+  klient widzi „Brak opisu tego ćwiczenia w Wiedzy”; wystarczy dodać ćwiczenie
+  do bazy pod tą nazwą.
+
 * **Bloki** (od 0.73.0) — trzecia zakładka Szablonów: „Dodaj wbudowane” ładuje
   9 rozgrzewek i 3 bloki rozciągania (drugie kliknięcie niczego nie dubluje),
   „+ Nowy blok” i „Edytuj” (pozycje: jedna linia = „nazwa | dawka | notatka”),

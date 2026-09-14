@@ -201,12 +201,14 @@ export default function Today() {
                 <div>
                   <b>{ex.name}</b>
                   {ex.comment && <div className="meta">{ex.comment}</div>}
-                  <OpisCwiczenia exerciseId={ex.exercise_id} name={ex.name} powrot="/" testid={`dzis-opis-${i}`} />
                 </div>
                 <div className="meta">
                   {[ex.sets && `${ex.sets}×${ex.reps ?? "?"}`, ex.weight, ex.rest]
                     .filter(Boolean)
                     .join(" · ")}
+                </div>
+                <div style={{ gridColumn: "1 / -1", textAlign: "left" }}>
+                  <OpisCwiczenia exerciseId={ex.exercise_id} name={ex.name} powrot="/" testid={`dzis-opis-${i}`} />
                 </div>
               </div>
               );

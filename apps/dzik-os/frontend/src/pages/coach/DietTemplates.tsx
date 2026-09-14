@@ -121,7 +121,7 @@ export default function DietTemplatesTab() {
             <h2 style={{ margin: 0, flex: 1 }}>
               <button type="button" className="knowledge-card__toggle" aria-expanded={open === t.id}
                 aria-controls={`dieta-tresc-${t.id}`} onClick={() => setOpen(open === t.id ? null : t.id)}>
-                <span>{t.title}</span>
+                <span style={{ fontSize: "1.1rem", fontWeight: 700 }}>{t.title}</span>
                 <span className="dim"><Icon name={open === t.id ? "chevron-up" : "chevron-down"} size={18} /></span>
               </button>
             </h2>

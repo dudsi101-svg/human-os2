@@ -30,6 +30,8 @@ wersje 0.64.0 i 0.65.0 są zajęte przez `agent/biblioteka-diet` i `agent/monito
 | 4 | zlecenie 2 — wymiany produktów v2 (+ korelacja katalogu) | kolejna wolna | — (przegląd CSV przez właściciela może iść równolegle) |
 | 5 | PR #67 `agent/landing-czerwony` — zlecenie 3, domknięcie (stan 14.09 wieczór: `main` = 0.69.0; 0.70.0 = PR #70 powitanie, 0.71.0 = dni treningowe) | **0.72.0 (scalone)** | — |
 | 6 | zlecenie 5 — rozgrzewka, rozciąganie, cardio z suwakami | **0.73.0** (PR #75; 0.72.0 = PR #67) | **39** (`exercise_blocks` + pola cardio w `workout_entries`) |
+| 7 | motyw czerwono-biały jako drugi motyw aplikacji | **0.74.0** (PR #76) | — |
+| 8 | polecenie właściciela 14.09: szablony rozwijane po nazwie + opisy ćwiczeń z Wiedzy w planie klienta | **0.75.0** (PR #77, `agent/szablony-i-opisy`) | — (dopasowanie po nazwie odczytowe; utrwalenie = pytanie do właściciela) |
 
 Decyzje właściciela z drugiej tury (14.09): kreator diety odłożony i ukryty; klient na
 diecie z szablonu; katalog pojedynczych produktów (2058 pozycji) ma zasilić zamienniki

@@ -643,12 +643,14 @@ function PlanTab({ clientId }: { clientId: string }) {
                     <div>
                       {ex.name}{KIND_BADGE[rodzaj] && <span className="badge" style={{ marginLeft: 8 }}>{KIND_BADGE[rodzaj]}</span>}
                       {/* Opis z własnej bazy (0.75.0): to samo, co widzi klient — po id albo po nazwie. */}
-                      {rodzaj === "strength" && (
-                        <OpisCwiczenia exerciseId={ex.exercise_id} name={ex.name} rola="trener"
-                          powrot={`/trener/klient/${clientId}?zakladka=plan`} testid={`tr-opis-${i}-${j}`} />
-                      )}
                     </div>
                     <div className="meta">{opisPozycji(ex)}</div>
+                    {rodzaj === "strength" && (
+                      <div style={{ gridColumn: "1 / -1", textAlign: "left" }}>
+                        <OpisCwiczenia exerciseId={ex.exercise_id} name={ex.name} rola="trener"
+                          powrot={`/trener/klient/${clientId}?zakladka=plan`} testid={`tr-opis-${i}-${j}`} />
+                      </div>
+                    )}
                   </div>
                 );
               })}

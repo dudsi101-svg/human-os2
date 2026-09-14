@@ -1,5 +1,67 @@
 # Changelog — Dzik OS
 
+## 0.75.0 — 2026-09-14
+
+**Szablony rozwijane po nazwie i opisy ćwiczeń z Wiedzy w planie klienta
+(polecenie właściciela z 14.09; gałąź `agent/szablony-i-opisy`, PR #77, bez
+migracji).** Numer 0.74.0 = motyw czerwono-biały (PR #76, równolegle).
+
+Właściciel: „nazwa szablonu widoczna, a wszystkie dane o treningu rozwijane
+po kliknięciu w nią; przy każdym ćwiczeniu w planie klienta połączenie do
+szczegółowego opisu z Wiedzy — rozwinąć na miejscu albo przenieść się tam,
+gdzie jest opisane”.
+
+* **Szablony → Trening:** lista pokazuje wyłącznie nazwy szablonów z meta
+  „N dni · M pozycji · data”; dni, ćwiczenia (z odznaką rodzaju i linkiem
+  „Karta w Wiedzy” przy pozycjach z bazy), panel publikacji i notka o
+  kopiowaniu rozwijają się po kliknięciu w nazwę (`h2 > button[aria-expanded]
+  [aria-controls]`, klawiatura Enter/Spacja; stan lokalny, nic nie zapisuje;
+  `PublikacjaPanel` montowany dopiero po rozwinięciu). Zakładka Dieta: nazwa
+  szablonu diety jest tym samym przełącznikiem co „Podgląd” (logika bez zmian).
+* **Opis ćwiczenia w planie klienta** (`opisCwiczenia.tsx`, wspólny dla Planu,
+  „Dzisiaj”, pozycji bloków rozgrzewki/rozciągania i podglądu planu u trenera):
+  przycisk „Opis ćwiczenia” pod pozycją pobiera leniwie kartę z bazy trenera —
+  po `exercise_id`, a bez identyfikatora **po znormalizowanej nazwie**
+  (nowe trasy `GET /api/me/exercises/by-name?name=` i `GET /api/coach/exercises/
+  by-name?name=`; ten sam klucz co import: `normalize_name` — bez wielkości
+  liter, polskich znaków i nadmiarowych spacji; przy duplikacie zawsze najstarszy
+  wpis; trasy stałe przed `/{item_id}`). Rozwinięcie w miejscu = skrót: technika
+  w punktach (do 6), najczęstsze błędy, mięśnie główne/pomocnicze; pod nim
+  **„Pełny opis w Wiedzy”**. Wynik (także brak) w pamięci podręcznej na czas
+  życia karty. Brak dopasowania = uczciwy komunikat („Brak opisu tego ćwiczenia
+  w Wiedzy…”), nigdy pusty przycisk. Zero AI, nic nie jest zapisywane.
+  Zastępuje `ExerciseTechniqueLink` (działał tylko przy `exercise_id`, bez linku
+  do Wiedzy).
+* **Karta ćwiczenia w Wiedzy:** klient `/wiedza?czesc=training&cwiczenie=<id>
+  &powrot=/plan` (Wiedza v2 i tryb legacy obsługują ten sam parametr — wspólny
+  `KartaCwiczeniaTrenera`: pełny `ExerciseDetail` z mapą mięśni, fokus na
+  przycisku powrotu, „Wróć do planu” / „Wróć na Dzisiaj” / „Wróć do karty
+  klienta” / „Wróć do szablonów” wg `powrot` — tylko wewnętrzna ścieżka
+  aplikacji, `bezpiecznyPowrot`); trener `/trener/wiedza?cwiczenie=<id>` (własna
+  karta, `GET /api/coach/exercises/{id}`). 404 → „Tego ćwiczenia nie ma już w
+  bazie trenera” + powrót.
+* **Trener:** podgląd planu w karcie klienta ma ten sam „Opis ćwiczenia” (rola
+  trenera, własna baza; bloki rozwijane jak u klienta); edytor nowej wersji i
+  szkic pokazują link „Karta w Wiedzy” przy pozycji z bazy (powrót na bieżący
+  ekran).
+* **Seed:** „Wiosłowanie hantlem w podporze” w dniu A klienta A bez
+  `exercise_id` — demo dopasowania po nazwie.
+* **Dostęp:** `by-name` klienta = ten sam zbiór co `GET /api/me/exercises`
+  (trenerzy z aktywną relacją, wpisy ACTIVE); brak dopasowania, brak relacji
+  i zarchiwizowane = jedno 404; pusta nazwa 422; trener widzi tylko własne
+  (cudze 404, klient 403). Macierz uprawnień +2 wiersze.
+* **Testy:** `test_exercises_by_name.py` (5: diakrytyki/wielkość liter, 404/422,
+  bez relacji, archiwizacja, własne/cudze/klient 403, determinizm przy
+  duplikacie), `test-nazwy.mjs` (6: normalizacja, klucz cache, adresy API i kart,
+  bezpieczny powrót, etykiety), E2E `szablony.spec.ts` (+1: rozwinięcie i
+  zwinięcie po nazwie, oba projekty), nowy `plan-opis.spec.ts` (3: opis po id →
+  Wiedza → powrót; opis po nazwie; karta spoza bazy), a11y (`4a` Plan z
+  rozwiniętym opisem @320, `7a` Szablony: przycisk w h2, aria-controls, brak
+  scrolla), PWA. Przeklik ze zrzutami: `docs/plan-sesji/szablony-i-opisy.md`.
+* **Pytanie do właściciela (domyślne przyjęte):** utrwalenie dopasowania po
+  nazwie w treści planu wymagałoby nowej wersji planu albo migracji treści —
+  nie zrobione; dopasowanie jest odczytowe i deterministyczne.
+
 ## 0.73.0 — 2026-09-14
 
 **Rozgrzewka, rozciąganie i cardio z suwakami celów (zlecenie 5 właściciela

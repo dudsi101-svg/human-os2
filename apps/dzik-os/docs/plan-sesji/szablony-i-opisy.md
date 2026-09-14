@@ -176,6 +176,61 @@ plan ≈ 9 h; przy przekroczeniu 27 h STOP i raport.
    + link do pełnej karty; pełny `ExerciseDetail` w planie dublowałby Wiedzę.
 3. Diety w Szablonach: tylko nazwa jako przycisk (ta sama zwijana lista co dotąd).
 
-## Weryfikacja wykonana
+## Weryfikacja wykonana (14.09, stan przed scaleniem `main`)
 
-(uzupełniane w trakcie — bramki z liczbami, przeklik „co kliknąłem i co zobaczyłem”.)
+**Bramki:** `python -m ruff check backend tools` — czysto; pełny `pytest tests -q`
+(`PYTHONPATH=.`) — **1929 passed, 1 skipped** (po poprawce
+`test_seeded_plans_and_templates_are_linked_to_library`: pozycja bez `exercise_id`
+musi trafiać w bazę po nazwie — pierwszy przebieg 1928/1 failed właśnie na niej);
+Core `pytest tests -q` — **275 passed**; `tools/spojnosc.py` — 13 kontroli czysto,
+1 uwaga (K-001, cudza, otwarta od 647 h); `mutacje.py` 17/17 wykryte;
+`mutacje_bezpieczenstwa.py` 9/9 zabitych; `tsc --noEmit` czysto; `npm run build`
+— 92,5 kB gzip (budżet 120); `test:helpers` 153 pass (w tym `test-nazwy.mjs` 6);
+E2E `telefon` (szablony, plan-opis, nawyki, dni-treningowe, wiedza, rozgrzewka)
+15/15; `desktop-trener` (szablony, logowanie, pwa) 9/9; `test_a11y.mjs` — wszystkie
+kontrole (w tym nowe 4a i 7a); `test_pwa_offline.mjs` — wszystkie.
+
+**Prawdziwe żądania HTTP na uruchomionym serwerze (port 8132, `curl`):**
+`GET /api/me/exercises/by-name?name=wioslowanie%20HANTLEM%20w%20podporze` → 200
+(`Wiosłowanie hantlem w podporze`, 4 kroki); nazwa spoza bazy → 404; pusta → 422;
+bez tokenu → 401; trener `…/coach/exercises/by-name?name=Przysiad ze sztangą` → 200;
+klient na trasie trenera → 403. Trasa nie jest przesłonięta przez `/{item_id}`.
+
+**Przeklik (Chromium; zrzuty w scratchpadzie `opisy-zrzuty/`, 13 plików):**
+1. Klient A (Pixel 7) → `/plan`: pod każdym ćwiczeniem „Opis ćwiczenia” (zwinięty).
+2. Klik przy „Wyciskanie sztangi leżąc” (po id) → skrót na całą szerokość
+   wiersza: TECHNIKA W PUNKTACH (5), NAJCZĘSTSZE BŁĘDY (4), „Mięśnie: klatka
+   piersiowa · pomocniczo triceps, bark przedni”, przycisk „Pełny opis w Wiedzy”.
+   Pierwsza wersja miała opis w lewej kolumnie siatki `.exercise` (ściśnięty do
+   połowy ekranu) i tekst wyrównany do prawej — naprawione (`gridColumn: 1 / -1`,
+   `textAlign: left`).
+3. „Wiosłowanie hantlem w podporze” (seed bez `exercise_id`) → opis dopasowany po
+   nazwie.
+4. „Pełny opis w Wiedzy” → `/wiedza?czesc=training&cwiczenie=HOS-EXC-…&powrot=/plan`
+   — pełna karta (technika, błędy, wskazówki, tempo, mapa mięśni), fokus na
+   „Wróć do planu”. 5. „Wróć do planu” → `/plan`.
+6. Blok rozgrzewki dnia C → „Pokaż pozycje (6)” → pozycja 1 „Marsz pod górę na
+   bieżni” → „Opis ćwiczenia” → technika w punktach z bazy.
+7. „Dzisiaj” — w dniu przeklikania brak treningu (seed: pon/śr/pt), karta z
+   opisem na „Dzisiaj” to ten sam komponent; E2E nie sprawdza jej osobno
+   (odstępstwo jawne — pokrycie: Plan + a11y).
+10. Trener (1280 px) → `/trener/szablony`: 1 szablon, „Szablon: Push/Pull/Legs ·
+    3 dni · 6 pozycji · 14 września 2026”, treść zwinięta.
+11. Klik w nazwę → Push/Pull/Legs z ćwiczeniami, „Karta w Wiedzy” przy każdej,
+    „Edytuj (szkic) / Duplikuj / Archiwizuj”, notka o kopiowaniu.
+12. „Karta w Wiedzy” → `/trener/wiedza?cwiczenie=…&powrot=/trener/szablony`,
+    własna karta; 13. „Wróć do szablonów” → `/trener/szablony`.
+14. Zakładka Dieta: w seedzie brak własnych szablonów diety — nazwa-przycisk
+    sprawdzona w E2E po imporcie z katalogu (test „Dieta” przechodzi).
+15. Karta klienta A → Plan → „Opis ćwiczenia” (rola trenera) rozwinięty;
+16. „Pełny opis w Wiedzy” → „Wróć do karty klienta” → `/trener/klient/…?zakladka=plan`.
+17. „Edytuj (szkic)” szablonu → 6 linków „Karta w Wiedzy” w szkicu (plus 6 na
+    rozwiniętej liście). Zero błędów JS w konsoli u klienta i trenera.
+
+**Przegląd (narzędzie `Agent` niedostępne w tej sesji — trzy przejścia własne,
+zapisane jawnie):** (a) dostęp/IDOR: `by-name` zawęża zbiór listy, 404 jednolite,
+trener tylko własne, klient 403 — bez uwag; (b) UX/a11y: naprawiony układ skrótu
+na telefonie (pkt 2), przycisk w `h2` z `aria-controls`, fokus na powrocie —
+bez P0/P1; (c) testy/dokumenty: test seedu dostosowany do pozycji po nazwie
+(`po_nazwie >= 1`, bo v1 i v2), E2E.md, PERMISSIONS, instrukcje, STAN, zlecenia —
+bez P0/P1. P2 w `docs/szablony-i-opisy/PROGRESS.md`.

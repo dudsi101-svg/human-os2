@@ -1,6 +1,6 @@
 # Stan przekazania — przeczytaj przed rozpoczęciem rundy
 
-**Aktualizacja:** 2026-09-14 · **Wersja w `main`:** 0.72.0 (po scaleniu PR #67, #74 i #72) — **0.73.0 w PR #75 (`agent/cardio-i-rozgrzewka`, gotowy do przeglądu)**
+**Aktualizacja:** 2026-09-14 · **Wersja w `main`:** 0.73.0 (po scaleniu PR #75) — **0.74.0 w PR #76 (`agent/motyw-czerwony`, motyw), 0.75.0 w PR #77 (`agent/szablony-i-opisy`, gotowy do przeglądu)**
 **Tryb pracy:** jeden piszący i jeden PR `[WRITER]` naraz
 (`KOORDYNACJA.md`, zasada nadrzędna).
 
@@ -32,6 +32,19 @@ pierwszy commit, draft PR `[WRITER]`, reszta agentów read-only.
 **Stan jakości** (`docs/BRAMKA_GO_NOGO.md`): warunkowe GO na pilotaż z
 jednym prawdziwym klientem, **NO-GO na szerszą produkcję** — siedem
 blokerów wypisanych w §5 tamtego dokumentu.
+
+**Runda 0.75.0 (gałąź `agent/szablony-i-opisy`, PR #77, polecenie właściciela z 14.09):**
+szablony treningowe rozwijane po kliknięciu w nazwę (lista = nazwy + „dni ·
+pozycje · data”; treść, panel publikacji i link „Karta w Wiedzy” po rozwinięciu;
+Dieta: nazwa = „Podgląd”), „Opis ćwiczenia” przy każdej pozycji planu klienta
+(Plan, Dzisiaj, pozycje bloków; u trenera w karcie klienta) — skrót z bazy
+trenera po `exercise_id` albo **po znormalizowanej nazwie** (nowe trasy
+`GET /api/{me,coach}/exercises/by-name`, IDOR → 404, bez migracji, zero AI,
+nic nie zapisuje) + „Pełny opis w Wiedzy” (`/wiedza?cwiczenie=<id>&powrot=…`,
+v2 i legacy, trener `/trener/wiedza?cwiczenie=`) z powrotem. 5 testów API,
+6 helpera, E2E +4, a11y 4a/7a, PWA, przeklik ze zrzutami. Otwarte dla
+właściciela: utrwalać dopasowanie po nazwie w treści planu (nowa wersja /
+migracja)? — domyślnie nie. Plan: `docs/plan-sesji/szablony-i-opisy.md`.
 
 **Runda 0.73.0 (gałąź `agent/cardio-i-rozgrzewka`, PR #75, zlecenie 5 z 14.09):**
 rozgrzewka, rozciąganie i cardio z suwakami celów — silnik `cardio_model_v1`
@@ -417,6 +430,7 @@ nie uruchamiano, ponieważ runda nie zmienia kodu ani zasobów frontendu.
 | `agent/wymiany-produktow` | 0.69.0 (0.68.0 = dni treningowe) | — | zlecenie 2 (14.09): silnik wymian v2 (poziom 2, powody, NONE 1:1, bramka „nie pogarsza”), grupy pokrewne (45 par, RO), korelacja katalogu → CSV; przegląd 3 recenzentów naprawiony (P0/P1 ×5, P2 w PROGRESS); `main` 0.67.0 scalony, PR #69 — CI | przegląd CSV przez właściciela (TAK/NIE) → import osobnym PR-em; decyzja o luzie bramki | 1 |
 | `agent/dni-treningowe` | 0.71.0 | 38 (37 = PR #70) | zlecenie 1 (14.09): nakładka klienta na dni tygodnia planu, „Dzisiaj” z układem klienta, karta „ustaw dni”, odczyt u trenera; 13 testów API/silnika, E2E, przeklik; **PR #72 gotowy do przeglądu** | scalenie #70 (migracja 37 — bez niej `test_migracje_przenosnosc` czerwony); odpowiedzi właściciela na 3 pytania (domyślne przyjęte) | po #70 |
 | `agent/wywiad-kaloryczny-rozpoznanie` | — (docs) | — (przyszła: 38 lub 39) | etap 0 rundy „wyrównanie wywiadu kalorycznego do spec 1.0” — `docs/wywiad-zapotrzebowanie/01_rozpoznanie_spec_v1.md` (tabela luk, migracja, testy, ryzyka) | **7 decyzji właściciela** (§5 rozpoznania: nowe pytania zdrowotne i klasyfikacja, zakres flagowania, stare wywiady, wiek vs data urodzenia, flaga a Monitoring, kolejność migracji, minimalne kcal) | po decyzjach |
+| `agent/szablony-i-opisy` | 0.75.0 (0.74.0 = PR #76 motyw) | — | polecenie właściciela 14.09: szablony rozwijane po nazwie, „Opis ćwiczenia” + „Pełny opis w Wiedzy” w planie klienta (po id i po nazwie), trasy `by-name`, karta ćwiczenia w Wiedzy (klient v2/legacy, trener); testy API 5 + helper 6 + E2E +4 + a11y + PWA; **PR #77 gotowy do przeglądu** | pytanie: utrwalać dopasowanie po nazwie w planie? (domyślnie nie) | po #76 albo równolegle (bez wspólnych plików) |
 | `agent/cardio-i-rozgrzewka` | 0.73.0 (0.72.0 = PR #67) | 39 | zlecenie 5 (14.09): silnik cardio z suwakami, bloki rozgrzewki/rozciągania, pozycje `kind` w planie, ślad H_CARDIO, dziennik cardio, UI trenera i klienta; 28 testów backendu + 5 helpera + E2E ×5; **PR #75 gotowy do przeglądu** | przegląd treści i kotwic [C] przez trenera (`docs/cardio/PROGRESS.md`); odpowiedzi właściciela na 7 pytań §8 (domyślne przyjęte) | po decyzji |
 | `agent/powitanie-samouczek` | 0.70.0 | 37 (`users.welcome_seen_at`; dni treningowe → 38) | sekcja E promptu „Panel Dzisiaj” (14.09): dwuetapowy samouczek po pierwszym logowaniu (pomoc, nie bramka), znacznik na serwerze, `POST /api/me/welcome-seen`, „Więcej → Pomoc / Samouczek”; testy backend + E2E + a11y + PWA zielone, przeklik ze zrzutami; `main` 0.69.0 scalony, PR #70 — ready | pytanie: treść kroku 2 wspomina wymianę składnika (moduł szablonów diet na produkcji za flagą) — zostawić warunkowo czy usunąć do czasu włączenia flagi? | 2 |
 

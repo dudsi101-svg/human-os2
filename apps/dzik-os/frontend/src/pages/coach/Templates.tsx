@@ -96,7 +96,7 @@ export default function Templates() {
               <button type="button" className="knowledge-card__toggle" aria-expanded={open}
                 aria-controls={tresc} onClick={() => przelacz(t.id)} data-testid="szablon-nazwa">
                 <span>
-                  {t.title}
+                  <span style={{ fontSize: "1.1rem", fontWeight: 700 }}>{t.title}</span>
                   <span className="meta" style={{ display: "block", fontWeight: 400 }}>
                     {dni.length} {odmien(dni.length, "dzień", "dni", "dni")} · {liczbaCwiczen} {odmien(liczbaCwiczen, "pozycja", "pozycje", "pozycji")}
                     {t.current_version?.created_at ? ` · ${plDate(t.current_version.created_at)}` : ""}

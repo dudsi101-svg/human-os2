@@ -106,10 +106,15 @@ bez tej propozycji. Model nigdy nie układa planu ani diety.
 
 * aktualny plan z rozpiską dni i ćwiczeń (serie × powtórzenia, ciężar,
   tempo, przerwy, filmy z techniką);
-* przy ćwiczeniach dodanych przez trenera z bazy — przycisk „Technika z
-  bazy": kroki wykonania, najczęstsze błędy, wskazówki, uwagi
-  bezpieczeństwa i pracujące mięśnie (to samo widać na ekranie
-  „Dzisiaj");
+* **„Opis ćwiczenia”** (od 0.75.0) — pod każdym ćwiczeniem (także w
+  pozycjach rozgrzewki i rozciągania oraz na ekranie „Dzisiaj”): kliknięcie
+  rozwija skrót z bazy trenera — technikę w punktach, najczęstsze błędy
+  i pracujące mięśnie; przycisk **„Pełny opis w Wiedzy”** otwiera pełną kartę
+  (warianty, tempo i oddech, bezpieczeństwo, mapa mięśni, wideo), a „Wróć do
+  planu” prowadzi z powrotem. Jeśli trener nie ma tego ćwiczenia w swojej
+  bazie, zobaczysz wprost „Brak opisu tego ćwiczenia w Wiedzy” — zapytaj
+  trenera. Ćwiczenia z pliku lub wpisane ręcznie dopasowujemy po nazwie
+  (wielkość liter i polskie znaki nie mają znaczenia);
 * „Zapisz wykonanie z wynikami" — wpisz osiągnięte wyniki, komentarz,
   a jeśli coś bolało — zaznacz „Zgłaszam ból" i opisz; trener to zobaczy
   od razu na swojej liście;

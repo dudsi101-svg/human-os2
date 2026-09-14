@@ -246,9 +246,6 @@ export default function Plan() {
                       {ex.video_url && (
                         <a href={ex.video_url} target="_blank" rel="noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Icon name="film" size={16} /> technika</a>
                       )}
-                      {/* Opis z bazy trenera (0.75.0): po id, a bez id po nazwie;
-                          pełna karta w Wiedzy z powrotem do planu. */}
-                      <OpisCwiczenia exerciseId={ex.exercise_id} name={ex.name} powrot="/plan" testid={`opis-${di}-${i}`} />
                       {restSeconds !== null && (
                         <div style={{ marginTop: 6 }}><RestTimer seconds={restSeconds} /></div>
                       )}
@@ -261,6 +258,12 @@ export default function Plan() {
                     <div className="meta">
                       {[ex.sets && `${ex.sets}×${ex.reps ?? "?"}`, ex.weight, ex.tempo, ex.rest]
                         .filter(Boolean).join(" · ")}
+                    </div>
+                    {/* Opis z bazy trenera (0.75.0): po id, a bez id po nazwie; pełna karta
+                        w Wiedzy z powrotem do planu. Na całą szerokość wiersza — na telefonie
+                        kolumna nazwy jest za wąska na listę kroków. */}
+                    <div style={{ gridColumn: "1 / -1", textAlign: "left" }}>
+                      <OpisCwiczenia exerciseId={ex.exercise_id} name={ex.name} powrot="/plan" testid={`opis-${di}-${i}`} />
                     </div>
                   </div>
                 );
