@@ -369,6 +369,7 @@ nie uruchamiano, ponieważ runda nie zmienia kodu ani zasobów frontendu.
 | `agent/monitoring-postepy` | 0.66.0 | 36 | **scalona** (PR #61, 14.09), deploy 0.66.0 po CI na `main`; flaga na produkcji wyłączona | włączenie flagi + backfill — decyzja właściciela | — |
 | `agent/ukryj-kreator` | 0.67.0 | — | **scalona** (PR #68, 14.09), deploy 0.67.0 po CI na `main`; kreator na produkcji ukryty (brak flagi w `fly.toml`) | — | — |
 | `agent/wymiany-produktow` | 0.69.0 (0.68.0 = dni treningowe) | — | zlecenie 2 (14.09): silnik wymian v2 (poziom 2, powody, NONE 1:1, bramka „nie pogarsza”), grupy pokrewne (45 par, RO), korelacja katalogu → CSV; przegląd 3 recenzentów naprawiony (P0/P1 ×5, P2 w PROGRESS); `main` 0.67.0 scalony, PR #69 — CI | przegląd CSV przez właściciela (TAK/NIE) → import osobnym PR-em; decyzja o luzie bramki | 1 |
+| `agent/powitanie-samouczek` | 0.70.0 | 37 (`users.welcome_seen_at`; dni treningowe → 38) | sekcja E promptu „Panel Dzisiaj” (14.09): dwuetapowy samouczek po pierwszym logowaniu (pomoc, nie bramka), znacznik na serwerze, `POST /api/me/welcome-seen`, „Więcej → Pomoc / Samouczek”; testy backend + E2E + a11y + PWA zielone, przeklik ze zrzutami; `main` 0.69.0 scalony, PR #70 — ready | pytanie: treść kroku 2 wspomina wymianę składnika (moduł szablonów diet na produkcji za flagą) — zostawić warunkowo czy usunąć do czasu włączenia flagi? | 2 |
 
 | Rzecz | Stan | Gdzie |
 |---|---|---|
