@@ -21,7 +21,7 @@ sprawdzone na żywo i wklej). Po pushu od razu draft PR `[WRITER] Dni treningowe
 do `main`. Dopiero potem kod.
 
 **Rezerwacje (sprawdź w `db.py`, `CHANGELOG.md` i tabeli §2 `STAN_PRZEKAZANIA.md`
-tuż przed zmianą — nie przepisuj z pamięci):** proponowane **wersja 0.66.0,
+tuż przed zmianą — nie przepisuj z pamięci):** proponowane **wersja wg kolejności scalania z `README.md` tego katalogu,
 migracja 37** (34 = ostatnia w `main`; 35 = `agent/biblioteka-diet`; 36 =
 `agent/monitoring-postepy`). Jeśli któraś z tych gałęzi została scalona albo
 zmieniła numer, weź kolejny wolny i odnotuj w planie sesji oraz w tabeli §2.

@@ -32,8 +32,8 @@ sprawdzone na żywo). Po pushu od razu draft PR `[WRITER] Wymiany produktów`.
 Dopiero potem kod.
 
 **Rezerwacje (sprawdź w `db.py`, `CHANGELOG.md` i tabeli §2 `STAN_PRZEKAZANIA.md`
-tuż przed zmianą):** proponowana **wersja 0.67.0** (0.64 biblioteka, 0.65 monitoring,
-0.66 dni treningowe — weź kolejny wolny, jeśli kolejność się zmieniła). **Migracja:
+tuż przed zmianą):** proponowana **wersja wg kolejności scalania z `README.md` tego katalogu**
+(numer wersji musi rosnąć w kolejności scalania — kontrola `changelog`). **Migracja:
 brak** w wariancie rekomendowanym (powiązania grup jako plik danych ładowany przez
 silnik; bez nowych kolumn). Jeśli w trakcie okaże się potrzebna (np. kolumna na
 produkcie) — weź kolejny wolny numer i odnotuj w planie i w §2; nie zgaduj.
@@ -81,11 +81,13 @@ regułę `group` domyślnie?”. To jest `DietTemplateIngredient.group_name`
 l. 194–239), **nie** grupa zamienników. Włączenie jej nie da ani jednego kandydata.
 Grupa zamienników to `DietProduct.substitution_group` (`models.py` l. ~1847).
 
-**Drugi przepływ diety:** w tej samej zakładce Dieta renderuje się też plan z
-kreatora/kompozytora (`NutritionPlan`, `Nutrition.tsx` l. 65–215). Tam „zamienniki”
-to **tekst** (`m.swaps`, l. 140), zawsze pusty z kreatora, **bez przycisku** — i
-katalog kreatora (`FoodProduct`, tylko `category`) nie ma grup zamienników. To
-zadanie **nie** dotyka tego przepływu (pytanie 1 w §8).
+**Drugi przepływ diety — decyzja właściciela 14.09 (druga tura):** kreator diety
+schodzi na bok („wymaga wielkiej pracy, możemy go ukryć”) — ukrycie to osobne, małe
+zlecenie 3 (`PROMPT_writer_ukryj-kreator.md`). Plan z kreatora (`NutritionPlan`,
+`Nutrition.tsx` l. 65–215) ma „zamienniki” jako **tekst** (`m.swaps`, l. 140) bez
+przycisku i to zadanie go nie dotyka. **Klient jest na diecie z szablonu** — pytanie 1
+z §9 jest rozstrzygnięte. Natomiast **katalog pojedynczych produktów trenera zostaje
+i staje się źródłem nowych zamienników** — patrz §5a.
 
 ## 3. Rozpoznanie — fakty z kodu (zweryfikuj linie po scaleniu biblioteki)
 
@@ -230,6 +232,90 @@ oznaczone (?) wymagają decyzji właściciela/trenera — w v1 wpisz je z
 Bez powiązań (zostają singletonami poziomu 2 → `reason: SINGLETON`): `płyn`,
 `kiszonki`↔inne poza warzywami surowymi, `przyprawa`↔inne poza sosem.
 
+## 5a. Katalog produktów trenera jako źródło zamienników (decyzja właściciela 14.09)
+
+Właściciel: *„mamy dostęp do listy pojedynczych produktów, które można by skorelować
+z tymi, co chcemy wymieniać w szablonie”*. Fakty:
+
+* Katalog: `FoodProduct` (`models.py` l. 841–865) — per trener (`coach_id`), wgrywany
+  przyciskiem `POST /api/coach/food-products/load-builtin` (`routers/food_catalog.py`
+  l. 561) z wbudowanej listy `food_catalog_data.FOOD_ROWS_ALL` (**2058 pozycji**,
+  16 kategorii: Mięso i drób 226, Warzywa 226, Nabiał 183, Ryby 154, Owoce 146, Zboża
+  i pieczywo 133, Przyprawy i dodatki 124, Przekąski 116, Kasze/ryż/makarony 104,
+  Napoje 93, Strączkowe 76, Orzechy 74, Odżywki 66, Tłuszcze 47, Jaja 31, Dania gotowe
+  259). Pola: nazwa, kategoria, kcal/P/F/C/błonnik na 100 g, porcja, jednostka
+  sztukowa, źródło. **Brak:** `substitution_group`, `cooking_tags`, `allergens`,
+  `diet_exclusions` — czyli dokładnie tego, na czym stoi bezpieczeństwo wymian.
+* Dlatego **nie robimy złączenia w czasie działania** (silnik nie może brać
+  kandydatów z tabeli, która nie zna alergenów i jest edytowalna per trener).
+  Korelacja to **jednorazowe, przeglądane przez człowieka wzbogacenie katalogu diet**
+  (`DietProduct`), a silnik po tej rundzie nadal działa wyłącznie na `DietProduct`.
+
+**Mechanizm (propose-only, trzy kroki):**
+
+1. **Narzędzie korelacji** `apps/dzik-os/tools/koreluj_katalog.py` — bez bazy, czyta
+   `FOOD_ROWS_ALL` i `dieta/dane/produkty.csv`, pisze
+   `docs/diet-module/katalog_korelacja_propozycja.csv` z kolumnami:
+   `name, category, kcal_100, protein_100, fat_100, carbs_100, fiber_100,
+   proposed_group, confidence (WYSOKA|ŚREDNIA|NISKA), method (DUPLIKAT|SŁOWO_KLUCZOWE|
+   KATEGORIA), proposed_cooking_tags, proposed_allergens, proposed_diet_exclusions,
+   default_scaling, reason, decision (puste → właściciel/trener wpisuje TAK/NIE)`.
+   Reguły (deterministyczne, w kodzie z testem):
+   * **DUPLIKAT** — znormalizowana nazwa (`normalize_name` z `food_catalog`) pokrywa
+     się z istniejącym `name_pl` → pomiń (nie dubluj produktu w innej grupie).
+   * **SŁOWO_KLUCZOWE** → ŚREDNIA: np. „mielon” → `białko_mielone`; „szynka|wędlina|
+     kiełbasa|polędwica wędzona” → `wędlina`; „udo|skrzydł|karkówka|boczek|kaczka|gęś”
+     → `białko_tłuste`; „łosoś|makrela|śledź|sardynk|pstrąg|halibut” → `ryba_tłusta`;
+     „ser|mozzarella|feta|parmezan|gouda|camembert” → `ser`; „mleko|napój sojowy|owsiany|
+     migdałowy” → `mleko`; „śmietan” → `dodatek_tłuszczowy`; „płatk|musli|granola” →
+     `płatki`; „mąk” → `mąka`; „makaron” → `makaron`; „ziemniak|batat” → `skrobiowe`;
+     „kiszon” → `kiszonki`; „sałata|szpinak|rukola|jarmuż|roszponka” →
+     `warzywa_liściaste`; „cebul|por|czosnek” → `warzywa_aromat`; „pomidor|ogórek|
+     papryka|rzodkiew|seler naciowy” → `warzywa_surowe`; „borów|malin|truskaw|jagod|
+     porzecz|jeżyn” → `owoce_jagodowe`; „suszon|daktyl|rodzynk|miód|dżem|syrop” →
+     `słodzik`; „tofu|tempeh|seitan” → `białko_roślinne`; „hummus” →
+     `pasta_smarowanie`; „masło orzechowe|pasta|tahini” → `orzechy_pasty`; „nasion|
+     pestk|siemi|chia|słonecznik|sezam” → `nasiona`; „awokado” → `tłuszcz_roślinny`;
+     „odżywka białkowa|WPC|WPI|izolat” → `białko_proszek`; „ketchup|musztarda|sos” →
+     `sos`; „passata|koncentrat|pomidory z puszki” → `pomidory_przetwory`.
+   * **KATEGORIA** → NISKA (domyślna grupa kategorii): Mięso i drób → `białko_chude`;
+     Ryby → `ryba_chuda`; Jaja → `jajka`; Nabiał → `nabiał_chudy` (`nabiał_tłusty`, gdy
+     tłuszcz ≥ 5 g/100 g); Zboża i pieczywo → `pieczywo`; Kasze/ryż/makarony →
+     `kasza_ryż`; Warzywa → `warzywa_gotowane`; Owoce → `owoce`; Strączkowe →
+     `strączki`; Orzechy → `orzechy`; Tłuszcze → `tłuszcz`; Przyprawy i dodatki →
+     `przyprawa`. **Dania gotowe, Napoje (poza mlekami), Odżywki (poza białkiem),
+     Przekąski i słodycze → `decision: NIE` z góry** (nie są zamiennikami składnika
+     szablonu; rozstrzyga człowiek, jeśli chce inaczej).
+   * `proposed_cooking_tags` = najczęstszy zestaw tagów **grupy docelowej** w
+     `produkty.csv` (nie wymyślaj nowych tagów; słownik tagów odczytaj z pliku).
+   * `proposed_allergens` / `proposed_diet_exclusions` — słownik **wyłącznie** z
+     istniejącego CSV (np. `milk`, `lactose`, `gluten`, `eggs`, `fish`, `nuts`, `soy`,
+     `meat`, …; sprawdź dokładne tokeny), heurystyki po nazwie i kategorii; każdy
+     wiersz z pustym alergenem w kategorii, gdzie alergen jest typowy (Nabiał, Zboża,
+     Ryby, Orzechy, Jaja, Strączkowe/soja), dostaje `confidence: NISKA`.
+   * `default_scaling` = jak w grupie docelowej (`LINIOWY`/`DYSKRETNY`/`STAŁY`).
+2. **Przegląd człowieka:** właściciel/trener wypełnia `decision` w CSV (TAK/NIE, może
+   poprawić grupę i alergeny). To jest dokument do zlecenia zwrotnego — writer **nie
+   zatwierdza sam** wierszy NISKA. Wiersze `WYSOKA`/`ŚREDNIA` bez alergenów do
+   uzupełnienia można zaproponować jako `TAK` (właściciel potwierdza jednym słowem).
+3. **Import zatwierdzonych:** `dieta/dane/produkty_z_katalogu.csv` (te same kolumny
+   co `produkty.csv`, `source = "katalog_trenera"`, `source_id` = nazwa wbudowana,
+   `source_desc` = wiersz propozycji) ładowany przez `dieta/seed.py` **po** głównym
+   CSV, idempotentnie po `name_pl`; osobny plik = brak konfliktu z biblioteką
+   i jawne pochodzenie; wpis w `package-data`. Test integralności jak dla głównego
+   CSV (unikalność po znormalizowanej nazwie, zakresy, kcal↔makra, grupa istnieje,
+   tokeny alergenów ze słownika).
+
+**Bezpieczeństwo:** wiersz bez decyzji TAK nigdy nie trafia do seeda; wiersz z alergenem
+„do uzupełnienia” nie może być zaimportowany (test), bo filtr alergenów wymian musi
+pozostać kompletny. Pomiar po imporcie: ile z 12 pustych list (po bibliotece) znika
+dzięki katalogowi, a ile dzięki grupom pokrewnym — osobno w tabeli CHANGELOG.
+
+**Kolejność w rundzie:** narzędzie i CSV propozycji powstają w etapie 1 (dane), żeby
+właściciel mógł przeglądać równolegle z pracą nad silnikiem; import zatwierdzonych
+wierszy to ostatni etap przed zamknięciem (albo osobny, malutki PR, jeśli przegląd
+potrwa dłużej niż runda — nie blokuj scalenia silnika na przeglądzie CSV).
+
 ## 6. Co dokładnie zbudować
 
 ### Backend
@@ -252,6 +338,11 @@ Bez powiązań (zostają singletonami poziomu 2 → `reason: SINGLETON`): `płyn
   sprawdź).
 * `seed.py`: `swappable` wg §4 pkt 4 (idempotentnie — seed po `name_pl`, nie
   przepisuje istniejących migawek).
+* **Korelacja katalogu (§5a):** `tools/koreluj_katalog.py` + test reguł
+  (`backend/tests/test_koreluj_katalog.py`: duplikat pomijany, słowo kluczowe przed
+  kategorią, kategorie NIE z góry, tagi z grupy docelowej, tokeny ze słownika),
+  `dieta/dane/produkty_z_katalogu.csv` (tylko wiersze TAK), seed po głównym CSV,
+  `package-data`, test integralności.
 * **Pomiar jako test-strażnik:** `tests/test_dieta_wymiany_pokrycie.py` — dla
   Standard v1 przy 1600/2000/2600 kcal liczy odsetek składników wymienialnych bez
   kandydata i porównuje z progiem **wpisanym z pomiaru po zmianie + margines**
@@ -289,7 +380,7 @@ Bez powiązań (zostają singletonami poziomu 2 → `reason: SINGLETON`): `płyn
 (rozdział „Wymiany v2”: pomiar, odejście od 1:1 z prototypem, pytania otwarte),
 `docs/diet-module/instrukcja_szablony_diet.md` (jak działa wymiana, poziomy,
 powody), `INSTRUKCJA_KLIENTA.md` (Dieta → wymiana), `INSTRUKCJA_TRENERA.md`
-(grupy pokrewne, jak zgłosić poprawkę), `BAZA_PRODUKTOW.md` (nowy plik danych),
+(grupy pokrewne, jak zgłosić poprawkę), `BAZA_PRODUKTOW.md` (dwa nowe pliki danych: powiązania grup i produkty z katalogu, z pochodzeniem),
 `RELEASE_STATUS.md`, `STAN_PRZEKAZANIA.md`, plan sesji.
 
 ## 7. Czego świadomie NIE robimy
@@ -301,6 +392,8 @@ powody), `INSTRUKCJA_KLIENTA.md` (Dieta → wymiana), `INSTRUKCJA_TRENERA.md`
   — inny katalog, bez grup; osobna decyzja (pytanie 1).
 * Nie edytujemy powiązań w UI — tylko odczyt; nie „włączamy reguły `group`”.
 * Nie dotykamy `docs/diet-module/engine.py` (prototyp zostaje historyczny).
+* Nie robimy złączenia silnika z `FoodProduct` w czasie działania i nie importujemy
+  do katalogu diet ani jednego wiersza bez decyzji TAK człowieka.
 
 ## 8. Weryfikacja przed przekazaniem (z korzenia repozytorium)
 
@@ -324,9 +417,10 @@ testy/UX/treść), P0/P1 przed przekazaniem, P2 do `PROGRESS.md`. Bezpiecznik: 3
 
 ## 9. Pytania do właściciela (odpowiedz w tej wiadomości albo zostaw domyślne)
 
-1. Klient pilotażowy ma dietę **z szablonu** (`Przypisz dietę`) czy **z kreatora**?
-   Jeśli z kreatora — ten prompt nie naprawi jego przycisku, bo tam przycisku nie ma;
-   potrzebna osobna runda (grupy dla katalogu kreatora). *Domyślnie: szablon.*
+1. ~~Szablon czy kreator?~~ **Rozstrzygnięte 14.09:** klient na diecie z szablonu;
+   kreator ukrywamy (zlecenie 3); katalog produktów zostaje jako źródło zamienników
+   (§5a). Pytanie zastępcze: kto przegląda CSV propozycji — właściciel czy trener
+   Łukasz? *Domyślnie: właściciel wstępnie, trener potwierdza alergeny.*
 2. Powiązania oznaczone (?) w §5 — włączyć od razu czy zostawić wyłączone do
    przeglądu trenera? *Domyślnie: wyłączone.*
 3. Czy wymiana w posiłku już poza tolerancją ma być dozwolona, gdy **nie pogarsza**

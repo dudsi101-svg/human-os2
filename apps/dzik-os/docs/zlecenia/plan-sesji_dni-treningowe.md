@@ -9,7 +9,7 @@ piszący — polecenie właściciela z 14.09.2026 („klient posiadający już p
 trenera nie ma żadnej informacji, w jaki dzień realizuje jego części — niech wybierze dni
 tygodnia; trening z konkretnego dnia ma pojawić się w zakładce „Dziś””), plik
 `PROMPT_writer_dni-treningowe.md` (diagnoza, rozpoznanie, decyzje, zakres).
-**Rezerwacje (KOORDYNACJA §0):** wersja **0.66.0**, migracja **37** (addytywna:
+**Rezerwacje (KOORDYNACJA §0):** wersja ⟨wg kolejności scalania, `docs/zlecenia/README.md`⟩, migracja **37** (addytywna:
 `plan_weekday_choices`) — ⟨potwierdzone w `db.py` / `CHANGELOG.md` / `STAN_PRZEKAZANIA.md` §2
 dnia ⟨data⟩; jeśli 35/36 zostały scalone albo przesunięte, numery skorygowane tutaj i w §2⟩.
 Pliki współdzielone: `models.py` (klasa na końcu), `db.py` (wpis 37), `main.py` (rejestracja
