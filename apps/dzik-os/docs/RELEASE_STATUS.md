@@ -83,6 +83,14 @@ opcjonalny input `test_email` wysyła wiadomość testową tą samą ścieżką
 co endpoint). Endpoint testowy admina/trenera za flagą, domyślnie
 wyłączony na produkcji. Plan i odstępstwa: `docs/plan-sesji/poczta-brevo.md`.
 
+## Panel rozwojowy „Dzisiaj” (0.63.0) — bez flagi, na produkcji od deployu
+
+Powitanie, hasło dnia (deterministyczne, bez AI) i do trzech nawyków
+z codziennym cofalnym odhaczaniem, łagodnym decay −1 (decyzja foundera,
+R-20) i absolutorium. Nawyki to zwykły tekst + odhaczenia (domena danych
+treningowych, bez nowej bramki zgód). Szczegóły: `docs/CHANGELOG.md`
+0.63.0, `docs/plan-sesji/nawyki-dzisiaj.md`, `docs/nawyki/PROGRESS.md`.
+
 ## Wywiad „Zapotrzebowanie kaloryczne” (0.62.0) — za flagą, na produkcji WŁĄCZONY (do potwierdzenia)
 
 `DZIK_CALORIE_INTERVIEW_ENABLED="true"` w `fly.toml` (runda 0.62.0, zgodnie
