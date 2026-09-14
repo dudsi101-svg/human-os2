@@ -219,7 +219,11 @@ const browser = await chromium.launch({
 /** Kontekst przeglądarki z motywem z DZIK_THEME (jasny = wpis w localStorage
  * przed pierwszą nawigacją, dokładnie jak robi to sama aplikacja). */
 async function nowyKontekst(opcje) {
-  const ctx = await browser.newContext(opcje);
+  // reducedMotion: axe liczy kontrast z KOŃCOWYCH kolorów, nie z karty w połowie
+  // animacji wejścia (card-in: opacity 0 → 1) — bez tego wynik zależał od
+  // timingu (w jasnym motywie „color-contrast (10)” na monitoringu klienta,
+  // niereprodukowalne przy ponownym wejściu na ten sam ekran).
+  const ctx = await browser.newContext({ ...opcje, reducedMotion: "reduce" });
   if (MOTYW !== "ciemny") {
     await ctx.addInitScript((m) => { try { localStorage.setItem("dzik_theme", m); } catch { /* brak magazynu */ } }, MOTYW);
   }
