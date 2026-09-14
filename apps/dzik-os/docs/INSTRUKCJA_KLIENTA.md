@@ -114,6 +114,24 @@ bez tej propozycji. Model nigdy nie układa planu ani diety.
   a jeśli coś bolało — zaznacz „Zgłaszam ból" i opisz; trener to zobaczy
   od razu na swojej liście;
 * „Historia wersji" — każda zmiana planu ma powód i datę; nic nie znika.
+* **Rozgrzewka i rozciąganie** (od 0.73.0) — jeśli trener wstawił blok, zobaczysz
+  go jako jedną pozycję z odznaką „rozgrzewka” albo „rozciąganie”: „Pokaż
+  pozycje” rozwija listę z dawką („3 min”, „2×10”, „20 s/str.”) i linkiem do
+  techniki. W formularzu wykonania odhaczasz cały blok („wykonane w całości”).
+* **Cardio z suwakami** (od 0.73.0) — pozycja z odznaką „cardio”: trzy paski
+  pokazują, jak trener rozłożył cele (Redukcja / Wydolność / Regeneracja);
+  jeśli trener dopuścił kilka urządzeń, wybierasz na dziś (rowerek, bieżnia,
+  bieżnia skos, steper, wioślarz); „Zacznij od…” to ustawienia startowe —
+  dojdź do tętna albo RPE z zakresu, urządzenia różnią się kalibracją. Zakres
+  tętna to **zakres, nie jedna liczba** (wzór wiekowy ma błąd ±10 ud./min);
+  równoprawne są RPE (1–10) i test mowy. Timer odmierza czas albo odcinki
+  pracy/przerwy. W formularzu wykonania wpisujesz czas, RPE, opcjonalnie
+  średnie tętno i dystans — bez serii i kilogramów. „Dlaczego takie cardio?”
+  pokazuje, skąd wzięły się liczby. To propozycja trenera, nie porada medyczna;
+  jeśli przyjmujesz leki wpływające na tętno, trener ustawi tryb bez tętna.
+* **Tętno spoczynkowe** (od 0.73.0) — w zakładce Postępy → „Dodaj pomiar” możesz
+  wpisać tętno spoczynkowe (ud./min); trener użyje go do dokładniejszego
+  zakresu (rezerwa tętna). To dana zdrowotna — objęta Twoją zgodą.
 * **„Twoje dni treningowe"** (od 0.71.0) — nad listą dni: dla każdej
   jednostki wybierz dzień tygodnia (pon.–niedz.) albo „— (bez dnia)". Na
   start podpowiadamy propozycję trenera; „Zapisz dni" — i trening

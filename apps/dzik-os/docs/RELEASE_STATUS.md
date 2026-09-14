@@ -1,6 +1,6 @@
 # Stan wydania — Dzik OS
 
-**Wersja:** 0.71.0 (po scaleniu PR #72; na produkcji 0.70.0 po wdrożeniu PR #74) · **Data:** 2026-09-14 · **Środowisko:** produkcja
+**Wersja:** 0.73.0 (PR #75 — rozgrzewka, rozciąganie i cardio z suwakami; 0.72.0 = PR #67; na produkcji 0.71.0 po wdrożeniu PR #72) · **Data:** 2026-09-14 · **Środowisko:** produkcja
 (pilotaż) — https://dzik-os-panel.fly.dev
 
 Jedna strona prawdy o tym, co DZIAŁA na produkcji teraz. Aktualizowana
@@ -126,6 +126,21 @@ historii sesji i pomiarów; idempotentny, wypisuje bliźniaki nazw
 ćwiczeń do decyzji trenera). Od włączenia rekordy liczą się przy każdym
 zapisie sesji. Szczegóły i sprawy otwarte: `docs/CHANGELOG.md` 0.66.0,
 `docs/plan-sesji/monitoring-postepy.md`, `docs/monitoring-tab/PROGRESS.md`.
+
+## Rozgrzewka, rozciąganie i cardio z suwakami (0.73.0) — bez flagi, treści do przeglądu trenera
+
+Trener układa w planie blok rozgrzewki (3 poziomy × góra/dół/całe ciało) albo
+rozciągania (3 warianty) z katalogu bloków (Szablony → Bloki, „Dodaj
+wbudowane”) i pozycję cardio z trzema sprzężonymi suwakami celów
+(Redukcja / Wydolność / Regeneracja): propozycja zakresu tętna, RPE, testu
+mowy, czasu, struktury i ustawień urządzenia liczona deterministycznie po
+bramce zdrowotnej (propose-only; leki wpływające na tętno → tylko RPE).
+Klient widzi pozycje na „Dzisiaj” i w Planie, wybiera urządzenie z listy
+trenera, zapisuje czas/RPE/tętno/dystans; „Dlaczego takie cardio?” czyta ślad
+`H_CARDIO`. Migracja 39 (addytywna). **Do przeglądu trenera przed użyciem u
+prawdziwych klientów:** treść 12 bloków, 9 nowych wpisów katalogu, tabela
+urządzeń i kotwice [C] — lista w `docs/cardio/PROGRESS.md`. Szczegóły:
+`docs/CHANGELOG.md` 0.73.0, `docs/plan-sesji/cardio-i-rozgrzewka.md`.
 
 ## Dni treningowe na „Dzisiaj” (0.71.0) — bez flagi, na produkcji od deployu
 

@@ -1,5 +1,103 @@
 # Changelog — Dzik OS
 
+## 0.73.0 — 2026-09-14
+
+**Rozgrzewka, rozciąganie i cardio z suwakami celów (zlecenie 5 właściciela
+z 14.09, czwarta tura; `docs/zlecenia/model-suwakow-cardio.md` +
+`PROMPT_writer_cardio-i-rozgrzewka.md`; gałąź `agent/cardio-i-rozgrzewka`,
+migracja 39).** Numer 0.72.0 = strona publiczna czerwono-biała (PR #67).
+
+Właściciel: „dwa rodzaje ćwiczeń: rozgrzewka na 3 poziomach w 3 wariantach,
+rozciąganie, i fitness na rowerku/bieżni/bieżni skos/steperze/wioślarzu z trzema
+suwakami celów, które sumują się do całości i sugerują tętno, obciążenie, tempo
+i czas — znaleźć istniejący model”. Model: trzy strefy wg progów (Seiler),
+rezerwa tętna (Karvonen), HRmax z wieku (Tanaka) zawsze jako zakres, Fatmax dla
+redukcji, interwały pod VO2max dla wydolności; trzeci cel: **Regeneracja (baza
+tlenowa)**. Poziomy pewności [A]/[B]/[C] w `backend/dzik_os/cardio/stale.py`;
+wszystko [C] i treści wbudowane są **do przeglądu trenera**
+(`docs/cardio/PROGRESS.md`).
+
+* **Trzy rodzaje pozycji w planie** (`kind` w pozycji `exercises[]`; brak =
+  siłowe jak dotąd): `warmup_block` / `stretch_block` (blok z katalogu trenera:
+  `block_id` miękko + **migawka treści `block`** — archiwizacja bloku nie psuje
+  planu) i `cardio` (`goal_mix` suma 1, `level`, `machines[]` dozwolone przez
+  trenera, `prescription` silnika, `trace`, `overridden_by_coach`). Stare plany bez
+  `kind` — bajt w bajt jak dotąd (`schemas.dni_do_zapisu` pomija puste nowe klucze).
+  Allow-list szkiców (`publikacja/elementy.py`) zna nowe pola — nie znikają po cichu.
+* **Silnik `cardio_model_v1`** (`dzik_os/cardio/model.py`, czyste funkcje, zero AI):
+  mieszanie kotwic Σ wᵢ×środekᵢ, czas do 5 min, struktura wg wagi Wydolność
+  (`> 0,5` interwały wg poziomu 8×1 / 6×2 / 4×4; `0,25–0,5` tempo; `< 0,25` ciągła),
+  sufit 85 % HRmax i czas −20 % dla początkujących, wynik zawsze ±5 % HRmax,
+  Karvonen gdy tętno spoczynkowe, brak wieku → tylko RPE + test mowy, leki
+  wpływające na tętno → bez ud./min. Pięć przykładów kontrolnych §4 modelu jako testy
+  (równe wagi → 68–78 %, 35 min, tempo; czysta wydolność → 85–95 %, 25 min, interwały;
+  czysta redukcja → 65–75 %, 50 min; regeneracja → 55–65 %, 25 min; 50/50 → 75–85 %,
+  2×10, 40 min). Tabela urządzeń (`urzadzenia.py`, [C]) i MET-y ([B]) do szacunku kcal.
+* **API:** `POST /api/clients/{id}/cardio/podglad` (COACH z relacją; klient 403;
+  bez relacji 404) — bramka zdrowotna konfiguratora 1:1 + `hr_medication`
+  (`urgent_stop` → brak propozycji; brak odpowiedzi → pytania; `needs_review` →
+  propozycja z ostrzeżeniem „tylko trener”); wiek/tętno spoczynkowe/masa czytane
+  z ostatniego szacunku kalorycznego i pomiarów **tylko przy dostępie do domeny
+  zdrowotnej** (`inputs.health_access`); `GET …/cardio/prefill`; `GET /api/cardio/katalog`.
+  Nic nie jest zapisywane — wynik trafia do pozycji planu przez zwykłą wersję albo
+  publikację szkicu. Blok zdrowotny nie trafia do planu, śladu, audytu ani logów.
+* **Ślad `H_CARDIO`** (Wiedza → „Dlaczego takie cardio?”; cel `cardio_prescription`,
+  `d{dzień}:e{pozycja}`) zapisywany w tej samej transakcji co wersja planu
+  (`POST /api/plans`, `…/versions`) i publikacja szkicu; fakty: wagi, poziom, nazwa
+  źródła HRmax, zakresy, struktura, urządzenia, wersja modelu, nadpisania trenera,
+  zastrzeżenia — bez wieku, tętna i bloku zdrowotnego. Nowe jednostki śladu:
+  `bpm`, `percent_hrmax`, `percent_hrr`, `rpe`, `kcal`, `percent`.
+* **Bloki** (`ExerciseBlock`, `/api/coach/exercise-blocks`, COACH_ONLY; broadcast jak
+  ćwiczenia): CRUD, archiwizacja ≠ kasowanie, `load-builtin` idempotentny — **9
+  rozgrzewek** (POCZĄTKUJĄCY/ŚREDNI/ZAAWANSOWANY × góra/dół/całe ciało; 1 pozycja
+  podniesienia tętna + 3–5 mobilności + „seria wprowadzająca”) i **3 bloki
+  rozciągania** po treningu (bez poziomów), złożone z katalogu ćwiczeń
+  (`cardio/bloki_wbudowane.py`, `source="wbudowany — do przeglądu trenera"`).
+  Katalog ćwiczeń +9 wpisów (2 cardio „na parametry”: bieg ciągły, wiosłowanie ciągłe;
+  7 rozciągań statycznych: czworogłowe, dwugłowe, pośladkowe „figura 4”,
+  przywodziciele, najszersze, kark, przedramiona — `pattern="MOBILNOSC"`).
+  Zakładka **Szablony → Bloki** (React.lazy): lista, „Dodaj wbudowane”, edycja
+  (jedna linia = „nazwa | dawka | notatka”), archiwizacja.
+* **Edytor planu trenera:** w dniu „+ Rozgrzewka” / „+ Rozciąganie” (wybór bloku →
+  pozycja z migawką; rozgrzewka na początek, rozciąganie na koniec) i „+ Cardio” →
+  panel (React.lazy) z trzema sprzężonymi `input[type=range]` (`suwaki.ts`:
+  przesunięcie zabiera pozostałym proporcjonalnie, kłódka, krok 5 %, suma zawsze
+  100; `aria-valuetext` „Redukcja 50 %”), poziom, dozwolone urządzenia, bramka
+  zdrowotna (przyciski tak/nie), wiek/tętno/masa z prefillu, „Policz propozycję” →
+  kafelki zakresów, tabela „zacznij od…” per urządzenie, ręczna zmiana liczb
+  (zapisywana w śladzie jako `overridden_by_coach`), „Wstaw do dnia”. Szkice
+  (0.58.0) pokazują nowe pozycje do odczytu i pozwalają je przesuwać/usuwać.
+* **Klient** (wspólny renderer `pozycje.tsx` dla „Dzisiaj” i Planu): blok = rozwijana
+  lista pozycji z dawką i linkiem do karty, odhaczany jako całość; cardio = trzy paski
+  wag, wybór urządzenia na dziś (gdy trener dał listę), „zacznij od…”, zakres tętna
+  **i** RPE + test mowy, czas, struktura z timerem pracy/przerwy (`RestTimer`
+  przeniesiony do `pozycje.tsx`), jedno zdanie o bilansie energii, „Dlaczego takie
+  cardio?”. Dziennik: wpis cardio bez serii — czas, RPE, tętno średnie (opcjonalnie),
+  dystans, urządzenie (`WorkoutEntry.duration_min/avg_hr/rpe/distance_km/machine`,
+  migracja 39); rekordy osobiste pomijają cardio; historia pokazuje „Wioślarz ·
+  25 min · RPE 6”. Pomiary: nowy rodzaj „Tętno spoczynkowe” (`resting_hr`, ud./min).
+* **Prywatność:** eksport `workout_entries` z nowymi polami (`export_version` 2.0 → 2.1),
+  usuwanie konta jak dotąd (komentarze zerowane). Seed: dzień „Trening C — całe ciało”
+  klienta A (v2) dostaje rozgrzewkę C/początkujący i cardio rowerek/wioślarz
+  (mix 0,5/0,25/0,25) ze śladem.
+* **Przyjęte domyślne** (właściciel nie odpowiedział na §8): Regeneracja jako trzeci cel;
+  „Redukcja (wydatek energii)”; warianty góra/dół/całe ciało; rozciąganie 3 warianty bez
+  poziomów; trener wskazuje urządzenia, klient wybiera; treści „do przeglądu”; tętno
+  spoczynkowe jako pomiar bez migracji.
+* **Test INTENDED_PURPOSE §2/§3:** zakres tętna to struktura sesji dla trenera z wzoru
+  populacyjnego, zawsze jako zakres obok RPE i testu mowy; bramka + propose-only;
+  dane zdrowotne czytane tylko za zgodą; nic nie diagnozuje — bez wątpliwości.
+* **Odstępstwa od promptu** (`docs/plan-sesji/cardio-i-rozgrzewka.md`): bloki tylko jako
+  pozycje (bez `warmup_block_id` na dniu); stałe w Pythonie zamiast JSON; bez nowego
+  pytania wywiadu (pole bramki); Postępy-cardio wycięte (historia w Planie).
+* **Testy:** 16 silnika (`test_cardio_model.py`), 8 API (`test_cardio_api.py`: bramka,
+  prefill za zgodą, 422, 403/404, ślad + „Dlaczego?”, walidacja pozycji, szkic →
+  publikacja zachowuje `goal_mix`, dziennik/eksport/usunięcie), 4 bloków
+  (`test_exercise_blocks.py`), macierz (9 wierszy), `test-suwaki.mjs` (5), E2E
+  `cardio.spec.ts` (3: trener liczy i wstawia; klient wybiera wioślarz, zapisuje,
+  „Dlaczego?”; klient D widzi pozycję) i `rozgrzewka.spec.ts` (2). Przeklik:
+  `docs/plan-sesji/cardio-i-rozgrzewka.md` („Weryfikacja wykonana”).
+
 ## 0.71.0 — 2026-09-14
 
 **Dni treningowe na „Dzisiaj” — klient wybiera dni tygodnia dla jednostek planu

@@ -19,6 +19,130 @@ export interface Exercise {
   /** Kod modelu progresji (np. „PRG-DOUBLE"). To OPIS dla człowieka —
    * aplikacja nic na jego podstawie nie przelicza ani nie podnosi sama. */
   progression?: string | null;
+  /** Rodzaj pozycji (0.73.0): brak = siłowe; blok rozgrzewki/rozciągania z
+   * migawką treści (`block`) albo cardio z suwakami (`cardio`). */
+  kind?: "strength" | "warmup_block" | "stretch_block" | "cardio" | null;
+  block_id?: string | null;
+  block?: BlockSnapshot | null;
+  cardio?: CardioItem | null;
+}
+
+/** Pozycja bloku rozgrzewki/rozciągania: nazwa, dawka, notatka, link do karty. */
+export interface BlockItem {
+  name: string;
+  dose?: string | null;
+  note?: string | null;
+  exercise_id?: string | null;
+}
+
+/** Migawka treści bloku zapisana w wersji planu — archiwizacja bloku nie psuje planu. */
+export interface BlockSnapshot {
+  name: string;
+  kind: "WARMUP" | "STRETCH";
+  level: string | null;
+  variant: "G" | "D" | "C";
+  duration_min: number | null;
+  items: BlockItem[];
+}
+
+/** Blok w katalogu trenera (`/api/coach/exercise-blocks`). */
+export interface ExerciseBlockRow extends BlockSnapshot {
+  id: string;
+  coach_id: string;
+  kind_label: string;
+  variant_label: string;
+  source: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export const BLOCK_VARIANT_LABELS: Record<string, string> = { G: "góra ciała", D: "dół ciała", C: "całe ciało" };
+export const BLOCK_KIND_LABELS: Record<string, string> = { WARMUP: "Rozgrzewka", STRETCH: "Rozciąganie" };
+
+/** Urządzenia cardio (kontrakt z `cardio/urzadzenia.py`). */
+export const MACHINE_LABELS: Record<string, string> = {
+  rowerek: "Rowerek stacjonarny",
+  bieznia: "Bieżnia (marsz/bieg)",
+  bieznia_skos: "Bieżnia skos / chód pod górę",
+  steper: "Steper",
+  wioslarz: "Wioślarz",
+};
+/** Cele suwaków w kolejności kontraktu (redukcja, wydolność, regeneracja). */
+export const GOAL_KEYS = ["redukcja", "wydolnosc", "regeneracja"] as const;
+export const GOAL_LABELS: Record<string, string> = {
+  redukcja: "Redukcja (wydatek energii)",
+  wydolnosc: "Wydolność (VO2max)",
+  regeneracja: "Regeneracja (baza tlenowa)",
+};
+export const GOAL_SHORT: Record<string, string> = { redukcja: "Redukcja", wydolnosc: "Wydolność", regeneracja: "Regeneracja" };
+
+export interface CardioMachineParams {
+  machine: string;
+  label: string;
+  tempo_name: string;
+  tempo_unit: string;
+  load_name: string;
+  load_unit: string;
+  tempo: string;
+  load: string;
+  rest_tempo: string | null;
+  rest_load: string | null;
+  catalog_exercise: string;
+  review: string;
+  kcal_estimate: number | null;
+}
+
+export interface CardioStructure {
+  type: "ciagla" | "tempo" | "interwaly";
+  rounds: number;
+  work_min: number;
+  rest_min: number;
+  label: string;
+  total_min: number;
+}
+
+/** Wynik silnika `cardio_model_v1` — zawsze zakresy, nigdy jedna liczba. */
+export interface CardioPrescription {
+  hr_pct_range: [number, number];
+  hr_pct_rest_range: [number, number] | null;
+  hrr_pct_range: [number, number];
+  hr_bpm_range: [number, number] | null;
+  hr_bpm_rest_range: [number, number] | null;
+  hrmax_estimate: number | null;
+  hrmax_error_bpm: number | null;
+  hrr_used: boolean;
+  hr_mode: "normal" | "rpe_only";
+  rpe_range: [number, number];
+  talk_test: string;
+  duration_min: number;
+  structure: CardioStructure;
+  machine_params: CardioMachineParams[];
+  kcal_estimate: number | null;
+  caveats: string[];
+}
+
+export interface CardioItem {
+  goal_mix: { redukcja: number; wydolnosc: number; regeneracja: number };
+  level: string;
+  machines: string[];
+  prescription: CardioPrescription;
+  trace?: Record<string, unknown>;
+  model_version?: string;
+  overridden_by_coach?: string[];
+}
+
+export interface CardioIssue { code: string; severity: string; rule_id: string; message: string }
+
+/** Odpowiedź `POST /api/clients/{id}/cardio/podglad`. */
+export interface CardioPodglad {
+  status: "ready" | "needs_review" | "needs_input" | "urgent_stop";
+  issues: CardioIssue[];
+  questions: string[];
+  prescription: CardioPrescription | null;
+  trace: Record<string, unknown> | null;
+  model_version?: string;
+  inputs: { age: number | null; resting_hr: number | null; weight_kg: number | null; health_access: boolean; hr_mode: string } | null;
 }
 
 /** Model progresji z wbudowanego katalogu szablonów. */
@@ -541,7 +665,10 @@ export interface WorkoutRow {
   pain_flag: boolean;
   pain_note: string | null;
   entries: { exercise_index: number; exercise_name: string; result: string | null;
-    sets: WorkoutSet[]; comment: string | null; file_id: string | null }[];
+    sets: WorkoutSet[]; comment: string | null; file_id: string | null;
+    /** Cardio (0.73.0) — wpis bez serii. */
+    duration_min?: number | null; avg_hr?: number | null; rpe?: number | null;
+    distance_km?: number | null; machine?: string | null }[];
 }
 
 export interface StrengthSeriesRow {
@@ -723,7 +850,10 @@ export const KIND_LABELS: Record<string, string> = {
   hips: "Biodra",
   arm: "Ramię",
   thigh: "Udo",
+  /** Tętno spoczynkowe (0.73.0, ud./min) — opcjonalne wejście do Karvonena w cardio. */
+  resting_hr: "Tętno spoczynkowe",
 };
+export const KIND_UNITS: Record<string, string> = { weight: "kg", resting_hr: "ud./min" };
 
 export interface ExerciseLibraryItem {
   id: string;

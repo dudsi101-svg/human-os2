@@ -204,6 +204,15 @@ są przycinane do limitu, z ostrzeżeniem w raporcie.
 
 ---
 
+### 3.6. Czego import szablonów nie obsługuje (0.73.0)
+
+Bloki rozgrzewki/rozciągania i pozycje cardio z suwakami **nie mają kolumn
+w imporcie** (`serie, powtorzenia, ciezar, tempo, przerwa` opisują wyłącznie
+pozycje siłowe). Wstawia się je w edytorze planu („+ Rozgrzewka”,
+„+ Rozciąganie”, „+ Cardio”) — plik z importu tworzy plan siłowy, do którego
+trener dokłada bloki i cardio w nowej wersji. Rozszerzenie importu o te
+rodzaje to osobna decyzja (format migawki bloku i propozycji cardio).
+
 ## 4. Słowniki (wartości zamknięte)
 
 W kolumnach słownikowych przyjmujemy **klucz** albo **polską etykietę** —

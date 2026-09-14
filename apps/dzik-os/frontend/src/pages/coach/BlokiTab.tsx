@@ -1,0 +1,191 @@
+import { FormEvent, useEffect, useState } from "react";
+import { api } from "../../api";
+import { ErrorBox, Spinner } from "../../components";
+import { BLOCK_KIND_LABELS, BLOCK_VARIANT_LABELS, BlockItem, EXERCISE_LEVEL_LABELS, ExerciseBlockRow } from "../../types";
+
+/**
+ * Zakładka „Bloki” w Szablonach (0.73.0): katalog bloków rozgrzewki (3 poziomy
+ * × 3 warianty) i rozciągania (3 warianty) trenera. „Dodaj wbudowane” ładuje
+ * zestaw z pakietu (idempotentnie; treść DO PRZEGLĄDU TRENERA), edycja
+ * pozycji w prostym formularzu (jedna linia = „nazwa | dawka | notatka”),
+ * archiwizacja zamiast kasowania. Bloki wstawia się do dnia w edytorze planu.
+ */
+
+const BLOKI = "/api/coach/exercise-blocks";
+
+function liniaDoPozycji(linia: string): BlockItem | null {
+  const [name, dose, note] = linia.split("|").map((x) => x.trim());
+  if (!name) return null;
+  return { name, dose: dose || null, note: note || null, exercise_id: null };
+}
+
+function pozycjeDoTekstu(items: BlockItem[]): string {
+  return items.map((i) => [i.name, i.dose ?? "", i.note ?? ""].join(" | ").replace(/( \| )+$/, "")).join("\n");
+}
+
+function FormularzBloku({ blok, onSaved, onCancel }: { blok: ExerciseBlockRow | null; onSaved: () => void; onCancel: () => void }) {
+  const [name, setName] = useState(blok?.name ?? "");
+  const [kind, setKind] = useState<"WARMUP" | "STRETCH">(blok?.kind ?? "WARMUP");
+  const [level, setLevel] = useState(blok?.level ?? "POCZATKUJACY");
+  const [variant, setVariant] = useState<"G" | "D" | "C">(blok?.variant ?? "C");
+  const [duration, setDuration] = useState(blok?.duration_min ? String(blok.duration_min) : "");
+  const [tekst, setTekst] = useState(blok ? pozycjeDoTekstu(blok.items) : "");
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  async function save(e: FormEvent) {
+    e.preventDefault();
+    setBusy(true); setError(null);
+    const items = tekst.split("\n").map(liniaDoPozycji).filter((x): x is BlockItem => x !== null);
+    // Pozycje z karty (exercise_id) zostają, gdy nazwa się nie zmieniła.
+    const stare = new Map((blok?.items ?? []).map((i) => [i.name, i.exercise_id ?? null]));
+    const body = { name, kind, level: kind === "STRETCH" ? null : level, variant,
+      duration_min: duration ? Number(duration) : null,
+      items: items.map((i) => ({ ...i, exercise_id: stare.get(i.name) ?? null })) };
+    try {
+      if (blok) await api.put(`${BLOKI}/${blok.id}`, body);
+      else await api.post(BLOKI, body);
+      onSaved();
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <form className="card card--accent" onSubmit={save} data-testid="blok-formularz">
+      <h2>{blok ? `Edycja: ${blok.name}` : "Nowy blok"}</h2>
+      <label htmlFor="bl-name">Nazwa</label>
+      <input id="bl-name" required value={name} onChange={(e) => setName(e.target.value)} />
+      <div className="field-row-3" style={{ marginTop: 6 }}>
+        <div>
+          <label htmlFor="bl-kind">Rodzaj</label>
+          <select id="bl-kind" value={kind} onChange={(e) => setKind(e.target.value as "WARMUP" | "STRETCH")}>
+            {Object.entries(BLOCK_KIND_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+          </select>
+        </div>
+        <div>
+          <label htmlFor="bl-variant">Wariant</label>
+          <select id="bl-variant" value={variant} onChange={(e) => setVariant(e.target.value as "G" | "D" | "C")}>
+            {Object.entries(BLOCK_VARIANT_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+          </select>
+        </div>
+        <div>
+          <label htmlFor="bl-level">Poziom</label>
+          <select id="bl-level" value={level} disabled={kind === "STRETCH"} onChange={(e) => setLevel(e.target.value)}>
+            {Object.entries(EXERCISE_LEVEL_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+          </select>
+        </div>
+      </div>
+      <label htmlFor="bl-duration" style={{ marginTop: 6 }}>Czas (min)</label>
+      <input id="bl-duration" type="number" min={1} max={60} value={duration} onChange={(e) => setDuration(e.target.value)} />
+      <label htmlFor="bl-items" style={{ marginTop: 6 }}>Pozycje — jedna w linii: nazwa | dawka | notatka</label>
+      <textarea id="bl-items" rows={7} value={tekst} onChange={(e) => setTekst(e.target.value)}
+        placeholder={"Marsz w miejscu z wysokim kolanem | 3 min | RPE 3–4\nKrążenia ramion | 2×10"} />
+      <ErrorBox error={error} />
+      <div className="row" style={{ marginTop: 10 }}>
+        <button className="btn" disabled={busy}>{busy ? "Zapisywanie…" : "Zapisz blok"}</button>
+        <button type="button" className="btn btn--ghost" onClick={onCancel}>Anuluj</button>
+      </div>
+    </form>
+  );
+}
+
+export default function BlokiTab() {
+  const [items, setItems] = useState<ExerciseBlockRow[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [status, setStatus] = useState<"ACTIVE" | "all">("ACTIVE");
+  const [note, setNote] = useState<string | null>(null);
+  const [edit, setEdit] = useState<ExerciseBlockRow | null | "nowy">(null);
+
+  const load = () => {
+    setError(null);
+    api.get<{ items: ExerciseBlockRow[] }>(`${BLOKI}?status=${status}`)
+      .then((d) => setItems(d.items))
+      .catch((e) => setError(e.message));
+  };
+  useEffect(load, [status]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function wbudowane() {
+    setNote(null);
+    try {
+      const r = await api.post<{ created: number; skipped: number; items_without_card: number }>(`${BLOKI}/load-builtin`, {});
+      setNote(r.created
+        ? `Dodano ${r.created} wbudowanych bloków (pominięto ${r.skipped} już obecnych). Treść jest do Twojego przeglądu przed użyciem u klientów.`
+        : `Wszystkie wbudowane bloki (${r.skipped}) są już w Twoim katalogu.`);
+      load();
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }
+
+  async function zmienStatus(b: ExerciseBlockRow) {
+    try {
+      await api.post(`${BLOKI}/${b.id}/status`, { status: b.status === "ACTIVE" ? "ARCHIVED" : "ACTIVE" });
+      load();
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }
+
+  if (error && !items) return <ErrorBox error={error} onRetry={load} />;
+  if (!items) return <Spinner />;
+
+  return (
+    <div data-testid="bloki-tab">
+      <div className="card">
+        <div className="row row--between">
+          <div>
+            <b>Bloki rozgrzewki i rozciągania</b>
+            <div className="dim" style={{ fontSize: "0.85rem" }}>
+              9 rozgrzewek (3 poziomy × góra/dół/całe ciało) i 3 bloki rozciągania po treningu. Wstawiasz je do dnia w edytorze planu;
+              plan niesie migawkę treści, więc późniejsza edycja bloku nie zmienia opublikowanych planów.
+              Treść wbudowana jest <b>do Twojego przeglądu</b> — to propozycja, nie zalecenie.
+            </div>
+          </div>
+        </div>
+        <div className="row" style={{ marginTop: 8, flexWrap: "wrap" }}>
+          <button type="button" className="btn btn--small" onClick={wbudowane}>Dodaj wbudowane</button>
+          <button type="button" className="btn btn--ghost btn--small" onClick={() => setEdit("nowy")}>+ Nowy blok</button>
+          <label className="row" style={{ alignItems: "center" }}>
+            <input type="checkbox" checked={status === "all"} onChange={(e) => setStatus(e.target.checked ? "all" : "ACTIVE")} />
+            <span>pokaż zarchiwizowane</span>
+          </label>
+        </div>
+        <p className="dim" role="status" aria-live="polite" style={{ marginTop: 4 }}>{note ?? ""}</p>
+        <ErrorBox error={error} />
+      </div>
+      {edit && (
+        <FormularzBloku blok={edit === "nowy" ? null : edit} onSaved={() => { setEdit(null); load(); }} onCancel={() => setEdit(null)} />
+      )}
+      {items.length === 0 && <p className="dim">Brak bloków — kliknij „Dodaj wbudowane” albo utwórz własny.</p>}
+      {items.map((b) => (
+        <div className="card" key={b.id} data-testid="blok-karta">
+          <div className="row row--between">
+            <div>
+              <b>{b.name}</b>{" "}
+              <span className="badge">{b.kind_label}</span>{" "}
+              <span className="badge">{b.variant_label}</span>
+              {b.level && <> <span className="badge">{EXERCISE_LEVEL_LABELS[b.level] ?? b.level}</span></>}
+              {b.status === "ARCHIVED" && <> <span className="badge badge--warn">zarchiwizowany</span></>}
+              <div className="meta">{b.duration_min ? `≈${b.duration_min} min · ` : ""}{b.items.length} pozycji · źródło: {b.source}</div>
+            </div>
+            <div className="row" style={{ gap: 6 }}>
+              <button type="button" className="btn btn--ghost btn--small" onClick={() => setEdit(b)}>Edytuj</button>
+              <button type="button" className={`btn btn--small ${b.status === "ACTIVE" ? "btn--danger" : ""}`} onClick={() => zmienStatus(b)}>
+                {b.status === "ACTIVE" ? "Archiwizuj" : "Przywróć"}
+              </button>
+            </div>
+          </div>
+          <ol style={{ margin: "6px 0 0", paddingLeft: 20, fontSize: "0.9rem" }}>
+            {b.items.map((it, i) => (
+              <li key={i}>{it.name}{it.dose && <> — <b>{it.dose}</b></>}{it.note && <span className="dim"> ({it.note})</span>}
+                {!it.exercise_id && it.name.indexOf("wprowadzająca") < 0 && <span className="dim"> · bez karty w bazie</span>}</li>
+            ))}
+          </ol>
+        </div>
+      ))}
+    </div>
+  );
+}

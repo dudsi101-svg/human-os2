@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { Suspense, lazy, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../../api";
 import { plDate } from "../../dates";
@@ -8,6 +8,7 @@ import BuiltinTemplates from "./BuiltinTemplates";
 import PlanEditor from "./PlanEditor";
 import PublikacjaPanel from "./PublikacjaPanel";
 import DietTemplatesTab from "./DietTemplates";
+const BlokiTab = lazy(() => import("./BlokiTab"));
 
 export default function Templates() {
   const [templates, setTemplates] = useState<TrainingPlan[] | null>(null);
@@ -24,7 +25,8 @@ export default function Templates() {
 
   // Zakładka Dieta (0.54.0): szablony diety żyją obok treningowych —
   // jeden ekran „Szablony", dwie zakładki, wybór trzymany lokalnie.
-  const [tab, setTab] = useState<"TRENING" | "DIETA">("TRENING");
+  // Bloki rozgrzewki/rozciągania (0.73.0): trzecia zakładka, panel za React.lazy.
+  const [tab, setTab] = useState<"TRENING" | "DIETA" | "BLOKI">("TRENING");
   // Szablony diet ze skalowaniem (0.60.0): link do panelu tylko, gdy moduł włączony.
   const [szablonyDiet, setSzablonyDiet] = useState(false);
   useEffect(() => {
@@ -39,11 +41,11 @@ export default function Templates() {
       <TopBar title="Szablony" />
       <div className="row" role="tablist" aria-label="Rodzaj szablonów"
         style={{ gap: 6, marginBottom: 12 }}>
-        {(["TRENING", "DIETA"] as const).map((k) => (
+        {(["TRENING", "DIETA", "BLOKI"] as const).map((k) => (
           <button key={k} type="button" role="tab" aria-selected={tab === k}
             className={`btn btn--small ${tab === k ? "" : "btn--ghost"}`}
             onClick={() => setTab(k)}>
-            {k === "TRENING" ? "Trening" : "Dieta"}
+            {k === "TRENING" ? "Trening" : k === "DIETA" ? "Dieta" : "Bloki"}
           </button>
         ))}
       </div>
@@ -56,6 +58,7 @@ export default function Templates() {
         </div>
       )}
       {tab === "DIETA" && <DietTemplatesTab />}
+      {tab === "BLOKI" && <Suspense fallback={<Spinner />}><BlokiTab /></Suspense>}
       {tab === "TRENING" && (<>
       {!creating && (
         <AddTemplate onManual={() => setCreating(true)} onImported={load} />

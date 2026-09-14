@@ -58,3 +58,14 @@ Przegląd katalogu przez trenera, przegląd screeningu przez specjalistę
 medycznego, pilotaż zrozumiałości (RIR, zapis na stronę, rozgrzewka vs
 seria robocza) i kalibracja estymatora czasu. Produkt nie jest
 klinicznie zwalidowany i nie obiecuje efektów sylwetkowych.
+
+## Relacja do bloków rozgrzewki i cardio z suwakami (0.73.0)
+
+K1 nadal liczy `warmup_minutes` (budżet 600 s w `katalog.json`), a
+`konfigurator/eksport.py` wyrzuca tę wartość przy zapisie do planu — **bez
+zmian w tej rundzie**. Od 0.73.0 rozgrzewka jest osobnym bytem: blokiem
+z katalogu trenera wstawianym do dnia jako pozycja `kind: "warmup_block"`
+z migawką treści, a cardio — pozycją `kind: "cardio"` z silnika suwaków
+(`dzik_os/cardio/`). K2 (dziennik/adaptacja) ma podpiąć blok rozgrzewki
+zamiast budżetu minut i pozycję cardio zamiast `baseline_cardio_minutes`;
+do tego czasu plany z konfiguratora nie zawierają bloków ani cardio.

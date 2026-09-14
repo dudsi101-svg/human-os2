@@ -300,16 +300,16 @@ def seed() -> dict[str, str]:
         # 0,5/0,25/0,25 policzony deterministycznie przez silnik) na końcu.
         blok_c = db.get(ExerciseBlock, bloki[("WARMUP", "POCZATKUJACY", "C")])
         cardio_c = cardio_model.propozycja(
-            {"redukcja": 0.5, "wydolnosc": 0.25, "regeneracja": 0.25}, "POCZATKUJACY", ["rowerek"],
+            {"redukcja": 0.5, "wydolnosc": 0.25, "regeneracja": 0.25}, "POCZATKUJACY", ["rowerek", "wioslarz"],
             age=34, weight_kg=88.0,
         )
         days_v2[2]["exercises"] = [
             {"name": blok_c.name, "kind": "warmup_block", "block_id": blok_c.id, "block": migawka_bloku(blok_c)},
             *days_v2[2]["exercises"],
-            {"name": "Cardio — rowerek (Redukcja 50 % / Wydolność 25 % / Regeneracja 25 %)",
+            {"name": "Cardio — rowerek / wioślarz (Redukcja 50 % / Wydolność 25 % / Regeneracja 25 %)",
              "kind": "cardio", "exercise_id": exercise_ids["Rower stacjonarny — jazda ciągła"],
              "cardio": {"goal_mix": {"redukcja": 0.5, "wydolnosc": 0.25, "regeneracja": 0.25},
-                        "level": "POCZATKUJACY", "machines": ["rowerek"],
+                        "level": "POCZATKUJACY", "machines": ["rowerek", "wioslarz"],
                         "prescription": cardio_c["prescription"], "trace": cardio_c["trace"],
                         "model_version": cardio_c["model_version"], "overridden_by_coach": []}},
         ]

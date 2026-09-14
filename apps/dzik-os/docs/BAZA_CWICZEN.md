@@ -847,3 +847,31 @@ przepisuje, więc silnik zostaje `NULL`.
   leżąc” i „Wyciskanie sztangi na ławce poziomej” to dla dopasowania dwie
   różne pozycje. Sklejanie ich wymagałoby zgadywania; scalenie
   duplikatów zostaje decyzją trenera.
+
+## 12. Bloki rozgrzewki i rozciągania oraz wpisy cardio „na parametry” (od 0.73.0)
+
+* **Bloki** (`ExerciseBlock`, `/api/coach/exercise-blocks`): byty katalogowe
+  trenera — rodzaj WARMUP/STRETCH, poziom (rozgrzewka: POCZATKUJACY /
+  SREDNIOZAAWANSOWANY / ZAAWANSOWANY; rozciąganie bez poziomu), wariant G/D/C
+  (góra / dół / całe ciało), czas, lista pozycji `{name, dose, note,
+  exercise_id|null}`. Pozycje odwołują się do bazy ćwiczeń miękko (po
+  `exercise_id`, jak w planach); „seria wprowadzająca” to opis, nie ćwiczenie.
+  Blok wstawiony do dnia planu zapisuje **migawkę treści** — archiwizacja bloku
+  nie zmienia opublikowanych planów. Zakładka Szablony → Bloki.
+* **Wbudowany zestaw** (`cardio/bloki_wbudowane.py`, „Dodaj wbudowane”,
+  idempotentnie): 9 rozgrzewek (3 poziomy × 3 warianty, ≈8/10/12 min: 1 pozycja
+  podniesienia tętna 3–6 min RPE 3–4 + 3–5 pozycji mobilności/aktywacji + seria
+  wprowadzająca) i 3 bloki rozciągania po treningu (statyczne 20–30 s/str.,
+  5–8 min). Źródło każdego: `wbudowany — do przeglądu trenera`; edycja przez
+  trenera zmienia źródło na `wbudowany — zmieniony przez trenera`.
+* **Nowe wpisy katalogu (9, DO PRZEGLĄDU TRENERA):** „Bieżnia — bieg ciągły”,
+  „Wioślarz — wiosłowanie ciągłe” (CARDIO — cardio „na parametry”, z `how_to`
+  napisanym pod sterowanie tętnem/RPE) oraz rozciąganie statyczne:
+  czworogłowych stojąc, dwugłowych siedząc, pośladkowych („figura 4”),
+  przywodzicieli, najszerszych przy drążku, karku, przedramion (MOBILNOSC,
+  `pattern="MOBILNOSC"` — bez nowej wartości słownika `ROZCIAGANIE`; kontrakt
+  słownika nietknięty). Katalog: 155 → 164 wpisów.
+* **Urządzenia cardio** (`cardio/urzadzenia.py`): rowerek, bieżnia, bieżnia skos,
+  steper, wioślarz — każde z gałką „tempo” i „obciążenie” per pasmo intensywności
+  i odniesieniem po nazwie do wpisu katalogu. Tabela jest praktyką trenerską [C]
+  do przeglądu, nie wynikiem badania.
