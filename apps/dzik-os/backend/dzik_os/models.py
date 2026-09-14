@@ -2073,3 +2073,50 @@ class HabitCompletion(Base):
     status: Mapped[str] = mapped_column(String(20), default="DONE")
     created_by: Mapped[str] = mapped_column(String(40))
     created_at: Mapped[str] = mapped_column(String(40), default=now_iso)
+
+
+class ExerciseRecord(Base):
+    """Rekord osobisty (0.66.0, spec Monitoring/Postępy §11.1) — WYŁĄCZNIE
+    względem własnej historii klienta. Pełna historia: pobity rekord dostaje
+    `superseded_at` (data pobicia), nie jest nadpisywany. Wiersze są
+    przeliczane deterministycznie z serii (`postepy.rekordy`) przy zapisie
+    sesji i w backfillu, więc korekta serii cofa rekord sama z siebie.
+    `exercise_key` = znormalizowana nazwa ćwiczenia (wariant = osobne
+    ćwiczenie); `set_ref` = "<id wpisu>:<indeks serii>"."""
+
+    __tablename__ = "exercise_records"
+
+    id: Mapped[str] = mapped_column(String(40), primary_key=True)
+    client_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
+    exercise_key: Mapped[str] = mapped_column(String(300), index=True)
+    exercise_name: Mapped[str] = mapped_column(String(300))
+    # WEIGHT / REPS_AT_WEIGHT / SET_VOLUME / SESSION_VOLUME / E1RM (miejsce na TIME/DISTANCE)
+    record_type: Mapped[str] = mapped_column(String(20))
+    value: Mapped[float] = mapped_column(Float)
+    secondary_value: Mapped[float | None] = mapped_column(Float, nullable=True)
+    set_ref: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    session_id: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    achieved_on: Mapped[str] = mapped_column(String(40))  # YYYY-MM-DD
+    previous_value: Mapped[float | None] = mapped_column(Float, nullable=True)
+    equaled_on: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    superseded_at: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    created_at: Mapped[str] = mapped_column(String(40), default=now_iso)
+
+
+class TrainingWeekAggregate(Base):
+    """Agregat tygodnia treningowego (0.66.0, §11.2): tonaż, serie per grupa
+    mięśniowa, sesje wykonane i zaplanowane — liczony przy zapisie sesji
+    i w backfillu, nie od zera przy każdym wejściu w zakładkę."""
+
+    __tablename__ = "training_week_aggregates"
+    __table_args__ = (UniqueConstraint("client_id", "week_start"),)
+
+    id: Mapped[str] = mapped_column(String(40), primary_key=True)
+    client_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
+    week_start: Mapped[str] = mapped_column(String(40))  # poniedziałek, YYYY-MM-DD
+    sessions_count: Mapped[int] = mapped_column(Integer, default=0)
+    planned_count: Mapped[int] = mapped_column(Integer, default=0)
+    tonnage_kg: Mapped[float] = mapped_column(Float, default=0.0)
+    sets_by_group_json: Mapped[str] = mapped_column(Text, default="{}")
+    session_days_json: Mapped[str] = mapped_column(Text, default="[]")
+    updated_at: Mapped[str] = mapped_column(String(40), default=now_iso)

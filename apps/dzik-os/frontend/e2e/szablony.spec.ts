@@ -56,3 +56,19 @@ test("trener otwiera zakładkę Dieta i dodaje autorski szablon z katalogu", asy
   await expect(page.getByText("Przekąska (posiłek ruchomy)").first()).toBeVisible();
   await expect(page.getByText(/Ściąga zamienników/).first()).toBeVisible();
 });
+
+/**
+ * Wymiany v2 (0.69.0): panel szablonów diet pokazuje tabelę grup pokrewnych
+ * zamienników tylko do odczytu (propozycja do przeglądu trenera/dietetyka).
+ */
+test("trener widzi grupy pokrewne zamienników tylko do odczytu", async ({ page }) => {
+  await zaloguj(page, KONTA.trener);
+  await page.goto("/trener/szablony-diet");
+  const karta = page.locator("details", { hasText: /Grupy pokrewne zamienników — \d+ par/ });
+  await expect(karta).toBeVisible({ timeout: 15_000 });
+  await karta.locator("summary").click();
+  await expect(karta.getByRole("cell", { name: "Grupa A" })).toBeVisible();
+  await expect(karta.getByText("włączona").first()).toBeVisible();
+  await expect(karta.getByText(/wyłączona \(propozycja niepewna\)/).first()).toBeVisible();
+  await expect(karta.getByRole("button", { name: /zapisz|usuń|dodaj|edytuj/i })).toHaveCount(0);
+});

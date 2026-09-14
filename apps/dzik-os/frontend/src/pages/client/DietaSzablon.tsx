@@ -3,20 +3,29 @@ import { Link } from "react-router-dom";
 import { api, ApiError } from "../../api";
 import { plDate } from "../../dates";
 import { ErrorBox } from "../../components";
-import { DietAssignedOut, DietIngredientOut, DietMealOut, DietSwapCandidate, slotLabel } from "../../types";
+import { DietAssignedOut, DietIngredientOut, DietMacros, DietMealOut, DietSwapCandidate, DietSwapReason, DIET_SWAP_REASON_LABELS, slotLabel } from "../../types";
 import { Alergeny, gramatura, KartaDnia, makro, NotatkiOdslony, StatusDiety } from "../dieta/wspolne";
 
 /**
  * Widok klienta diety z szablonu (0.60.0): dzień z posiłkami, gramatury
  * (dyskretne jako „2 szt. (~110 g)”), makro posiłku, przepis rozwijany;
- * P1: wymiana składnika oznaczonego `swappable` — arkusz z 1–3 zamiennikami
- * (gramatury policzone przez serwer), brak kandydatów → „napisz do trenera”.
+ * Wymiana składnika oznaczonego `swappable` (v2, 0.69.0): arkusz z zamiennikami
+ * z tej samej grupy i z grup pokrewnych (gramatury i delta posiłku policzone przez
+ * serwer), pusta lista z powodem (`reason`) i — gdy to sprawa trenera — linkiem do niego.
  */
+
+/** Zmiana makro posiłku po wymianie, po polsku („posiłek: −12 kcal, białko +1 g”). */
+function deltaTekst(d?: DietMacros): string {
+  if (!d) return "";
+  // Znak po zaokrągleniu: −0,3 g to „0 g”, nie „−0 g”.
+  const f = (v: number, u: string) => { const r = Math.round(v); return `${r > 0 ? "+" : r < 0 ? "−" : ""}${Math.abs(r)} ${u}`; };
+  return `posiłek: ${f(d.kcal, "kcal")}, białko ${f(d.P, "g")}, tłuszcz ${f(d.F, "g")}, węgle ${f(d.C, "g")}`;
+}
 export default function DietaSzablon({ onStan }: { onStan?: (jest: boolean) => void } = {}) {
   const [a, setA] = useState<DietAssignedOut | null | undefined>(undefined);
   const [error, setError] = useState<string | null>(null);
   const [dzien, setDzien] = useState(1);
-  const [arkusz, setArkusz] = useState<{ m: DietMealOut; i: DietIngredientOut; cands: DietSwapCandidate[] | null; blocked: string | null } | null>(null);
+  const [arkusz, setArkusz] = useState<{ m: DietMealOut; i: DietIngredientOut; cands: DietSwapCandidate[] | null; blocked: string | null; reason: DietSwapReason | null } | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -35,11 +44,11 @@ export default function DietaSzablon({ onStan }: { onStan?: (jest: boolean) => v
   const d = a.plan.days.find((x) => x.day === dzien) ?? a.plan.days[0];
 
   async function otworz(m: DietMealOut, i: DietIngredientOut) {
-    setArkusz({ m, i, cands: null, blocked: null });
+    setArkusz({ m, i, cands: null, blocked: null, reason: null });
     try {
-      const r = await api.get<{ candidates: DietSwapCandidate[]; blocked: string | null }>(
+      const r = await api.get<{ candidates: DietSwapCandidate[]; blocked: string | null; reason: DietSwapReason | null }>(
         `/api/diet/assigned/${a!.id}/swaps?day=${d.day}&meal=${encodeURIComponent(m.meal_id)}&ingredient=${encodeURIComponent(i.ingredient_id)}`);
-      setArkusz({ m, i, cands: r.candidates, blocked: r.blocked });
+      setArkusz({ m, i, cands: r.candidates, blocked: r.blocked, reason: r.reason ?? null });
     } catch (e) { setError((e as Error).message); setArkusz(null); }
   }
 
@@ -50,7 +59,7 @@ export default function DietaSzablon({ onStan }: { onStan?: (jest: boolean) => v
       await api.post(`/api/diet/assigned/${a!.id}/swaps`, {
         day: d.day, meal_id: arkusz.m.meal_id, ingredient_id: arkusz.i.ingredient_id, to_product_id: c.product_id,
       });
-      setInfo(`Wymieniono: ${arkusz.i.product} → ${c.product} (${Math.round(c.grams)} g). Posiłek nadal mieści się w celu.`);
+      setInfo(`Wymieniono: ${arkusz.i.product} → ${c.product} (${Math.round(c.grams)} g). ${deltaTekst(c.meal_delta)}`);
       setArkusz(null);
       zaladuj();
     } catch (e) { setError((e as Error).message); } finally { setBusy(false); }
@@ -106,13 +115,23 @@ export default function DietaSzablon({ onStan }: { onStan?: (jest: boolean) => v
           {arkusz.cands === null && <p className="dim">Szukam zamienników…</p>}
           {arkusz.blocked && <p className="alert alert--warn">{arkusz.blocked}</p>}
           {arkusz.cands && !arkusz.blocked && arkusz.cands.length === 0 && (
-            <p className="alert alert--warn">Brak bezpiecznego zamiennika, napisz do trenera. <Link to="/wiadomosci" className="btn btn--small" style={{ marginLeft: 6 }}>Napisz do trenera</Link></p>
+            <p className="alert alert--warn">
+              {(arkusz.reason && DIET_SWAP_REASON_LABELS[arkusz.reason]) || "Brak bezpiecznego zamiennika, napisz do trenera."}
+              {(!arkusz.reason || arkusz.reason === "TOLERANCE" || arkusz.reason === "SINGLETON" || arkusz.reason === "PORTION") && (
+                <Link to="/wiadomosci" className="btn btn--small" style={{ marginLeft: 6 }}>Napisz do trenera</Link>
+              )}
+            </p>
           )}
           {arkusz.cands && arkusz.cands.length > 0 && (
             <ul style={{ paddingLeft: 18 }}>
-              {arkusz.cands.map((c) => (
+              {arkusz.cands.slice(0, 5).map((c) => (
                 <li key={c.product_id} style={{ marginBottom: 6 }}>
-                  <b>{c.product}</b> — {Math.round(c.grams)} g <small className="dim">(posiłek po wymianie: {makro(c.macros)})</small>{" "}
+                  <b>{c.product}</b> — {Math.round(c.grams)} g{" "}
+                  <span className={c.tier === 2 ? "badge" : "badge badge--ok"}>
+                    {c.tier === 2 ? `grupa pokrewna: ${c.group ?? ""}` : "z tej samej grupy"}
+                  </span>{" "}
+                  {c.tier === 2 && c.tier_reason && <small className="dim">({c.tier_reason})</small>}{" "}
+                  <small className="dim">({deltaTekst(c.meal_delta)}; posiłek po wymianie: {makro(c.macros)})</small>{" "}
                   <button type="button" className="btn btn--small" disabled={busy} onClick={() => void wymien(c)}>{busy ? "Zapisuję…" : "Wybierz"}</button>
                 </li>
               ))}

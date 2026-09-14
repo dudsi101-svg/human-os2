@@ -265,3 +265,17 @@ Zmiana w istniejących testach: `tests/test_food_products.py` nie zakłada już,
 że cały katalog przychodzi w jednej odpowiedzi — produkty wyszukuje przez
 `?q=`, a test klienta sprawdza rozmiar strony i `total` zamiast długości
 listy.
+
+## 8. Dane wymian v2 (0.69.0) — dwa pliki obok katalogu
+
+* `backend/dzik_os/dieta/dane/grupy_pokrewne.json` — 45 par grup zamienników
+  z powodem (tabela właściciela z 14.09, `docs/zlecenia/PROMPT_writer_wymiany-produktow.md`
+  §5), status PROPOZYCJA, pary „?” wyłączone. Walidacja przy ładowaniu
+  (`dieta/grupy.py`). Nie zawiera produktów — tylko powiązania grup.
+* `docs/diet-module/katalog_korelacja_propozycja.csv` — propozycje przeniesienia
+  pozycji z katalogu trenera (`food_catalog_data.FOOD_ROWS_ALL`, 2058) do katalogu
+  diet: grupa, tagi, alergeny, pewność, metoda, `decision` do wypełnienia przez
+  człowieka. Generowane `tools/koreluj_katalog.py` (deterministycznie, test reguł).
+* `backend/dzik_os/dieta/dane/produkty_z_katalogu.csv` — **powstanie po przeglądzie**:
+  wyłącznie wiersze TAK, `source = "katalog_trenera"`, ładowane przez seed po głównym
+  CSV; wiersz bez alergenu w kategorii typowej nie może zostać zaimportowany.

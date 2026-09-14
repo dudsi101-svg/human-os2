@@ -19,6 +19,13 @@ export interface SessionUser {
   mfa_enabled?: boolean;
   /** Rola z obowiązkowym MFA bez konfiguracji — dostęp tylko do ekranu MFA. */
   mfa_setup_required?: boolean;
+  /** Flagi modułów z serwera (0.66.0): nawigacja nie zgaduje, czyta stan przy logowaniu. */
+  features?: { monitoring_tab?: boolean };
+}
+
+/** Czy moduł za flagą jest włączony dla zalogowanego użytkownika (stan z serwera). */
+export function hasFeature(name: "monitoring_tab"): boolean {
+  return !!getUser()?.features?.[name];
 }
 
 const TOKEN_KEY = "dzik_token";

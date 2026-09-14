@@ -1,5 +1,192 @@
 # Changelog — Dzik OS
 
+## 0.69.0 — 2026-09-14
+
+**Wymiany produktów v2 — grupy pokrewne, zgodność funkcji w posiłku, bramka
+„nie pogarsza”, przycisk dla roli NONE, korelacja katalogu trenera (zlecenie 2
+właściciela z 14.09, `docs/zlecenia/PROMPT_writer_wymiany-produktow.md`; gałąź
+`agent/wymiany-produktow`, bez migracji).** Numer 0.68.0 zarezerwowany dla
+„dni treningowych” (migracja 37).
+
+Problem (właściciel): „przycisk wymiany produktu w zakładce Dieta nie działa”.
+Pomiar (`tools/pomiar_wymian.py`, Standard v1, bez wykluczeń): składników
+z rolą P/C/F **bez żadnego zamiennika**:
+
+| stan | 1600 kcal | 2000 kcal | 2600 kcal | NONE 2000 kcal |
+|---|---|---|---|---|
+| `main` 0.64.0 (poziom 1, bramka absolutna) | 20/108 (19 %) | 12/108 (11 %) | 18/108 (17 %) | bez przycisku (124) |
+| **0.69.0** (poziom 1 + 2, „nie pogarsza”, limity v1.1) | **7/108 (6 %)** | **3/108 (3 %)** | **9/108 (8 %)** | **3/124 (2 %)** |
+
+Pozostałe puste przy 2000 kcal: tuńczyk z puszki, szynka z indyka, ciecierzyca
+z puszki (każdy kandydat pogarsza posiłek) — do korekty posiłków w szablonie.
+
+* **Silnik** (`dieta/silnik.py`, `swap_candidates_z_powodami`) — **tu silnik
+  przestaje być 1:1 z prototypem `docs/diet-module/engine.py`** (skalowanie,
+  `check`, `fit_*`, `TOL_MEAL`/`TOL_DAY` bez zmian, test stałych). Poziom 1 =
+  ta sama `substitution_group`, poziom 2 = grupa pokrewna z
+  `dieta/dane/grupy_pokrewne.json` (45 par z tabeli właściciela, symetryczne,
+  z powodem; 5 par „?” wyłączonych do przeglądu trenera). Sita w kolejności:
+  wykluczenia (alergeny/diety/„nie lubię” — **przed** poziomem 2) → funkcja
+  w posiłku (`cooking_tags`: `*` i pusty zestaw = wildcard, na poziomie 2
+  wildcard kandydata nie wystarcza; rola makro: na poziomie 2 dominujące makro
+  zgodne z rolą, dla P wystarczy ≥ 15 g/100 g) → limity porcji v1.1 (≤ 300 g
+  surowego mięsa/ryby, ≤ 4 jajka — te same limity dla gramatury z klienta w POST)
+  → bramka posiłku **„w tolerancji ALBO nie pogarsza”** (żadne odchylenie kcal/P/F/C
+  nie większe niż przed wymianą, z luzem 5 kcal / 0,5 g poniżej rozdzielczości
+  wyświetlania — interpretacja spec do potwierdzenia przez właściciela; bez luzu
+  masło 6 g → oliwa 5 g odpadało za +0,05 g białka).
+  Rola NONE: tylko poziom 1, gramatura 1:1 wagowo. Ranking: poziom → suma
+  |Δ| posiłku → odległość makro. Wynik deterministyczny (test). Odstępstwo od
+  promptu: zakres `min/max_factor` składnika **nie** jest przenoszony na
+  kandydata (gęstość produktów różni się kilkukrotnie; pomiar: 6/108 zamiast
+  3/108 pustych list i 51/124 zamiast 3/124 dla NONE).
+* **Powód pustej listy:** `reason` ∈ SINGLETON / EXCLUDED / FUNCTION / PORTION /
+  TOLERANCE + `rejected` (liczby per powód) w `GET /api/diet/assigned/{id}/swaps`;
+  klient widzi właściwy komunikat po polsku zamiast jednego „Brak bezpiecznego
+  zamiennika”. Kandydat niesie `tier`, `group`, `tier_reason`, `meal_delta`.
+* **POST** wymiany: ta sama ścieżka co GET (kandydat spoza listy → 422 także na
+  poziomie 2), bramka „nie pogarsza” dla gramatury z klienta, `tier` w korekcie
+  (JSON, bez migracji); historia wymian trenera pokazuje poziom (liczony z grup
+  produktów). Blokady trenera bez zmian.
+* **`swappable` efektywne** przy odczycie (`serwis.swappable_efektywne`): NONE
+  z grupą ≥ 2 produktów dostaje przycisk także w migawkach sprzed rundy (bez
+  przepisywania danych); seed i domyślna wartość w edytorze tą samą regułą; STAŁY
+  nadal bez. Dotyczy tylko roli NONE — jawne `swappable: false` trenera dla P/C/F
+  zostaje (po przeglądzie); blokada per składnik NONE wymaga migracji (PROGRESS).
+* **Interfejs klienta** (`DietaSzablon.tsx`): przycisk „↔ wymień” także dla
+  warzyw/dodatków, etykieta „z tej samej grupy” / „grupa pokrewna: …”, delta
+  posiłku po polsku, do 3 kandydatów (limit `n` bez zmian), pięć komunikatów
+  pustej listy; link do trenera przy SINGLETON/PORTION/TOLERANCE. Panel szablonów trenera: karta
+  „Grupy pokrewne zamienników” **tylko do odczytu** (z `GET /api/diet/products`,
+  bez nowej trasy); historia wymian z poziomem.
+* **Korelacja katalogu trenera (§5a):** `tools/koreluj_katalog.py` czyta
+  2058 pozycji `FOOD_ROWS_ALL` i `produkty.csv`, pisze
+  `docs/diet-module/katalog_korelacja_propozycja.csv` (1930 propozycji:
+  1191 po słowie kluczowym, 739 po kategorii, 128 duplikatów pominiętych;
+  515 z góry NIE: dania gotowe, napoje poza mlekami, odżywki poza białkiem,
+  przekąski; pewność WYSOKA 362 / ŚREDNIA 605 / NISKA 963; po przeglądzie:
+  białko serwatkowe/kazeinowe z alergenem `mleko`, odżywki węglowodanowe
+  i przedtreningowe bez grupy) — **do decyzji
+  właściciela TAK/NIE**; import zatwierdzonych do
+  `dieta/dane/produkty_z_katalogu.csv` to osobny, mały PR po przeglądzie.
+  Silnik nadal działa wyłącznie na `DietProduct`; katalog `FoodProduct` nie
+  jest źródłem kandydatów w czasie działania.
+* **Testy:** silnik (poziom 2, NONE 1:1, „nie pogarsza”, powody pustej listy,
+  wildcard, alergen nie przechodzi poziomem 2, determinizm, luz bramki, PORTION
+  jako powód), API (reason, tier 2 z zapisem, NONE, historia, kandydat spoza
+  listy na poziomie 2 → 422, gramatura z klienta ponad limit porcji → 422, stara
+  migawka: NONE z przyciskiem, jawne `false` dla P zostaje), grupy (walidacja),
+  korelacja (reguły),
+  **strażnik pokrycia** `test_dieta_wymiany_pokrycie.py` (progi = pomiar +
+  3 pp), E2E `dieta-szablon.spec.ts` (brokuł 1:1, awokado przez grupę
+  pokrewną, historia z poziomem).
+## 0.67.0 — 2026-09-14
+
+**Kreator diety ukryty za flagą (zlecenie 0 właściciela z 14.09; gałąź
+`agent/ukryj-kreator`, bez migracji).**
+
+* Zakładka **„Dieta”** w Bazie wiedzy trenera („Ułóż dietę”: „Wygeneruj
+  propozycję”, „Ułóż sam z produktów”, „Ułóż z dań”) oraz trasy
+  `POST /api/coach/diet-wizard` i `POST /api/coach/diet-suggestion` są za
+  flagą `DZIK_DIET_WIZARD_ENABLED` (domyślnie **wyłączona**, bez wpisu
+  w `fly.toml`): bez flagi trasy odpowiadają 404, `features.diet_wizard`
+  w `/api/health` jest `false`, a interfejs nie pokazuje zakładki.
+* **Nic nie jest kasowane:** kod kreatora, testy, dane, ręczne plany
+  żywieniowe i istniejące plany klientów zostają widoczne i edytowalne.
+  Zakładka **„Produkty”** z katalogiem zostaje (źródło dla zlecenia 2 —
+  korelacja katalogu trenera z katalogiem diet). Trasy kreatora dań
+  (`/api/kulinaria/*`) i szablonów diet nie są objęte flagą.
+* Testy: bez flagi 404 na obu trasach i `features` `false`, katalog i plany
+  działają; z flagą trasy jak dotąd (`test_diet_wizard_flaga.py`); serwer
+  E2E i testy backendu chodzą z włączoną flagą.
+## 0.66.0 — 2026-09-14
+
+**Zakładka „Postępy” (klient) / „Monitoring” (trener) — specyfikacja
+właściciela `docs/monitoring-tab/instrukcja_zakladka_monitoring.md`;
+gałąź `agent/monitoring-postepy`, migracja 36, za flagą
+`DZIK_MONITORING_TAB_ENABLED` (domyślnie wyłączona). Numer 0.65.0 jest
+zarezerwowany dla strony publicznej w wariancie czerwono-białym (PR #67,
+decyzja właściciela o scaleniu).**
+
+* **Silnik rekordów** `dzik_os/postepy/rekordy.py` (czyste funkcje, bez
+  bazy): typy WEIGHT / REPS_AT_WEIGHT / SET_VOLUME / SESSION_VOLUME / E1RM
+  (Epley, tylko ≤ 10 powtórzeń, zawsze podpisany „szacowany”); reguły §8:
+  pierwsza sesja = punkt odniesienia (nie rekord), rozgrzewka wykluczona,
+  masa ciała (0 kg) daje tylko REPS_AT_WEIGHT, wyrównanie nie tworzy
+  rekordu (`equaled_on`), pobite rekordy zostają w historii
+  (`superseded_at`). Tożsamość ćwiczenia = znormalizowana nazwa
+  (`exercise_key`); nazwy-bliźniaki są raportowane, nie scalane.
+* **Waga** `dzik_os/postepy/waga.py`: średnia krocząca 7 dni (min. 3
+  pomiary w oknie), trend z regresji liniowej 28 dni (≥ 14 dni i ≥ 6
+  pomiarów), zaokrąglenie 0,1 kg/tydz.; funty w seriach przeliczane na kg
+  przy zapisie, pomiary w innych jednostkach — przy odczycie.
+* **Model + migracja 36 (addytywna):** `exercise_records`,
+  `training_week_aggregates` (tydzień ISO: sesje, zaplanowane z
+  harmonogramu, tonaż, serie per grupa mięśniowa, dni). `WorkoutSetIn`
+  zyskuje `warmup` i `unit` (kg/lb). Przeliczenie przy zapisie sesji
+  (`POST /api/clients/{id}/workouts` zwraca `new_records`),
+  powiadomienie w aplikacji o nowym rekordzie (kategoria REKORD — bez
+  push i e-maila, jedno na sesję), backfill
+  `python -m dzik_os.recalculate_progress [--client ID] [--json]`
+  (idempotentny, z raportem bliźniaków); seed liczy rekordy po zasianiu.
+* **API** `/api/monitoring/*` (404 bez flagi): `summary`, `records`
+  (`history=1`), `training` (`range=12w`), `body` — klient (własne dane)
+  albo trener (`client_id`; relacja + zgoda per domena, obcy klient →
+  404 jak w całej aplikacji); `clients` (lista z sygnałami: brak
+  treningu, spadek frekwencji, spadek tonażu, brak ważenia, trend
+  niezgodny z celem, nowy rekord; progi w zapytaniu), `clients/{id}`
+  (pełny widok). **Flaga zdrowotna** (`hidden_for_client` ostatniego
+  szacunku kalorycznego): klient nie dostaje `body` (404) ani klucza
+  `weight` na żadnym poziomie odpowiedzi — filtr po stronie serwera,
+  test skanuje całą odpowiedź. Stare `personal-records` /
+  `strength-series` liczą według tych samych reguł (rozgrzewka poza,
+  E1RM ≤ 10 powt.). `features.monitoring_tab` w `/api/health`,
+  `/api/auth/me` i odpowiedzi logowania — nawigacja czyta stan z serwera.
+* **Interfejs:** wspólny `PanelPostepow` dla klienta i trenera —
+  kafelki tygodnia (treningi z kropkami dni, seria tygodni, trend
+  wagi), **Rekordy** (wstęga z 30 dni z „poprzednio → teraz”, lista
+  ćwiczeń z mikro-wykresem e1RM, archiwum > 90 dni), **Trening** (tonaż
+  12 tyg. ze średnią 4-tyg., serie na grupę wobec poprzedniego tygodnia,
+  heatmapa 12 tygodni, zmiany planu), **Konsekwencja** (frekwencja 8
+  tyg., aktualna i najdłuższa seria, realizacja diety), **Sylwetka**
+  (waga wyłącznie jako średnia z przełącznikiem pojedynczych pomiarów,
+  obwody z deltą od pierwszego pomiaru, zdjęcia z porównywarką).
+  Klient: `/monitoring` z formularzem pomiaru. Trener: `/monitoring`
+  (lista posortowana po sygnałach, progi konfigurowalne) i
+  `/monitoring/klient/:id` (pełne dane niezależnie od flag klienta,
+  notatki trenera, zmiany planu na tle tonażu). Bez porównań między
+  ludźmi, bez czerwieni, bez „streaków”.
+* **Nawigacja za flagą:** klient ma „Postępy” w miejscu „Raportu”
+  (raport w „Więcej → Raport tygodniowy”, pozycja „Postępy” znika z
+  „Więcej”; `/raport` i `/postepy` przekierowują), trener szóstą pozycję
+  „Monitoring”. Bez flagi nic się nie zmienia: nawigacja, zapis sesji
+  (bez przeliczania rekordów i powiadomień), kategoria REKORD ukryta w
+  ustawieniach powiadomień — pilnują E2E `postepy-flaga.spec.ts` i test
+  API.
+* **Zgody per domena u trenera** (jak w reszcie aplikacji): bez zgody na
+  dane zdrowotne — bez wagi i sylwetki (flaga zdrowotna zostaje: decyzja
+  właściciela z 14.09 — liczba kcal i flaga z wywiadu to **pochodne**
+  odpowiedzi, nie dane zdrowotne; surowe odpowiedzi zostają po stronie
+  klienta); bez zgody na
+  zdjęcia — puste zdjęcia; bez zgody na żywienie — bez realizacji diety;
+  bez zgody na dane treningowe — lista nie zdradza daty ostatniej sesji
+  ani frekwencji. Sesja `SKIPPED` nie liczy się do tygodnia, frekwencji,
+  tonażu ani rekordów. Sygnał spadku tonażu porównuje ostatni **zamknięty**
+  tydzień ze średnią czterech poprzednich.
+* **Prywatność:** eksport `exercise_records` / `training_week_aggregates`
+  (`export_version` 1.9), usunięcie konta kasuje oba zbiory.
+* **Testy:** 24 testy backendu (silnik §14, baza, API: flaga zdrowotna,
+  obcy trener, ≤ 20 zapytań dla 100 klientów, dwa lata danych < 300 ms),
+  macierz dostępu, E2E na drugim serwerze z włączoną flagą
+  (`postepy.spec.ts`: klient, rekord z seedu, pomiar z dowodem po
+  odświeżeniu, przekierowania; trener: lista i widok klienta), a11y
+  nowych ekranów (nagłówki, opisy wykresów, etykiety), PWA offline.
+* **Rozbieżności ze specyfikacją i sprawy otwarte:**
+  `docs/monitoring-tab/PROGRESS.md` (m.in. 404 zamiast 403 dla obcego
+  trenera, cotygodniowe ważenie nie daje średniej 7-dniowej, brak
+  endpointów edycji/usuwania sesji — przeliczenie tylko przy zapisie i w
+  backfillu, backfill na produkcji do wykonania po włączeniu flagi).
+
 ## 0.64.0 — 2026-09-14
 
 **Biblioteka szablonów diet po audycie 14.09 (zgłoszenie właściciela

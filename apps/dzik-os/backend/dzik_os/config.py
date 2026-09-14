@@ -136,11 +136,25 @@ class Settings:
     diet_seed_on_startup: bool = field(
         default_factory=lambda: _env("DZIK_DIET_SEED_ON_STARTUP", "true") != "false"
     )
+    # Kreator diety (0.44–0.48: „Wygeneruj propozycję”, „Ułóż sam z produktów”;
+    # zakładka „Dieta” w Bazie wiedzy trenera) — od 0.67.0 za flagą, domyślnie
+    # WYŁĄCZONY (zlecenie właściciela 14.09; bez wpisu w fly.toml). Wyłączenie =
+    # 404 na /coach/diet-wizard i /coach/diet-suggestion oraz brak zakładki;
+    # kod, testy, dane i plany żywieniowe zostają nietknięte.
+    diet_wizard_enabled: bool = field(
+        default_factory=lambda: _env("DZIK_DIET_WIZARD_ENABLED", "false") == "true"
+    )
     # Wywiad „Zapotrzebowanie kaloryczne” (0.62.0): trzeci typ wywiadu +
     # /api/clients/{id}/zapotrzebowanie za flagą; domyślnie WYŁĄCZONY
     # (produkcja włącza w fly.toml). Wyłączenie = 404 na typ i trasę.
     calorie_interview_enabled: bool = field(
         default_factory=lambda: _env("DZIK_CALORIE_INTERVIEW_ENABLED", "false") == "true"
+    )
+    # Zakładka Monitoring / Postępy (0.66.0): cały moduł (/api/monitoring/*,
+    # trasa /monitoring, etykiety w nawigacji) za flagą — domyślnie WYŁĄCZONA;
+    # przy wyłączonej nawigacja i zachowanie identyczne jak przed zmianą.
+    monitoring_tab_enabled: bool = field(
+        default_factory=lambda: _env("DZIK_MONITORING_TAB_ENABLED", "false") == "true"
     )
     # AI jest opcjonalne i domyślnie WYŁĄCZONE — aplikacja działa w pełni bez AI.
     ai_enabled: bool = field(default_factory=lambda: _env("DZIK_AI_ENABLED", "false") == "true")

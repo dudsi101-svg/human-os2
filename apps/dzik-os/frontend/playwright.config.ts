@@ -12,11 +12,19 @@ import { defineConfig, devices } from "@playwright/test";
  * sensu (logowanie trenera, logowanie klienta, check-in, wiadomość).
  * Lepszy mały zestaw chodzący przy każdym pushu niż duży, który nie chodzi.
  */
+// Dwa serwery: domyślny (flagi jak w produkcji) i drugi z włączoną zakładką
+// Postępy/Monitoring (0.66.0) na sąsiednim porcie i osobnej bazie. Spec
+// `postepy.spec.ts` chodzi tylko na drugim (projekt `telefon-postepy`);
+// reszta zestawu nie widzi flagi i sprawdza, że bez niej nic się nie zmienia.
+const PORT = Number(process.env.DZIK_E2E_PORT || 8099);
+const PORT_POSTEPY = PORT + 1;
+const DIR = process.env.DZIK_E2E_DIR || "/tmp/dzik-e2e";
+
 export default defineConfig({
   testDir: "./e2e",
   // Aplikacja jest mobile-first, więc domyślny widok też jest telefonem.
   use: {
-    baseURL: `http://127.0.0.1:${process.env.DZIK_E2E_PORT || 8099}`,
+    baseURL: `http://127.0.0.1:${PORT}`,
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
     // Ta sama strefa co serwer (seed liczy „bieżący tydzień” wg Europe/Warsaw):
@@ -43,11 +51,17 @@ export default defineConfig({
     {
       name: "telefon",
       use: { ...devices["Pixel 7"] },
+      testIgnore: /postepy\.spec\.ts/,
     },
     {
       name: "desktop-trener",
       use: { ...devices["Desktop Chrome"], viewport: { width: 1280, height: 800 } },
       testMatch: /(logowanie|szablony|pwa)\.spec\.ts/,
+    },
+    {
+      name: "telefon-postepy",
+      use: { ...devices["Pixel 7"], baseURL: `http://127.0.0.1:${PORT_POSTEPY}` },
+      testMatch: /postepy\.spec\.ts/,
     },
   ],
   // Jeden worker: backend ma jedną bazę SQLite z danymi demo, a testy
@@ -65,9 +79,9 @@ export default defineConfig({
   reporter: process.env.CI ? [["list"], ["html", { open: "never" }]] : "list",
   timeout: 30_000,
   expect: { timeout: 10_000 },
-  webServer: {
+  webServer: [{
     command: "bash e2e/serve.sh",
-    url: `http://127.0.0.1:${process.env.DZIK_E2E_PORT || 8099}/api/health`,
+    url: `http://127.0.0.1:${PORT}/api/health`,
     // Nigdy nie używamy działającego serwera — `serve.sh` kasuje bazę przy
     // starcie, więc świeży serwer znaczy świeże dane. Bez tego drugi przebieg
     // widzi skutki pierwszego (raport tygodniowy jest jeden na tydzień:
@@ -78,5 +92,13 @@ export default defineConfig({
     // Logi żądań backendu zaśmiecałyby raport; błędy (stderr) zostają.
     stdout: "ignore",
     stderr: "pipe",
-  },
+  }, {
+    command: "bash e2e/serve.sh",
+    url: `http://127.0.0.1:${PORT_POSTEPY}/api/health`,
+    env: { DZIK_E2E_PORT: String(PORT_POSTEPY), DZIK_E2E_DIR: `${DIR}-postepy`, DZIK_MONITORING_TAB_ENABLED: "true" },
+    reuseExistingServer: false,
+    timeout: 120_000,
+    stdout: "ignore",
+    stderr: "pipe",
+  }],
 });

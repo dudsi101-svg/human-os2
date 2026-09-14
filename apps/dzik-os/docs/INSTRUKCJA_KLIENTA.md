@@ -101,7 +101,39 @@ bez tej propozycji. Model nigdy nie układa planu ani diety.
   od razu na swojej liście;
 * „Historia wersji" — każda zmiana planu ma powód i datę; nic nie znika.
 
-## Raport tygodniowy (zakładka „Raport")
+## Wymiana produktu w diecie (zakładka „Dieta")
+
+Przy składniku posiłku jest przycisk „↔ wymień" — także przy warzywach
+i dodatkach. Zobaczysz do trzech zamienników: „z tej samej grupy" albo
+„grupa pokrewna: …" (np. kasza zamiast makaronu), gramaturę policzoną tak,
+żeby posiłek zachował swoją rolę, i zmianę makr posiłku po polsku. Serwer
+sprawdza wymianę: nie przejdzie taka, która zepsuje makra posiłku bardziej,
+niż są dziś. Jeśli listy nie ma, przeczytasz dlaczego (brak zamienników
+w bazie, Twoje wykluczenia, inna metoda przygotowania, porcja poza
+zakresem albo każdy zamiennik psuje makra). Gdy brak zamienników w bazie,
+porcja jest poza zakresem albo każdy zamiennik psuje makra — napisz do
+trenera, on poprawi posiłek.
+
+## Postępy (zakładka „Postępy" — gdy trener włączy moduł)
+
+Jedno miejsce z trzema osiami, zawsze w tej kolejności: **Forma**
+(rekordy własne: najcięższa seria, powtórzenia przy danym ciężarze,
+szacowany 1RM — zawsze podpisany jako szacunek, nie zalecenie
+obciążenia; tonaż tygodniowy ze średnią z 4 tygodni; serie na grupę
+mięśniową; kalendarz aktywności), **Konsekwencja** (wykonane / zaplanowane
+treningi z 8 tygodni, seria tygodni z wykonanym planem, realizacja diety)
+i **Sylwetka** (waga wyłącznie jako średnia z 7 dni — pojedynczy pomiar
+nie jest „Twoją wagą"; trend kg/tydzień z 28 dni; obwody; zdjęcia
+z porównywarką; tu też dodajesz pomiar). Rekord liczy się od drugiego
+wykonania ćwiczenia — pierwsza sesja to punkt odniesienia; seria
+oznaczona jako rozgrzewka nie liczy się do rekordów. Porównanie zawsze
+wyłącznie z Twoją własną historią, nigdy z innymi. Jeśli w wywiadzie
+kalorycznym padła odpowiedź, po której trener prowadzi Cię ostrożniej,
+sekcja „Sylwetka" i trend wagi nie pokazują się w aplikacji — to
+celowe, nie awaria. Gdy moduł jest włączony, raport tygodniowy
+znajdziesz w „Więcej → Raport tygodniowy" (stary adres przekierowuje).
+
+## Raport tygodniowy (zakładka „Raport"; po włączeniu „Postępów" — „Więcej → Raport tygodniowy")
 
 Raz w tygodniu: masa, liczba treningów, oceny 1–5 (energia, sen, głód,
 stres, regeneracja, dieta), zdjęcia sylwetki, komentarz i pytania.
@@ -111,7 +143,8 @@ to ocena kompletności raportu, nie Ciebie.
 
 ## Pozostałe (zakładka „Więcej")
 
-* **Pomiary i postępy** — dodawaj pomiary, oglądaj wykresy i zdjęcia;
+* **Pomiary i postępy** (po włączeniu zakładki „Postępy" — jej sekcje
+  Konsekwencja i Sylwetka) — dodawaj pomiary, oglądaj wykresy i zdjęcia;
   karta „🏆 Rekordy osobiste" pokazuje Twoje najlepsze wyniki i zmianę od
   startu — porównanie zawsze wyłącznie z Twoją własną historią, nigdy z
   innymi;

@@ -1728,7 +1728,24 @@ export interface DietAssignedOut extends Partial<DietNotatkiOdslony> {
   target: DietMacros; macro_mode: string; body_weight: number | null; exclusions: string[]; status: string;
   version: number; swaps_enabled: boolean; created_at: string; updated_at: string; plan: DietPlanOut;
 }
-export interface DietSwapCandidate { product: string; product_id: string; grams: number; macros: DietMacros }
+export interface DietSwapCandidate {
+  product: string; product_id: string; grams: number; macros: DietMacros;
+  /** Wymiany v2: 1 = ta sama grupa zamienników, 2 = grupa pokrewna (`group`, `tier_reason`). */
+  tier?: 1 | 2; meal_delta?: DietMacros; group?: string; tier_reason?: string | null;
+}
+/** Powód pustej listy zamienników (wymiany v2) — każdy ma własny komunikat po polsku. */
+export type DietSwapReason = "SINGLETON" | "EXCLUDED" | "FUNCTION" | "PORTION" | "TOLERANCE";
+export const DIET_SWAP_REASON_LABELS: Record<DietSwapReason, string> = {
+  SINGLETON: "Ten produkt nie ma jeszcze zamienników w bazie.",
+  EXCLUDED: "Wszystkie zamienniki odpadły przez Twoje wykluczenia (alergeny, dieta, „nie lubię”).",
+  FUNCTION: "Zamienniki z tej grupy nie pasują do tego posiłku (inny sposób przygotowania albo inna rola makro).",
+  PORTION: "Zamienniki wymagałyby porcji poza rozsądnym zakresem — poproś trenera o korektę posiłku.",
+  TOLERANCE: "Zamienniki są, ale każdy zepsułby makra tego posiłku — poproś trenera o korektę posiłku.",
+};
+export interface DietRelatedGroupsFile {
+  version: number; status: string; reviewed_by: string | null; source?: string; note?: string;
+  links: { a: string; b: string; reason: string; enabled: boolean; status: string }[];
+}
 export interface DietLibraryMeal { meal_id: string; name: string; slot: string; tags: string[]; week_id: string; variant_no: number; day_no: number; ingredients: string[] }
 export interface DietProductRow {
   id: string; name_pl: string; category: string; substitution_group: string; kcal_100: number; protein_100: number;
@@ -1781,3 +1798,64 @@ export interface ZapotrzebowanieOut {
   version_no?: number;
   history?: { version_no: number; kcal: number; kcal_effective: number; override_kcal: number | null; created_at: string }[];
 }
+
+
+/* --- Postępy / Monitoring (0.66.0, spec docs/monitoring-tab) --- */
+export interface PostepyRekord {
+  id: string; exercise_key: string; exercise_name: string; record_type: string; value: number;
+  secondary_value: number | null; achieved_on: string; previous_value: number | null; delta: number | null;
+  equaled_on: string | null; superseded_at: string | null; estimated: boolean; days_since_previous?: number | null;
+}
+export interface PostepyCwiczenie {
+  exercise_key: string; exercise_name: string; last_performed_on: string;
+  max_weight: PostepyRekord | null; e1rm: PostepyRekord | null; set_volume: PostepyRekord | null; session_volume: PostepyRekord | null;
+  e1rm_series: { date: string; value: number }[]; history?: PostepyRekord[];
+}
+export interface PostepyRekordy { recent: PostepyRekord[]; exercises: PostepyCwiczenie[]; archive: PostepyCwiczenie[]; e1rm_note: string }
+export interface PostepyTrendWagi { kg_per_week: number | null; average: number | null; message: string | null; measurements: number }
+export interface PostepySummary {
+  week: { done: number; planned: number; days: { date: string; done: boolean }[]; message: string | null };
+  streak: { weeks: number; longest: number; message: string | null };
+  recent_records: number;
+  diet: { days_logged: number; days: number; pct: number } | null;
+  /** Brak pola = klient z flagą zdrowotną (kafelek znika, nie pokazuje pustego stanu). */
+  weight?: PostepyTrendWagi;
+}
+export interface PostepyTydzien {
+  week_start: string; sessions: number; planned: number; tonnage_kg: number; avg4_tonnage_kg?: number;
+  sets_by_group: Record<string, number>; days: string[];
+}
+export interface PostepyTrening {
+  weeks: PostepyTydzien[];
+  sets_by_group: { current: Record<string, number>; previous: Record<string, number> };
+  calendar: { from: string; to: string; session_days: string[] };
+}
+export interface PostepyPunkt { date: string; value: number }
+export interface PostepyBody {
+  weight: { average_points: PostepyPunkt[]; raw_points: PostepyPunkt[]; average: number | null; trend: PostepyTrendWagi; days: number; raw_visible_default?: boolean };
+  circumferences: { kind: string; unit: string; points: { date: string; value: number; unit: string }[]; current: number; delta_from_first: number | null; first_date: string | null }[];
+  photos: { id: string; file_id: string; taken_at: string; pose: string | null; note: string | null }[];
+}
+export interface PostepySygnal { key: string; level: "high" | "medium" | "info"; label: string }
+export interface PostepyKlientSygnaly {
+  client_id: string; display_name: string; email: string; last_activity: string | null;
+  /** null = brak zgody na dane treningowe (jak `last_activity`). */
+  attendance_4w: { done: number; planned: number; pct: number | null } | null; weight_trend_kg_week: number | null;
+  signals: PostepySygnal[]; priority: number; consents: { training: boolean; health: boolean };
+}
+export interface PostepyProgi {
+  dni_bez_treningu: number; frekwencja_pct: number; dni_bez_wazenia: number; spadek_tonazu_pct: number;
+  trend_wzrost_kg: number; dni_trendu: number; dni_rekordu: number;
+}
+export interface PostepyKlientTrenera {
+  client_id: string; summary: PostepySummary; records: PostepyRekordy; training: PostepyTrening;
+  /** Pochodna odpowiedzi wywiadu (decyzja właściciela 14.09) — zawsze obecna u trenera. */
+  health_flag: boolean;
+  body?: PostepyBody; notes?: { date: string; text: string; category: string; severity: string }[];
+  plan_changes: { date: string; version_no: number; reason: string }[];
+}
+export const GRUPA_LABELS: Record<string, string> = {
+  NOGI: "Nogi", PLECY: "Plecy", KLATKA: "Klatka", BARKI: "Barki", RECE: "Ręce", BRZUCH: "Brzuch",
+  CALE_CIALO: "Całe ciało", MOBILNOSC: "Mobilność", CARDIO: "Cardio", INNE: "Inne",
+};
+export const SYGNAL_LEVEL_LABELS: Record<PostepySygnal["level"], string> = { high: "wysoki", medium: "średni", info: "informacja" };

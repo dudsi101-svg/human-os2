@@ -1,6 +1,6 @@
 # Stan przekazania — przeczytaj przed rozpoczęciem rundy
 
-**Aktualizacja:** 2026-09-14 · **Wersja w `main`:** 0.62.0 (po scaleniu rundy wywiadu zapotrzebowania; PR #60)
+**Aktualizacja:** 2026-09-14 · **Wersja w `main`:** 0.64.0 (po scaleniu biblioteki szablonów diet; PR #66) — 0.66.0 w PR #61 czeka na scalenie
 **Tryb pracy:** jeden piszący i jeden PR `[WRITER]` naraz
 (`KOORDYNACJA.md`, zasada nadrzędna).
 
@@ -364,9 +364,12 @@ nie uruchamiano, ponieważ runda nie zmienia kodu ani zasobów frontendu.
 |---|---|---|---|---|---|
 | `agent/nawyki-dzisiaj` | 0.63.0 | 34 | **scalona** (PR #65, 14.09), wdrożenie 0.63.0 w toku | — | — |
 | `agent/wywiad-zapotrzebowanie` | 0.62.0 | 33 | **scalona** (PR #60, 14.09) i wdrożona | dokument właściciela `wywiad_zapotrzebowanie_kaloryczne.md` nadal niedostarczony — różnice do wyrównania | — |
-| `agent/biblioteka-diet` | 0.64.0 | 35 | etapy 0–4 gotowe, przegląd naprawiony (P1 ×8, P2 ×10), PR #66 po scaleniu `main` z migracją 34 | — | 1 |
-| `agent/landing-czerwony` | 0.65.0 | — | etap 0–3 w toku (strona publiczna, wariant czerwono-biały), PR #67 | scalenie #66 (wspólny tylko `package.json`) | 2 |
-| `agent/monitoring-postepy` | 0.66.0 (przesunięte przez nawyki, bibliotekę diet i stronę publiczną) | 36 (przesunięta z 34) | etap 0 — STOP (brak flagi rozgrzewki i wariantów ćwiczeń, decyzje właściciela) | decyzje z `docs/monitoring-tab/00_rozpoznanie.md`; flaga zdrowotna `hidden_for_client` (pytanie `zk_zaburzenia`) z 0.62.0 | 3 |
+| `agent/biblioteka-diet` | 0.64.0 | 35 | **scalona** (PR #66, 14.09), deploy 0.64.0 po CI na `main` | — | — |
+| `agent/landing-czerwony` | 0.65.0 | — | gotowa, PR #67 „ready”, CI zielone po scaleniu `main` | **decyzja właściciela o scaleniu** (prompt: nie scalać samodzielnie); po scaleniu #61 numer 0.65.0 do zmiany na kolejny wolny | po decyzji |
+| `agent/monitoring-postepy` | 0.66.0 | 36 | **scalona** (PR #61, 14.09), deploy 0.66.0 po CI na `main`; flaga na produkcji wyłączona | włączenie flagi + backfill — decyzja właściciela | — |
+| `agent/ukryj-kreator` | 0.67.0 | — | **scalona** (PR #68, 14.09), deploy 0.67.0 po CI na `main`; kreator na produkcji ukryty (brak flagi w `fly.toml`) | — | — |
+| `agent/wymiany-produktow` | 0.69.0 (0.68.0 = dni treningowe) | — | zlecenie 2 (14.09): silnik wymian v2 (poziom 2, powody, NONE 1:1, bramka „nie pogarsza”), grupy pokrewne (45 par, RO), korelacja katalogu → CSV; przegląd 3 recenzentów naprawiony (P0/P1 ×5, P2 w PROGRESS); `main` 0.67.0 scalony, PR #69 — CI | przegląd CSV przez właściciela (TAK/NIE) → import osobnym PR-em; decyzja o luzie bramki | 1 |
+| `agent/wywiad-kaloryczny-rozpoznanie` | — (docs) | — (przyszła: 38 lub 39) | etap 0 rundy „wyrównanie wywiadu kalorycznego do spec 1.0” — `docs/wywiad-zapotrzebowanie/01_rozpoznanie_spec_v1.md` (tabela luk, migracja, testy, ryzyka) | **7 decyzji właściciela** (§5 rozpoznania: nowe pytania zdrowotne i klasyfikacja, zakres flagowania, stare wywiady, wiek vs data urodzenia, flaga a Monitoring, kolejność migracji, minimalne kcal) | po decyzjach |
 
 | Rzecz | Stan | Gdzie |
 |---|---|---|

@@ -253,6 +253,10 @@ def zaimportuj_szablon(db: Session, dane: dict[str, Any], *, created_by: str | N
         return istn, False
     # Sprawdzenia produktów PRZED kasowaniem treści — błąd nie zostawia pustej odsłony.
     produkty = {p.name_pl: p for p in db.query(DietProduct).all()}
+    licznosc_grup: dict[str, int] = {}
+    for _p in produkty.values():
+        if _p.substitution_group:
+            licznosc_grup[_p.substitution_group] = licznosc_grup.get(_p.substitution_group, 0) + 1
     brak = sorted({i["product"] for d in dane["days"] for m in d["meals"] for i in m["ingredients"]} - set(produkty))
     if brak:
         raise ValueError("składniki szablonu bez produktu w bazie: " + ", ".join(brak))
@@ -321,7 +325,10 @@ def zaimportuj_szablon(db: Session, dane: dict[str, Any], *, created_by: str | N
                     base_grams=float(i["grams"]), scaling_class=i.get("class"), macro_role=role,
                     min_factor=i.get("min_factor"), max_factor=i.get("max_factor"), round_step=i.get("round_step"),
                     unit_g=i.get("unit_g"), unit_step=i.get("unit_step"), group_name=i.get("group"),
-                    swappable=bool(i.get("swappable", role in ("P", "C", "F"))),
+                    # Wymiany v2: P/C/F zawsze; NONE, gdy grupa zamienników ma ≥ 2 produkty (bez STAŁY).
+                    swappable=bool(i.get("swappable", role in ("P", "C", "F") or (
+                        role == "NONE" and (i.get("class") or produkty[i["product"]].default_scaling) != "STAŁY"
+                        and licznosc_grup.get(produkty[i["product"]].substitution_group or "", 0) >= 2))),
                 ))
     for paczka in (dni, posilki, skladniki):
         db.add_all(paczka)

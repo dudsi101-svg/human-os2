@@ -133,6 +133,14 @@ MATRIX: dict[tuple[str, str], Access] = {
     ("POST", "/api/clients/{client_id}/measurements"): Access.CLIENT_SCOPED,
     ("GET", "/api/clients/{client_id}/metric-definitions"): Access.CLIENT_SCOPED,
     ("GET", "/api/clients/{client_id}/monitoring"): Access.CLIENT_SCOPED,
+    # Postępy (0.66.0): klient = on sam (parametr client_id opcjonalny), trener = client_id
+    # przez relację i zgody; lista i widok klienta tylko dla trenera.
+    ("GET", "/api/monitoring/summary"): Access.AUTHENTICATED,
+    ("GET", "/api/monitoring/records"): Access.AUTHENTICATED,
+    ("GET", "/api/monitoring/training"): Access.AUTHENTICATED,
+    ("GET", "/api/monitoring/body"): Access.AUTHENTICATED,
+    ("GET", "/api/monitoring/clients"): Access.COACH_ONLY,
+    ("GET", "/api/monitoring/clients/{client_id}"): Access.COACH_ONLY,
     ("GET", "/api/clients/{client_id}/nutrition"): Access.CLIENT_SCOPED,
     ("GET", "/api/clients/{client_id}/nutrition-log"): Access.CLIENT_SCOPED,
     ("POST", "/api/clients/{client_id}/nutrition-log"): Access.CLIENT_SCOPED,

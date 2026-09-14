@@ -1,6 +1,6 @@
 # Stan wydania — Dzik OS
 
-**Wersja:** 0.60.0 · **Data:** 2026-09-13 · **Środowisko:** produkcja
+**Wersja:** 0.69.0 (po scaleniu PR #69; na produkcji 0.67.0 po wdrożeniu PR #68) · **Data:** 2026-09-14 · **Środowisko:** produkcja
 (pilotaż) — https://dzik-os-panel.fly.dev
 
 Jedna strona prawdy o tym, co DZIAŁA na produkcji teraz. Aktualizowana
@@ -82,6 +82,39 @@ z ostrzeżeniem, aplikacja wstaje. Diagnostyka z maszyny: workflow
 opcjonalny input `test_email` wysyła wiadomość testową tą samą ścieżką
 co endpoint). Endpoint testowy admina/trenera za flagą, domyślnie
 wyłączony na produkcji. Plan i odstępstwa: `docs/plan-sesji/poczta-brevo.md`.
+
+## Wymiany produktów v2 (0.69.0) — w module szablonów diet (za flagą `DZIK_DIET_TEMPLATES_ENABLED`)
+
+Przycisk „↔ wymień” w diecie klienta daje zamienniki z tej samej grupy i z grup
+pokrewnych (45 par, propozycja do przeglądu trenera), z bramką „nie pogarsza”
+i przyciskiem także dla warzyw/dodatków (rola NONE, 1:1 wagowo). Pomiar:
+składników bez zamiennika przy 2000 kcal 12/108 → 3/108. Pusta lista mówi
+dlaczego. Katalog trenera (2058 pozycji) skorelowany do CSV propozycji —
+**czeka na decyzje TAK/NIE właściciela**
+(`docs/diet-module/katalog_korelacja_propozycja.csv`), import zatwierdzonych
+osobnym PR-em.
+
+## Kreator diety (0.44–0.48) — od 0.67.0 za flagą, na produkcji UKRYTY
+
+Zlecenie właściciela z 14.09: zakładka „Dieta” w Bazie wiedzy trenera
+i trasy `/api/coach/diet-wizard`, `/api/coach/diet-suggestion` działają
+tylko przy `DZIK_DIET_WIZARD_ENABLED=true` (brak wpisu w `fly.toml` =
+ukryty). Nic nie skasowano: kod, testy, dane, ręczne plany żywieniowe
+i plany klientów zostają; zakładka „Produkty” z katalogiem zostaje.
+Przywrócenie = jedna zmienna środowiskowa.
+## Zakładka „Postępy” / „Monitoring” (0.66.0) — za flagą, na produkcji WYŁĄCZONA
+
+Trzy osie postępu (Forma → Konsekwencja → Sylwetka) w jednej zakładce
+klienta i lista sygnałów z widokiem klienta u trenera; silnik rekordów
+i średniej wagi, migracja 36 (addytywna). Włączenie:
+`DZIK_MONITORING_TAB_ENABLED=true` (env w `fly.toml` albo sekret); bez
+flagi `/api/monitoring/*` zwraca 404, nawigacja i „Więcej” są jak
+dotąd, tabele z migracji 36 pozostają puste. **Po włączeniu jednorazowo**
+`python -m dzik_os.recalculate_progress` na maszynie Fly (backfill
+historii sesji i pomiarów; idempotentny, wypisuje bliźniaki nazw
+ćwiczeń do decyzji trenera). Od włączenia rekordy liczą się przy każdym
+zapisie sesji. Szczegóły i sprawy otwarte: `docs/CHANGELOG.md` 0.66.0,
+`docs/plan-sesji/monitoring-postepy.md`, `docs/monitoring-tab/PROGRESS.md`.
 
 ## Panel rozwojowy „Dzisiaj” (0.63.0) — bez flagi, na produkcji od deployu
 

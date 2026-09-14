@@ -67,16 +67,26 @@ const TABS: [Tab, string][] = [
 
 export default function Knowledge() {
   const [tab, setTab] = useState<Tab>("artykuly");
+  // Kreator diety (zakładka „Dieta”) za flagą serwera od 0.67.0 (zlecenie
+  // właściciela): bez `features.diet_wizard` zakładki nie ma — kod zakładki,
+  // katalog „Produkty” i plany żywieniowe zostają bez zmian.
+  const [kreator, setKreator] = useState(false);
+  useEffect(() => {
+    api.get<{ features?: { diet_wizard?: boolean } }>("/api/health")
+      .then((h) => setKreator(!!h.features?.diet_wizard)).catch(() => setKreator(false));
+  }, []);
+  const tabs = kreator ? TABS : TABS.filter(([id]) => id !== "dieta");
+  const aktywna = tab === "dieta" && !kreator ? "artykuly" : tab;
   return (
     <div className="page page--wide">
       <TopBar title="Baza wiedzy" right={<LogoutButton />} />
-      <Tabs tabs={TABS} value={tab} onChange={setTab} label="Sekcje bazy wiedzy" />
-      <TabPanel id={tab}>
-        {tab === "artykuly" && <ArticlesTab />}
-        {tab === "karty" && <WiedzaRedakcja />}
-        {tab === "cwiczenia" && <ExercisesTab />}
-        {tab === "produkty" && <ProductsTab />}
-        {tab === "dieta" && <DietTab />}
+      <Tabs tabs={tabs} value={aktywna} onChange={setTab} label="Sekcje bazy wiedzy" />
+      <TabPanel id={aktywna}>
+        {aktywna === "artykuly" && <ArticlesTab />}
+        {aktywna === "karty" && <WiedzaRedakcja />}
+        {aktywna === "cwiczenia" && <ExercisesTab />}
+        {aktywna === "produkty" && <ProductsTab />}
+        {aktywna === "dieta" && <DietTab />}
       </TabPanel>
     </div>
   );
