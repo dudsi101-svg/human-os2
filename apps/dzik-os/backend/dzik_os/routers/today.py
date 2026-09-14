@@ -5,6 +5,7 @@ import json
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
+from .. import dni_treningowe as D
 from .. import nawyki as N
 from ..authz import require_client_self
 from ..daily_messages import message_for
@@ -29,6 +30,7 @@ from ..models import (
 from ..payment_state import DUE_STATUSES
 from ..security import current_user
 from . import habits as habits_router
+from . import plan_weekdays
 
 router = APIRouter(prefix="/api", tags=["today"])
 
@@ -44,8 +46,10 @@ def today_view(user: User = Depends(current_user), db: Session = Depends(get_db)
     weekday = today.isoweekday()  # 1=pon ... 7=niedz
 
     # Dzisiejszy trening: dzień aktualnej wersji aktywnego planu przypisany
-    # do dzisiejszego dnia tygodnia.
+    # do dzisiejszego dnia tygodnia — wg układu klienta (0.71.0, dni treningowe),
+    # a bez niego wg propozycji trenera (`weekday` w wersji planu).
     todays_workout = None
+    workout_hint = None
     plan = (
         db.query(TrainingPlan)
         .filter(TrainingPlan.client_id == client_id, TrainingPlan.status == "ACTIVE")
@@ -60,28 +64,33 @@ def today_view(user: User = Depends(current_user), db: Session = Depends(get_db)
         )
         if version is not None:
             content = json.loads(version.content_json)
-            for idx, day in enumerate(content.get("days", [])):
-                if day.get("weekday") == weekday:
-                    done = (
-                        db.query(WorkoutSession)
-                        .filter_by(
-                            client_id=client_id,
-                            plan_version_id=version.id,
-                            day_index=idx,
-                            performed_on=today.isoformat(),
-                        )
-                        .first()
+            wybor = plan_weekdays.uklad_z_wiersza(plan_weekdays.wybor_klienta(db, client_id, plan.id))
+            trafienie = D.dzien_na_dzis(content, wybor, weekday)
+            if trafienie is not None:
+                idx, day = trafienie
+                done = (
+                    db.query(WorkoutSession)
+                    .filter_by(
+                        client_id=client_id,
+                        plan_version_id=version.id,
+                        day_index=idx,
+                        performed_on=today.isoformat(),
                     )
-                    todays_workout = {
-                        "plan_id": plan.id,
-                        "plan_title": plan.title,
-                        "plan_version_id": version.id,
-                        "version_no": version.version_no,
-                        "day_index": idx,
-                        "day": day,
-                        "done_today": done is not None,
-                    }
-                    break
+                    .first()
+                )
+                todays_workout = {
+                    "plan_id": plan.id,
+                    "plan_title": plan.title,
+                    "plan_version_id": version.id,
+                    "version_no": version.version_no,
+                    "day_index": idx,
+                    "day": day,
+                    "done_today": done is not None,
+                    "weekday_source": D.zrodlo(content, wybor),
+                }
+            rodzaj = D.podpowiedz(content, wybor)
+            if rodzaj is not None:
+                workout_hint = {"kind": rodzaj, "plan_id": plan.id}
 
     # Dzisiejsze zalecenia żywieniowe (aktualna wersja diety).
     nutrition_summary = None
@@ -220,6 +229,7 @@ def today_view(user: User = Depends(current_user), db: Session = Depends(get_db)
         "daily_message": message_for(today),
         "habits": habits,
         "workout": todays_workout,
+        "workout_hint": workout_hint,
         "nutrition": nutrition_summary,
         "schedule": schedule_today,
         "reminders": reminders,
