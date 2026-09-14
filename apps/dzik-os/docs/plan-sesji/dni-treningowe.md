@@ -186,8 +186,10 @@ zrzuty w scratchpadzie sesji `dni-zrzuty/01–06`), co kliknąłem i co zobaczy�
 **Bramki** (z `/home/user/wt/dni`, jak CI): `python -m ruff check apps/dzik-os/backend
 apps/dzik-os/tools` — czysto; Core `python -m pytest tests -q` — **275 passed**;
 `tools/spojnosc.py` — czysto (13 kontroli; uwagi: K-001 sprzed rundy); `tools/mutacje.py` —
-**17/17 wykrytych**; `tools/mutacje_bezpieczenstwa.py` — ⟨patrz PROGRESS⟩; backend
-`pytest tests` (pełny) — ⟨patrz PROGRESS⟩; `tsc --noEmit` — czysto; `npm run build` — 90,4 kB
+**17/17 wykrytych**; `tools/mutacje_bezpieczenstwa.py` — **9/9 zabitych** (oryginały przywrócone); backend
+`pytest tests` (pełny, 16 min) — **1880 zaliczonych, 1 pominięty (Tesseract), 1 czerwony:
+`test_migracje_przenosnosc::test_numery_migracji_sa_unikalne_i_rosnace`** — luka 37 (PR #70),
+zielony po scaleniu #70 do `main` (Odstępstwo 4); `tsc --noEmit` — czysto; `npm run build` — 90,4 kB
 gzip (budżet 120 kB, bez zmiany); `test:helpers` — 142/142; E2E
 `playwright test dni-treningowe nawyki --project=telefon` (8102) — **3/3**;
 `e2e/test_a11y.mjs` — wszystkie kontrole; `e2e/test_pwa_offline.mjs` — wszystkie kontrole.
