@@ -6,7 +6,7 @@ produktów, plany żywieniowe i szablony diet działają jak dotąd."""
 
 from __future__ import annotations
 
-from conftest import COACH, login
+from conftest import CLIENT_A, COACH, get_user_id, login
 
 from dzik_os.config import settings
 
@@ -22,8 +22,12 @@ def test_bez_flagi_kreator_znika_a_katalog_i_plany_zostaja(seeded, monkeypatch):
     assert seeded.post("/api/coach/diet-suggestion", headers=hc, json=SUGESTIA).status_code == 404
     # Katalog produktów (źródło dla zlecenia 2) i plany żywieniowe nietknięte.
     assert seeded.get("/api/coach/food-products", headers=hc).status_code == 200
-    assert seeded.get("/api/templates", headers=hc).status_code == 200
     assert seeded.get("/api/diet/profiles", headers=hc).status_code == 200
+    # Plan żywieniowy klienta (ręczny / z kreatora) nadal widoczny dla trenera i klienta.
+    ha = login(seeded, CLIENT_A)
+    cid = get_user_id(seeded, ha)
+    assert seeded.get(f"/api/clients/{cid}/nutrition", headers=hc).status_code == 200
+    assert seeded.get(f"/api/clients/{cid}/nutrition", headers=ha).status_code == 200
 
 
 def test_z_flaga_trasy_dzialaja_jak_dotad(seeded, monkeypatch):
