@@ -72,7 +72,7 @@ rozpoznanie luk z PR #71) jest w repozytorium: `docs/calorie-interview/`.
 * **Bez zmiany kształtu eksportu**: `export_version` zostaje „2.1” — eksport
   RODO zrzuca wiersze `calorie_estimates` generycznie po kolumnach, więc nowe
   pola wchodzą same (test to sprawdza).
-* **Testy:** 43 silnika (wektory ze specyfikacji i z referencji właściciela),
+* **Testy:** 45 silnika (wektory ze specyfikacji i z referencji właściciela),
   20 API (flagi bez zgody zdrowotnej, małoletni, stary wiersz w historii,
   szkic sprzed zmiany pytań, eksport), E2E przepisany na pięć ekranów.
   Plan i odstępstwa: `docs/plan-sesji/wywiad-kaloryczny.md`; rozbieżności

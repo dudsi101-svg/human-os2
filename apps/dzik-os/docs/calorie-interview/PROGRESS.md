@@ -149,4 +149,5 @@ Pięć commitów etapowych (plan → silnik → model i pytania → interfejs �
 testy i dokumenty). Zmienione pliki: silnik i serwis wywiadu, definicje pytań,
 model i migracja, dwa routery, karta wyniku i typy frontu, `PrzypiszDiete`,
 arkusz stylów, trzy pliki testów, spec E2E oraz dziesięć dokumentów.
-63 testy backendu dla samego wywiadu (43 silnika + 20 API) plus E2E.
+65 testów backendu dla samego wywiadu (45 silnika + 20 API) plus E2E
+i sekcja 4c bramki dostępności.
