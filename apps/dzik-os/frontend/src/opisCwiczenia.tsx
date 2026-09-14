@@ -78,13 +78,16 @@ export function OpisCwiczenia({ exerciseId, name, rola = "klient", powrot, testi
   const nazwa = name.trim();
   if (!nazwa && !exerciseId) return null;
 
+  function pobierzTeraz() {
+    if (loading) return;
+    setLoading(true);
+    pobierz(rola, exerciseId, nazwa).then(setWpis).finally(() => setLoading(false));
+  }
+
   function toggle() {
     const next = !open;
     setOpen(next);
-    if (next && (wpis === null || wpis.stan === "blad") && !loading) {
-      setLoading(true);
-      pobierz(rola, exerciseId, nazwa).then(setWpis).finally(() => setLoading(false));
-    }
+    if (next && (wpis === null || wpis.stan === "blad")) pobierzTeraz();
   }
 
   const item = wpis?.stan === "jest" ? wpis.item : null;
@@ -111,7 +114,7 @@ export function OpisCwiczenia({ exerciseId, name, rola = "klient", powrot, testi
           {wpis?.stan === "blad" && (
             <p className="dim" style={{ margin: 0 }} role="alert">
               Nie udało się pobrać opisu ({wpis.komunikat}).{" "}
-              <button type="button" className="btn btn--ghost btn--small" onClick={() => { setOpen(false); toggle(); }}>Spróbuj ponownie</button>
+              <button type="button" className="btn btn--ghost btn--small" onClick={pobierzTeraz}>Spróbuj ponownie</button>
             </p>
           )}
           {item && (

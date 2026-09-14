@@ -33,3 +33,11 @@
    Ewentualne zapamiętanie ostatnio rozwiniętego w `localStorage` — do decyzji.
 6. **Klawiatura w E2E**: sprawdzany Enter; Spacja działa natywnie na `<button>`,
    bez osobnego testu.
+
+## Po niezależnym przeglądzie (2026-09-14)
+
+Recenzent: brak P0/P1. Poprawione P2: „Spróbuj ponownie” po błędzie sieci ponawia
+pobranie zamiast zwijać panel (`opisCwiczenia.tsx`, `pobierzTeraz`); nieaktualne
+zdanie o liczbie testów w `docs/E2E.md`. Odnotowane bez zmiany: lustro
+normalizacji nazw w `nazwy.ts` używa `toLowerCase()` (serwer `casefold()`) —
+klucz działa wyłącznie jako klucz pamięci podręcznej, o dopasowaniu decyduje serwer.

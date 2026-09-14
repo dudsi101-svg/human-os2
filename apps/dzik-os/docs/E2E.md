@@ -26,7 +26,7 @@ każdym pushu niż duży, który nie chodzi.
 | `szablony.spec.ts` | Katalog gotowych schematów → import; zakładka Dieta; grupy zamienników RO; **0.75.0:** rozwinięcie i zwinięcie szablonu kliknięciem w nazwę (oba projekty) |
 | `plan-opis.spec.ts` | 0.75.0: klient rozwija „Opis ćwiczenia” (po id i po nazwie), przechodzi do pełnej karty w Wiedzy i wraca do planu; karta spoza bazy mówi wprost, że jej nie ma |
 
-Siedem testów, ok. 20 sekund.
+Cały pakiet trwa kilka minut; pojedynczy plik uruchamia się w kilkanaście sekund.
 
 ## Uruchomienie
 
