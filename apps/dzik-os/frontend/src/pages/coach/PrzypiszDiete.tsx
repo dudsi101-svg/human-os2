@@ -5,6 +5,7 @@ import { ErrorBox, Spinner } from "../../components";
 import {
   DietAssignedOut, DietDayOut, DietIngredientOut, DietLibraryMeal, DietMacroIn, DietMealOut, DietPlanOut, DietProfileRow,
   DietTemplatePreview, DietWeekRow, alergenLabel, slotLabel,
+  ZapotrzebowanieMakro,
 } from "../../types";
 import { Alergeny, gramatura, KartaDnia, makro, NotatkiOdslony, odchylenie, StatusDiety, TagiPosilku } from "../dieta/wspolne";
 import { useZapotrzebowanie } from "../wywiad/Zapotrzebowanie";
@@ -197,7 +198,12 @@ export default function PrzypiszDiete({ clientId, onPrzypisano, onAnuluj }: {
           <div className="field-row">
             <div><label htmlFor="pd-kcal">kcal / dzień</label>
               <input id="pd-kcal" inputMode="numeric" value={kcal} onChange={(e) => setKcal(e.target.value)} />
-              <ZaproponujKcal clientId={clientId} onPropozycja={(k, m) => { setKcal(String(k)); if (m && !masa) setMasa(String(m)); }} /></div>
+              <ZaproponujKcal clientId={clientId} onPropozycja={(k, m, mk) => {
+                setKcal(String(k));
+                if (m && !masa) setMasa(String(m));
+                // Makro z wywiadu wchodzi jako preset „ręcznie” (gramy) — specyfikacja §5.5.
+                if (mk) { setMode("manual"); setManual({ P: String(mk.bialko_g), F: String(mk.tluszcz_g), C: String(mk.wegle_g) }); }
+              }} /></div>
             <div><label htmlFor="pd-masa">Masa ciała (kg, do presetu na kg)</label>
               <input id="pd-masa" inputMode="decimal" value={masa} onChange={(e) => setMasa(e.target.value)} /></div>
           </div>
@@ -420,20 +426,28 @@ export function PrzypisanaDietaTrenera({ clientId, onZmiana }: { clientId: strin
   );
 }
 
-/** „Zaproponuj kcal” (0.62.0): wypełnia pole kcal wynikiem wywiadu
- * zapotrzebowania (nadpisanie trenera ma pierwszeństwo). Nie przypisuje
- * diety — to nadal decyzja i przycisk trenera. Brak wyniku / moduł
- * wyłączony = przycisk się nie pokazuje. */
-function ZaproponujKcal({ clientId, onPropozycja }: { clientId: string; onPropozycja: (kcal: number, masaKg: number | null) => void }) {
+/** „Użyj w przypisaniu diety” (specyfikacja §6.2): wypełnia pole kcal wynikiem
+ * wywiadu (nadpisanie trenera ma pierwszeństwo), masę ciała i — gdy bilans ma
+ * makro startowe — preset „ręcznie” z gramami. Nie przypisuje diety: to nadal
+ * decyzja i osobny przycisk trenera. Brak wyniku / moduł wyłączony = przycisk
+ * się nie pokazuje. */
+function ZaproponujKcal({ clientId, onPropozycja }: {
+  clientId: string;
+  onPropozycja: (kcal: number, masaKg: number | null, makro: ZapotrzebowanieMakro | null) => void;
+}) {
   const { dane } = useZapotrzebowanie(clientId);
   const e = dane?.status === "ok" ? dane.estimate : null;
   if (!e) return null;
+  const makro = e.macro ?? null;
   return (
     <small className="dim" style={{ display: "block", marginTop: 4 }}>
-      Z wywiadu: ≈ {e.kcal_effective} kcal{e.override ? " (ustalenie trenera)" : " (wzór)"} — samo wstawienie nie przypisuje diety.{" "}
-      <button type="button" className="btn btn--ghost btn--small" aria-label={`Zaproponuj kcal: wstaw ${e.kcal_effective} kcal do pola`}
-        onClick={() => onPropozycja(e.kcal_effective, e.inputs.masa_kg)}>
-        Zaproponuj kcal
+      Z wywiadu: ≈ {e.kcal_effective} kcal{e.override ? " (ustalenie trenera)" : " (wzór)"}
+      {makro ? ` · makro B ${makro.bialko_g} / T ${makro.tluszcz_g} / W ${makro.wegle_g} g` : ""}
+      {" "}— samo wstawienie nie przypisuje diety.{" "}
+      <button type="button" className="btn btn--ghost btn--small"
+        aria-label={`Użyj w przypisaniu diety: wstaw ${e.kcal_effective} kcal${makro ? " i makro" : ""} do formularza`}
+        onClick={() => onPropozycja(e.kcal_effective, e.inputs.masa_kg ?? null, makro)}>
+        {makro ? "Użyj w przypisaniu diety" : "Zaproponuj kcal"}
       </button>
     </small>
   );

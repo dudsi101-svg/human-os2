@@ -1150,3 +1150,31 @@ table.simple th { color: var(--text-dim); font-weight: 600; font-size: 0.78rem; 
 .postepy-progi label { font-size: 0.78rem; color: var(--text-dim); display: grid; gap: 2px; }
 .postepy-progi input { margin: 0; }
 @media (max-width: 380px) { .postepy-kafelki { grid-template-columns: 1fr 1fr; } }
+
+/* --- Bilans kaloryczny (wywiad „Zapotrzebowanie kaloryczne”, spec 1.0) ---
+   Widok klienta to kafelki `.stat` (liczba + jedno zdanie „skąd to”), widok
+   trenera dokłada rozbicie CPM na składniki i tabelę historii. Wyłącznie
+   tokeny — karta wygląda tak samo w obu motywach. */
+.bilans__liczby { margin-top: 8px; }
+.bilans__liczby .stat b { font-size: 1.15rem; line-height: 1.25; }
+.bilans__naglowek { font-size: 0.9rem; margin: 12px 0 4px; color: var(--text-dim); font-weight: 600; }
+.bilans__skladniki { list-style: none; padding: 0; margin: 0; font-size: 0.88rem; }
+.bilans__skladniki li { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 10px;
+  padding: 6px 0; border-bottom: 1px solid var(--border); }
+.bilans__skladniki li span { color: var(--text-dim); min-width: 0; }
+.bilans__skladniki li b { font-variant-numeric: tabular-nums; }
+.bilans__skladniki .bilans__skladniki-suma { border-bottom: none; border-top: 1px solid var(--border);
+  margin-top: 2px; padding-top: 8px; }
+.bilans__skladniki .bilans__skladniki-suma b { color: var(--accent); }
+.bilans__ppm { font-size: 0.82rem; margin: 6px 0 0; }
+.bilans__podstawienie { font-size: 0.85rem; padding-left: 20px; margin-bottom: 4px; }
+/* Przewijana w poziomie tabela musi być osiągalna z klawiatury (axe:
+   scrollable-region-focusable) — stąd ogniskowalne opakowanie, nie sama tabela. */
+.bilans__przewijanie { overflow-x: auto; margin-top: 10px; }
+.bilans__przewijanie:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.bilans__historia { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+.bilans__historia caption { text-align: left; padding-bottom: 4px; font-size: 0.8rem; }
+.bilans__historia th, .bilans__historia td { text-align: left; padding: 5px 8px 5px 0;
+  border-bottom: 1px solid var(--border); white-space: nowrap; }
+.bilans__historia thead th { color: var(--text-dim); font-weight: 600; }
+.bilans__historia tbody th { font-weight: 600; }
