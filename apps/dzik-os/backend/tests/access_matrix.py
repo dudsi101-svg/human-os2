@@ -159,6 +159,11 @@ MATRIX: dict[tuple[str, str], Access] = {
     ("GET", "/api/clients/{client_id}/reminders"): Access.CLIENT_SCOPED,
     ("GET", "/api/clients/{client_id}/schedule"): Access.CLIENT_SCOPED,
     ("POST", "/api/clients/{client_id}/schedule/{item_id}/complete"): Access.CLIENT_SCOPED,
+    # Nawyki (0.63.0): klient swoje, trener z relacją i zgodą na dane treningowe.
+    ("GET", "/api/clients/{client_id}/habits"): Access.CLIENT_SCOPED,
+    ("POST", "/api/clients/{client_id}/habits"): Access.CLIENT_SCOPED,
+    ("PATCH", "/api/clients/{client_id}/habits/{habit_id}"): Access.CLIENT_SCOPED,
+    ("POST", "/api/clients/{client_id}/habits/{habit_id}/complete"): Access.CLIENT_SCOPED,
     ("GET", "/api/clients/{client_id}/strength-series"): Access.CLIENT_SCOPED,
     ("GET", "/api/clients/{client_id}/workouts"): Access.CLIENT_SCOPED,
     ("POST", "/api/clients/{client_id}/workouts"): Access.CLIENT_SCOPED,
@@ -212,6 +217,10 @@ MATRIX: dict[tuple[str, str], Access] = {
     ("GET", "/api/clients/{client_id}/wywiady/podsumowanie"): Access.CLIENT_SCOPED,
     ("GET", "/api/clients/{client_id}/wywiady/podpowiedzi"): Access.CLIENT_SCOPED,
     ("GET", "/api/clients/{client_id}/wywiady/fakty"): Access.CLIENT_SCOPED,
+    # Zapotrzebowanie kaloryczne (0.62.0): odczyt klient/trener; zmiany tylko trener.
+    ("GET", "/api/clients/{client_id}/zapotrzebowanie"): Access.CLIENT_SCOPED,
+    ("PUT", "/api/clients/{client_id}/zapotrzebowanie/nadpisanie"): Access.COACH_ONLY,
+    ("POST", "/api/clients/{client_id}/zapotrzebowanie/odblokuj"): Access.COACH_ONLY,
     ("POST", "/api/wywiady/zgloszenia/{submission_id}/przeglad"): Access.RESOURCE_SCOPED,
     ("POST", "/api/wywiady/zgloszenia/{submission_id}/doprecyzowania"): Access.RESOURCE_SCOPED,
     ("GET", "/api/wywiady/zgloszenia/{submission_id}"): Access.RESOURCE_SCOPED,

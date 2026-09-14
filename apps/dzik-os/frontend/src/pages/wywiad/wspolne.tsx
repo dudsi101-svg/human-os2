@@ -8,7 +8,9 @@ import {
  * etykiety trzech ROZDZIELONYCH statusów, pasek postępu, podsumowanie
  * deterministyczne (każdy punkt wskazuje odpowiedź, wersję, autora i czas). */
 
-export const TYP_LABEL: Record<WywiadTyp, string> = { wstepny: "Wywiad wstępny", gleboki: "Wywiad głęboki" };
+export const TYP_LABEL: Record<WywiadTyp, string> = {
+  wstepny: "Wywiad wstępny", gleboki: "Wywiad głęboki", zapotrzebowanie: "Zapotrzebowanie kaloryczne",
+};
 
 /** Etykiety sekcji (klucze z `wywiad/definicje.py`). */
 export const SEKCJA_LABEL: Record<string, string> = {
@@ -17,6 +19,7 @@ export const SEKCJA_LABEL: Record<string, string> = {
   motywacja: "Motywacja", historia_treningowa: "Historia treningowa", ograniczenia: "Pogłębienie ograniczeń",
   regeneracja: "Regeneracja", historia_odzywiania: "Historia odżywiania", organizacja: "Organizacja",
   preferencje: "Preferencje szczegółowe", pytania_trenera: "Pytania trenera",
+  zk_dane: "Dane podstawowe", zk_aktywnosc: "Aktywność", zk_cel: "Cel", zk_bezpieczenstwo: "Bezpieczeństwo",
 };
 
 export const SUBMISSION_LABEL: Record<SubmissionStatus, string> = {

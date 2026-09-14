@@ -27,6 +27,19 @@ Po zalogowaniu widzisz wszystko na dziś: trening z przyciskiem
 **„Wykonane ✓"**, cele diety, harmonogram (posiłki, suplementy, pomiary),
 termin raportu, status płatności i ostatnią wiadomość trenera.
 
+U góry (od 0.63.0): **powitanie**, **hasło dnia** (sentencja z autorem —
+ta sama przez cały dzień) i panel **„Nawyki"**. Wybierz do trzech małych
+czynności, które chcesz utrwalić („Dodaj nawyk": nazwa, dni tygodnia,
+termin — domyślnie 66 dni). Każdego zaplanowanego dnia odhaczasz
+**„Wykonane"**; pomyłkę cofniesz jednym dotknięciem. Postęp opisuje stan
+(„12 z 66 — nawyk się rozkręca"): opuszczony dzień cofa go o jeden, ale
+nigdy poniżej zera i bez żadnych komunikatów-kar — dni poza planem to
+zwykły odpoczynek. Gdy postęp dojdzie do terminu, zobaczysz
+**absolutorium**: ta czynność stała się Twoim nawykiem, aplikacja
+przestaje o nią pytać, a Ty wybierasz „Wymień na nowy" albo „Zostaw tak
+jak jest". Trener może zaproponować nawyki startowe (z notatką) — możesz
+je zmienić.
+
 ## Rozmowa startowa
 
 Na początku aplikacja proponuje **rozmowę startową**: kilkanaście pytań

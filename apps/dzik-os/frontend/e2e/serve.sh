@@ -34,6 +34,7 @@ export DZIK_MFA_REQUIRED_ROLES=""
 # demonstracyjnym (jawnie oznaczonym); produkcja tej flagi nie honoruje.
 export DZIK_WIEDZA_SZKICE="true"
 export DZIK_DIET_TEMPLATES_ENABLED="true"
+export DZIK_CALORIE_INTERVIEW_ENABLED="true"
 export DZIK_MAIL_TEST_ENDPOINT_ENABLED="true"
 
 cd "$BACKEND"

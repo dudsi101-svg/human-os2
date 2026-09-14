@@ -1,5 +1,94 @@
 # Changelog — Dzik OS
 
+## 0.63.0 — 2026-09-14
+
+**Panel rozwojowy na ekranie „Dzisiaj” (polecenie właściciela z 14.09;
+gałąź `agent/nawyki-dzisiaj`, migracja 34).**
+
+* **Powitanie** wg lokalnej pory dnia urządzenia + imię (`greeting_name`
+  w `/api/me/today`, pierwszy człon nazwy wyświetlanej).
+* **Hasło dnia** — `dzik_os/daily_messages.py` 1:1 od właściciela
+  (60 sentencji z autorem i adnotacją o proweniencji), rotacja
+  deterministyczna po dacie lokalnej, zero AI; pole `daily_message`.
+* **Nawyki** (`Habit`, `HabitCompletion`): do trzech aktywnych naraz,
+  dni tygodnia, termin 14–254 dni (domyślnie 66), autor (trener albo
+  klient) z notatką. Codzienne odhaczanie **cofalne i idempotentne**
+  (`POST …/habits/{id}/complete` `{done}`), postęp liczony przy odczycie
+  (`dzik_os/nawyki.py`): wykonany dzień +1, miniony zaplanowany dzień bez
+  wykonania **−1 (łagodny decay, decyzja foundera — nie reset)**, podłoga 0
+  sekwencyjnie, dni poza planem neutralne, dziś nie karze. Postęp ≥ termin =
+  **absolutorium** (GRADUATED): karta z gratulacjami, „to już Twój nawyk”,
+  wybór „Wymień na nowy” / „Zostaw tak jak jest”; utrwalone zwalniają
+  miejsce. Rusztowanie samowygaszające, nie streak — zasada Human OS
+  „zmniejszać zależność od systemu w czasie”.
+* **Interfejs:** panel „Nawyki” na „Dzisiaj” (klient: odhaczanie, delikatny
+  opis postępu bez zawstydzania, zarządzanie: dodaj/edytuj/usuń) i w karcie
+  klienta → Harmonogram (trener: proponuje startowe z notatką, odhacza
+  wspólnie). Zero czerwieni, zero „passa”, zero komunikatów-kar.
+* **API:** `GET/POST /api/clients/{id}/habits`, `PATCH …/{habit_id}`
+  (edycja tylko aktywnego, `status=ARCHIVED` / `ACTIVE` = przywrócenie
+  z listy przy wolnym miejscu, `ack`; notatkę zmienia tylko autor),
+  `POST …/{habit_id}/complete` (CLIENT_SCOPED, domena danych
+  treningowych — bez nowej bramki zgód). Absolutorium datowane na dzień
+  osiągnięcia terminu; po nim postęp zamrożony. Audyt `HABIT_CREATED` /
+  `HABIT_UPDATED` (nazwy pól) / `HABIT_ARCHIVED` / `HABIT_RESTORED` /
+  `HABIT_GRADUATED` — bez treści nazwy i notatki.
+* **Prywatność:** eksport `habits`/`habit_completions` (`export_version`
+  1.8), usuwanie konta kasuje nawyki. Seed: 3 nawyki demo klienta A
+  (bliski absolutorium, z opuszczeniami, świeży).
+* **Test INTENDED_PURPOSE §2/§3:** nawyk = tekst + odhaczenia
+  (samoobserwacja, bez interpretacji), hasła bez treści medycznych —
+  bez wątpliwości. Decyzja o decay odnotowana w `ANALIZA_RYNKU` §E
+  i `RISK_REGISTER` R-20.
+* **Testy:** 7 silnika, 6 API, `test-powitanie` (helpers 142), E2E
+  `nawyki.spec.ts`, a11y, PWA offline.
+
+## 0.62.0 — 2026-09-14
+
+**Wywiad „Zapotrzebowanie kaloryczne” (zgłoszenie właściciela z 14.09;
+gałąź `agent/wywiad-zapotrzebowanie`, migracja 33).**
+
+* **Trzeci typ wywiadu** `zapotrzebowanie` w istniejącym mechanizmie
+  zakładki „Wywiad” (szkic z rewizją, niezmienne wersje, przegląd, tryb
+  wspólnie): 11 pytań w 4 sekcjach — płeć, wiek, wzrost, masa (nowy rodzaj
+  pytania **NUMBER** z zakresem walidowanym serwerowo, przecinek
+  dziesiętny; podpowiedź masy z ostatniego pomiaru), praca, treningi,
+  kroki (opcjonalne), cel i tempo (pytania warunkowe), pytanie zdrowotne
+  o zaburzenia odżywiania (domena zdrowie, za zgodą).
+* **Silnik** `dzik_os/wywiad/zapotrzebowanie.py` (czyste funkcje, bez AI):
+  PPM wg Mifflina-St Jeora, PAL z pracy + treningów + kroków (1,2–1,9),
+  CPM, korekta pod cel (−10/−15/−20 %, 0, +5/+10 %), zaokrąglenie do
+  10 kcal, bezpiecznik „nie poniżej PPM” z ostrzeżeniem; wynik zawiera
+  **podstawienie liczb krok po kroku**. Szacunek liczy się przy przesłaniu
+  wersji i zapisuje do `calorie_estimates` (jedna wersja na przesłanie).
+* **Flaga zdrowotna:** odpowiedź „Tak / Nie wiem / Wolę omówić z trenerem”
+  → `hidden_for_client`: API klienta nie zwraca **żadnej liczby** (kcal,
+  PPM, masa) — tylko komunikat; trener widzi pełne dane i po rozmowie
+  odsłania wynik (`POST …/zapotrzebowanie/odblokuj`, audyt).
+* **Nadpisanie trenera** `PUT /api/clients/{id}/zapotrzebowanie/nadpisanie`
+  `{kcal|null, reason}` (800–8000 kcal, powód obowiązkowy i widoczny dla
+  klienta; `null` = powrót do wzoru; audyt `CALORIE_ESTIMATE_OVERRIDDEN`).
+  `GET /api/clients/{id}/zapotrzebowanie`: klient/trener; trener dodatkowo
+  historia wersji.
+* **Interfejs:** karta „Zapotrzebowanie kaloryczne” (wynik, „Skąd ta
+  liczba?”, ustalenie trenera z powodem) — klient: zakładki Wywiad
+  i Dieta; trener: karta klienta → Wywiad (nadpisanie, odsłonięcie,
+  „Zaktualizuj wywiad wspólnie”) i Dieta; w „Przypisz dietę” przycisk
+  **„Zaproponuj kcal”** wypełnia pole kcal (i masę) wynikiem — nie
+  przypisuje diety.
+* **Flaga instalacji** `DZIK_CALORIE_INTERVIEW_ENABLED` (domyślnie
+  wyłączona; dev/test/E2E włączona; produkcja: włączona w `fly.toml` —
+  do potwierdzenia przez właściciela); `health.features.calorie_interview`.
+  Wyłączenie = typ i trasy 404, dane w bazie zostają.
+* **Prywatność:** eksport danych `calorie_estimates` (`export_version`
+  1.7), usuwanie konta kasuje szacunki. Podsumowanie wywiadu pomija ten
+  typ (wynik ma własną kartę).
+* **Testy:** 9 silnika (przykłady kontrolne liczone ręcznie), 7 API
+  (definicja/walidacja, wyliczenie, flaga zdrowotna bez liczb, nadpisanie
+  i obcy trener, brak zgody zdrowotnej, placeholder z pomiaru, flaga
+  instalacji), E2E `zapotrzebowanie.spec.ts`. Odstępstwo od planu: wiek
+  w latach zamiast daty urodzenia (minimalizacja danych, ten sam wynik).
+
 ## 0.61.0 — 2026-09-14
 
 **Poczta Brevo SMTP na Fly (zadanie właściciela z 13.09; pliki

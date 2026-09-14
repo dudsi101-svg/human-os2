@@ -419,6 +419,8 @@ def seed() -> dict[str, str]:
         db.flush()
         from .models import (
             DailyNutritionLog,
+            Habit,
+            HabitCompletion,
             Observation,
             ScheduleCompletion,
             WorkoutEntry,
@@ -468,6 +470,50 @@ def seed() -> dict[str, str]:
             db.add(ScheduleCompletion(
                 id=new_id("SCP"), schedule_item_id=trening.id, client_id=client_a.id,
                 completed_on=date, status="DONE", created_by=client_a.id,
+            ))
+
+        # --- Nawyki klienta A (0.63.0): bliski absolutorium, z opuszczeniami, świeży ---
+        woda = Habit(
+            id=new_id("HAB"), client_id=client_a.id, name="Szklanka wody po przebudzeniu",
+            days_of_week="1,2,3,4,5,6,7", target_days=14, author_id=coach.id,
+            author_note="Najprostszy start dnia — zanim kawa.",
+            started_on=(today - timedelta(days=13)).isoformat(),
+        )
+        spacer = Habit(
+            id=new_id("HAB"), client_id=client_a.id, name="10 minut spaceru po obiedzie",
+            days_of_week="1,2,3,4,5", target_days=66, author_id=coach.id,
+            author_note="Dni robocze wystarczą; weekend to odpoczynek.",
+            started_on=(today - timedelta(days=20)).isoformat(),
+        )
+        czytanie = Habit(
+            id=new_id("HAB"), client_id=client_a.id, name="10 stron książki przed snem",
+            days_of_week="1,2,3,4,5,6,7", target_days=66, author_id=client_a.id,
+            started_on=(today - timedelta(days=3)).isoformat(),
+        )
+        db.add_all([woda, spacer, czytanie])
+        db.flush()
+        # Woda: 12 z 13 minionych dni (jeden opuszczony → postęp 11 z 14), dziś jeszcze nie.
+        for offset in range(1, 14):
+            if offset == 7:
+                continue
+            db.add(HabitCompletion(
+                id=new_id("HCP"), habit_id=woda.id, client_id=client_a.id,
+                completed_on=(today - timedelta(days=offset)).isoformat(), created_by=client_a.id,
+            ))
+        # Spacer: tylko dni robocze, kilka opuszczeń (łagodny decay widoczny w postępie).
+        for offset in range(1, 21):
+            d = today - timedelta(days=offset)
+            if d.isoweekday() > 5 or offset in (3, 4, 10):
+                continue
+            db.add(HabitCompletion(
+                id=new_id("HCP"), habit_id=spacer.id, client_id=client_a.id,
+                completed_on=d.isoformat(), created_by=client_a.id,
+            ))
+        # Czytanie: dwa z trzech minionych dni.
+        for offset in (1, 3):
+            db.add(HabitCompletion(
+                id=new_id("HCP"), habit_id=czytanie.id, client_id=client_a.id,
+                completed_on=(today - timedelta(days=offset)).isoformat(), created_by=client_a.id,
             ))
 
         # --- Dziennik obserwacji klienta A ---

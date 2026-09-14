@@ -40,6 +40,7 @@ from .routers import (
     exercises,
     files,
     food_catalog,
+    habits,
     imports,
     interview,
     knowledge,
@@ -66,6 +67,7 @@ from .routers import (
     today,
     wiedza,
     wywiady,
+    zapotrzebowanie,
 )
 from .routers import (
     notifications as notifications_router,
@@ -190,7 +192,7 @@ def create_app() -> FastAPI:
         records.router, push.router, consultations.router, telemetry.router,
         challenges.router, notifications_router.router, onboarding.router,
         interview.router, nutrition_templates.router, ocr.router, assistant.router, imports.router,
-        public_site.router, konfigurator.router, kulinaria.router, szkice.router, wywiady.router, diet.router,
+        public_site.router, konfigurator.router, kulinaria.router, szkice.router, wywiady.router, zapotrzebowanie.router, diet.router, habits.router,
         mail_admin.router,
     ):
         app.include_router(router)
@@ -265,7 +267,8 @@ def create_app() -> FastAPI:
             "wywiad_migracja_error": getattr(app.state, "wywiad_migracja_error", None),
             "diet_seed_error": getattr(app.state, "diet_seed_error", None),
             "features": {"diet_templates": settings.diet_templates_enabled,
-                         "mail_test_endpoint": settings.mail_test_endpoint_enabled},
+                         "mail_test_endpoint": settings.mail_test_endpoint_enabled,
+                         "calorie_interview": settings.calorie_interview_enabled},
         }
 
     @app.get("/api/ready")

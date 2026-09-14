@@ -1992,3 +1992,74 @@ class DietSwapEvent(Base):
     to_grams: Mapped[float] = mapped_column(Float)
     actor_id: Mapped[str] = mapped_column(String(40))
     created_at: Mapped[str] = mapped_column(String(40), default=now_iso)
+
+
+class CalorieEstimate(Base):
+    """Szacunek dziennego zapotrzebowania kalorycznego (0.62.0) — jedna
+    wersja na przesłanie wywiadu „zapotrzebowanie”. Wejścia i podstawienie
+    zapisane w chwili liczenia (zmiana wzoru nie zmienia historii).
+    `hidden_for_client`: flaga zdrowotna z wywiadu — liczby widzi tylko trener,
+    dopóki nie odblokuje. Nadpisanie trenera trzyma kto/kiedy/dlaczego."""
+
+    __tablename__ = "calorie_estimates"
+
+    id: Mapped[str] = mapped_column(String(40), primary_key=True)
+    client_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
+    submission_id: Mapped[str] = mapped_column(String(40), unique=True)
+    version_no: Mapped[int] = mapped_column(Integer)
+    inputs_json: Mapped[str] = mapped_column(Text)
+    ppm: Mapped[int] = mapped_column(Integer)
+    pal: Mapped[float] = mapped_column(Float)
+    cpm: Mapped[int] = mapped_column(Integer)
+    korekta_pct: Mapped[int] = mapped_column(Integer)
+    kcal: Mapped[int] = mapped_column(Integer)
+    podstawienie_json: Mapped[str] = mapped_column(Text, default="[]")
+    ostrzezenia_json: Mapped[str] = mapped_column(Text, default="[]")
+    hidden_for_client: Mapped[bool] = mapped_column(Boolean, default=False)
+    unhidden_by: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    unhidden_at: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    override_kcal: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    override_by: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    override_at: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    override_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[str] = mapped_column(String(40), default=now_iso)
+
+
+class Habit(Base):
+    """Nawyk podopiecznego (0.63.0): rusztowanie z terminem, nie streak.
+    Proweniencja: `author_id` (trener albo klient). Postęp liczony przy
+    odczycie (`dzik_os.nawyki`); GRADUATED = absolutorium (utrwalony),
+    ARCHIVED = wymieniony/usunięty (historia odhaczeń zostaje)."""
+
+    __tablename__ = "habits"
+
+    id: Mapped[str] = mapped_column(String(40), primary_key=True)
+    client_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
+    name: Mapped[str] = mapped_column(String(200))
+    days_of_week: Mapped[str] = mapped_column(String(30), default="1,2,3,4,5,6,7")
+    target_days: Mapped[int] = mapped_column(Integer, default=66)
+    author_id: Mapped[str] = mapped_column(String(40))
+    author_note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    started_on: Mapped[str] = mapped_column(String(40))  # YYYY-MM-DD
+    status: Mapped[str] = mapped_column(String(20), default="ACTIVE")  # ACTIVE / GRADUATED / ARCHIVED
+    graduated_on: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    #: Klient przyjął absolutorium („Zostaw tak jak jest”) — karta zwija się do jednej linii.
+    ack_on: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    created_at: Mapped[str] = mapped_column(String(40), default=now_iso)
+    updated_at: Mapped[str] = mapped_column(String(40), default=now_iso)
+
+
+class HabitCompletion(Base):
+    """Odhaczenie nawyku na dzień — jeden wpis na (nawyk, dzień); cofnięcie
+    usuwa wpis (idempotentne w obie strony)."""
+
+    __tablename__ = "habit_completions"
+    __table_args__ = (UniqueConstraint("habit_id", "completed_on"),)
+
+    id: Mapped[str] = mapped_column(String(40), primary_key=True)
+    habit_id: Mapped[str] = mapped_column(ForeignKey("habits.id"), index=True)
+    client_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
+    completed_on: Mapped[str] = mapped_column(String(40))  # YYYY-MM-DD
+    status: Mapped[str] = mapped_column(String(20), default="DONE")
+    created_by: Mapped[str] = mapped_column(String(40))
+    created_at: Mapped[str] = mapped_column(String(40), default=now_iso)

@@ -944,8 +944,8 @@ def test_eksport_obejmuje_rozmowe_z_historia_poprawek(seeded):
     export = seeded.get("/api/me/export", headers=hb).json()
     # 1.5 = wersja eksportu po dołożeniu zadań przepisywania tekstu ze
     # zdjęcia (ocr_tasks); rozmowa startowa wchodzi do eksportu jak wcześniej.
-    # 1.6 = po dołożeniu diety z szablonu (diet_assigned, diet_swap_events).
-    assert export["export_version"] == "1.6"
+    # 1.8 = po dołożeniu nawyków (habits, habit_completions).
+    assert export["export_version"] == "1.8"
     assert len(export["onboarding_sessions"]) == 1
     wartosci = {a["value"] for a in export["onboarding_answers"]}
     assert {"Pierwsza wersja celu", "Druga wersja celu"} <= wartosci

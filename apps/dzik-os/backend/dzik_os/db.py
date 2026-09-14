@@ -1405,3 +1405,69 @@ MIGRATIONS.append(
         "CREATE INDEX IF NOT EXISTS ix_diet_swap_events_assigned_diet_id ON diet_swap_events (assigned_diet_id)",
     ])
 )
+
+MIGRATIONS.append(
+    (33, "wywiad zapotrzebowania kalorycznego: szacunki (calorie_estimates)", [
+        # Addytywna; typ wywiadu za flagą DZIK_CALORIE_INTERVIEW_ENABLED.
+        (
+            "CREATE TABLE IF NOT EXISTS calorie_estimates ("
+            " id VARCHAR(40) PRIMARY KEY,"
+            " client_id VARCHAR(40) NOT NULL REFERENCES users(id),"
+            " submission_id VARCHAR(40) NOT NULL UNIQUE,"
+            " version_no INTEGER NOT NULL,"
+            " inputs_json TEXT NOT NULL,"
+            " ppm INTEGER NOT NULL,"
+            " pal FLOAT NOT NULL,"
+            " cpm INTEGER NOT NULL,"
+            " korekta_pct INTEGER NOT NULL,"
+            " kcal INTEGER NOT NULL,"
+            " podstawienie_json TEXT NOT NULL DEFAULT '[]',"
+            " ostrzezenia_json TEXT NOT NULL DEFAULT '[]',"
+            " hidden_for_client BOOLEAN NOT NULL DEFAULT false,"
+            " unhidden_by VARCHAR(40),"
+            " unhidden_at VARCHAR(40),"
+            " override_kcal INTEGER,"
+            " override_by VARCHAR(40),"
+            " override_at VARCHAR(40),"
+            " override_reason TEXT,"
+            " created_at VARCHAR(40) NOT NULL)"
+        ),
+        "CREATE INDEX IF NOT EXISTS ix_calorie_estimates_client_id ON calorie_estimates (client_id)",
+    ])
+)
+
+MIGRATIONS.append(
+    (34, "nawyki na ekranie Dzisiaj: habits, habit_completions", [
+        # Addytywna; wycofanie = ignorowanie tabel.
+        (
+            "CREATE TABLE IF NOT EXISTS habits ("
+            " id VARCHAR(40) PRIMARY KEY,"
+            " client_id VARCHAR(40) NOT NULL REFERENCES users(id),"
+            " name VARCHAR(200) NOT NULL,"
+            " days_of_week VARCHAR(30) NOT NULL DEFAULT '1,2,3,4,5,6,7',"
+            " target_days INTEGER NOT NULL DEFAULT 66,"
+            " author_id VARCHAR(40) NOT NULL,"
+            " author_note TEXT,"
+            " started_on VARCHAR(40) NOT NULL,"
+            " status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',"
+            " graduated_on VARCHAR(40),"
+            " ack_on VARCHAR(40),"
+            " created_at VARCHAR(40) NOT NULL,"
+            " updated_at VARCHAR(40) NOT NULL)"
+        ),
+        "CREATE INDEX IF NOT EXISTS ix_habits_client_id ON habits (client_id)",
+        (
+            "CREATE TABLE IF NOT EXISTS habit_completions ("
+            " id VARCHAR(40) PRIMARY KEY,"
+            " habit_id VARCHAR(40) NOT NULL REFERENCES habits(id),"
+            " client_id VARCHAR(40) NOT NULL REFERENCES users(id),"
+            " completed_on VARCHAR(40) NOT NULL,"
+            " status VARCHAR(20) NOT NULL DEFAULT 'DONE',"
+            " created_by VARCHAR(40) NOT NULL,"
+            " created_at VARCHAR(40) NOT NULL,"
+            " UNIQUE (habit_id, completed_on))"
+        ),
+        "CREATE INDEX IF NOT EXISTS ix_habit_completions_habit_id ON habit_completions (habit_id)",
+        "CREATE INDEX IF NOT EXISTS ix_habit_completions_client_id ON habit_completions (client_id)",
+    ])
+)

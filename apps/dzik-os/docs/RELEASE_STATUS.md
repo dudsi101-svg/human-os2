@@ -49,7 +49,7 @@ istniejącego konta, sesje unieważniane, wpis w audycie). Limit podopiecznych:
 | Integracja | Stan | Co je włącza |
 |---|---|---|
 | SMTP (zaproszenia, resety haseł, digest) | **wyłączone** — dostawca `null`; brak doręczeń jest uczciwie logowany (`PASSWORD_RESET_SEND_FAILED` i od 0.54.5 `CLIENT_INVITED.reason`, powód `no_provider`); bez poczty zaproszenie wraca trenerowi jako link do przekazania | hasło aplikacji Gmail w sekretach repo → workflow „Sekrety produkcji (Fly.io)” z zakresem `poczta` (sam dowodzi wysyłką testową; klasa błędu w logu przy odmowie) |
-| Poczta Brevo SMTP (0.61.0, `dzik_os/mailer.py`) | **skonfigurowana na Fly przez właściciela** (`SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `MAIL_FROM`, `MAIL_REPLY_TO`); dowód kanału: workflow „Sprawdzenie SMTP (Fly.io)” (`smtp_check.py`, 4 kroki) + testowa wysyłka; endpoint `POST /api/admin/mail/test` za flagą `DZIK_MAIL_TEST_ENDPOINT_ENABLED` (domyślnie wyłączony). Zaproszenia/resety/digest nadal przez starego dostawcę `DZIK_SMTP_*` — przepięcie to osobne zadanie | flaga endpointu: sekret `DZIK_MAIL_TEST_ENDPOINT_ENABLED=true` na Fly |
+| Poczta Brevo SMTP (0.61.0, `dzik_os/mailer.py`) | **kanał potwierdzony 14.09 01:37 UTC** (4/4 kroki z maszyny, testowa wysyłka przyjęta przez serwer i **odebrana w skrzynce właściciela**; wcześniejsze 525 = lista autoryzowanych IP w Brevo — blokada dla kluczy SMTP wyłączona przez właściciela). Skonfigurowana na Fly przez właściciela (`SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `MAIL_FROM`, `MAIL_REPLY_TO`); dowód kanału: workflow „Sprawdzenie SMTP (Fly.io)” (`smtp_check.py`, 4 kroki) + testowa wysyłka; endpoint `POST /api/admin/mail/test` za flagą `DZIK_MAIL_TEST_ENDPOINT_ENABLED` (domyślnie wyłączony). Zaproszenia/resety/digest nadal przez starego dostawcę `DZIK_SMTP_*` — przepięcie to osobne zadanie | flaga endpointu: sekret `DZIK_MAIL_TEST_ENDPOINT_ENABLED=true` na Fly |
 | AI (podsumowania raportów, OCR-AI, onboarding) | **wyłączone** — aplikacja w pełni działa bez AI | `DZIK_AI_API_KEY` + `DZIK_AI_ENABLED` → ten sam workflow sekretów |
 | Szyfrowanie plików at-rest (R-02) | **nieaktywowane** — mechanizm AES-256-GCM gotowy w kodzie | workflow „Klucz szyfrowania plików (Fly.io)" (potwierdzenie `WLACZ`; dowód sondą DZIKENC1; kopię klucza schować poza repo) |
 | Backup (dzienny, rotacja 14) | działa na maszynie; **próba odtworzenia co poniedziałek** (workflow, tylko liczności) | off-site: czeka na poświadczenia właściciela (W4) |
@@ -82,6 +82,23 @@ z ostrzeżeniem, aplikacja wstaje. Diagnostyka z maszyny: workflow
 opcjonalny input `test_email` wysyła wiadomość testową tą samą ścieżką
 co endpoint). Endpoint testowy admina/trenera za flagą, domyślnie
 wyłączony na produkcji. Plan i odstępstwa: `docs/plan-sesji/poczta-brevo.md`.
+
+## Panel rozwojowy „Dzisiaj” (0.63.0) — bez flagi, na produkcji od deployu
+
+Powitanie, hasło dnia (deterministyczne, bez AI) i do trzech nawyków
+z codziennym cofalnym odhaczaniem, łagodnym decay −1 (decyzja foundera,
+R-20) i absolutorium. Nawyki to zwykły tekst + odhaczenia (domena danych
+treningowych, bez nowej bramki zgód). Szczegóły: `docs/CHANGELOG.md`
+0.63.0, `docs/plan-sesji/nawyki-dzisiaj.md`, `docs/nawyki/PROGRESS.md`.
+
+## Wywiad „Zapotrzebowanie kaloryczne” (0.62.0) — za flagą, na produkcji WŁĄCZONY (do potwierdzenia)
+
+`DZIK_CALORIE_INTERVIEW_ENABLED="true"` w `fly.toml` (runda 0.62.0, zgodnie
+z prośbą właściciela z 14.09, żeby funkcje były widoczne w aplikacji;
+wyłączenie = jedna linia). Trzeci typ wywiadu w zakładce „Wywiad”, wynik
+w Dieta (klient) i karcie klienta (trener), „Zaproponuj kcal” w „Przypisz
+dietę”. Filtr flagi zdrowotnej po stronie serwera. Szczegóły:
+`docs/WYWIAD.md` §8, `docs/plan-sesji/wywiad-zapotrzebowanie.md`.
 
 ## Szablony diet ze skalowaniem (0.60.0) — za flagą, na produkcji WYŁĄCZONE
 

@@ -57,6 +57,8 @@ import PlanEditor from "./PlanEditor";
 import PublikacjaPanel from "./PublikacjaPanel";
 import PrzypiszDiete, { PrzypisanaDietaTrenera } from "./PrzypiszDiete";
 import WywiadTab from "./WywiadTab";
+import PanelNawykow from "../nawyki/PanelNawykow";
+import ZapotrzebowanieKarta from "../wywiad/Zapotrzebowanie";
 import OcrCapture from "../../OcrCapture";
 import { appendText } from "../../ocrUtils";
 
@@ -808,6 +810,7 @@ function NutritionTab({ clientId }: { clientId: string }) {
   return (
     <>
       <HintsCard clientId={clientId} area="DIETA" />
+      <ZapotrzebowanieKarta clientId={clientId} tryb="trener" kompakt />
       {dietaInfo && <p className="alert alert--info" role="status">{dietaInfo} <button type="button" className="btn btn--ghost btn--small" aria-label="Zamknij komunikat" onClick={() => setDietaInfo(null)}>×</button></p>}
       {szablonyDiet && (
         <>
@@ -1145,6 +1148,7 @@ function ScheduleTab({ clientId }: { clientId: string }) {
   return (
     <>
       <HintsCard clientId={clientId} area="HARMONOGRAM" />
+      <PanelNawykow clientId={clientId} tryb="trener" />
       <form className="card" onSubmit={add}>
         <h2>Dodaj element harmonogramu</h2>
         <div className="field-row">

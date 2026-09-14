@@ -75,6 +75,8 @@ def podsumowanie(db: Session, client_id: str, *, widoczne: set[str]) -> dict[str
     do_wyjasnienia: list[dict] = []
     do_aktualizacji: list[dict] = []
     for typ in D.TYPY:
+        if typ == D.ZAPOTRZEBOWANIE:
+            continue  # wynik liczbowy ma własną kartę (zapotrzebowanie_serwis), nie punkty podsumowania
         sub = serwis.ostatnie_przeslanie(db, client_id, typ)
         if sub is None:
             continue
