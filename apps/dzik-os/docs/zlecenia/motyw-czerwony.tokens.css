@@ -1,0 +1,23 @@
+/* SZKIC (14.09) — drugi motyw „czerwono-biały” jako nadpisanie tokenów :root.
+   Wartości z kanwy „Dzik OS — wariant jasny” (Paleta) + kontrast policzony.
+   Do wklejenia w styles.css pod :root, po decyzji właściciela. */
+html[data-theme="czerwony"] {
+  color-scheme: light;
+  --bg: #FFFFFF;             /* biel — tło strony */
+  --bg-raised: #FBF5F5;      /* róż popielaty — pasma, nawigacja */
+  --bg-card: #FFFFFF;        /* karta biała z obrysem (na ciemnym hierarchię budują schodki, tu obrys+cień) */
+  --bg-hover: #FDECEE;       /* pasmo różowe */
+  --border: #ECE4E4;         /* obrys kart i separatory */
+  --border-strong: #B3878A;  /* obrys pól/ghost — 3,11:1 na bieli (1.4.11) */
+  --text: #101418;           /* grafit — 17,6:1 */
+  --text-dim: #566372;       /* 6,13:1 na bieli, 5,6:1 na różu popielatym */
+  --accent: #E11D2E;         /* czerwień marki — przyciski, aktywna zakładka; biały tekst 4,75:1 */
+  --accent-soft: #FDE3E5;    /* poświata — tła odznak */
+  --accent-glow: rgba(225, 29, 46, 0.22);
+  --accent-ink: #FFFFFF;     /* tekst na przycisku akcentowym */
+  --danger: #B3121F;         /* 6,95:1 */
+  --warn: #8A5A00;           /* 5,9:1 (ciemny bursztyn — żółć ze spec nie ma AA na bieli) */
+  --ok: #1E7A46;             /* 5,3:1 */
+}
+/* Karty na bieli potrzebują cienia różowawego ze spec (na ciemnym cień nie istnieje). */
+html[data-theme="czerwony"] .card { box-shadow: 0 10px 30px rgba(122, 10, 20, 0.06); }

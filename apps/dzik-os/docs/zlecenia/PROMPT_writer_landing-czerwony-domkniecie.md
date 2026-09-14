@@ -189,11 +189,11 @@ czterech szerokościach jako liczby.
   (`public/icons/*`, `manifest.webmanifest`, `theme_color`), `logo-full.png`, ekran
   logowania, `<meta name="theme-color">` dla trybu jasnego (PR #67 świadomie pominął).
   Materiały: kanwa ma `boar-red.png` (121 kB) i `boar-mark-red.png`.
-* **Motyw aplikacji po zalogowaniu (Dzisiaj/Plan/Dieta/Raport/Więcej + panel
-  trenera): NIE MA PROJEKTU.** Kanwa zawiera tylko stronę publiczną (desktop, hero
-  telefon, paleta) i archiwalny kierunek zielony. Zanim ktokolwiek dotknie `:root`,
-  potrzebna jest kanwa z ekranami aplikacji w wariancie jasnym czerwono-białym
-  (min. Dzisiaj i Plan na telefonie, karta klienta trenera na desktopie) i decyzja,
-  czy aplikacja przechodzi z ciemnego na jasny — to zmiana dla użytkowników w pilotażu,
-  nie kosmetyka. Uwaga: PR #67 wpisuje na stronę zdanie „Ciemny motyw aplikacji
-  zostaje” — jeśli właściciel planuje jasny motyw, to zdanie trzeba zdjąć już teraz. Rekomendacja: najpierw zlecenie projektowe (kanwa), potem prompt.
+* **Motyw aplikacji po zalogowaniu — DECYZJA WŁAŚCICIELA 14.09 (trzecia tura):**
+  użytkownik wybiera między kompletnym motywem czarno-zielonym a nowym czerwono-białym;
+  nowy musi być kompletny. Osobne zlecenie `PROMPT_writer_motyw-czerwony.md` (po
+  scaleniu #67). Podgląd na prawdziwych ekranach już istnieje — tokeny działają.
+  **Do wykonania w tym PR (#67):** zdanie „Ciemny motyw aplikacji zostaje: na siłowni ma
+  być czytelny, nie jasny.” w `sec-head__desc` sekcji Aplikacja zamień na „Motyw
+  wybierasz sam: ciemny na siłownię albo jasny czerwono-biały.” (zrzuty galerii
+  zostają ciemne do czasu jasnego kompletu). Rekomendacja: najpierw zlecenie projektowe (kanwa), potem prompt.
