@@ -17,6 +17,7 @@ i migracji w nim są **propozycją do sprawdzenia** tuż przed zmianą (`db.py`,
 | 1. Dni treningowe: klient wybiera dni tygodnia dla jednostek planu; „Dzisiaj” pokazuje trening z dzisiejszego dnia | `PROMPT_writer_dni-treningowe.md` | `plan-sesji_dni-treningowe.md` | `agent/dni-treningowe` | brak (niezależne od gałęzi w toku) |
 | 3. Domknięcie PR #67 „Strona publiczna: wariant czerwono-biały” (nowa szata graficzna) | `PROMPT_writer_landing-czerwony-domkniecie.md` | — (kontynuacja `docs/plan-sesji/landing-czerwony.md`) | `agent/landing-czerwony` (istniejąca, PR #67) | decyzje właściciela z §3–5 promptu (kontrast, treść, znak marki) |
 | 4. Motyw czerwono-biały jako drugi, kompletny motyw aplikacji do wyboru użytkownika (klient i trener) | `PROMPT_writer_motyw-czerwony.md` + `motyw-czerwony.tokens.css` | — (plan pisze writer wg §5 promptu) | `agent/motyw-czerwony` | scalenie #67; decyzje z §7 promptu |
+| 5. Rozgrzewka (3×3) + rozciąganie + cardio na sprzęcie z suwakami celów (model: 3 strefy/Karvonen/Fatmax/VO2max) | `PROMPT_writer_cardio-i-rozgrzewka.md` + `model-suwakow-cardio.md` | — (plan pisze writer wg §6) | `agent/cardio-i-rozgrzewka` | decyzje z §8; nie równolegle ze zleceniem 1 (te same pliki planu) |
 | 2. Wymiany produktów v2: grupy pokrewne, zgodność funkcji w posiłku, bramka „nie pogarsza”, przycisk dla roli NONE | `PROMPT_writer_wymiany-produktow.md` | `plan-sesji_wymiany-produktow.md` | `agent/wymiany-produktow` | **scalenie `agent/biblioteka-diet`** (te same pliki; sama biblioteka obniża odsetek składników bez zamiennika z 31 % do 11 %) |
 
 **Kolejność scalania i numery wersji** (stan 14.09 po południu; kontrola `changelog`
@@ -32,6 +33,7 @@ starcie, wg tej tabeli):
 | 3 | PR #69 `agent/wymiany-produktow` (zlecenie 2) | kolejna wolna | — | draft otwarty |
 | 4 | zlecenie 1 — dni treningowe | kolejna wolna | 37 | nie rozpoczęte |
 | 5 | zlecenie 4 — motyw czerwono-biały (po #67) | kolejna wolna | kolejna wolna (pole `theme` w ustawieniach) lub brak | nie rozpoczęte; podgląd tokenów wykonany 14.09 |
+| 6 | zlecenie 5 — rozgrzewka, rozciąganie, cardio z suwakami | kolejna wolna | kolejna wolna (`exercise_blocks` + pola cardio w dzienniku) | nie rozpoczęte; model i szkic treści gotowe 14.09 |
 
 Decyzje właściciela z trzeciej tury (14.09): docelowo dwa kompletne motywy do wyboru
 użytkownika — czarno-zielony i czerwono-biały (zlecenie 4). Z drugiej tury (14.09): kreator diety odłożony i ukryty; klient na
