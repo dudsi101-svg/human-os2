@@ -20,11 +20,14 @@ export function etykietaDnia(source: DniPlanu["source"], weekday: number | null,
   return `${dzien} (propozycja trenera)`;
 }
 
-function poleZBledu(e: unknown): { msg: string; field: string | null } {
+/** Błąd zapisu: pole przypisujemy do jednostki tylko, gdy `errors[0].field`
+ * jest jej kluczem; inne pola (np. `choices.0.weekday` z walidacji schematu)
+ * dostają ogólny komunikat, żeby nic nie znikało bez słowa. */
+function poleZBledu(e: unknown, klucze: string[]): { msg: string; field: string | null } {
   const err = e as ApiError;
   const body = (err?.body ?? {}) as { errors?: { field?: string }[] };
   const field = body.errors?.[0]?.field;
-  return { msg: err?.message ?? "Nie udało się zapisać dni.", field: field || null };
+  return { msg: err?.message ?? "Nie udało się zapisać dni.", field: field && klucze.includes(field) ? field : null };
 }
 
 export default function DniTreningowe({ clientId, planId, tryb, onZmiana }: {
@@ -61,7 +64,7 @@ export default function DniTreningowe({ clientId, planId, tryb, onZmiana }: {
       przyjmij(await fn());
       setSukces(komunikat);
     } catch (e) {
-      setBlad(poleZBledu(e));
+      setBlad(poleZBledu(e, (dane?.days ?? []).map((x) => x.day_key)));
     } finally {
       setBusy(false);
     }

@@ -15,6 +15,16 @@
 2. Dwie jednostki w jeden dzień → 422.
 3. Plan bez dni → tylko karta „ustaw dni” (system nie zgaduje).
 
+## Przegląd niezależny PR #72 (dwaj recenzenci integratora): brak P0/P1, P2 naprawione
+
+Unikalne klucze jednostek w wersji (`dni()` — powtórzone `id` / `id` = `idx:<n>` → indeks);
+plan `UNASSIGNED`/`ARCHIVED` = 404; `StrictInt` dla `weekday`; miejscownik w komunikacie
+422; front nie gubi błędu spoza kluczy jednostek; bezwarunkowy test „today = dzień
+trenera” + mieszanka `id`/bez `id` + dwa dni trenera z tym samym `weekday`.
+Dług sprzed rundy (poza zakresem): wybór planu ACTIVE różny w `Plan.tsx` (`created_at`)
+i `today.py` (`updated_at`); `GET /api/clients/{id}/plans` oddaje klientowi treść planu
+`UNASSIGNED`.
+
 ## P2 / do rozważenia
 
 * Edycja wyboru dni z karty klienta u trenera (API gotowe — ten sam komponent w trybie

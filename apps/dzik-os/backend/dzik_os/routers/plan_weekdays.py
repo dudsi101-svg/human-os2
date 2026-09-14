@@ -12,7 +12,7 @@ from __future__ import annotations
 import json
 
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, StrictInt
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -29,7 +29,8 @@ router = APIRouter(prefix="/api", tags=["plan-weekdays"])
 
 class WyborIn(BaseModel):
     day_key: str = Field(min_length=1, max_length=D.KLUCZ_MAX)
-    weekday: int | None = Field(default=None, ge=1, le=7)
+    #: StrictInt: `true` i `"3"` nie przechodzą jako 1 / 3.
+    weekday: StrictInt | None = Field(default=None, ge=1, le=7)
 
 
 class DniIn(BaseModel):
@@ -46,6 +47,10 @@ def _plan_klienta(db: Session, user: User, client_id: str, plan_id: str) -> tupl
     if plan.client_id != client_id:
         # Cudzy plan albo szablon pod tym client_id — odmowa bez potwierdzania istnienia.
         deny(user.id, f"plan:{plan_id}")
+    if plan.status != "ACTIVE":
+        # Odpięty (UNASSIGNED) albo zarchiwizowany plan nie jest już widoczny
+        # klientowi — dni się do niego nie zapisuje (zwykłe 404, to własny plan).
+        raise HTTPException(status_code=404, detail="Nie znaleziono")
     version = None
     if plan.current_version_no:
         version = (

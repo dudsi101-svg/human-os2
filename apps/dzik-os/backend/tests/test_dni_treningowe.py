@@ -34,6 +34,23 @@ def test_klucz_dnia_id_albo_indeks():
     assert D.dni({"days": "zepsute"}) == [] and D.dni(None) == []
 
 
+def test_klucze_unikalne_w_wersji_przy_powtorzonym_id_i_kolizji_z_idx():
+    """Powtórzone `id` albo `id` w postaci `idx:<n>` → klucz zastępczy z własnego
+    indeksu (naprawa odczytowa; wersja pozostaje nietknięta)."""
+    wersja = {"days": [{"id": "X", "name": "A"}, {"id": "X", "name": "B"}, {"name": "C"}, {"id": "idx:2", "name": "D"}]}
+    assert [k for k, _, _ in D.dni(wersja)] == ["idx:0", "idx:1", "idx:2", "idx:3"]
+    assert len({k for k, _, _ in D.dni(wersja)}) == 4
+    # Unikalne `id` zostają; tylko kolidujące spadają na indeks.
+    mieszana = {"days": [{"id": "ELM-A", "name": "A"}, {"name": "B"}, {"id": "ELM-A", "name": "C"}, {"id": "ELM-D", "name": "D"}]}
+    assert [k for k, _, _ in D.dni(mieszana)] == ["idx:0", "idx:1", "idx:2", "ELM-D"]
+    # Dwie jednostki w ten sam dzień da się teraz odrzucić — klucze nie zlewają się.
+    with pytest.raises(D.BladWyboru):
+        D.waliduj_wybor(wersja, [{"day_key": "idx:0", "weekday": 1}, {"day_key": "idx:1", "weekday": 1}])
+    assert D.waliduj_wybor(wersja, [{"day_key": "idx:0", "weekday": 1}, {"day_key": "idx:1", "weekday": 3}]) == {
+        "idx:0": 1, "idx:1": 3, "idx:2": None, "idx:3": None}
+    assert D.dzien_na_dzis(wersja, {"idx:0": 1, "idx:1": 3}, 3) == (1, wersja["days"][1])
+
+
 def test_prefill_z_trenera_i_nakladka_wygrywa_w_calosci():
     assert D.uklad_efektywny(PLAN_TRENERA, None) == {"D-A": 1, "D-B": 3, "D-C": None}
     # Klient ustawił tylko D-C: propozycje trenera dla D-A/D-B NIE obowiązują.
@@ -68,7 +85,11 @@ def test_waliduj_wybor_i_bledy():
     assert D.z_json(D.do_json(ok)) == ok
     with pytest.raises(D.BladWyboru) as e:
         D.waliduj_wybor(PLAN_TRENERA, [{"day_key": "D-A", "weekday": 2}, {"day_key": "D-B", "weekday": 2}])
-    assert e.value.day_key == "D-B" and "wtorek" in e.value.komunikat and "Góra" in e.value.komunikat
+    assert e.value.day_key == "D-B" and e.value.komunikat.startswith("We wtorek jest już „Góra”")
+    for wd, kiedy in enumerate(("W poniedziałek", "We wtorek", "W środę", "W czwartek", "W piątek", "W sobotę", "W niedzielę"), start=1):
+        with pytest.raises(D.BladWyboru) as e2:
+            D.waliduj_wybor(PLAN_TRENERA, [{"day_key": "D-A", "weekday": wd}, {"day_key": "D-B", "weekday": wd}])
+        assert e2.value.komunikat.startswith(f"{kiedy} jest już „Góra” — jeden dzień tygodnia to jedna jednostka.")
     with pytest.raises(D.BladWyboru) as e:
         D.waliduj_wybor(PLAN_TRENERA, [{"day_key": "obcy", "weekday": 1}])
     assert e.value.day_key == "obcy"
@@ -146,8 +167,97 @@ def test_zapis_nakladka_wygrywa_dzisiaj_i_powrot_do_trenera(seeded):
         assert [x["weekday"] for x in r.json()["days"]] == [2, 4, 6]
     t = seeded.get("/api/me/today", headers=hb).json()
     assert t["workout_hint"] is None
+    assert (t["workout"] is None) == (dzis not in (2, 4, 6))
     if t["workout"] is not None:
         assert t["workout"]["weekday_source"] == "coach"
+
+
+def _plan(seeded, hc, cid, title, days):
+    r = seeded.post("/api/plans", headers=hc, json={"client_id": cid, "title": title,
+                                                    "version": {"reason": "Start", "days": days}})
+    assert r.status_code == 201, r.text
+    return r.json()["id"]
+
+
+def test_dzisiaj_bez_wyboru_dzien_trenera_bezwarunkowo(seeded):
+    """Dzień trenera = dziś → `today` bez żadnego wyboru pokazuje jednostkę 0 ze
+    źródłem `coach`; dwa dni trenera z tym samym `weekday` → pierwszy wygrywa
+    (jak przed rundą); mieszanka `id`/bez `id` daje klucze `id` i `idx:n`."""
+    hc = login(seeded, COACH)
+    cid = create_activated_client(seeded, hc, "trener-dzis@example.com")
+    hn = login(seeded, {"email": "trener-dzis@example.com", "password": "WlasneHaslo#123"})
+    dzis = _dzis()
+    inny = (dzis % 7) + 1
+    plan_id = _plan(seeded, hc, cid, "Dni od trenera", [
+        {"id": "ELM-A", "name": "Pierwsza dziś", "weekday": dzis, "exercises": []},
+        {"name": "Bez id", "weekday": inny, "exercises": []},
+        {"id": "ELM-C", "name": "Druga dziś", "weekday": dzis, "exercises": []},
+    ])
+    t = seeded.get("/api/me/today", headers=hn).json()
+    assert t["workout"]["plan_id"] == plan_id and t["workout"]["day_index"] == 0
+    assert t["workout"]["day"]["name"] == "Pierwsza dziś" and t["workout"]["weekday_source"] == "coach"
+    assert t["workout_hint"] is None
+    d = seeded.get(DNI.format(cid, plan_id), headers=hn).json()
+    assert [x["day_key"] for x in d["days"]] == ["ELM-A", "idx:1", "ELM-C"] and d["source"] == "coach"
+    assert [x["coach_weekday"] for x in d["days"]] == [dzis, inny, dzis]
+    # Klient przenosi „dziś” na trzecią jednostkę — nakładka wygrywa, klucz `idx:1` działa.
+    r = seeded.put(DNI.format(cid, plan_id), headers=hn, json={"choices": [
+        {"day_key": "ELM-C", "weekday": dzis}, {"day_key": "idx:1", "weekday": inny}]})
+    assert r.status_code == 200, r.text
+    t = seeded.get("/api/me/today", headers=hn).json()
+    assert t["workout"]["day_index"] == 2 and t["workout"]["weekday_source"] == "client"
+
+
+def test_powtorzone_id_w_wersji_nie_zlewaja_jednostek(seeded):
+    """Dowód recenzenta: `{id:X,A},{id:X,B},{C},{id:"idx:2",D}` — przed poprawką PUT
+    `X→1, idx:2→3` = 200 i dwie jednostki w poniedziałek."""
+    hc = login(seeded, COACH)
+    cid = create_activated_client(seeded, hc, "powtorzone-id@example.com")
+    hn = login(seeded, {"email": "powtorzone-id@example.com", "password": "WlasneHaslo#123"})
+    plan_id = _plan(seeded, hc, cid, "Powtórzone id", [
+        {"id": "X", "name": "A", "weekday": None, "exercises": []},
+        {"id": "X", "name": "B", "weekday": None, "exercises": []},
+        {"name": "C", "weekday": None, "exercises": []},
+        {"id": "idx:2", "name": "D", "weekday": None, "exercises": []},
+    ])
+    d = seeded.get(DNI.format(cid, plan_id), headers=hn).json()
+    assert [x["day_key"] for x in d["days"]] == ["idx:0", "idx:1", "idx:2", "idx:3"]
+    # Klucz `X` nie istnieje → 422; `idx:2` wskazuje C, nie D.
+    r = seeded.put(DNI.format(cid, plan_id), headers=hn, json={"choices": [{"day_key": "X", "weekday": 1}, {"day_key": "idx:2", "weekday": 3}]})
+    assert r.status_code == 422 and r.json()["errors"][0]["field"] == "X"
+    dzis = _dzis()
+    r = seeded.put(DNI.format(cid, plan_id), headers=hn, json={"choices": [{"day_key": "idx:1", "weekday": dzis}, {"day_key": "idx:3", "weekday": (dzis % 7) + 1}]})
+    assert r.status_code == 200, r.text
+    assert [x["weekday"] for x in r.json()["days"]] == [None, dzis, None, (dzis % 7) + 1]
+    t = seeded.get("/api/me/today", headers=hn).json()
+    assert t["workout"]["day_index"] == 1 and t["workout"]["day"]["name"] == "B"
+    # Dwie jednostki w ten sam dzień nadal odrzucane — klucze już się nie zlewają.
+    r = seeded.put(DNI.format(cid, plan_id), headers=hn, json={"choices": [{"day_key": "idx:0", "weekday": 1}, {"day_key": "idx:1", "weekday": 1}]})
+    assert r.status_code == 422 and r.json()["errors"][0]["field"] == "idx:1"
+
+
+def test_plan_odpiety_i_zarchiwizowany_404(seeded):
+    """Po `/odepnij` i `/archiwizuj` plan nie jest widoczny klientowi — GET/PUT/DELETE
+    dają zwykłe 404 (własny plan, nie IDOR) i nie powstają osierocone wiersze."""
+    hc = login(seeded, COACH)
+    cid = create_activated_client(seeded, hc, "odpiety@example.com")
+    hn = login(seeded, {"email": "odpiety@example.com", "password": "WlasneHaslo#123"})
+    dni = [{"name": "J1", "weekday": None, "exercises": []}]
+    odpiety = _plan(seeded, hc, cid, "Do odpięcia", dni)
+    assert seeded.put(DNI.format(cid, odpiety), headers=hn, json={"choices": [{"day_key": "idx:0", "weekday": 1}]}).status_code == 200
+    assert seeded.post(f"/api/plans/{odpiety}/odepnij", headers=hc).json()["status"] == "UNASSIGNED"
+    zarchiwizowany = _plan(seeded, hc, cid, "Do archiwum", dni)
+    assert seeded.post(f"/api/plans/{zarchiwizowany}/archiwizuj", headers=hc).json()["status"] == "ARCHIVED"
+    for pid in (odpiety, zarchiwizowany):
+        assert seeded.get(DNI.format(cid, pid), headers=hn).status_code == 404
+        assert seeded.put(DNI.format(cid, pid), headers=hn, json={"choices": [{"day_key": "idx:0", "weekday": 2}]}).status_code == 404
+        assert seeded.delete(DNI.format(cid, pid), headers=hn).status_code == 404
+        assert seeded.get(DNI.format(cid, pid), headers=hc).status_code == 404
+    with SessionLocal() as db:
+        # Wpis sprzed odpięcia zostaje (historia; kasuje go usunięcie konta), nowych nie przybyło.
+        assert db.query(PlanWeekdayChoice).filter_by(client_id=cid).count() == 1
+    t = seeded.get("/api/me/today", headers=hn).json()
+    assert t["workout"] is None and t["workout_hint"] is None
 
 
 def test_walidacja_422_po_polsku(seeded):
@@ -159,7 +269,7 @@ def test_walidacja_422_po_polsku(seeded):
     r = seeded.put(url, headers=hb, json={"choices": [{"day_key": "idx:0", "weekday": 3}, {"day_key": "idx:1", "weekday": 3}]})
     assert r.status_code == 422, r.text
     b = r.json()
-    assert b["code"] == "WEEKDAY_CHOICE" and "FBW 1" in b["detail"] and "środ" in b["detail"]
+    assert b["code"] == "WEEKDAY_CHOICE" and b["detail"] == "W środę jest już „FBW 1” — jeden dzień tygodnia to jedna jednostka."
     assert b["errors"] == [{"field": "idx:1", "type": "weekday_choice", "msg": b["detail"]}]
     # Klucz spoza bieżącej wersji.
     r = seeded.put(url, headers=hb, json={"choices": [{"day_key": "idx:7", "weekday": 1}]})
@@ -167,8 +277,8 @@ def test_walidacja_422_po_polsku(seeded):
     # Jednostka podana dwa razy.
     r = seeded.put(url, headers=hb, json={"choices": [{"day_key": "idx:0", "weekday": 1}, {"day_key": "idx:0", "weekday": 2}]})
     assert r.status_code == 422
-    # weekday 0 / 8 / tekst — walidacja schematu.
-    for zly in (0, 8, "pon"):
+    # weekday 0 / 8 / tekst / bool / liczba jako tekst — walidacja schematu (StrictInt).
+    for zly in (0, 8, "pon", True, "3", 3.0):
         assert seeded.put(url, headers=hb, json={"choices": [{"day_key": "idx:0", "weekday": zly}]}).status_code == 422
     # Nic z powyższego nie zostało zapisane.
     assert seeded.get(url, headers=hb).json()["source"] == "coach"

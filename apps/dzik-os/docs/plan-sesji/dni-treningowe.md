@@ -152,6 +152,26 @@ wersja planu „z dniami”, wpinanie w Harmonogram.
    (front pokazuje notkę nad kartą) — uściślenie promptu, nie zmiana zakresu.
 7. Bez `docs/dni-treningowe/`-owego wpisu w `RISK_REGISTER`/`ANALIZA_RYNKU` — brak nowego
    ryzyka (dane organizacyjne bez treści zdrowotnej, test INTENDED_PURPOSE bez wątpliwości).
+8. **Testy silnika** leżą w `backend/tests/test_dni_treningowe.py` razem z testami API
+   (plan przewidywał osobny `test_dni_treningowe_silnik.py`) — jeden plik per moduł, jak
+   `test_habits.py`.
+9. **Po przeglądzie dwóch niezależnych recenzentów PR #72 (brak P0/P1) — P2 naprawione
+   w tej rundzie:** (1) klucze jednostek **unikalne w wersji** — powtórzone `id` albo `id`
+   w postaci `idx:<n>` spadają na `idx:<własny indeks>` (naprawa odczytowa, wersje
+   niemutowalne; dowód recenzenta: `{id:X,A},{id:X,B},{C},{id:"idx:2",D}` dawał 200 i dwie
+   jednostki w poniedziałek — test jednostkowy + API); (2) plan `UNASSIGNED`/`ARCHIVED` →
+   zwykłe 404 dla GET/PUT/DELETE (po `/odepnij` i `/archiwizuj` PUT dawał 200 i osierocone
+   wiersze — test); (3) `WyborIn.weekday: StrictInt | None` (`true`→1 i `"3"`→3 już nie
+   przechodzą); (4) komunikat 422 w miejscowniku („W środę”, „We wtorek”, „W sobotę”… —
+   test pełnej formy dla 7 dni); (5) front: `errors[0].field` traktowane jako pole jednostki
+   tylko, gdy jest jej kluczem — inaczej ogólny alert (błąd `choices.0.weekday` znikał bez
+   komunikatu); (6) test „today bez wyboru = dzień trenera” bezwarunkowy (plan z
+   `weekday: dziś` dla nowego klienta) + mieszanka `id`/bez `id` + dwa dni trenera z tym
+   samym `weekday` (pierwszy wygrywa, jak przed rundą).
+10. **P2 poza rundą (dług sprzed rundy, nie dotykany):** przy dwóch planach ACTIVE
+   `Plan.tsx` bierze pierwszy ACTIVE po `created_at`, a `today.py` najnowszy po
+   `updated_at` — mogą wskazać różne plany; `GET /api/clients/{id}/plans` zwraca klientowi
+   także treść planu `UNASSIGNED` (odpięty plan nie powinien być widoczny podopiecznemu).
 
 ## Weryfikacja wykonana
 

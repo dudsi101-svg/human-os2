@@ -19,6 +19,7 @@ Zasady (decyzje właściciela 14.09, `docs/plan-sesji/dni-treningowe.md`):
 
 from __future__ import annotations
 
+import re
 from typing import Any
 
 #: Klucz dnia → dzień tygodnia ISO (1 = poniedziałek … 7 = niedziela) albo None.
@@ -36,6 +37,10 @@ PODPOWIEDZ_NIEAKTUALNE = "stale"
 KLUCZ_MAX = 80
 
 NAZWY_DNI = ("poniedziałek", "wtorek", "środa", "czwartek", "piątek", "sobota", "niedziela")
+#: Miejscownik do komunikatów („W poniedziałek jest już…”).
+KIEDY = ("W poniedziałek", "We wtorek", "W środę", "W czwartek", "W piątek", "W sobotę", "W niedzielę")
+
+_IDX_RE = re.compile(r"^idx:\d+$")
 
 
 class BladWyboru(ValueError):
@@ -56,7 +61,8 @@ def _weekday_ok(value: Any) -> int | None:
 
 
 def klucz_dnia(day: Any, idx: int) -> str:
-    """Stabilny klucz jednostki: `day.id`, jeśli wersja go ma, inaczej `idx:<n>`."""
+    """Kandydat na klucz jednostki: `day.id`, jeśli wersja go ma, inaczej
+    `idx:<n>`. Unikalność w obrębie wersji zapewnia dopiero `dni()`."""
     if isinstance(day, dict):
         did = day.get("id")
         if isinstance(did, str) and did.strip():
@@ -66,16 +72,26 @@ def klucz_dnia(day: Any, idx: int) -> str:
 
 def dni(content: Any) -> list[tuple[str, int, dict]]:
     """Wszystkie jednostki wersji jako (klucz, indeks, dzień) — kolejność
-    z `content_json`; elementy niebędące słownikiem są pomijane."""
+    z `content_json`; elementy niebędące słownikiem są pomijane.
+
+    Klucze są **unikalne w wersji** (naprawa odczytowa — wersje są
+    niemutowalne): gdy `id` powtarza się w wersji albo ma postać `idx:<n>`
+    (kolizja z kluczem zastępczym), jednostka dostaje `idx:<własny indeks>`.
+    Bez tego dwie jednostki o tym samym `id` dzieliłyby jeden wpis wyboru."""
     out: list[tuple[str, int, dict]] = []
     if not isinstance(content, dict):
         return out
     lista = content.get("days")
     if not isinstance(lista, list):
         return out
-    for idx, day in enumerate(lista):
-        if isinstance(day, dict):
-            out.append((klucz_dnia(day, idx), idx, day))
+    kandydaci = [(idx, day, klucz_dnia(day, idx)) for idx, day in enumerate(lista) if isinstance(day, dict)]
+    licznik: dict[str, int] = {}
+    for _, _, key in kandydaci:
+        licznik[key] = licznik.get(key, 0) + 1
+    for idx, day, key in kandydaci:
+        if licznik[key] > 1 or _IDX_RE.match(key):
+            key = f"idx:{idx}"
+        out.append((key, idx, day))
     return out
 
 
@@ -167,7 +183,7 @@ def waliduj_wybor(content: Any, choices: list[dict]) -> Uklad:
         if weekday in zajete:
             inna = nazwy.get(zajete[weekday]) or zajete[weekday]
             raise BladWyboru(
-                f"W {NAZWY_DNI[weekday - 1]} jest już „{inna}” — jeden dzień tygodnia to jedna jednostka.",
+                f"{KIEDY[weekday - 1]} jest już „{inna}” — jeden dzień tygodnia to jedna jednostka.",
                 key,
             )
         zajete[weekday] = key
