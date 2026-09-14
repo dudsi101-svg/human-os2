@@ -76,3 +76,23 @@ ruff; pełny pytest (SQLite; PostgreSQL w CI); Core 275; `tools/spojnosc.py`; ts
 (budżet JS); test:helpers; E2E `postepy.spec.ts` (klient: kafelki, rekordy, sekcje; trener:
 lista sygnałów, widok klienta; flaga wyłączona = stara nawigacja); a11y; PWA offline.
 Nie scalam bez zielonego CI; scalam po #66 i #67 (rezerwacje).
+
+## Realizacja (plan vs rzeczywistość, 14.09)
+
+| Etap | Plan | Rzeczywistość |
+|---|---|---|
+| 1 silnik | 8 + 3 testy | 14 testów (`test_postepy_silnik.py`) — dodatkowo wyrównanie, lb→kg, bliźniaki |
+| 2 model + migracja 36 | jw. | jw.; `WorkoutSetIn.warmup/unit`, `new_records` w odpowiedzi zapisu; migracja 36 po 35 z `main` (konflikt w `db.py` rozwiązany rozdzieleniem `append`) |
+| 3 backfill | CLI | `recalculate_progress.py` (`--client`, `--json`) + seed liczy po zasianiu (dane demo od razu z rekordami) |
+| 4 API | 6 endpointów + testy | jw.; najpierw test flagi zdrowotnej (skan kluczy), ≤ 20 zapytań / 100 klientów, < 300 ms / 2 lata; obcy trener 404 (polityka aplikacji, nie 403) |
+| 5–6 UI | jeden panel | `PanelPostepow` wspólny; wykresy na `Sparkline` + proste CSS (słupki, heatmapa) bez biblioteki; budżet JS 90,1 kB / 120 kB |
+| 7 nawigacja | trasy + Nav + Więcej | jw. + `hasFeature()` z `features` w sesji; E2E na **drugim serwerze** z flagą (projekt `telefon-postepy`) i spec „bez flagi” |
+| 8 zamknięcie | dokumenty, 3 recenzentów + weryfikator | dokumenty gotowe; przegląd w toku (PR #61) |
+
+**Największy koszt** faktycznie: UI (etapy 5–7) i dopasowanie E2E/a11y
+do dwóch stanów flagi. **Jedno usprawnienie na przyszłość:** drugi
+serwer E2E z inną konfiguracją to teraz wzorzec — kolejne moduły za
+flagą dostają własny projekt Playwright zamiast przełączania flagi w
+jednym serwerze. **Nakład:** szacunkowo ~0,7 mln tokenów kontekstu
+etapów 1–8 (bez przeglądu), 0 agentów do etapu 8; przegląd: 3
+recenzentów + 1 weryfikator (limit właściciela: ≤ 8 agentów, ≤ 1 mln).

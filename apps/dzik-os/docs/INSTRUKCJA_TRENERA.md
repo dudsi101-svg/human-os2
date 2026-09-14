@@ -121,6 +121,33 @@ klientów wymagających uwagi.
 * **Historia** — pełna lista zmian z pokwitowaniami (kto, co, kiedy,
   z jakim powodem).
 
+## Monitoring (zakładka „Monitoring" — po włączeniu modułu)
+
+Lista Twoich aktywnych klientów posortowana po sygnałach: brak treningu
+od X dni, frekwencja poniżej progu w dwóch kolejnych tygodniach, spadek
+tonażu wobec średniej z 4 tygodni, brak ważenia, trend wagi niezgodny
+z celem redukcji, a także sygnał pozytywny — nowy rekord (powód do
+kontaktu, nie ocena). Progi zmieniasz na górze listy (nie zapisują się
+między sesjami). Wejście w klienta pokazuje **ten sam układ, który widzi
+klient** (kafelki tygodnia, Rekordy, Trening, Konsekwencja, Sylwetka),
+ale z pełnymi danymi: pojedyncze pomiary wagi z przełącznikiem średniej,
+Twoje notatki (obserwacje) przy datach, zmiany wersji planu na tle
+tonażu. Jeśli klient ma flagę zdrowotną z wywiadu kalorycznego, on nie
+widzi „Sylwetki" ani trendu wagi — Ty widzisz i dostajesz o tym
+informację na górze. Sekcje, na które klient nie dał zgody (dane
+zdrowotne, zdjęcia, żywienie), po prostu nie przychodzą z serwera.
+
+Dwie zasady, które pilnują sensu liczb: przy zapisie serii oznaczaj
+**rozgrzewkę** (nie liczy się do rekordów i tonażu) i wybieraj
+**jednostkę** (funty przeliczają się na kg). Rekordy liczą się od
+drugiego wykonania ćwiczenia — pierwsza sesja to punkt odniesienia;
+szacowany 1RM to zawsze szacunek do obserwacji trendu, nie zalecenie
+obciążenia. Nie ma rankingów między klientami. Po włączeniu modułu na
+produkcji historię sesji sprzed włączenia przelicza jednorazowo
+`python -m dzik_os.recalculate_progress` — wypisuje też nazwy ćwiczeń,
+które różnią się tylko wielkością liter lub diakrytyką („bliźniaki");
+takie wpisy scalasz ręcznie, poprawiając nazwę w treningu.
+
 ## Szablony
 
 Zakładka „Szablony": twórz plany bez przypisanego klienta i odtwarzaj je

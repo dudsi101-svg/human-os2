@@ -371,9 +371,12 @@ try {
   await runAxe(page, "raport");
 
   // ————— 6. Postępy: wykresy z alternatywą tekstową —————
+  // 0.66.0: stary adres /postepy prowadzi do zakładki „Postępy” (/monitoring);
+  // wykresy (Sparkline) żyją teraz w sekcjach Rekordy i Sylwetka.
   console.log("6. Postępy — dostępne nazwy wykresów");
   await page.goto(`${url}/postepy`, { waitUntil: "networkidle" });
-  await page.waitForSelector("h1:has-text('Monitoring i postępy')");
+  await page.waitForSelector("h1:has-text('Postępy')");
+  await page.waitForSelector("svg.spark");
   const charts = await page.evaluate(() =>
     [...document.querySelectorAll("svg.spark")].map((el) => ({
       role: el.getAttribute("role"),

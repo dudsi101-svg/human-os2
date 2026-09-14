@@ -54,7 +54,7 @@ test("klient widzi Postępy zamiast Raportu, rekord z seedu i dopisuje pomiar", 
   await expect(page.getByRole("heading", { level: 1, name: "Raport tygodniowy" })).toBeVisible();
   await page.goto("/wiecej");
   await expect(page.getByRole("link", { name: /Raport tygodniowy/ })).toBeVisible();
-  await expect(page.getByRole("link", { name: /^Postępy$/ })).toBeVisible();
+  await expect(page.getByRole("main").getByRole("link", { name: /^Postępy$/ })).toBeVisible();
   // Stary adres /postepy prowadzi do nowej zakładki.
   await page.goto("/postepy");
   await expect(page).toHaveURL(/\/monitoring$/);
