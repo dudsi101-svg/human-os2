@@ -154,8 +154,54 @@ mutują pliki; po nich drzewo ma być czyste poza moimi zmianami.
 
 ## Odstępstwa od planu
 
-(uzupełniane w trakcie rundy)
+1. **16 kolumn w migracji 42 zamiast 15 z rezerwacji.** Doszła `tempo_json`.
+   Specyfikacja §6.3 wymaga zamrożenia wyniku w chwili liczenia; zakres
+   oczekiwanego tempa, realistyczny przyrost mięśni i czas do masy docelowej
+   dałoby się odtworzyć przy odczycie z `expected_weekly_change_kg` i wejść,
+   ale wtedy każda zmiana stałych zmieniałaby stare wyniki — czyli dokładnie
+   to, czego specyfikacja zabrania.
+2. **Etapy 2 i 3 poszły jednym commitem.** Definicje pytań (etap 3) musiały
+   wejść razem z silnikiem, bo bez nich moduł nie importuje się w ogóle
+   (`definicje.py` czyta stałe z silnika). Kolejność w planie była odwrotna;
+   praca ta sama.
+3. **Naprawa poza zakresem: martwy sygnał monitoringu.** `routers/postepy.py`
+   porównywał `inputs_json["cel"]` z wartością `"redukcja"`, której żaden
+   silnik nie zapisywał — sygnał „cel redukcja, a trend wagi w górę” nie
+   zapalił się nigdy, a test był zielony, bo wstawiał ten wiersz ręcznie.
+   Zrobione przy okazji, bo i tak zmieniał się kształt tego pola; gdyby nie
+   to, byłby to osobny wpis P2.
+4. **Poprawka do bramki dostępności.** `e2e/test_a11y.mjs` startował serwer
+   z katalogu tymczasowego, więc `python -m uvicorn` importował `dzik_os`
+   z zainstalowanego pakietu, a nie z bieżącego drzewa roboczego — test
+   sprawdzał aplikację sprzed zmian, nie mówiąc o tym ani słowem. Dołożone
+   `PYTHONPATH` z backendem tego drzewa (`e2e/serve.sh` robi to samo przez
+   `cd "$BACKEND"`). To zmiana w narzędziu współdzielonym — jawna, z powodem.
+5. **Cel dotyku w karcie bilansu.** Nowa sekcja 4c bramki dostępności złapała
+   przycisk „Skąd ta liczba?” o wysokości 38 px (klasa `btn--small`).
+   Podniesione do 44 px w obrębie tej karty.
+6. **Sprostowanie własnego wcześniejszego twierdzenia** (Karta §XII): dwa
+   pierwsze przebiegi testu dostępności w tej rundzie zaraportowałem jako
+   „przeszły”. Przeszły — ale na kodzie sprzed zmian, z powodu z punktu 4.
+   Dopiero przebiegi po tej poprawce coś znaczą.
 
 ## Plan kontra rzeczywistość
 
-(uzupełniane na koniec rundy — co trwało dłużej, co okazało się inne niż w rozpoznaniu)
+Pełna wersja z liczbami: `docs/calorie-interview/PROGRESS.md` §6. W skrócie:
+
+* **Etap 1 (silnik)** — zgodnie z planem. Wektory kontrolne przeszły za
+  pierwszym razem, bo liczby są przeniesione 1:1 z referencji właściciela,
+  a nie wyprowadzane ze specyfikacji.
+* **Etap 2 (model, migracja, API)** — **większy** niż planowano: doszła bramka
+  zgody zdrowotnej na flagi, której rozpoznanie nie przewidziało (zakładało,
+  że wystarczy istniejący filtr `hidden_for_client`).
+* **Etap 3 (pytania)** — **mniejszy**: formularz klienta renderuje się
+  z definicji serwera, więc pięć ekranów nie wymagało pracy po stronie
+  formularza. Doszedł za to filtr szkiców sprzed zmiany pytań.
+* **Etap 4 (interfejs)** — **mniejszy** z tego samego powodu: pracy wymagała
+  wyłącznie karta wyniku.
+* **Etap 5 (testy i dokumenty)** — zgodnie z planem.
+
+Cztery rzeczy, których rozpoznanie nie zauważyło: wspólna `WERSJA` definicji
+dla trzech typów wywiadu, limit trzech cyfr w walidacji liczb (kroki dzienne
+by nie przeszły), martwy sygnał monitoringu i to, że bramka dostępności
+testowała zainstalowany pakiet zamiast drzewa roboczego.

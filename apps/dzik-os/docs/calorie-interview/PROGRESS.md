@@ -98,6 +98,11 @@ przygotowane i nadpisuje opis), adaptacja kalorii z ważeń.
    to jest dokładnie pytanie otwarte ze specyfikacji §8, patrz niżej.
 5. **Trener nie ma przycisku „poproś o ponowne wypełnienie”** wywiadu
    kalorycznego; zachętę widzi tylko klient przy starym wyniku.
+6. **`.btn--small` ma w całej aplikacji 38 px wysokości**, czyli poniżej progu
+   44 px dla celu dotyku. W karcie bilansu podniesione punktowo; reszta
+   aplikacji zostaje bez zmian, bo to zmiana o zasięgu całego interfejsu
+   i osobna decyzja. Bramka dostępności sprawdza próg tylko dla nawigacji
+   i dla tej karty.
 
 ## 5. Pytania otwarte dla właściciela
 
@@ -131,6 +136,12 @@ przygotowane i nadpisuje opis), adaptacja kalorii z ważeń.
   silnik nie zapisywał. Sygnał nie zapalił się ani razu na produkcji, a test był
   zielony, bo wstawiał ten wiersz ręcznie. Naprawione przy okazji, bo i tak
   zmieniał się kształt tego pola.
+* **Bramka dostępności sprawdzała nie tę aplikację.** `e2e/test_a11y.mjs`
+  startuje serwer z katalogu tymczasowego, więc `python -m uvicorn` importował
+  `dzik_os` z zainstalowanego pakietu zamiast z bieżącego drzewa roboczego —
+  bez żadnego sygnału, że testuje kod sprzed zmian. Dołożone `PYTHONPATH`
+  (`e2e/serve.sh` robił to poprawnie przez `cd "$BACKEND"`). Dotyczyło to
+  każdej rundy pracującej w osobnym katalogu roboczym, nie tylko tej.
 
 ## 7. Koszt
 
