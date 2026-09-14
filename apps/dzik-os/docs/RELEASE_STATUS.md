@@ -1,6 +1,6 @@
 # Stan wydania — Dzik OS
 
-**Wersja:** 0.69.0 (po scaleniu PR #69; na produkcji 0.67.0 po wdrożeniu PR #68) · **Data:** 2026-09-14 · **Środowisko:** produkcja
+**Wersja:** 0.72.0 (PR #67, strona publiczna czerwono-biała — po decyzji właściciela o scaleniu; `main` 0.69.0 po PR #69; na produkcji 0.67.0 po wdrożeniu PR #68) · **Data:** 2026-09-14 · **Środowisko:** produkcja
 (pilotaż) — https://dzik-os-panel.fly.dev
 
 Jedna strona prawdy o tym, co DZIAŁA na produkcji teraz. Aktualizowana
@@ -9,6 +9,16 @@ dokumentów" — nieaktualny numer wersji czerwieni bramkę). Historia
 zmian: `CHANGELOG.md`; stan prac między sesjami: `STAN_PRZEKAZANIA.md`;
 decyzja jakościowa: `BRAMKA_GO_NOGO.md` (warunkowe GO na pilotaż
 z jednym klientem, NO-GO na szerszą produkcję).
+
+## Strona publiczna `/` (0.72.0)
+
+Wizytówka dla niezalogowanych w wariancie czerwono-białym (PR #67): treść,
+formularz zapytania (`POST /api/public/lead`, limiter 5/h, honeypot), notka
+RODO i `/prywatnosc` bez zmian względem 0.51.0–0.53.5; aplikacja po
+zalogowaniu, `/login`, ikony PWA i `og.png` nadal w ciemnym motywie
+z limonką. Bez poziomego przewijania na 1440/1024/768/390 (E2E), zrzuty
+w `docs/zrzuty/landing-czerwony/`. Do decyzji właściciela: znak marki
+w czerwieni wszędzie (etap 2) i treść kart demonstracyjnych w hero.
 
 ## Ścieżka wydania
 
