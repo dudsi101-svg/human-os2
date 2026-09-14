@@ -172,6 +172,10 @@ MATRIX: dict[tuple[str, str], Access] = {
     ("POST", "/api/clients/{client_id}/habits"): Access.CLIENT_SCOPED,
     ("PATCH", "/api/clients/{client_id}/habits/{habit_id}"): Access.CLIENT_SCOPED,
     ("POST", "/api/clients/{client_id}/habits/{habit_id}/complete"): Access.CLIENT_SCOPED,
+    # Dni treningowe (0.71.0): nakładka klienta na dni tygodnia planu.
+    ("GET", "/api/clients/{client_id}/plans/{plan_id}/dni"): Access.CLIENT_SCOPED,
+    ("PUT", "/api/clients/{client_id}/plans/{plan_id}/dni"): Access.CLIENT_SCOPED,
+    ("DELETE", "/api/clients/{client_id}/plans/{plan_id}/dni"): Access.CLIENT_SCOPED,
     ("GET", "/api/clients/{client_id}/strength-series"): Access.CLIENT_SCOPED,
     ("GET", "/api/clients/{client_id}/workouts"): Access.CLIENT_SCOPED,
     ("POST", "/api/clients/{client_id}/workouts"): Access.CLIENT_SCOPED,
@@ -335,6 +339,7 @@ MATRIX: dict[tuple[str, str], Access] = {
     ("GET", "/api/me/export.xlsx"): Access.AUTHENTICATED,
     ("GET", "/api/me/food-products"): Access.AUTHENTICATED,
     ("GET", "/api/me/knowledge"): Access.AUTHENTICATED,
+    ("POST", "/api/me/welcome-seen"): Access.AUTHENTICATED,
     ("GET", "/api/wiedza/artykuly"): Access.AUTHENTICATED,
     ("GET", "/api/wiedza/artykuly/{article_id}"): Access.AUTHENTICATED,
     ("POST", "/api/wiedza/odczyty/{article_id}"): Access.AUTHENTICATED,

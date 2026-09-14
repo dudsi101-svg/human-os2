@@ -1,6 +1,6 @@
 # Stan wydania — Dzik OS
 
-**Wersja:** 0.72.0 (PR #67, strona publiczna czerwono-biała — po decyzji właściciela o scaleniu; `main` 0.69.0 po PR #69; na produkcji 0.67.0 po wdrożeniu PR #68) · **Data:** 2026-09-14 · **Środowisko:** produkcja
+**Wersja:** 0.72.0 (PR #67, strona publiczna czerwono-biała — po decyzji właściciela o scaleniu; `main` 0.71.0 po PR #72; na produkcji 0.71.0 po wdrożeniu) · **Data:** 2026-09-14 · **Środowisko:** produkcja
 (pilotaż) — https://dzik-os-panel.fly.dev
 
 Jedna strona prawdy o tym, co DZIAŁA na produkcji teraz. Aktualizowana
@@ -93,6 +93,17 @@ opcjonalny input `test_email` wysyła wiadomość testową tą samą ścieżką
 co endpoint). Endpoint testowy admina/trenera za flagą, domyślnie
 wyłączony na produkcji. Plan i odstępstwa: `docs/plan-sesji/poczta-brevo.md`.
 
+## Powitanie po pierwszym logowaniu (0.70.0) — bez flagi, na produkcji od deployu
+
+Dwuetapowy samouczek na „Dzisiaj” dla klienta bez znacznika
+`users.welcome_seen_at` (migracja 37): pomoc, nie bramka — pomijalny
+(Esc / „Pomiń na razie”), nieblokujący, ponownie otwieralny z „Więcej →
+Pomoc / Samouczek”. Znacznik na serwerze (`POST /api/me/welcome-seen`,
+idempotentny), więc okno nie wraca na innym urządzeniu. Istniejący klienci
+na produkcji (bez znacznika po migracji) zobaczą je raz przy najbliższym
+wejściu na „Dzisiaj”. Szczegóły: `docs/CHANGELOG.md` 0.70.0,
+`docs/plan-sesji/powitanie-samouczek.md`.
+
 ## Wymiany produktów v2 (0.69.0) — w module szablonów diet (za flagą `DZIK_DIET_TEMPLATES_ENABLED`)
 
 Przycisk „↔ wymień” w diecie klienta daje zamienniki z tej samej grupy i z grup
@@ -125,6 +136,16 @@ historii sesji i pomiarów; idempotentny, wypisuje bliźniaki nazw
 ćwiczeń do decyzji trenera). Od włączenia rekordy liczą się przy każdym
 zapisie sesji. Szczegóły i sprawy otwarte: `docs/CHANGELOG.md` 0.66.0,
 `docs/plan-sesji/monitoring-postepy.md`, `docs/monitoring-tab/PROGRESS.md`.
+
+## Dni treningowe na „Dzisiaj” (0.71.0) — bez flagi, na produkcji od deployu
+
+Klient wybiera dni tygodnia dla jednostek planu (karta „Twoje dni treningowe”
+w zakładce Plan; prefill z propozycji trenera, powrót do propozycji jednym
+dotknięciem); „Dzisiaj” pokazuje jednostkę z dzisiejszego dnia albo kartę
+„ustaw dni”, gdy plan istnieje bez przypisań. Nakładka na plan — wersje
+nietknięte; trener widzi wybór (tylko odczyt). Migracja 38 (addytywna).
+Szczegóły: `docs/CHANGELOG.md` 0.71.0, `docs/plan-sesji/dni-treningowe.md`,
+`docs/dni-treningowe/PROGRESS.md`.
 
 ## Panel rozwojowy „Dzisiaj” (0.63.0) — bez flagi, na produkcji od deployu
 

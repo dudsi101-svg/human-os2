@@ -136,8 +136,8 @@ a.card:active, button.card:active { transform: scale(0.995); }
 }
 .card h2 svg, .card h3 svg { flex-shrink: 0; color: var(--accent); }
 /* Karta-link nawigacyjna (lista skrótów w „Więcej"). */
-a.card--nav { display: flex; align-items: center; gap: 12px; }
-a.card--nav svg { flex-shrink: 0; color: var(--accent); }
+a.card--nav, button.card--nav { display: flex; align-items: center; gap: 12px; font: inherit; color: var(--text); }
+a.card--nav svg, button.card--nav svg { flex-shrink: 0; color: var(--accent); }
 
 .list { display: flex; flex-direction: column; gap: 12px; }
 
@@ -987,6 +987,24 @@ table.simple th { color: var(--text-dim); font-weight: 600; font-size: 0.78rem; 
 
 /* Panel rozwojowy „Dzisiaj” (0.63.0): powitanie nad kartami. */
 .powitanie { font-family: var(--font-display); font-size: 1.35rem; font-weight: 600; margin: 4px 0 10px; }
+/* Powitanie po pierwszym logowaniu (0.70.0): okno nad ekranem — pomoc, nie
+   bramka. Karta jak każda inna (.card), tylko wyśrodkowana nad przyciemnionym
+   tłem; na telefonie przewija się w środku, nie chowa pod dolną nawigacją. */
+.powitanie-tlo {
+  position: fixed; inset: 0; z-index: 500; /* nad dolną nawigacją */
+  display: flex; align-items: center; justify-content: center;
+  padding: 16px; background: rgba(0, 0, 0, 0.55);
+}
+.powitanie-okno {
+  width: 100%; max-width: 440px; margin: 0;
+  max-height: calc(100dvh - 32px); overflow-y: auto;
+}
+.powitanie-okno h2 { font-size: 1.15rem; margin: 4px 0 10px; outline: none; }
+.powitanie-okno h2:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+.powitanie-okno p { margin: 0 0 10px; font-size: 0.92rem; }
+.powitanie-okno ol, .powitanie-okno ul { margin: 0 0 12px; padding-left: 20px; font-size: 0.92rem; }
+.powitanie-okno li { margin: 6px 0; }
+.powitanie-okno .btn + .btn { margin-top: 8px; }
 
 /* --- Postępy / Monitoring (0.66.0): kafelki tygodnia, kropki dni, słupki, heatmapa.
    Trzy osie postępu, bez czerwieni i bez porównań między ludźmi. --- */

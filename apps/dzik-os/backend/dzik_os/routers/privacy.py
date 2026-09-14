@@ -48,6 +48,7 @@ from ..models import (
     OnboardingSummaryItem,
     PaymentRecord,
     PaymentSchedule,
+    PlanWeekdayChoice,
     ProfileField,
     ProgressPhoto,
     PushSubscription,
@@ -364,8 +365,10 @@ def _collect_export(db: Session, user: User) -> dict:
     # ale klient ma prawo je zobaczyć w eksporcie.
     exercise_records = _rows(db, ExerciseRecord, client_id=client_id)
     training_week_aggregates = _rows(db, TrainingWeekAggregate, client_id=client_id)
+    # Dni treningowe (0.71.0): wybór dni tygodnia klienta dla jednostek planu.
+    plan_weekday_choices = _rows(db, PlanWeekdayChoice, client_id=client_id)
     return {
-        "export_version": "1.9",
+        "export_version": "2.0",
         "user": {
             "id": user.id, "email": user.email, "display_name": user.display_name,
             "identity_id": user.identity_id, "created_at": user.created_at,
@@ -416,6 +419,7 @@ def _collect_export(db: Session, user: User) -> dict:
         "habit_completions": habit_completions,
         "exercise_records": exercise_records,
         "training_week_aggregates": training_week_aggregates,
+        "plan_weekday_choices": plan_weekday_choices,
     }
 
 
@@ -628,6 +632,8 @@ def request_deletion(
     # Postępy (0.66.0): rekordy i agregaty to dane pochodne — znikają w całości.
     db.query(ExerciseRecord).filter(ExerciseRecord.client_id == client_id).delete()
     db.query(TrainingWeekAggregate).filter(TrainingWeekAggregate.client_id == client_id).delete()
+    # Dni treningowe (0.71.0): wybór dni klienta znika razem z kontem.
+    db.query(PlanWeekdayChoice).filter(PlanWeekdayChoice.client_id == client_id).delete()
     # Klucze idempotencji (metadane operacyjne z identyfikatorami zapisów)
     # znikają razem z kontem.
     db.query(IdempotencyKey).filter(IdempotencyKey.user_id == client_id).delete()

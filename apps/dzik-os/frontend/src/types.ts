@@ -435,13 +435,40 @@ export interface TodayData {
     day_index: number;
     day: PlanDay;
     done_today: boolean;
+    /** Skąd dzień tygodnia (0.71.0): układ klienta albo propozycja trenera. */
+    weekday_source: "client" | "coach";
   } | null;
+  /** Plan istnieje, ale nic nie wypada / wybór jest nieaktualny (0.71.0). */
+  workout_hint: { kind: "no_weekdays" | "stale"; plan_id: string } | null;
   nutrition: { plan_id: string; title: string; kcal: number | null; protein_g: number | null; fat_g: number | null; carbs_g: number | null } | null;
   schedule: { id: string; name: string; category: string; time_of_day: string | null; instruction: string | null; done_today: boolean }[];
   reminders: { id: string; text: string; due_date: string }[];
   checkin_due: string | null;
   next_payment: { record_id: string; due_date: string; amount_cents: number; currency: string; status: string; package_name: string | null; external_link: string | null } | null;
   last_coach_message: { thread_id: string; body: string; created_at: string; unread: boolean } | null;
+  /** Powitanie po pierwszym logowaniu (0.70.0): false = pokaż samouczek. */
+  welcome_seen: boolean;
+}
+
+/** Dni treningowe (0.71.0): `GET/PUT/DELETE /api/clients/{id}/plans/{plan_id}/dni`. */
+export interface DniPlanuDzien {
+  day_key: string;
+  day_index: number;
+  name: string;
+  coach_weekday: number | null;
+  weekday: number | null;
+}
+
+export interface DniPlanu {
+  plan_id: string;
+  plan_title: string;
+  version_no: number | null;
+  source: "client" | "coach" | "none";
+  days: DniPlanuDzien[];
+  stale_keys: string[];
+  author_id: string | null;
+  author_note: string | null;
+  updated_at: string | null;
 }
 
 export interface CoachClientRow {

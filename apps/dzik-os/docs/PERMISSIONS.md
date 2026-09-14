@@ -108,6 +108,7 @@ domeny endpointu (`sensitive` wynika z katalogu kategorii).
 | POST /api/schedule; POST /api/schedule/{item_id}/status | W, T | harmonogram jednego klienta (`item.client_id`) | T: tak | T: tak | W |
 | GET /api/clients/{id}/schedule, /reminders | W, T | harmonogram/przypomnienia klienta | T: tak | T: tak | R |
 | GET /api/clients/{id}/habits; POST …/habits; PATCH …/habits/{habit_id}; POST …/habits/{habit_id}/complete (0.63.0) | W, T | nawyki klienta (domena danych treningowych, jak harmonogram); nawyk innego klienta pod tym `client_id` = 404 z audytem; trener z dostępem może odhaczyć/cofnąć dzień klienta (wspólne uzupełnianie, `created_by` = trener); GET utrwala stan pochodny GRADUATED (idempotentnie); notatkę zmienia tylko jej autor | T: tak | T: tak | R/W |
+| GET/PUT/DELETE /api/clients/{id}/plans/{plan_id}/dni (0.71.0) | W, T | dni tygodnia klienta dla jednostek planu (nakładka; wersje planu nietknięte; domena danych treningowych jak nawyki); `plan_id` musi należeć do `client_id` — cudzy plan albo szablon = 404 z audytem; trener z dostępem może zapisać wybór (`author_id` = trener); DELETE = powrót do propozycji trenera | T: tak | T: tak | R/W |
 | POST /api/reminders | T | przypomnienie dla własnego klienta | tak | tak | W |
 | POST /api/checkins | CLIENT (self) | wyłącznie własny raport | — | — | W |
 | GET /api/clients/{id}/checkins; GET /api/checkins/{checkin_id}/revisions | W, T | raporty jednego klienta (`checkin.client_id`) | T: tak | T: tak | R |
@@ -137,7 +138,8 @@ domeny endpointu (`sensitive` wynika z katalogu kategorii).
 | GET/POST /api/me/consents; /consents/{id}/confirm, /revoke | podmiot danych | wyłącznie własne zgody | — | — | R/W |
 | GET /api/me/export, /api/me/export.xlsx | zalogowany | wyłącznie własne dane | — | — | R |
 | POST /api/me/deletion-request | CLIENT (self, hasło+fraza) | własne konto; kończy relacje, cofa zgody, unieważnia sesje | — | — | W |
-| GET /api/me/today | CLIENT (self) | agregat własnego dnia | — | — | R |
+| GET /api/me/today | CLIENT (self) | agregat własnego dnia (od 0.70.0 także `welcome_seen`) | — | — | R |
+| POST /api/me/welcome-seen (0.70.0) | zalogowany | znacznik obejrzenia okna powitalnego na własnym koncie (`users.welcome_seen_at`); idempotentny — kolejne wywołania nie zmieniają daty; znacznik interfejsu (jak `last_login_at`) — poza eksportem danych | — | — | W |
 | POST /api/clients/{id}/schedule/{item_id}/complete | W, T | odhaczenie; `item.client_id` musi się zgadzać | T: tak | T: tak | W |
 | POST/GET /api/clients/{id}/observations | W, T | obserwacje klienta (`schedule_item_id` musi należeć do klienta) | T: tak | T: tak | R/W |
 | POST/GET /api/clients/{id}/nutrition-log; GET /monitoring | W, T | dziennik/monitoring klienta | T: tak | T: tak | R/W |

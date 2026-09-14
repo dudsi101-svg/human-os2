@@ -66,6 +66,12 @@ class User(Base):
     # aplikacji (DZIK_TZ). Odczytywana przez dates.tz_for_user() — steruje
     # datami kalendarzowymi i porami przypomnień (migracja nr 14).
     timezone: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    # Znacznik obejrzenia okna powitalnego (0.70.0): data pierwszego zamknięcia
+    # dwuetapowego samouczka („Pomiń na razie” albo „Rozumiem, zaczynajmy”).
+    # NULL = jeszcze nie pokazane. Trzymany na serwerze, żeby działał między
+    # urządzeniami; znacznik interfejsu jak last_login_at — nie wchodzi do
+    # eksportu danych (migracja nr 37).
+    welcome_seen_at: Mapped[str | None] = mapped_column(String(40), nullable=True)
 
 
 class RoleGrant(Base):
@@ -2120,3 +2126,25 @@ class TrainingWeekAggregate(Base):
     sets_by_group_json: Mapped[str] = mapped_column(Text, default="{}")
     session_days_json: Mapped[str] = mapped_column(Text, default="[]")
     updated_at: Mapped[str] = mapped_column(String(40), default=now_iso)
+
+
+class PlanWeekdayChoice(Base):
+    """Dni treningowe (0.71.0): nakładka klienta na dni tygodnia planu
+    trenera — jeden wiersz per (klient, plan). `choices_json` = lista
+    `{day_key, weekday|null}` (klucz = `day.id` wersji albo `idx:<n>`).
+    Wersje planu pozostają niemutowalne; to preferencja klienta, nadpisywana
+    kolejnym zapisem (zdarzenie audytu `PLAN_WEEKDAYS_SET` zostaje).
+    `author_id` = klient albo trener z relacją i zgodą."""
+
+    __tablename__ = "plan_weekday_choices"
+    __table_args__ = (UniqueConstraint("client_id", "plan_id"),)
+
+    id: Mapped[str] = mapped_column(String(40), primary_key=True)
+    client_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
+    plan_id: Mapped[str] = mapped_column(ForeignKey("training_plans.id"), index=True)
+    choices_json: Mapped[str] = mapped_column(Text, default="[]")
+    author_id: Mapped[str] = mapped_column(String(40))
+    author_note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[str] = mapped_column(String(40), default=now_iso)
+    updated_at: Mapped[str] = mapped_column(String(40), default=now_iso)
+    version: Mapped[int] = mapped_column(Integer, default=1)

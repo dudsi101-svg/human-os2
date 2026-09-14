@@ -291,7 +291,7 @@ def test_eksport_i_usuniecie_konta_obejmuja_rekordy_i_agregaty(seeded):
     ha = login(seeded, CLIENT_A)
     cid = get_user_id(seeded, ha)
     ex = seeded.get("/api/me/export", headers=ha).json()
-    assert ex["export_version"] == "1.9" and len(ex["exercise_records"]) > 0 and len(ex["training_week_aggregates"]) > 0
+    assert ex["export_version"] == "2.0" and len(ex["exercise_records"]) > 0 and len(ex["training_week_aggregates"]) > 0
     r = seeded.post("/api/me/deletion-request", headers=ha,
                     json={"password": CLIENT_A["password"], "confirm": "USUŃ MOJE DANE"})
     assert r.status_code in (200, 202), r.text

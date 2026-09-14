@@ -8,6 +8,7 @@ import {
 import { CATEGORY_LABELS, ConsultSlotRow, TodayData } from "../../types";
 import { powitanie } from "../../powitanie";
 import PanelNawykow from "../nawyki/PanelNawykow";
+import Powitanie from "./Powitanie";
 
 export default function Today() {
   const [data, setData] = useState<TodayData | null>(null);
@@ -20,6 +21,11 @@ export default function Today() {
   // pierwszym wysłanym raporcie i tylko, jeśli wywiad nigdy nie ruszył.
   const [inviteInterview, setInviteInterview] = useState(false);
   const [interviewDismissed, setInterviewDismissed] = useState(false);
+  // Samouczek (0.70.0): zamknięty w tej sesji widoku od razu znika; znacznik
+  // idzie na serwer w tle (POST idempotentny) — błąd sieci nie wraca oknem
+  // w tej samej chwili, a przy następnym wejściu okno po prostu pokaże się
+  // ponownie (pomoc, nie bramka).
+  const [welcomeClosed, setWelcomeClosed] = useState(false);
   const user = getUser();
 
   const load = useCallback(() => {
@@ -87,12 +93,20 @@ export default function Today() {
     }
   }
 
+  function closeWelcome() {
+    setWelcomeClosed(true);
+    api.post("/api/me/welcome-seen").catch(() => undefined);
+  }
+
   if (error) return <div className="page"><ErrorBox error={error} onRetry={load} /></div>;
   if (!data) return <div className="page"><Spinner /></div>;
 
   return (
     <div className="page">
       <TopBar title="Dzisiaj" />
+      {!data.welcome_seen && !welcomeClosed && (
+        <Powitanie imie={data.greeting_name} onZamknij={closeWelcome} />
+      )}
       {/* Panel rozwojowy (0.63.0): powitanie → hasło dnia → nawyki. */}
       <p className="powitanie" data-testid="powitanie">{powitanie(new Date().getHours(), data.greeting_name)}</p>
       <div className="card card--accent" style={{ marginBottom: 10 }} data-testid="haslo-dnia">
@@ -153,13 +167,19 @@ export default function Today() {
           </p>
         </Link>
       )}
+      {data.workout_hint?.kind === "stale" && (
+        <p className="alert alert--info" role="status" data-testid="dni-nieaktualne">
+          Plan się zmienił — <Link to="/plan">sprawdź dni tygodnia</Link>.
+        </p>
+      )}
       {data.workout ? (
-        <div className="card card--accent">
+        <div className="card card--accent" data-testid="trening-dzis">
           <div className="row row--between">
             <h2><Icon name="plan" /> {data.workout.day.name}</h2>
             <span className="badge badge--accent">plan v{data.workout.version_no}</span>
           </div>
-          <small>{data.workout.plan_title}</small>
+          <small>{data.workout.plan_title} · <span data-testid="zrodlo-dnia">
+            {data.workout.weekday_source === "client" ? "Twój wybór" : "propozycja trenera"}</span></small>
           <div style={{ marginTop: 8 }}>
             {data.workout.day.exercises.map((ex, i) => (
               <div className="exercise" key={i}>
@@ -188,6 +208,16 @@ export default function Today() {
               </button>
             )}
           </div>
+        </div>
+      ) : data.workout_hint?.kind === "no_weekdays" ? (
+        // Dni treningowe (0.71.0): plan jest, ale żadna jednostka nie ma dnia —
+        // system nie zgaduje za człowieka, tylko prowadzi do wyboru.
+        <div className="card card--accent" data-testid="ustaw-dni">
+          <h2><Icon name="calendar" /> Masz plan, ale nie wybrałeś dni tygodnia</h2>
+          <p className="dim" style={{ margin: "4px 0 8px", fontSize: "0.85rem" }}>
+            Wybierz, w które dni robisz poszczególne jednostki — trening z dzisiejszego dnia pojawi się tutaj.
+          </p>
+          <Link to="/plan" className="btn btn--small">Ustaw dni tygodnia</Link>
         </div>
       ) : (
         <div className="card">
