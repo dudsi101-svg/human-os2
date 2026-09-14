@@ -47,6 +47,11 @@ gałąź `agent/biblioteka-diet`, migracja 35 — addytywna).**
   białka chudego; skyr przy wykluczeniu laktozy ma teraz zamienniki
   bezlaktozowe). Testy API/seedu/silnika dostosowane do nowych danych
   referencyjnych (zmiana referencji, nie asercji „pod wynik”).
+* Seed biblioteki wsadowo (cztery paczki INSERT na odsłonę zamiast flush
+  po każdym wierszu) i nowa zmienna `DZIK_DIET_SEED_ON_STARTUP`
+  (domyślnie włączona; testy backendu ją wyłączają, bo każdy test startuje
+  aplikację na świeżej bazie — pełny import 45 odsłon przy 1,8 tys.
+  testów trwałby na PostgreSQL godziny).
 * Bez zmian: flaga `DZIK_DIET_TEMPLATES_ENABLED` (na produkcji wyłączona),
   stary kreator diet, migawki przypisanych diet, AI.
 ## 0.63.0 — 2026-09-14

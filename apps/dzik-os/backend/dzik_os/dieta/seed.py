@@ -245,7 +245,6 @@ def zaimportuj_szablon(db: Session, dane: dict[str, Any], *, created_by: str | N
                              base_p_pct=float(pct[0]), base_f_pct=float(pct[1]), base_c_pct=float(pct[2]),
                              diet_tags=",".join(dane.get("diet_tags", [])))
         db.add(profil)
-        db.flush()
     skrot = hashlib.sha256(json.dumps(dane, sort_keys=True, ensure_ascii=False).encode("utf-8")).hexdigest()
     istn = db.query(DietTemplateWeek).filter_by(profile_id=profil.id, variant_no=int(dane["variant"])).one_or_none()
     if istn is not None and (not replace or istn.source_hash in (skrot, EDYCJA_PANELU)):
@@ -294,11 +293,18 @@ def zaimportuj_szablon(db: Session, dane: dict[str, Any], *, created_by: str | N
     week.sodium_note = dane.get("sodium_note") or ""
     week.audit_json = json.dumps(dane.get("audit") or {}, ensure_ascii=False)
     week.source_hash = skrot
+    # Identyfikatory nadaje aplikacja (new_id), więc wystarczą cztery flushe na
+    # odsłonę (odsłona → dni → posiłki → składniki; bez relacji ORM unit-of-work
+    # nie zna kolejności kluczy obcych). Bez flush po każdym dniu/posiłku import
+    # 45 odsłon (1295 posiłków) to cztery paczki INSERT-ów na odsłonę, a nie
+    # tysiące rund do bazy — na PostgreSQL różnica rzędu minut na każdy start.
     db.flush()
+    dni: list[DietTemplateDay] = []
+    posilki: list[DietTemplateMeal] = []
+    skladniki: list[DietTemplateIngredient] = []
     for d in dane["days"]:
         day = DietTemplateDay(id=new_id("DTD"), week_id=week.id, day_no=int(d["day"]))
-        db.add(day)
-        db.flush()
+        dni.append(day)
         for mi, m in enumerate(d["meals"]):
             meal = DietTemplateMeal(
                 id=new_id("DTM"), day_id=day.id, position=mi, slot=m["slot"], name=m["name"],
@@ -307,18 +313,19 @@ def zaimportuj_szablon(db: Session, dane: dict[str, Any], *, created_by: str | N
                 tags=",".join(m.get("tags", []) or []),
                 allergens=",".join(m.get("allergens", []) or []),
             )
-            db.add(meal)
-            db.flush()
+            posilki.append(meal)
             for ii, i in enumerate(m["ingredients"]):
                 role = i.get("role", "NONE")
-                db.add(DietTemplateIngredient(
+                skladniki.append(DietTemplateIngredient(
                     id=new_id("DTI"), meal_id=meal.id, position=ii, product_id=produkty[i["product"]].id,
                     base_grams=float(i["grams"]), scaling_class=i.get("class"), macro_role=role,
                     min_factor=i.get("min_factor"), max_factor=i.get("max_factor"), round_step=i.get("round_step"),
                     unit_g=i.get("unit_g"), unit_step=i.get("unit_step"), group_name=i.get("group"),
                     swappable=bool(i.get("swappable", role in ("P", "C", "F"))),
                 ))
-    db.flush()
+    for paczka in (dni, posilki, skladniki):
+        db.add_all(paczka)
+        db.flush()
     return week, istn is None
 
 

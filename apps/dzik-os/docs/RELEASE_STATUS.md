@@ -106,7 +106,9 @@ Po audycie 14.09: 45 odsłon (9 profili × 5), 181 produktów, silnik v1.1
 (limity porcji), notatki autora (suplementacja, sód, pochodzenie) i
 alergeny posiłków w podglądzie trenera i widoku klienta, sweep w zakresie
 odsłony, seed zastępujący po skrócie pliku (migawki nietknięte).
-Migracja 35 (kolumny addytywne). Stan: `docs/diet-module/PROGRESS.md`.
+Migracja 35 (kolumny addytywne). Seed przy starcie: `DZIK_DIET_SEED_ON_STARTUP`
+(domyślnie włączony; wyłączany tylko w testach backendu). Stan:
+`docs/diet-module/PROGRESS.md`.
 
 ## Szablony diet ze skalowaniem (0.60.0) — za flagą, na produkcji WYŁĄCZONE
 

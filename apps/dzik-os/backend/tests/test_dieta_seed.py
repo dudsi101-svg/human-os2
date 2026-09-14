@@ -26,11 +26,11 @@ def zaseedowane(client):
 
 
 def test_seed_laduje_181_produktow_i_45_odslon_1295_posilkow(zaseedowane):
-    # Aplikacja seeduje przy starcie (flaga włączona w testach) — jawne
-    # wywołanie w fixturze niczego nie dokłada; liczby końcowe są stałe
-    # (biblioteka po audycie 14.09: 9 profili × 5 odsłon).
-    assert zaseedowane["produkty_dodane"] == 0 and zaseedowane["szablony_nowe"] == 0
-    assert zaseedowane["szablony_podmienione"] == 0
+    # W testach aplikacja NIE seeduje biblioteki przy starcie (conftest:
+    # DZIK_DIET_SEED_ON_STARTUP=false) — fixture robi pierwszy import; liczby
+    # końcowe są stałe (biblioteka po audycie 14.09: 9 profili × 5 odsłon).
+    assert zaseedowane["produkty_dodane"] == 181 and zaseedowane["szablony_nowe"] == 45
+    assert zaseedowane["szablony_podmienione"] == 0 and zaseedowane["szablony_pominiete"] == 0
     with SessionLocal() as db:
         assert db.query(DietProduct).count() == 181
         assert db.query(DietProfile).count() == 9
@@ -55,19 +55,20 @@ def test_seed_laduje_181_produktow_i_45_odslon_1295_posilkow(zaseedowane):
 
 
 def test_powtorny_seed_nie_dubluje(client):
-    """Świeża baza z seedem startowym aplikacji + dwa jawne uruchomienia:
-    181 produktów i 45 odsłon, bez duplikatów."""
+    """Świeża baza + dwa jawne uruchomienia: 181 produktów i 45 odsłon,
+    bez duplikatów; drugi przebieg niczego nie dokłada ani nie podmienia."""
     with db_session() as db:
         r1 = seed.zaseeduj(db)
     with db_session() as db:
         r2 = seed.zaseeduj(db)
-    assert r1["produkty_dodane"] == 0 and r2["produkty_dodane"] == 0 and r2["szablony_nowe"] == 0
+    assert r1["produkty_dodane"] == 181 and r1["szablony_nowe"] == 45
+    assert r2["produkty_dodane"] == 0 and r2["szablony_nowe"] == 0 and r2["szablony_podmienione"] == 0
     with SessionLocal() as db:
         assert db.query(DietProduct).count() == 181 and db.query(DietTemplateWeek).count() == 45
         assert db.query(DietTemplateMeal).count() == 1295
 
 
-def test_zmieniony_plik_podmienia_tresc_bez_ruszania_migawek(client):
+def test_zmieniony_plik_podmienia_tresc_bez_ruszania_migawek(zaseedowane):
     """Odsłona z innym skrótem pliku dostaje nową treść pod tym samym id;
     liczba odsłon bez zmian; przypisana dieta (migawka) nietknięta."""
     dane = json.loads(seed._szablon("template_standard_v1.json"))
@@ -165,3 +166,20 @@ def test_sweep_calej_biblioteki_kazda_odslona_publikowalna(zaseedowane):
             if r.get("error") or not r["publishable"]:
                 slabe.append((w.name, r.get("error"), r["days_ok"], r["days"]))
     assert slabe == [], slabe
+
+
+def test_start_aplikacji_seeduje_biblioteke(client, monkeypatch):
+    """Ścieżka produkcyjna: przy DZIK_DIET_SEED_ON_STARTUP (domyślnie włączone)
+    start aplikacji ładuje bibliotekę; w testach conftest ją wyłącza."""
+    from fastapi.testclient import TestClient
+
+    from dzik_os.config import settings
+    from dzik_os.main import app
+
+    with SessionLocal() as db:
+        assert db.query(DietTemplateWeek).count() == 0
+    monkeypatch.setattr(settings, "diet_seed_on_startup", True)
+    with TestClient(app):
+        pass
+    with SessionLocal() as db:
+        assert db.query(DietTemplateWeek).count() == 45 and db.query(DietProduct).count() == 181

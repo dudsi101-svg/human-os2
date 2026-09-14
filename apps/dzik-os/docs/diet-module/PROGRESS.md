@@ -255,6 +255,12 @@ slotu z etykietą; komunikat notatek jako `section` z tytułem i zastrzeżeniem 
 odznaki alergenów zamiast wygaszonego tekstu; stała `KCAL_D1_2000` i komentarze przy
 zmianach referencyjnych; nazwa testu skyru; test 403 klienta na `/templates` i brak
 `audit_json`/`source_hash` w odpowiedziach.
+**Po CI (backend-postgres > 45 min):** każdy test startował aplikację na świeżej bazie
+i importował 45 odsłon (SQLite 1,5 s/test, PostgreSQL wielokrotnie więcej — job „wisiał”).
+Naprawa: `DZIK_DIET_SEED_ON_STARTUP=false` w conftest (testy diety seedują jawnie, ścieżkę
+startową sprawdza `test_start_aplikacji_seeduje_biblioteke` i E2E) oraz import wsadowy
+(4 flushe na odsłonę zamiast ~200). Wniosek do zasad: seed przy starcie liczyć „× liczba
+testów”, zanim trafi do `main.py`.
 **P2 odnotowane:** notatki nie są w migawce (klient z wcześniej przypisaną dietą po podmianie
 widzi nowe notatki przy starym planie) — do rozważenia kopiowanie do migawki; współbieżny
 seed na dwóch maszynach Fly przy rolling deploy → `IntegrityError` i rollback jednej
