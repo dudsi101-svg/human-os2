@@ -368,7 +368,7 @@ def _collect_export(db: Session, user: User) -> dict:
     # Dni treningowe (0.71.0): wybór dni tygodnia klienta dla jednostek planu.
     plan_weekday_choices = _rows(db, PlanWeekdayChoice, client_id=client_id)
     return {
-        "export_version": "2.0",
+        "export_version": "2.1",
         "user": {
             "id": user.id, "email": user.email, "display_name": user.display_name,
             "identity_id": user.identity_id, "created_at": user.created_at,
@@ -551,6 +551,8 @@ def request_deletion(
         ws.pain_note = None
         for we in db.query(WorkoutEntry).filter(WorkoutEntry.session_id == ws.id).all():
             we.comment = None
+            # Tętno średnie z sesji cardio (0.73.0) to dana zdrowotna — znika razem z treścią.
+            we.avg_hr = None
     for doc in db.query(Document).filter(Document.client_id == client_id).all():
         doc.title = "[usunięto]"
         doc.status = "ARCHIVED"

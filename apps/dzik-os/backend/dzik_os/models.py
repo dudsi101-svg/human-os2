@@ -295,6 +295,15 @@ class WorkoutEntry(Base):
     sets_json: Mapped[str | None] = mapped_column(Text, nullable=True)
     comment: Mapped[str | None] = mapped_column(Text, nullable=True)
     file_id: Mapped[str | None] = mapped_column(ForeignKey("files.id"), nullable=True)
+    # --- Cardio (migracja nr 39; wszystkie pola opcjonalne — wpisy siłowe
+    # sprzed rundy mają NULL). Wpis cardio nie ma serii: czas, RPE (CR10),
+    # tętno średnie (dana zdrowotna klienta o sobie), dystans i urządzenie
+    # wybrane w dniu treningu. Rekordy osobiste pomijają te wpisy.
+    duration_min: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    avg_hr: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    rpe: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    distance_km: Mapped[float | None] = mapped_column(Float, nullable=True)
+    machine: Mapped[str | None] = mapped_column(String(40), nullable=True)
 
 
 class NutritionPlan(Base):
@@ -2148,3 +2157,30 @@ class PlanWeekdayChoice(Base):
     created_at: Mapped[str] = mapped_column(String(40), default=now_iso)
     updated_at: Mapped[str] = mapped_column(String(40), default=now_iso)
     version: Mapped[int] = mapped_column(Integer, default=1)
+
+
+class ExerciseBlock(Base):
+    """Blok rozgrzewki albo rozciągania (0.73.0) — byt katalogowy trenera,
+    broadcast jak `Exercise` (nie dane klienta). `kind` WARMUP/STRETCH,
+    `level` (POCZATKUJACY/SREDNIOZAAWANSOWANY/ZAAWANSOWANY; NULL dla
+    rozciągania — bez poziomów), `variant` G/D/C (góra/dół/całe ciało),
+    `items_json` = lista `{exercise_id|null, name, dose, note}`. Pozycja
+    planu niesie migawkę treści bloku, więc archiwizacja (`status`
+    ARCHIVED, nigdy kasowanie) nie psuje planów. `source` mówi, skąd
+    treść: „wbudowany — do przeglądu trenera” albo „trener”."""
+
+    __tablename__ = "exercise_blocks"
+
+    id: Mapped[str] = mapped_column(String(40), primary_key=True)
+    coach_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
+    kind: Mapped[str] = mapped_column(String(20))
+    level: Mapped[str | None] = mapped_column(String(30), nullable=True)
+    variant: Mapped[str] = mapped_column(String(4))
+    name: Mapped[str] = mapped_column(String(300))
+    duration_min: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    items_json: Mapped[str] = mapped_column(Text, default="[]")
+    source: Mapped[str] = mapped_column(String(120), default="trener")
+    status: Mapped[str] = mapped_column(String(20), default="ACTIVE")  # ACTIVE/ARCHIVED
+    created_by: Mapped[str] = mapped_column(String(40))
+    created_at: Mapped[str] = mapped_column(String(40), default=now_iso)
+    updated_at: Mapped[str] = mapped_column(String(40), default=now_iso)

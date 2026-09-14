@@ -45,7 +45,7 @@ from ..models import (
     new_id,
     now_iso,
 )
-from ..schemas import NutritionVersionIn, PlanVersionIn
+from ..schemas import NutritionVersionIn, PlanVersionIn, dni_do_zapisu
 from ..wiedza import slad as wiedza_slad
 from . import elementy, roznice
 
@@ -212,7 +212,7 @@ def _waliduj(plan_kind: str, tresc: dict[str, Any]) -> dict[str, Any]:
             if not dni:
                 raise BladPublikacji("plan bez dni treningowych — zakończ plan archiwizacją zamiast publikować pusty")
             w = PlanVersionIn(reason="-", days=dni)
-            return {"days": [d.model_dump() for d in w.days]}
+            return {"days": dni_do_zapisu(w.days)}
         w = NutritionVersionIn(
             reason="-", kcal=tresc.get("kcal"), protein_g=tresc.get("protein_g"),
             fat_g=tresc.get("fat_g"), carbs_g=tresc.get("carbs_g"),
@@ -300,6 +300,9 @@ def publikuj(db: Session, szkic: PlanDraft, *, coach: User, revision: int, base_
         if szkic.plan_kind == "training":
             wiedza_slad.slad_wersji_trenera(db, owner_id=plan.client_id, plan_id=plan.id,
                                             plan_revision=nowy_nr, reason=powod)
+            # Cardio (0.73.0): ślad H_CARDIO per pozycja cardio, ta sama transakcja.
+            wiedza_slad.slady_cardio(db, owner_id=plan.client_id, plan_id=plan.id,
+                                     plan_revision=nowy_nr, content=do_zapisu)
         else:
             wiedza_slad.slady_diety_trenera(db, owner_id=plan.client_id, plan_id=plan.id,
                                             plan_revision=nowy_nr, content=do_zapisu, reason=powod)

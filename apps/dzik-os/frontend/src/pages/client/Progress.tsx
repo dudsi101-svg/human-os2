@@ -17,6 +17,7 @@ import {
 import {
   CATEGORY_LABELS,
   KIND_LABELS,
+  KIND_UNITS,
   MeasurementRow,
   MonitoringData,
   OBSERVATION_CATEGORY_LABELS,
@@ -101,7 +102,7 @@ export default function Progress() {
             <label htmlFor="m-kind">Rodzaj</label>
             <select id="m-kind" value={kind} onChange={(e) => {
               setKind(e.target.value);
-              setUnit(e.target.value === "weight" ? "kg" : "cm");
+              setUnit(KIND_UNITS[e.target.value] ?? "cm");
             }}>
               {Object.entries(KIND_LABELS).map(([k, v]) => (
                 <option key={k} value={k}>{v}</option>

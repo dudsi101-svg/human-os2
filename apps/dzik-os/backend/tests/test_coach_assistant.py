@@ -628,6 +628,8 @@ def test_migracja_23_na_starej_bazie(tmp_path):
                               "VALUES (:v, 'stub')"), {"v": version})
         conn.execute(text(
             "CREATE TABLE users (id VARCHAR(40) PRIMARY KEY, email VARCHAR(200))"))
+        # Stub dla migracji nr 39 (pola cardio w dzienniku: workout_entries).
+        conn.execute(text("CREATE TABLE workout_entries (id VARCHAR(40) PRIMARY KEY)"))
         conn.execute(text("INSERT INTO users(id, email) VALUES ('U1', 'a@example.com')"))
         # Migracja nr 24 (import biblioteki ćwiczeń) dokłada kolumny do
         # `exercises`, więc stara baza musi mieć tę tabelę, żeby domknąć

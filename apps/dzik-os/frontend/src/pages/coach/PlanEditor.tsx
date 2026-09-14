@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useRef, useState } from "react";
+import { FormEvent, Suspense, lazy, useEffect, useRef, useState } from "react";
 import { api } from "../../api";
 import { WEEKDAYS } from "../../dates";
 import { ErrorBox, ExerciseFilterBar, Spinner } from "../../components";
@@ -19,15 +19,49 @@ import OcrCapture from "../../OcrCapture";
 import PlanAssistant from "../../PlanAssistant";
 import { appendDays, snapshot } from "../../assistantUtils";
 import { linesToExerciseNames } from "../../ocrUtils";
+import { KIND_BADGE, opisPozycji, rodzajPozycji } from "../../pozycje";
 import {
+  BLOCK_VARIANT_LABELS,
   EXERCISE_LEVEL_LABELS,
   Exercise,
+  ExerciseBlockRow,
   ExerciseLibraryItem,
   ExerciseListResponse,
   PlanDay,
   TrainingPlan,
   muscleLabels,
 } from "../../types";
+
+// Cardio z suwakami (0.73.0) — panel doładowywany dopiero po kliknięciu (budżet bundla).
+const CardioPanel = lazy(() => import("./CardioPanel"));
+
+/** Wybór bloku rozgrzewki/rozciągania z katalogu trenera → pozycja z migawką treści. */
+function WyborBloku({ kind, bloki, onPick, onClose }: {
+  kind: "WARMUP" | "STRETCH"; bloki: ExerciseBlockRow[]; onPick: (b: ExerciseBlockRow) => void; onClose: () => void;
+}) {
+  const lista = bloki.filter((b) => b.kind === kind && b.status === "ACTIVE");
+  return (
+    <div className="card" style={{ marginTop: 8 }} data-testid={`wybor-bloku-${kind}`}>
+      <div className="row row--between">
+        <b>{kind === "WARMUP" ? "Rozgrzewka" : "Rozciąganie"} — wybierz blok</b>
+        <button type="button" className="btn btn--ghost btn--small" onClick={onClose}>Zamknij</button>
+      </div>
+      {lista.length === 0 && (
+        <p className="dim" style={{ fontSize: "0.85rem" }}>Brak bloków w katalogu — Szablony → Bloki → „Dodaj wbudowane”.</p>
+      )}
+      {lista.map((b) => (
+        <div className="exercise" key={b.id}>
+          <div>
+            <b>{b.name}</b>
+            <div className="meta">{[BLOCK_VARIANT_LABELS[b.variant], b.level ? EXERCISE_LEVEL_LABELS[b.level] ?? b.level : null,
+              b.duration_min ? `≈${b.duration_min} min` : null, `${b.items.length} pozycji`].filter(Boolean).join(" · ")}</div>
+          </div>
+          <button type="button" className="btn btn--small" onClick={() => onPick(b)}>Wstaw</button>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 const emptyExercise = (): Exercise => ({ name: "", sets: "", reps: "", weight: "", rest: "" });
 const emptyDay = (): PlanDay => ({ name: "", weekday: null, exercises: [emptyExercise()] });
@@ -213,6 +247,13 @@ export default function PlanEditor({
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [pickerDay, setPickerDay] = useState<number | null>(null);
+  // Rozgrzewka / rozciąganie / cardio (0.73.0): który dzień ma otwarty wybór bloku albo panel cardio.
+  const [blokDay, setBlokDay] = useState<{ di: number; kind: "WARMUP" | "STRETCH" } | null>(null);
+  const [cardioDay, setCardioDay] = useState<number | null>(null);
+  const [bloki, setBloki] = useState<ExerciseBlockRow[]>([]);
+  useEffect(() => {
+    api.get<{ items: ExerciseBlockRow[] }>("/api/coach/exercise-blocks").then((d) => setBloki(d.items)).catch(() => setBloki([]));
+  }, []);
   const [ocrOpen, setOcrOpen] = useState(false);
   const [ocrNote, setOcrNote] = useState<string | null>(null);
   const [assistantOpen, setAssistantOpen] = useState(false);
@@ -259,6 +300,31 @@ export default function PlanEditor({
           : ex)
       : [...day.exercises, filled];
     setDay(dayIndex, { ...day, exercises });
+  }
+
+  /** Blok rozgrzewki (na początek dnia) albo rozciągania (na koniec) z migawką treści. */
+  function wstawBlok(dayIndex: number, b: ExerciseBlockRow) {
+    const day = days[dayIndex];
+    const poz: Exercise = {
+      name: b.name, kind: b.kind === "WARMUP" ? "warmup_block" : "stretch_block", block_id: b.id,
+      block: { name: b.name, kind: b.kind, level: b.level, variant: b.variant, duration_min: b.duration_min, items: b.items },
+      sets: "", reps: "", weight: "", rest: "",
+    };
+    const bez = day.exercises.filter((ex) => ex.name?.trim() || ex.sets || ex.reps || ex.weight);
+    const exercises = b.kind === "WARMUP" ? [poz, ...bez] : [...bez, poz];
+    setDay(dayIndex, { ...day, exercises });
+    setBlokDay(null);
+  }
+
+  /** Pozycja cardio z panelu suwaków — na koniec dnia (przed blokiem rozciągania, jeśli jest). */
+  function wstawCardio(dayIndex: number, ex: Exercise) {
+    const day = days[dayIndex];
+    const bez = day.exercises.filter((x) => x.name?.trim() || x.sets || x.reps || x.weight);
+    const ostatni = bez[bez.length - 1];
+    const exercises = ostatni && rodzajPozycji(ostatni) === "stretch_block" ? [...bez.slice(0, -1), ex, ostatni] : [...bez, ex];
+    setDay(dayIndex, { ...day, exercises });
+    setCardioDay(null);
+    setAssistantNote(`Wstawiono ${ex.name}. Nic nie zostało jeszcze zapisane.`);
   }
 
   /** Wstawienie propozycji asystenta: DOKŁADAMY dni, nigdy nie kasujemy
@@ -416,7 +482,21 @@ export default function PlanEditor({
               </select>
             </div>
           </div>
-          {day.exercises.map((ex, ei) => (
+          {day.exercises.map((ex, ei) => rodzajPozycji(ex) !== "strength" ? (
+            <div key={ei} style={{ borderTop: "1px solid var(--border)", paddingTop: 8, marginTop: 8 }} data-testid={`pe-pozycja-${di}-${ei}`}>
+              <div className="row row--between" style={{ gap: 8 }}>
+                <div style={{ flex: 1 }}>
+                  <b>{ex.name}</b> <span className="badge">{KIND_BADGE[rodzajPozycji(ex)]}</span>
+                  <div className="meta">{opisPozycji(ex)}</div>
+                  {ex.cardio?.overridden_by_coach?.length ? <div className="meta">zmienione ręcznie: {ex.cardio.overridden_by_coach.join(", ")}</div> : null}
+                </div>
+                <button type="button" className="btn btn--danger btn--small"
+                  onClick={() => setDay(di, { ...day, exercises: day.exercises.filter((_, j) => j !== ei) })}>
+                  usuń
+                </button>
+              </div>
+            </div>
+          ) : (
             <div key={ei} style={{ borderTop: "1px solid var(--border)", paddingTop: 8, marginTop: 8 }}>
               <label htmlFor={`pe-ex-${di}-${ei}`}>
                 Ćwiczenie {ei + 1}
@@ -490,11 +570,31 @@ export default function PlanEditor({
               onClick={() => setDay(di, { ...day, exercises: [...day.exercises, emptyExercise()] })}>
               + ćwiczenie (wpisz ręcznie)
             </button>
+            <button type="button" className="btn btn--ghost btn--small" aria-expanded={blokDay?.di === di && blokDay.kind === "WARMUP"}
+              onClick={() => setBlokDay(blokDay?.di === di && blokDay.kind === "WARMUP" ? null : { di, kind: "WARMUP" })}>
+              + Rozgrzewka
+            </button>
+            <button type="button" className="btn btn--ghost btn--small" aria-expanded={blokDay?.di === di && blokDay.kind === "STRETCH"}
+              onClick={() => setBlokDay(blokDay?.di === di && blokDay.kind === "STRETCH" ? null : { di, kind: "STRETCH" })}>
+              + Rozciąganie
+            </button>
+            <button type="button" className="btn btn--ghost btn--small" aria-expanded={cardioDay === di}
+              onClick={() => setCardioDay(cardioDay === di ? null : di)}>
+              + Cardio
+            </button>
             <button type="button" className="btn btn--danger btn--small"
               onClick={() => setDays(days.filter((_, j) => j !== di))}>
               usuń dzień
             </button>
           </div>
+          {blokDay?.di === di && (
+            <WyborBloku kind={blokDay.kind} bloki={bloki} onPick={(b) => wstawBlok(di, b)} onClose={() => setBlokDay(null)} />
+          )}
+          {cardioDay === di && (
+            <Suspense fallback={<Spinner />}>
+              <CardioPanel clientId={clientId} onInsert={(ex) => wstawCardio(di, ex)} onClose={() => setCardioDay(null)} />
+            </Suspense>
+          )}
           {pickerDay === di && (
             <ExercisePicker idPrefix={`pe-${di}`}
               onPick={(item) => addFromLibrary(di, item)}

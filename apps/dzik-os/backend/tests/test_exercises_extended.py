@@ -45,6 +45,8 @@ def test_migration_19_adds_nullable_columns_to_existing_database(tmp_path):
         conn.execute(text("CREATE TABLE nutrition_plan_versions (id VARCHAR(40) PRIMARY KEY)"))
         # Stub dla migracji nr 37 (znacznik powitania `welcome_seen_at` na users).
         conn.execute(text("CREATE TABLE users (id VARCHAR(40) PRIMARY KEY)"))
+        # Stub dla migracji nr 39 (pola cardio w dzienniku: workout_entries).
+        conn.execute(text("CREATE TABLE workout_entries (id VARCHAR(40) PRIMARY KEY)"))
         conn.execute(text(
             "CREATE TABLE food_products (id VARCHAR(40) PRIMARY KEY, "
             "coach_id VARCHAR(40), name VARCHAR(300), kcal_100g FLOAT)"))
@@ -447,6 +449,12 @@ def test_seeded_plans_and_templates_are_linked_to_library(seeded):
     for content in payloads:
         for day in content["days"]:
             for item in day["exercises"]:
+                if item.get("kind") in ("warmup_block", "stretch_block"):
+                    # Blok (0.73.0) wskazuje katalog bloków, nie ćwiczenie; jego
+                    # pozycje z katalogu mają własne `exercise_id`.
+                    assert item.get("block_id") and item.get("block"), item["name"]
+                    assert all(p["exercise_id"] in active_ids for p in item["block"]["items"] if p.get("exercise_id"))
+                    continue
                 assert item.get("exercise_id"), item["name"]
                 assert item["exercise_id"] in active_ids, item["name"]
                 checked += 1

@@ -168,10 +168,46 @@ które różnią się tylko diakrytyką albo znakami interpunkcyjnymi
 („bliźniaki"; wielkość liter i odstępy są już ujednolicane);
 takie wpisy scalasz ręcznie, poprawiając nazwę w treningu.
 
+## Rozgrzewka, rozciąganie i cardio z suwakami (od 0.73.0)
+
+* **W edytorze planu** (nowy plan albo nowa wersja) każdy dzień ma trzy
+  przyciski: „+ Rozgrzewka” i „+ Rozciąganie” wstawiają blok z Twojego
+  katalogu (rozgrzewka na początek dnia, rozciąganie na koniec; plan zapisuje
+  migawkę treści, więc późniejsza edycja bloku nie zmienia opublikowanych
+  planów), „+ Cardio” otwiera panel z suwakami.
+* **Suwaki:** Redukcja (wydatek energii) / Wydolność (VO2max) / Regeneracja
+  (baza tlenowa) sumują się do 100 % — przesunięcie jednego zabiera pozostałym
+  proporcjonalnie; kłódka blokuje suwak. Wybierasz poziom klienta i **dozwolone
+  urządzenia** (klient wybiera jedno w dniu treningu). **Kwalifikacja zdrowotna**
+  jak w konfiguratorze + pytanie o leki wpływające na tętno (beta-blokery):
+  bez odpowiedzi nie ma propozycji; objawy alarmowe = brak propozycji i pomoc
+  doraźna; choroba bez ustalonego poziomu wysiłku = propozycja tylko dla Ciebie
+  z ostrzeżeniem (klient nic nie widzi, dopóki nie zapiszesz wersji). Wiek, tętno
+  spoczynkowe i masa wypełniają się z danych klienta tylko wtedy, gdy masz zgodę
+  na dane zdrowotne — możesz je wpisać ręcznie albo liczyć bez tętna (RPE + test
+  mowy). Bramka nie jest zapisywana w planie.
+* **„Policz propozycję”** daje zakres % tętna maksymalnego (±5), ud./min (z wzoru
+  wiekowego ±10 albo z rezerwy tętna, gdy jest tętno spoczynkowe), RPE, test
+  mowy, czas, strukturę (ciągła / tempo / interwały wg poziomu) i „zacznij od…”
+  per urządzenie. **To propozycja, nie porada medyczna** — każdą liczbę zmienisz
+  w „Zmień liczby ręcznie” (zapisze się jako Twoja decyzja w śladzie „Dlaczego?”).
+  „Wstaw do dnia” dodaje pozycję; klient zobaczy ją po zapisaniu wersji.
+* **Do przeglądu przed użyciem u prawdziwych klientów:** treść 12 wbudowanych
+  bloków, 9 nowych wpisów katalogu (bieg ciągły, wiosłowanie ciągłe, 7 rozciągań)
+  i tabela ustawień urządzeń — wszystko oznaczone „do przeglądu trenera”
+  (`docs/cardio/PROGRESS.md`). Nic nie progresuje automatycznie tydzień do
+  tygodnia — kolejny tydzień układasz Ty.
+
 ## Szablony
 
 Zakładka „Szablony": twórz plany bez przypisanego klienta i odtwarzaj je
 przy zakładaniu planu klientowi.
+
+* **Bloki** (od 0.73.0) — trzecia zakładka Szablonów: „Dodaj wbudowane” ładuje
+  9 rozgrzewek i 3 bloki rozciągania (drugie kliknięcie niczego nie dubluje),
+  „+ Nowy blok” i „Edytuj” (pozycje: jedna linia = „nazwa | dawka | notatka”),
+  „Archiwizuj” zamiast kasowania. Zarchiwizowany blok znika z wyboru w edytorze,
+  ale plany z jego migawką działają dalej.
 
 ## Baza wiedzy
 

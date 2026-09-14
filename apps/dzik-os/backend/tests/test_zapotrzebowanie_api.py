@@ -220,7 +220,7 @@ def test_eksport_danych_zawiera_szacunki_takze_ukryte(seeded):
     assert r.status_code == 200, r.text
     rows = r.json()["calorie_estimates"]
     assert len(rows) == 1 and rows[0]["kcal"] == 1960 and rows[0]["hidden_for_client"] is True
-    assert r.json()["export_version"] == "2.0"  # 2.0 = po dołożeniu dni treningowych (0.71.0)
+    assert r.json()["export_version"] == "2.1"  # 2.1 = po dołożeniu pól cardio w dzienniku (0.73.0)
 
 
 def test_flaga_wylaczona_ukrywa_istniejace_przeslania_trenerowi(seeded, monkeypatch):

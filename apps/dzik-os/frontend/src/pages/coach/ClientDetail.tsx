@@ -55,6 +55,7 @@ import {
   summaryModeNote,
 } from "../../onboardingUtils";
 import PlanEditor from "./PlanEditor";
+import { KIND_BADGE, opisPozycji, rodzajPozycji } from "../../pozycje";
 import PublikacjaPanel from "./PublikacjaPanel";
 import PrzypiszDiete, { PrzypisanaDietaTrenera } from "./PrzypiszDiete";
 import WywiadTab from "./WywiadTab";
@@ -632,10 +633,8 @@ function PlanTab({ clientId }: { clientId: string }) {
               })()}
               {d.exercises.map((ex, j) => (
                 <div className="exercise" key={j}>
-                  <div>{ex.name}</div>
-                  <div className="meta">
-                    {[ex.sets && `${ex.sets}×${ex.reps ?? "?"}`, ex.weight, ex.rest].filter(Boolean).join(" · ")}
-                  </div>
+                  <div>{ex.name}{KIND_BADGE[rodzajPozycji(ex)] && <span className="badge" style={{ marginLeft: 8 }}>{KIND_BADGE[rodzajPozycji(ex)]}</span>}</div>
+                  <div className="meta">{opisPozycji(ex)}</div>
                 </div>
               ))}
             </div>
