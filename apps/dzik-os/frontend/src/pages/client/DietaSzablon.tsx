@@ -4,7 +4,7 @@ import { api, ApiError } from "../../api";
 import { plDate } from "../../dates";
 import { ErrorBox } from "../../components";
 import { DietAssignedOut, DietIngredientOut, DietMealOut, DietSwapCandidate, slotLabel } from "../../types";
-import { gramatura, KartaDnia, makro, NotatkiOdslony, StatusDiety } from "../dieta/wspolne";
+import { Alergeny, gramatura, KartaDnia, makro, NotatkiOdslony, StatusDiety } from "../dieta/wspolne";
 
 /**
  * Widok klienta diety z szablonu (0.60.0): dzień z posiłkami, gramatury
@@ -81,7 +81,8 @@ export default function DietaSzablon({ onStan }: { onStan?: (jest: boolean) => v
               <b>{slotLabel(m.slot).charAt(0).toUpperCase() + slotLabel(m.slot).slice(1)}: {m.name}</b>
               <StatusDiety s={m.status} />
             </div>
-            <small className="dim">{makro(m.macros)}{m.allergens && m.allergens.length > 0 ? ` · alergeny: ${m.allergens.join(", ")}` : ""}</small>
+            <small className="dim">{makro(m.macros)}</small>
+            <Alergeny a={m.allergens} />
             <ul style={{ paddingLeft: 18, margin: "4px 0" }}>
               {m.ingredients.map((i) => (
                 <li key={i.ingredient_id}>

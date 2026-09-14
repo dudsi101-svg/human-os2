@@ -54,7 +54,20 @@ współdzielone: `models.py` (kolumny w istniejących klasach diet), `db.py` (wp
 | 3 API + UI | `routers/diet.py` (out odsłony/posiłku), `dieta/wspolne.tsx`, `PrzypiszDiete`, `DietaSzablon`, `SzablonyDiet` | pola notatek/alergenów w odpowiedziach, `SLOT_LABEL`, notatki w podglądzie i widoku klienta, sweep wszystkich odsłon w teście | `tsc`, build, E2E `dieta-szablon` (istniejący) + krótki spec na profil Sportowa (5 slotów), a11y | setki tys. |
 | 4 zamknięcie | — | CHANGELOG 0.64.0, `docs/diet-module/PROGRESS.md`, RELEASE_STATUS, STAN_PRZEKAZANIA, raport | pełny `pytest`, ruff, spójność, CI | dziesiątki tys. |
 
-**Stan (14.09, koniec sesji):** etapy 0–3 zrobione, etap 4 w toku — zob. `docs/diet-module/PROGRESS.md` (sekcja 0.64.0).
+**Stan (14.09, koniec sesji):** etapy 0–4 zrobione — zob. `docs/diet-module/PROGRESS.md` (sekcja 0.64.0).
+
+## Odstępstwa od planu
+* Sweep w zakresie odsłony zamiast stałych 1400–3200 (audyt liczył zakres odsłony; Masa
+  2200–4000 przy 1400 kcal daje ujemny cel posiłku).
+* Etykiety slotów „obiad I / obiad II” (plan: „Obiad 1 / Obiad 2”) — pytanie do właściciela.
+* Uwagi o suplementacji tylko dla trenera (plan: trener i klient) — wynik przeglądu R-10.
+* Testy reguł v1.1 dopisane dopiero po przeglądzie (plan obiecywał je w etapie 1).
+* Znacznik edycji panelu i `szablony_pominiete` — nie było w planie, wynik przeglądu.
+
+## Weryfikacja wykonana
+ruff; testy diety (silnik 19, seed 7, API 14, poprawki 3); pełny pytest; `tools/spojnosc.py`;
+tsc + build (89,6 kB gzip / 120 kB); `test:helpers`; E2E `dieta-szablon.spec.ts` 2/2 (w tym
+Sportowa 5 slotów + notatki); a11y 47/47; PWA offline; CI po scaleniu.
 
 **Największy koszt:** etap 2 (dane + podmiana). Taniej bez utraty informacji: jeden test
 parametryzowany po 45 plikach zamiast 45 testów; sweep całej biblioteki jako jeden test

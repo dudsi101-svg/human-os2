@@ -202,7 +202,7 @@ def _szablon_podglad(db: Session, w: DietTemplateWeek) -> dict[str, Any]:
     tpl = serwis.szablon_dict(db, w)
     return {"week_id": w.id, "profile": tpl["profile"], "profile_id": w.profile_id, "variant_no": w.variant_no,
             "name": w.name, "status": w.status, "base_kcal": w.base_kcal, "kcal_min": w.kcal_min,
-            "kcal_max": w.kcal_max, "macro_pct": tpl["macro_pct"], **serwis.notatki_odslony(w),
+            "kcal_max": w.kcal_max, "macro_pct": tpl["macro_pct"], **serwis.notatki_odslony(db, w),
             "days": [{"day": d["day"], "meals": [{"meal_id": m["meal_id"], "name": m["name"], "slot": m["slot"],
                                                   "kcal_share": m["kcal_share"], "flexible": m["flexible"],
                                                   "tags": m["tags"], "allergens": m.get("allergens", []),
@@ -298,7 +298,7 @@ def assigned_current(user: User = Depends(current_user), db: Session = Depends(g
          .order_by(DietAssigned.version.desc()).first())
     if a is None:
         return {"assigned": None}
-    return {"assigned": serwis.dieta_out(db, a)}
+    return {"assigned": serwis.dieta_out(db, a, dla_klienta=True)}
 
 
 @router.get("/clients/{client_id}/current", dependencies=[Depends(wymagaj_modulu)])
@@ -311,7 +311,7 @@ def client_current(client_id: str, user: User = Depends(current_user), db: Sessi
     swaps = (db.query(DietSwapEvent).filter(DietSwapEvent.assigned_diet_id.in_([h.id for h in historia] or ["-"]))
              .order_by(DietSwapEvent.created_at.desc()).all())
     nazwy = {p.id: p.name_pl for p in db.query(DietProduct.id, DietProduct.name_pl).all()}
-    return {"assigned": serwis.dieta_out(db, a) if a else None,
+    return {"assigned": serwis.dieta_out(db, a, dla_klienta=(user.id == client_id)) if a else None,
             "history": [{"id": h.id, "version": h.version, "status": h.status, "kcal": h.target_kcal,
                          "created_at": h.created_at, "week_id": h.week_id} for h in historia],
             "swap_events": [{"id": s.id, "assigned_diet_id": s.assigned_diet_id, "day": s.day_no, "meal_id": s.meal_id,
@@ -615,6 +615,7 @@ def update_week(week_id: str, body: WeekIn, user: User = Depends(_edytor), db: S
     for k, v in body.model_dump(exclude={"profile_id"}).items():
         setattr(w, k, v)
     w.updated_at = now_iso()
+    w.source_hash = dieta_seed.EDYCJA_PANELU  # edycja panelu — seed biblioteki nie podmieni tej odsłony
     db.commit()
     return _szablon_podglad(db, w)
 
@@ -645,6 +646,7 @@ def create_meal(week_id: str, day_no: int, body: MealIn, user: User = Depends(_e
                          **body.model_dump(exclude={"tags"}))
     db.add(m)
     w.updated_at = now_iso()
+    w.source_hash = dieta_seed.EDYCJA_PANELU  # edycja panelu — seed biblioteki nie podmieni tej odsłony
     db.commit()
     return {"meal_id": m.id, "day_no": day_no}
 
@@ -664,6 +666,7 @@ def update_meal(meal_id: str, body: MealIn, user: User = Depends(_edytor), db: S
         setattr(m, k, v)
     m.tags = ",".join(body.tags)
     w.updated_at = now_iso()
+    w.source_hash = dieta_seed.EDYCJA_PANELU  # edycja panelu — seed biblioteki nie podmieni tej odsłony
     db.commit()
     return {"ok": True}
 
@@ -674,6 +677,7 @@ def delete_meal(meal_id: str, user: User = Depends(_edytor), db: Session = Depen
     db.query(DietTemplateIngredient).filter_by(meal_id=m.id).delete()
     db.delete(m)
     w.updated_at = now_iso()
+    w.source_hash = dieta_seed.EDYCJA_PANELU  # edycja panelu — seed biblioteki nie podmieni tej odsłony
     db.commit()
     return {"ok": True}
 
@@ -686,6 +690,7 @@ def create_ingredient(meal_id: str, body: IngredientIn, user: User = Depends(_ed
     i = DietTemplateIngredient(id=new_id("DTI"), meal_id=m.id, position=pos, **dane)
     db.add(i)
     w.updated_at = now_iso()
+    w.source_hash = dieta_seed.EDYCJA_PANELU  # edycja panelu — seed biblioteki nie podmieni tej odsłony
     db.commit()
     return {"ingredient_id": i.id}
 
@@ -701,6 +706,7 @@ def update_ingredient(ingredient_id: str, body: IngredientIn, user: User = Depen
     for k, v in dane.items():
         setattr(i, k, v)
     w.updated_at = now_iso()
+    w.source_hash = dieta_seed.EDYCJA_PANELU  # edycja panelu — seed biblioteki nie podmieni tej odsłony
     db.commit()
     return {"ok": True}
 
@@ -713,6 +719,7 @@ def delete_ingredient(ingredient_id: str, user: User = Depends(_edytor), db: Ses
     _m, w = _meal(db, i.meal_id)
     db.delete(i)
     w.updated_at = now_iso()
+    w.source_hash = dieta_seed.EDYCJA_PANELU  # edycja panelu — seed biblioteki nie podmieni tej odsłony
     db.commit()
     return {"ok": True}
 
@@ -726,10 +733,14 @@ def _sweep(db: Session, w: DietTemplateWeek) -> dict[str, Any]:
     prods, _ = serwis.produkty(db)
     flagi: dict[str, dict[str, Any]] = {}
     dni_ok = dni = 0
+    punkty: list[int] = []
     brakujace = [d["day"] for d in tpl["days"] if not d["meals"]]
     tpl_pelne = {**tpl, "days": [d for d in tpl["days"] if d["meals"]]}
     try:
-        for kcal in range(int(w.kcal_min), int(w.kcal_max) + 1, 100):
+        punkty = list(range(int(w.kcal_min), int(w.kcal_max) + 1, 100))
+        if punkty and punkty[-1] != int(w.kcal_max):
+            punkty.append(int(w.kcal_max))  # zakres z panelu nie musi być wielokrotnością 100
+        for kcal in punkty:
             for d in S.scale_week(tpl_pelne, kcal, prods):
                 dni += 1
                 dni_ok += d["status"] == "OK"
@@ -747,7 +758,7 @@ def _sweep(db: Session, w: DietTemplateWeek) -> dict[str, Any]:
     error = None
     if brakujace:
         error = "Dni bez posiłków: " + ", ".join(map(str, brakujace)) + " — odsłona musi mieć 7 dni."
-    return {"days": dni, "days_ok": dni_ok, "ok_pct": pct, "kcal_points": 19, "missing_days": brakujace,
+    return {"days": dni, "days_ok": dni_ok, "ok_pct": pct, "kcal_points": len(punkty), "missing_days": brakujace,
             "error": error, "meals": sorted(flagi.values(), key=lambda x: (-x["flags"], x["day"])),
             "publishable": not brakujace and dni > 0 and dni_ok / dni >= 0.95}
 

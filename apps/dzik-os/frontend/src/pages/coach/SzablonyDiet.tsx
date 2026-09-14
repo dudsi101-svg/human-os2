@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api, ApiError } from "../../api";
 import { ErrorBox, Spinner, TopBar } from "../../components";
-import { DietProductRow, DietProfileRow, DietSweep, DietWeekFull, slotLabel } from "../../types";
+import { alergenLabel, DietProductRow, DietProfileRow, DietSweep, DietWeekFull, slotLabel } from "../../types";
 
 /**
  * Panel wprowadzania szablonów diet (0.60.0, etap 6 — minimalny):
@@ -172,7 +172,7 @@ function EdytorOdslony({ weekId, produkty, onWroc }: { weekId: string; produkty:
             {sweep.error && <p className="alert alert--warn">{sweep.error}</p>}
             {sweep.meals.filter((m) => m.flags > 0).length > 0 && (
               <ul style={{ fontSize: "0.85rem", paddingLeft: 18 }}>
-                {sweep.meals.filter((m) => m.flags > 0).map((m) => <li key={m.meal_id}>D{m.day} {slotLabel(m.slot)}: {m.name} — flag {m.flags}/19{m.out_of_range ? ` (poza zakresem ${m.out_of_range})` : ""}</li>)}
+                {sweep.meals.filter((m) => m.flags > 0).map((m) => <li key={m.meal_id}>D{m.day} {slotLabel(m.slot)}: {m.name} — flag {m.flags}/{sweep.kcal_points ?? 19}{m.out_of_range ? ` (poza zakresem ${m.out_of_range})` : ""}</li>)}
               </ul>
             )}
           </div>
@@ -187,7 +187,7 @@ function EdytorOdslony({ weekId, produkty, onWroc }: { weekId: string; produkty:
           {d.meals.map((m) => (
             <div key={m.meal_id} style={{ marginTop: 8, paddingTop: 8, borderTop: "1px solid var(--border)" }}>
               <div className="row row--between">
-                <b>{slotLabel(m.slot)}: {m.name}</b>
+                <b>{slotLabel(m.slot)}: {m.name}</b>{m.allergens && m.allergens.length > 0 && <small className="dim"> · alergeny: {m.allergens.map(alergenLabel).join(", ")}</small>}
                 <span className="row" style={{ gap: 6 }}>
                   <small className="dim">{Math.round(m.kcal_share * 100)} %{m.flexible ? " · elastyczny" : ""}</small>
                   <button type="button" className="btn btn--ghost btn--small" disabled={busy} onClick={() => void akcja(() => api.del(`/api/diet/meals/${m.meal_id}`))}>Usuń posiłek</button>
@@ -219,7 +219,7 @@ function EdytorOdslony({ weekId, produkty, onWroc }: { weekId: string; produkty:
             <summary>Dodaj posiłek</summary>
             <div className="field-row">
               <div><label htmlFor="pm-slot">Slot</label>
-                <select id="pm-slot" value={nowyPosilek.slot} onChange={(e) => setNowyPosilek({ ...nowyPosilek, slot: e.target.value })}>{SLOTY.map((s) => <option key={s}>{s}</option>)}</select></div>
+                <select id="pm-slot" value={nowyPosilek.slot} onChange={(e) => setNowyPosilek({ ...nowyPosilek, slot: e.target.value })}>{SLOTY.map((s) => <option key={s} value={s}>{slotLabel(s)}</option>)}</select></div>
               <div><label htmlFor="pm-share">Udział kcal dnia (0–1)</label><input id="pm-share" inputMode="decimal" value={nowyPosilek.kcal_share} onChange={(e) => setNowyPosilek({ ...nowyPosilek, kcal_share: e.target.value })} /></div>
             </div>
             <label htmlFor="pm-name">Nazwa</label><input id="pm-name" value={nowyPosilek.name} onChange={(e) => setNowyPosilek({ ...nowyPosilek, name: e.target.value })} />

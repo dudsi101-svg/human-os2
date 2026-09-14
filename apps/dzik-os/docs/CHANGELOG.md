@@ -20,17 +20,25 @@ gałąź `agent/biblioteka-diet`, migracja 35 — addytywna).**
   (bez zaokrąglania do 5 g). Golden i szablon Standard v1 podmienione na
   wersje z paczki (Standard v1 po audycie ma inne gramatury).
 * **Notatki autora biblioteki** na odsłonie: uwagi o suplementacji
-  (lista), uwaga o sodzie, pochodzenie odsłony (`derived_from`, np.
-  Bezlaktozowa ← Standard) i wynik audytu; **alergeny posiłku**
-  (gluten, laktoza, jaja, orzechy, ryby…). Trener widzi notatki i
-  alergeny w „Przypisz dietę” (przed przeliczeniem) i w panelu
-  szablonów; klient widzi notatki i alergeny posiłków w „Twoja dieta”
-  — jako treść autora szablonu, nie zalecenie (aplikacja nie ustala
-  dawek, R-10).
+  (lista), uwaga o sodzie, pochodzenie odsłony („Standard zbilansowana,
+  odsłona 1”) i wynik audytu; **alergeny posiłku** liczone z bieżących
+  składników (po wymianie kurczaka na krewetki pojawiają się
+  skorupiaki). Trener widzi notatki i alergeny w „Przypisz dietę”
+  (przed i po przeliczeniu) oraz w panelu szablonów. Klient widzi w
+  „Twoja dieta” uwagę o sodzie i alergeny posiłków; **uwag o
+  suplementacji klient nie dostaje** — zawierają dawki autora biblioteki,
+  a plan suplementów dla klienta wpisuje człowiek z zapisanym autorem
+  (R-10, ADR-DZIK-003 §4); trener przenosi je świadomie.
 * **Seed zastępujący po skrócie pliku:** odsłona (profil, numer) z innym
   `source_hash` dostaje nową treść pod tym samym identyfikatorem (dni,
   posiłki i składniki tworzone od nowa); przypisane diety mają migawki i
-  nie zmieniają się. Zwrot seedu: `szablony_nowe`, `szablony_podmienione`.
+  nie zmieniają się. **Odsłona edytowana w panelu** dostaje znacznik i
+  seed jej nie podmienia (praca trenera ma pierwszeństwo przed plikiem;
+  raport: `szablony_pominiete`). Zwrot seedu: `szablony_nowe`,
+  `szablony_podmienione`, `szablony_pominiete`.
+* Import JSON: limity nowych pól (uwagi ≤ 20 × 500 znaków, audyt ≤ 4 kB,
+  alergeny ≤ 20 nazw), wymagane `kcal_min ≤ base_kcal ≤ kcal_max`;
+  sprawdzenie produktów przed podmianą treści.
 * **Sweep zakresu odsłony:** „Testuj skalowanie” i publikacja sprawdzają
   `kcal_min`–`kcal_max` danej odsłony co 100 kcal (jak audyt; Masa
   2200–4000, Niskowęglowodanowa 1400–2800) zamiast stałych 1400–3200.

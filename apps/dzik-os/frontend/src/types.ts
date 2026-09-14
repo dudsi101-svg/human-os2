@@ -1667,6 +1667,12 @@ export interface DietTemplatePreview extends DietNotatkiOdslony {
 /** Etykieta slotu posiłku: „obiad_1"/„obiad_2" (profil Sportowa, 5 posiłków) → „obiad I"/„obiad II". */
 export const SLOT_LABEL: Record<string, string> = { obiad_1: "obiad I", obiad_2: "obiad II" };
 export function slotLabel(slot: string): string { return SLOT_LABEL[slot] ?? slot; }
+/** Alergeny posiłku (klucze z biblioteki szablonów) → etykiety. */
+export const ALERGEN_LABEL: Record<string, string> = {
+  mleko: "mleko", gluten: "gluten", jaja: "jaja", orzechy: "orzechy", orzechy_ziemne: "orzechy ziemne", soja: "soja",
+  ryby: "ryby", skorupiaki: "skorupiaki", gorczyca: "gorczyca", sezam: "sezam", seler: "seler", laktoza: "laktoza",
+};
+export function alergenLabel(a: string): string { return ALERGEN_LABEL[a] ?? a.replace(/_/g, " "); }
 export interface DietIngredientOut {
   product: string; grams: number; base_grams: number; class: string; role: string; ingredient_id: string;
   swappable: boolean; min_factor: number; max_factor: number; factor: number | null; units?: number | null; unit_g?: number | null;
@@ -1698,14 +1704,14 @@ export interface DietProductRow {
   fat_100: number; carbs_100: number; default_scaling: string; cooking_tags: string; allergens: string; diet_exclusions: string; source: string;
 }
 export interface DietSweep {
-  days: number; days_ok: number; ok_pct: number; error?: string | null; missing_days?: number[]; publishable: boolean;
+  days: number; days_ok: number; ok_pct: number; kcal_points?: number; error?: string | null; missing_days?: number[]; publishable: boolean;
   meals: { meal_id: string; day: number; name: string; slot: string; flags: number; out_of_range: number }[];
 }
 export interface DietWeekFull {
   week_id: string; profile: string; profile_id: string; variant: number; name: string; base_kcal: number; kcal_min: number;
   kcal_max: number; status: string; macro_pct: number[];
   days: { day: number; day_id: string; meals: { meal_id: string; name: string; slot: string; kcal_share: number; flexible: boolean;
-    steps: string; tags: string[]; prep_minutes: number | null;
+    steps: string; tags: string[]; allergens?: string[]; prep_minutes: number | null;
     ingredients: { product: string; grams: number; role: string; ingredient_id: string; swappable: boolean; class?: string;
       min_factor?: number; max_factor?: number; round_step?: number; unit_g?: number; unit_step?: number; group?: string }[] }[] }[];
 }

@@ -250,6 +250,18 @@ def enforce_groups(ings: list[dict], products: Products) -> None:
                 m["units"] = m["grams"] / m["unit_g"]
 
 
+def alergeny(ings: list[dict], products: Products, domyslne: list[str] | None = None) -> list[str]:
+    """Alergeny posiłku policzone z BIEŻĄCYCH składników (po wymianie kurczaka na
+    krewetki pojawiają się skorupiaki). Gdy baza nie oznacza żadnego produktu —
+    lista z szablonu."""
+    zbior: set[str] = set()
+    for i in ings:
+        prod = products.get(i["product"])
+        if prod is not None:
+            zbior.update(a.strip() for a in str(prod.allergens or "").split(",") if a.strip())
+    return sorted(zbior) if zbior else list(domyslne or [])
+
+
 def scale_meal(meal: dict, target: dict, products: Products, *, enforce_groups_: bool = False) -> dict:
     ings = [fill_defaults(copy.deepcopy(i), products) for i in meal["ingredients"]]
     if not ings:
@@ -280,7 +292,7 @@ def scale_meal(meal: dict, target: dict, products: Products, *, enforce_groups_:
                 "target": target, "deviation": dev, "status": status, "k": k, "steps": meal.get("steps", ""),
                 "tags": list(meal.get("tags", []) or []), "flexible": bool(meal.get("flexible")),
                 "kcal_share": meal["kcal_share"], "meal_id": meal.get("meal_id"),
-                "allergens": list(meal.get("allergens", []) or [])}
+                "allergens": alergeny(ings, products, meal.get("allergens"))}
 
 
 def scale_day(day: dict, day_target: dict, products: Products, *, enforce_groups_: bool = False) -> dict:

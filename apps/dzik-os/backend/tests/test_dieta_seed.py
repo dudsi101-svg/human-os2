@@ -96,7 +96,20 @@ def test_zmieniony_plik_podmienia_tresc_bez_ruszania_migawek(client):
     # Seed przywraca treść z pliku (skrót inny niż w bazie → podmiana).
     with db_session() as db:
         r = seed.zaseeduj(db)
-    assert r["szablony_podmienione"] == 1
+    assert r["szablony_podmienione"] == 1 and r["szablony_pominiete"] == 0
+    # Odsłona edytowana w panelu (znacznik) — seed jej nie rusza, raportuje pominięcie.
+    with db_session() as db:
+        w = db.get(DietTemplateWeek, id_przed)
+        w.source_hash = seed.EDYCJA_PANELU
+        d1 = db.query(DietTemplateDay).filter_by(week_id=id_przed, day_no=1).one()
+        m1 = db.query(DietTemplateMeal).filter_by(day_id=d1.id).order_by(DietTemplateMeal.position).first()
+        m1.name = "Edycja trenera"
+    with db_session() as db:
+        r = seed.zaseeduj(db)
+    assert r["szablony_pominiete"] == 1 and r["szablony_podmienione"] == 0
+    with SessionLocal() as db:
+        d1 = db.query(DietTemplateDay).filter_by(week_id=id_przed, day_no=1).one()
+        assert db.query(DietTemplateMeal).filter_by(day_id=d1.id).order_by(DietTemplateMeal.position).first().name == "Edycja trenera"
 
 
 def test_kazdy_skladnik_wskazuje_istniejacy_produkt_i_kcal_z_makro(zaseedowane):
@@ -139,8 +152,9 @@ def test_szablon_z_bazy_odtwarza_ksztalt_json(zaseedowane):
 
 
 def test_sweep_calej_biblioteki_kazda_odslona_publikowalna(zaseedowane):
-    """Raport audytu 14.09: każda z 45 odsłon przechodzi sweep 1400–3200 kcal
-    z ≥ 95 % dni OK (próg publikacji) i bez błędu definicji."""
+    """Raport audytu 14.09: każda z 45 odsłon przechodzi sweep swojego zakresu
+    `kcal_min`–`kcal_max` co 100 kcal (Masa 2200–4000, Niskowęglowodanowa
+    1400–2800) z ≥ 95 % dni OK (próg publikacji) i bez błędu definicji."""
     from dzik_os.routers.diet import _sweep
     slabe = []
     with SessionLocal() as db:

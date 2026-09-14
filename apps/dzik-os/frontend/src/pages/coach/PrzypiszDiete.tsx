@@ -4,9 +4,9 @@ import { plDateTime } from "../../dates";
 import { ErrorBox, Spinner } from "../../components";
 import {
   DietAssignedOut, DietDayOut, DietIngredientOut, DietLibraryMeal, DietMacroIn, DietMealOut, DietPlanOut, DietProfileRow,
-  DietTemplatePreview, DietWeekRow, slotLabel,
+  DietTemplatePreview, DietWeekRow, alergenLabel, slotLabel,
 } from "../../types";
-import { gramatura, KartaDnia, makro, NotatkiOdslony, odchylenie, StatusDiety, TagiPosilku } from "../dieta/wspolne";
+import { Alergeny, gramatura, KartaDnia, makro, NotatkiOdslony, odchylenie, StatusDiety, TagiPosilku } from "../dieta/wspolne";
 import { useZapotrzebowanie } from "../wywiad/Zapotrzebowanie";
 
 /**
@@ -182,7 +182,7 @@ export default function PrzypiszDiete({ clientId, onPrzypisano, onAnuluj }: {
               <summary>Posiłki tygodnia (podgląd bez gramatur)</summary>
               {szablon.days.map((d) => (
                 <div key={d.day} style={{ fontSize: "0.85rem", marginTop: 4 }}>
-                  <b>Dzień {d.day}:</b> {d.meals.map((m) => `${slotLabel(m.slot)}: ${m.name}`).join(" · ")}
+                  <b>Dzień {d.day}:</b> {d.meals.map((m) => `${slotLabel(m.slot)}: ${m.name}${m.allergens && m.allergens.length > 0 ? ` (${m.allergens.map(alergenLabel).join(", ")})` : ""}`).join(" · ")}
                 </div>
               ))}
             </details>
@@ -325,6 +325,7 @@ function PosilekEdycja({ d, m, overrides, zamiana, onGram, onBiblioteka, onCofni
         <StatusDiety s={m.status} />
       </div>
       <small className="dim">{makro(m.macros)} · cel {makro(m.target)}{m.status !== "OK" ? ` · ${odchylenie(m.deviation)}` : ""}</small>
+      <Alergeny a={m.allergens} />
       <div className="row" style={{ gap: 6, marginTop: 4 }}>
         <button type="button" className="btn btn--ghost btn--small" aria-expanded={otwarte} onClick={() => setOtwarte((o) => !o)}>{otwarte ? "Ukryj składniki" : "Składniki i gramatury"}</button>
         <button type="button" className="btn btn--ghost btn--small" onClick={onBiblioteka}>Zamień na inny posiłek</button>
