@@ -113,7 +113,7 @@ def test_t01_kazdy_klient_ma_oba_formularze_od_razu(seeded):
     for h in (ha, hc):
         r = seeded.get(W.format(cid), headers=h).json()
         assert r["access"]["ok"] is True and r["access"]["reason"] is None
-        assert [w["typ"] for w in r["wywiady"]] == ["wstepny", "gleboki"]
+        assert [w["typ"] for w in r["wywiady"]] == ["wstepny", "gleboki", "zapotrzebowanie"]
         assert all(w["submission_status"] == "not_started" and w["review_status"] == "not_reviewed"
                    and w["freshness_status"] == "current" for w in r["wywiady"])
     # Definicja dostępna bez żadnego wiersza w bazie; postęp wyliczony z 0 odpowiedzi.

@@ -128,6 +128,12 @@ class Settings:
     diet_templates_enabled: bool = field(
         default_factory=lambda: _env("DZIK_DIET_TEMPLATES_ENABLED", "false") == "true"
     )
+    # Wywiad „Zapotrzebowanie kaloryczne” (0.62.0): trzeci typ wywiadu +
+    # /api/clients/{id}/zapotrzebowanie za flagą; domyślnie WYŁĄCZONY
+    # (produkcja włącza w fly.toml). Wyłączenie = 404 na typ i trasę.
+    calorie_interview_enabled: bool = field(
+        default_factory=lambda: _env("DZIK_CALORIE_INTERVIEW_ENABLED", "false") == "true"
+    )
     # AI jest opcjonalne i domyślnie WYŁĄCZONE — aplikacja działa w pełni bez AI.
     ai_enabled: bool = field(default_factory=lambda: _env("DZIK_AI_ENABLED", "false") == "true")
     # Klucz dostawcy WYŁĄCZNIE ze środowiska (sekret Fly) — nigdy w repo.

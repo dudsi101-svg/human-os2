@@ -1992,3 +1992,34 @@ class DietSwapEvent(Base):
     to_grams: Mapped[float] = mapped_column(Float)
     actor_id: Mapped[str] = mapped_column(String(40))
     created_at: Mapped[str] = mapped_column(String(40), default=now_iso)
+
+
+class CalorieEstimate(Base):
+    """Szacunek dziennego zapotrzebowania kalorycznego (0.62.0) — jedna
+    wersja na przesłanie wywiadu „zapotrzebowanie”. Wejścia i podstawienie
+    zapisane w chwili liczenia (zmiana wzoru nie zmienia historii).
+    `hidden_for_client`: flaga zdrowotna z wywiadu — liczby widzi tylko trener,
+    dopóki nie odblokuje. Nadpisanie trenera trzyma kto/kiedy/dlaczego."""
+
+    __tablename__ = "calorie_estimates"
+
+    id: Mapped[str] = mapped_column(String(40), primary_key=True)
+    client_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
+    submission_id: Mapped[str] = mapped_column(String(40), unique=True)
+    version_no: Mapped[int] = mapped_column(Integer)
+    inputs_json: Mapped[str] = mapped_column(Text)
+    ppm: Mapped[int] = mapped_column(Integer)
+    pal: Mapped[float] = mapped_column(Float)
+    cpm: Mapped[int] = mapped_column(Integer)
+    korekta_pct: Mapped[int] = mapped_column(Integer)
+    kcal: Mapped[int] = mapped_column(Integer)
+    podstawienie_json: Mapped[str] = mapped_column(Text, default="[]")
+    ostrzezenia_json: Mapped[str] = mapped_column(Text, default="[]")
+    hidden_for_client: Mapped[bool] = mapped_column(Boolean, default=False)
+    unhidden_by: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    unhidden_at: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    override_kcal: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    override_by: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    override_at: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    override_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[str] = mapped_column(String(40), default=now_iso)

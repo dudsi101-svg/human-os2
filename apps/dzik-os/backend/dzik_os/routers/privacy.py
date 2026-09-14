@@ -14,6 +14,7 @@ from ..db import get_db
 from ..hos_bridge import ConsentService, record_event
 from ..models import (
     AIUsageCounter,
+    CalorieEstimate,
     Challenge,
     ChallengeBlock,
     ChallengeEntry,
@@ -349,8 +350,11 @@ def _collect_export(db: Session, user: User) -> dict:
     diet_swaps = []
     for da in diet_assigned:
         diet_swaps.extend(_rows(db, DietSwapEvent, assigned_diet_id=da["id"]))
+    # Zapotrzebowanie kaloryczne (0.62.0): wejścia (masa, wzrost, wiek, płeć),
+    # wynik i nadpisanie trenera — dane klienta.
+    calorie_estimates = _rows(db, CalorieEstimate, client_id=client_id)
     return {
-        "export_version": "1.6",
+        "export_version": "1.7",
         "user": {
             "id": user.id, "email": user.email, "display_name": user.display_name,
             "identity_id": user.identity_id, "created_at": user.created_at,
@@ -396,6 +400,7 @@ def _collect_export(db: Session, user: User) -> dict:
         "challenge_entries": challenge_entries,
         "diet_assigned": diet_assigned,
         "diet_swap_events": diet_swaps,
+        "calorie_estimates": calorie_estimates,
     }
 
 
@@ -600,6 +605,8 @@ def request_deletion(
     for da in db.query(DietAssigned).filter(DietAssigned.client_id == client_id).all():
         db.query(DietSwapEvent).filter(DietSwapEvent.assigned_diet_id == da.id).delete()
         db.delete(da)
+    # Szacunki zapotrzebowania (masa, wzrost, wiek, płeć, flaga zdrowotna).
+    db.query(CalorieEstimate).filter(CalorieEstimate.client_id == client_id).delete()
     # Klucze idempotencji (metadane operacyjne z identyfikatorami zapisów)
     # znikają razem z kontem.
     db.query(IdempotencyKey).filter(IdempotencyKey.user_id == client_id).delete()

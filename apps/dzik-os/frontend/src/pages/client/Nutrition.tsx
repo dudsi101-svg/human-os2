@@ -1,4 +1,5 @@
 import DietaSzablon from "./DietaSzablon";
+import ZapotrzebowanieKarta from "../wywiad/Zapotrzebowanie";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api, getUser } from "../../api";
@@ -57,6 +58,8 @@ export default function Nutrition() {
       <TopBar title="Dieta" />
       {/* Szablony diet ze skalowaniem (0.60.0): sekcja pojawia się tylko, gdy
           moduł jest włączony i trener przypisał dietę z szablonu. */}
+      {/* Zapotrzebowanie kaloryczne (0.62.0): wynik z wywiadu albo zaproszenie do wypełnienia. */}
+      <ZapotrzebowanieKarta clientId={user.id} tryb="klient" linkDoWywiadu="/wywiad?typ=zapotrzebowanie" kompakt />
       <DietaSzablon onStan={setDietaZSzablonu} />
       {!v && !dietaZSzablonu && <p className="dim">Trener nie dodał jeszcze planu żywieniowego.</p>}
       {plan && v && (

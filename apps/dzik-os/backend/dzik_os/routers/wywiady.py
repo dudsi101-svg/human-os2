@@ -37,12 +37,14 @@ from ..authz import (
     deny,
     resolve_client_access,
 )
+from ..config import settings
 from ..db import get_db
 from ..idempotency import replay_response, request_fingerprint, store_response
 from ..models import (
     ClientFactRevision,
     CoachClientRelationship,
     InterviewSubmission,
+    Measurement,
     PlanReviewTask,
     User,
 )
@@ -91,8 +93,15 @@ class RozstrzygnijIn(BaseModel):
 # --- dostęp ----------------------------------------------------------------------------
 
 
+def typy_aktywne() -> tuple[str, ...]:
+    """Typy wywiadu dostępne w tej instalacji (zapotrzebowanie za flagą)."""
+    if settings.calorie_interview_enabled:
+        return D.TYPY
+    return tuple(t for t in D.TYPY if t != D.ZAPOTRZEBOWANIE)
+
+
 def _typ(typ: str) -> str:
-    if typ not in D.TYPY:
+    if typ not in typy_aktywne():
         raise HTTPException(status_code=404, detail="Nieznany typ wywiadu")
     return typ
 
@@ -180,7 +189,7 @@ def przeglad(client_id: str, user: User = Depends(current_user), db: Session = D
     }
     if not d["ok"]:
         return out
-    for typ in D.TYPY:
+    for typ in typy_aktywne():
         out["wywiady"].append(serwis.stany(db, client_id=client_id, typ=typ,
                                            allowed_domains=d["allowed_domains"]))
     if d["viewer"] == "coach":
@@ -210,6 +219,15 @@ def definicja(client_id: str, typ: str, user: User = Depends(current_user), db: 
                     for k, f in fakty.items()
                     if not f.sensitive or _domena_faktu(defn, k) in d["visible_domains"] or d["viewer"] == "client"}
     out["has_coach"] = d["has_coach"]
+    if typ == D.ZAPOTRZEBOWANIE:
+        # Podpowiedź masy z ostatniego pomiaru (zakładka Pomiary) — tylko
+        # placeholder; wartość musi potwierdzić osoba wypełniająca.
+        ost = (db.query(Measurement).filter_by(client_id=client_id, kind="weight")
+               .order_by(Measurement.measured_at.desc(), Measurement.created_at.desc()).first())
+        if ost is not None:
+            for q in out["questions"]:
+                if q["question_id"] == "zk_masa":
+                    q["placeholder"] = f"ostatni pomiar: {str(ost.value).replace('.', ',')} {ost.unit}"
     return out
 
 
@@ -384,7 +402,7 @@ def doprecyzowanie(submission_id: str, body: DoprecyzowanieIn, coach: User = Dep
 @router.get("/wywiady/zgloszenia/{submission_id}")
 def zgloszenie(submission_id: str, user: User = Depends(current_user), db: Session = Depends(get_db)):
     sub = db.get(InterviewSubmission, submission_id)
-    if sub is None:
+    if sub is None or sub.typ not in typy_aktywne():
         raise HTTPException(status_code=404, detail="Nie znaleziono")
     d = _dostep_pelny(db, user, sub.client_id)
     return serwis.przeslanie_out(db, sub, widoczne=d["visible_domains"], pokaz_notatki=d["viewer"] == "coach")
@@ -406,7 +424,7 @@ def do_przegladu(coach: User = Depends(require_role("COACH")), db: Session = Dep
             continue
         dom = serwis.domeny_zgod(db, rel.client_id, coach.id)
         pozycje = []
-        for typ in D.TYPY:
+        for typ in typy_aktywne():
             st = serwis.stany(db, client_id=rel.client_id, typ=typ, allowed_domains=dom)
             pozycje.append({k: st[k] for k in ("typ", "title", "submission_status", "review_status",
                                                  "freshness_status", "progress", "last_submission")})

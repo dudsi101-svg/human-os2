@@ -1458,7 +1458,7 @@ export interface ZestawZmian {
 
 // --- Zakładka „Wywiad” (0.59.0) ---------------------------------------------
 
-export type WywiadTyp = "wstepny" | "gleboki";
+export type WywiadTyp = "wstepny" | "gleboki" | "zapotrzebowanie";
 export type SubmissionStatus = "not_started" | "draft" | "submitted";
 export type ReviewStatus = "not_reviewed" | "needs_clarification" | "reviewed";
 export type FreshnessStatus = "current" | "update_requested";
@@ -1476,7 +1476,7 @@ export interface WywiadPostep {
 export interface WywiadPytanie {
   question_id: string;
   version: number;
-  type: "TEXT" | "LONGTEXT" | "CHOICE" | "MULTI" | "SCALE" | "BOOL" | "INFO";
+  type: "TEXT" | "LONGTEXT" | "CHOICE" | "MULTI" | "SCALE" | "BOOL" | "INFO" | "NUMBER";
   label: string;
   why: string;
   section: string;
@@ -1493,6 +1493,8 @@ export interface WywiadPytanie {
   conditional: boolean;
   placeholder: string;
   info: boolean;
+  /** NUMBER: [min, max]; pozostałe rodzaje: null. */
+  range?: [number, number] | null;
 }
 
 export interface WywiadOdpowiedz {
@@ -1701,4 +1703,39 @@ export interface DietWeekFull {
     steps: string; tags: string[]; prep_minutes: number | null;
     ingredients: { product: string; grams: number; role: string; ingredient_id: string; swappable: boolean; class?: string;
       min_factor?: number; max_factor?: number; round_step?: number; unit_g?: number; unit_step?: number; group?: string }[] }[] }[];
+}
+
+// --- Zapotrzebowanie kaloryczne (0.62.0) --------------------------------------
+
+export interface ZapotrzebowanieSzacunek {
+  id: string;
+  submission_id: string;
+  version_no: number;
+  created_at: string;
+  inputs: { plec: string; wiek: number; wzrost_cm: number; masa_kg: number; praca: string; treningi: string;
+    kroki: string | null; cel: string; tempo: string | null };
+  ppm: number;
+  pal: number;
+  cpm: number;
+  korekta_pct: number;
+  kcal: number;
+  kcal_effective: number;
+  podstawienie: string[];
+  ostrzezenia: string[];
+  hidden_for_client: boolean;
+  unhidden_by: string | null;
+  unhidden_at: string | null;
+  override: { kcal: number; by: string; at: string; reason: string } | null;
+}
+
+export interface ZapotrzebowanieOut {
+  client_id: string;
+  enabled: boolean;
+  interview_typ: WywiadTyp;
+  access: { ok: boolean; reason: string | null; viewer: "client" | "coach" };
+  status: "none" | "ok" | "hidden" | "no_access";
+  estimate: ZapotrzebowanieSzacunek | null;
+  message?: string;
+  version_no?: number;
+  history?: { version_no: number; kcal: number; kcal_effective: number; override_kcal: number | null; created_at: string }[];
 }
