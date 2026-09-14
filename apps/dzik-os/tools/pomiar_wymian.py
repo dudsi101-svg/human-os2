@@ -18,7 +18,7 @@ from pathlib import Path
 BACKEND = Path(__file__).resolve().parents[1] / "backend"
 sys.path.insert(0, str(BACKEND))
 
-from dzik_os.dieta import silnik as S  # noqa: E402
+from dzik_os.dieta import silnik as S
 
 DANE = BACKEND / "dzik_os" / "dieta" / "dane"
 

@@ -1,0 +1,324 @@
+{
+ "version": 1,
+ "status": "PROPOZYCJA",
+ "reviewed_by": null,
+ "source": "docs/zlecenia/PROMPT_writer_wymiany-produktow.md §5 (właściciel, 14.09.2026)",
+ "note": "Pary symetryczne. enabled=false + status PROPOZYCJA_NIEPEWNA = powiązania oznaczone (?) w tabeli właściciela — do decyzji trenera/dietetyka.",
+ "links": [
+  {
+   "a": "białko_chude",
+   "b": "białko_tłuste",
+   "reason": "to samo danie główne, inne mięso; tolerancja rozstrzygnie tłuszcz",
+   "enabled": true,
+   "status": "PROPOZYCJA"
+  },
+  {
+   "a": "białko_chude",
+   "b": "białko_mielone",
+   "reason": "ta sama rola P w obiedzie",
+   "enabled": true,
+   "status": "PROPOZYCJA"
+  },
+  {
+   "a": "białko_chude",
+   "b": "ryba_chuda",
+   "reason": "białko obiadowe, obróbka termiczna",
+   "enabled": true,
+   "status": "PROPOZYCJA"
+  },
+  {
+   "a": "białko_chude",
+   "b": "białko_roślinne",
+   "reason": "tofu/tempeh/seitan jako białko dania",
+   "enabled": true,
+   "status": "PROPOZYCJA"
+  },
+  {
+   "a": "ryba_chuda",
+   "b": "ryba_tłusta",
+   "reason": "ryba za rybę; F rozstrzyga bramka",
+   "enabled": true,
+   "status": "PROPOZYCJA"
+  },
+  {
+   "a": "białko_tłuste",
+   "b": "ryba_tłusta",
+   "reason": "białko z tłuszczem",
+   "enabled": true,
+   "status": "PROPOZYCJA"
+  },
+  {
+   "a": "białko_mielone",
+   "b": "białko_roślinne",
+   "reason": "tempeh/tofu kruszone",
+   "enabled": false,
+   "status": "PROPOZYCJA_NIEPEWNA"
+  },
+  {
+   "a": "strączki",
+   "b": "białko_roślinne",
+   "reason": "białko roślinne w daniu",
+   "enabled": true,
+   "status": "PROPOZYCJA"
+  },
+  {
+   "a": "strączki",
+   "b": "kasza_ryż",
+   "reason": "C w obiedzie (soczewica ↔ kasza)",
+   "enabled": true,
+   "status": "PROPOZYCJA"
+  },
+  {
+   "a": "kasza_ryż",
+   "b": "makaron",
+   "reason": "dodatek skrobiowy",
+   "enabled": true,
+   "status": "PROPOZYCJA"
+  },
+  {
+   "a": "kasza_ryż",
+   "b": "skrobiowe",
+   "reason": "dodatek skrobiowy",
+   "enabled": true,
+   "status": "PROPOZYCJA"
+  },
+  {
+   "a": "makaron",
+   "b": "skrobiowe",
+   "reason": "dodatek skrobiowy",
+   "enabled": true,
+   "status": "PROPOZYCJA"
+  },
+  {
+   "a": "płatki",
+   "b": "kasza_ryż",
+   "reason": "owsianka ↔ jaglanka; cooking_tags rozstrzyga",
+   "enabled": true,
+   "status": "PROPOZYCJA"
+  },
+  {
+   "a": "pieczywo",
+   "b": "płatki",
+   "reason": "śniadanie C — funkcja różna (kanapka vs miska)",
+   "enabled": false,
+   "status": "PROPOZYCJA_NIEPEWNA"
+  },
+  {
+   "a": "mąka",
+   "b": "płatki",
+   "reason": "placki/naleśniki",
+   "enabled": false,
+   "status": "PROPOZYCJA_NIEPEWNA"
+  },
+  {
+   "a": "nabiał_chudy",
+   "b": "nabiał_tłusty",
+   "reason": "jogurt za jogurt",
+   "enabled": true,
+   "status": "PROPOZYCJA"
+  },
+  {
+   "a": "nabiał_chudy",
+   "b": "białko_proszek",
+   "reason": "P w koktajlu/misce",
+   "enabled": true,
+   "status": "PROPOZYCJA"
+  },
+  {
+   "a": "nabiał_chudy",
+   "b": "mleko",
+   "reason": "nabiał płynny",
+   "enabled": true,
+   "status": "PROPOZYCJA"
+  },
+  {
+   "a": "nabiał_chudy",
+   "b": "jajka",
+   "reason": "P śniadaniowe",
+   "enabled": true,
+   "status": "PROPOZYCJA"
+  },
+  {
+   "a": "jajka",
+   "b": "białko_roślinne",
+   "reason": "tofucznica",
+   "enabled": true,
+   "status": "PROPOZYCJA"
+  },
+  {
+   "a": "jajka",
+   "b": "wędlina",
+   "reason": "P w kanapce",
+   "enabled": true,
+   "status": "PROPOZYCJA"
+  },
+  {
+   "a": "wędlina",
+   "b": "białko_chude",
+   "reason": "plaster mięsa ↔ pieczone mięso",
+   "enabled": true,
+   "status": "PROPOZYCJA"
+  },
+  {
+   "a": "wędlina",
+   "b": "ser",
+   "reason": "dodatek białkowy do pieczywa",
+   "enabled": true,
+   "status": "PROPOZYCJA"
+  },
+  {
+   "a": "ser",
+   "b": "nabiał_tłusty",
+   "reason": "tłusty nabiał",
+   "enabled": true,
+   "status": "PROPOZYCJA"
+  },
+  {
+   "a": "ser",
+   "b": "pasta_smarowanie",
+   "reason": "smarowidło/dodatek do pieczywa",
+   "enabled": true,
+   "status": "PROPOZYCJA"
+  },
+  {
+   "a": "pasta_smarowanie",
+   "b": "orzechy_pasty",
+   "reason": "smarowidło",
+   "enabled": true,
+   "status": "PROPOZYCJA"
+  },
+  {
+   "a": "pasta_smarowanie",
+   "b": "nabiał_chudy",
+   "reason": "serek wiejski jako smarowidło",
+   "enabled": true,
+   "status": "PROPOZYCJA"
+  },
+  {
+   "a": "tłuszcz",
+   "b": "tłuszcz_roślinny",
+   "reason": "tłuszcz dodany (oliwa ↔ awokado)",
+   "enabled": true,
+   "status": "PROPOZYCJA"
+  },
+  {
+   "a": "tłuszcz",
+   "b": "dodatek_tłuszczowy",
+   "reason": "F w daniu",
+   "enabled": true,
+   "status": "PROPOZYCJA"
+  },
+  {
+   "a": "tłuszcz",
+   "b": "orzechy_pasty",
+   "reason": "F do miski/kanapki",
+   "enabled": true,
+   "status": "PROPOZYCJA"
+  },
+  {
+   "a": "orzechy",
+   "b": "nasiona",
+   "reason": "F w misce/sałatce",
+   "enabled": true,
+   "status": "PROPOZYCJA"
+  },
+  {
+   "a": "orzechy",
+   "b": "orzechy_pasty",
+   "reason": "F",
+   "enabled": true,
+   "status": "PROPOZYCJA"
+  },
+  {
+   "a": "orzechy",
+   "b": "tłuszcz_roślinny",
+   "reason": "F",
+   "enabled": true,
+   "status": "PROPOZYCJA"
+  },
+  {
+   "a": "słodycze",
+   "b": "orzechy",
+   "reason": "przekąska F/C",
+   "enabled": true,
+   "status": "PROPOZYCJA"
+  },
+  {
+   "a": "słodycze",
+   "b": "słodzik",
+   "reason": "słodka przekąska",
+   "enabled": false,
+   "status": "PROPOZYCJA_NIEPEWNA"
+  },
+  {
+   "a": "słodzik",
+   "b": "owoce",
+   "reason": "słodzenie (daktyle, rodzynki ↔ owoc)",
+   "enabled": true,
+   "status": "PROPOZYCJA"
+  },
+  {
+   "a": "owoce",
+   "b": "owoce_jagodowe",
+   "reason": "owoc za owoc",
+   "enabled": true,
+   "status": "PROPOZYCJA"
+  },
+  {
+   "a": "warzywa_gotowane",
+   "b": "warzywa_surowe",
+   "reason": "warzywo za warzywo (cooking_tags)",
+   "enabled": true,
+   "status": "PROPOZYCJA"
+  },
+  {
+   "a": "warzywa_gotowane",
+   "b": "warzywa_liściaste",
+   "reason": "warzywo",
+   "enabled": true,
+   "status": "PROPOZYCJA"
+  },
+  {
+   "a": "warzywa_surowe",
+   "b": "warzywa_liściaste",
+   "reason": "warzywo surowe",
+   "enabled": true,
+   "status": "PROPOZYCJA"
+  },
+  {
+   "a": "warzywa_surowe",
+   "b": "kiszonki",
+   "reason": "dodatek surowy/kwaśny",
+   "enabled": true,
+   "status": "PROPOZYCJA"
+  },
+  {
+   "a": "warzywa_gotowane",
+   "b": "warzywa_aromat",
+   "reason": "warzywo do duszenia",
+   "enabled": true,
+   "status": "PROPOZYCJA"
+  },
+  {
+   "a": "sos",
+   "b": "pomidory_przetwory",
+   "reason": "baza sosu",
+   "enabled": true,
+   "status": "PROPOZYCJA"
+  },
+  {
+   "a": "sos",
+   "b": "przyprawa",
+   "reason": "doprawienie",
+   "enabled": true,
+   "status": "PROPOZYCJA"
+  },
+  {
+   "a": "mleko",
+   "b": "białko_proszek",
+   "reason": "koktajl",
+   "enabled": false,
+   "status": "PROPOZYCJA_NIEPEWNA"
+  }
+ ]
+}
