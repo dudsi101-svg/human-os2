@@ -26,13 +26,12 @@ w `Plan`/`Today`, których ten motyw nie obejmuje — zapisane jako „do domkni
   VARCHAR(20)`). Ostatni wpis w `db.py` na `main` to **38** (dni treningowe); **39 =
   cardio w PR #75** (sprawdzone w gałęzi: `exercise_blocks` + pola cardio) — numer należy
   do #75, nie do tej gałęzi. Do scalenia #75 kontrola ciągu migracji
-  (`test_migracje_przenosnosc`) na tej gałęzi widzi lukę 38 → 40 — oczekiwane, zielone po
-  scaleniu cardio (integrator scala #75 pierwszy). Pakiet mówił „kolejna wolna” —
-  przydział integratora: 40.
-* **`export_version`** w `routers/privacy.py` zostaje **„2.0”** — eksport zrzuca wiersz
-  `notification_settings` generycznie (`_rows`), więc kolumna `theme` wchodzi do eksportu
-  automatycznie, bez zmiany kształtu; test sprawdza to wprost. Cardio podnosi na 2.1 —
-  nie dublujemy podbicia.
+  (`test_migracje_przenosnosc`) na tej gałęzi widziała lukę 38 → 40 — **#75 scalony
+  (`8a71116`) w trakcie rundy, `main` dociągnięty, ciąg 1–40 bez luk.** Pakiet mówił
+  „kolejna wolna” — przydział integratora: 40.
+* **`export_version`** w `routers/privacy.py` **bez podbicia przez tę rundę** — eksport zrzuca
+  wiersz `notification_settings` generycznie (`_rows`), więc kolumna `theme` wchodzi do eksportu
+  automatycznie, bez zmiany kształtu; test sprawdza to wprost (po scaleniu cardio = „2.1”).
 * **Porty E2E:** 8120 / 8121 (`DZIK_E2E_DIR=/tmp/dzik-e2e-8120`); przy zajętych → 8122/8123.
 
 **Pliki współdzielone (zmieniam jawnie, tylko własne sekcje):** `backend/dzik_os/db.py`

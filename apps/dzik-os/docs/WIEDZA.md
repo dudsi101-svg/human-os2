@@ -18,7 +18,7 @@ eksperckiego — żadne z nich nie zostało wykonane.
 | Panel „Dlaczego?” W4 (dolny arkusz / boczny; Escape; fokus wraca; stan sesji zachowany) | `frontend/src/wiedza/Dlaczego.tsx` | działa w `Plan.tsx` (ćwiczenie, wersja, liczba dni) i `Nutrition.tsx` (kalorie, makro) |
 | Ślad decyzji (DecisionTrace) | `backend/dzik_os/wiedza/slad.py`, tabela `wiedza_slady` | zapis w tej samej transakcji co wersja planu |
 | Resolver (10 kroków, 7 statusów) | `backend/dzik_os/wiedza/resolver.py` | 15 scenariuszy pakietu + kontrole semantyczne |
-| Rejestr reguł i szablony tekstu | `backend/dzik_os/wiedza/reguly.py` | H_PROGRESS, H_LAYOUT, H_VOLUME, ENERGY_INITIAL, MEAL_PREFERENCE, USER_SELECTION, PROFESSIONAL_NOTE |
+| Rejestr reguł i szablony tekstu | `backend/dzik_os/wiedza/reguly.py` | H_PROGRESS, H_LAYOUT, H_VOLUME, H_CARDIO, ENERGY_INITIAL, MEAL_PREFERENCE, USER_SELECTION, PROFESSIONAL_NOTE |
 | Ranking „Dla Ciebie” bez ML | `backend/dzik_os/wiedza/kanal.py` | deterministyczny, maks. 3 karty, powód przy każdej; opcja wyłączenia personalizacji |
 | Wyszukiwanie (polskie znaki, aliasy, literówki ≤1) | `backend/dzik_os/wiedza/szukaj.py` | tylko widoczne teksty ogólne; zapytanie w body, nie w logach ani audycie |
 | Redakcja (nowa rewizja, publikacja, wycofanie) | `routers/wiedza.py`, `frontend/src/pages/coach/WiedzaRedakcja.tsx` | trener = recenzent/wydawca; publikacja odrzucana bez źródeł z rejestru, recenzenta i daty przeglądu |
@@ -32,6 +32,7 @@ eksperckiego — żadne z nich nie zostało wykonane.
 | `training_frequency` (cel `plan`) | konfigurator 28 dni | `engine` / H_LAYOUT 1.0 | `POST /api/coach/konfigurator/zapisz` |
 | `exercise_prescription` (cel `d{dzień}:e{ćwiczenie}`) | konfigurator 28 dni | `engine` / H_VOLUME 1.0 | j.w., jeden ślad na każde ćwiczenie każdej jednostki |
 | `plan_change` (cel `plan`) | trener | `professional` (oryginalny `reason` wersji) | `POST /api/plans/{id}/versions` dla planu klienta |
+| `cardio_prescription` (cel `d{dzień}:e{pozycja}`) (0.73.0) | silnik suwaków cardio | `engine` / H_CARDIO 1.0 (`cardio_model_v1`) | `POST /api/plans`, `…/versions` i publikacja szkicu — jeden ślad na każdą pozycję `kind: "cardio"`, ta sama transakcja co wersja; fakty bez wieku/tętna/bloku zdrowotnego |
 | `energy_target`, `macro_target` (cel `plan`) | trener | `professional` (wartości z treści wersji diety) | `POST /api/nutrition`, `POST /api/nutrition/{id}/versions` |
 
 **Bez adaptera (jawny brak, `missing_trace` + karta ogólna):** `load`

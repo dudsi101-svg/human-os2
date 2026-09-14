@@ -80,8 +80,16 @@ poza `Landing.tsx`), więc przełącza się jak reszta. Kreator dań (`KreatorDa
 `PlanEditor`, `PrzypiszDiete`, `SzkicPlanu`, `PublikacjaPanel`, `OcrCapture`,
 `PlanAssistant`, `FoodCatalog`, `Onboarding` (rozmowa startowa — ✅ jako ekran) — nie
 zrzucone jako osobne stany (wymagają danych/interakcji wielokrokowej), ten sam argument:
-zero literałów w TSX, wszystkie style przez tokeny. **Do domknięcia po 0.73.0:** ekrany
-rozgrzewki/rozciągania/cardio (PR #75) — nie istnieją na tej gałęzi.
+zero literałów w TSX, wszystkie style przez tokeny.
+
+**Cardio 0.73.0 (PR #75 scalone `8a71116` w trakcie tej rundy — przegląd po scaleniu
+`main`, `scratchpad/motyw-zrzuty/cardio`, 6 ekranów × 2 motywy):** Szablony → Bloki ✅
+(katalog bloków, plakietki, „Dodaj wbudowane”), karta klienta → Plan → „+ Nowy plan” →
+„+ Cardio” ✅ (panel suwaków: `input[type=range]` z `accent-color: var(--accent)`,
+kłódki, urządzenia, kwalifikacja zdrowotna), Plan klienta z pozycją cardio z seedu ✅,
+„Dlaczego takie cardio?” ✅ (dialog, scrim), Dzisiaj ✅, Plan trenera ✅. `styles.css`
+z cardio nie dodał żadnego literału koloru (strażnik `test-tokeny.mjs` zielony po
+scaleniu); `pozycje.tsx`, `CardioPanel.tsx`, `BlokiTab.tsx`, `suwaki.ts` — zero literałów.
 
 ## Kontrast — patrz `docs/DOSTEPNOSC.md` §„Kontrast (motyw jasny czerwono-biały)”
 
@@ -99,9 +107,10 @@ bez „jak w systemie” · zapis na koncie i urządzeniu · „Ciemny (czarno-z
 
 * `:root` **bez** `color-scheme: dark` (bramka pikselowa — patrz wyżej).
 * `--nav-bg` w jasnym = biel `.94`, nie `rgba(251,245,245,.92)` z prompta (kontrast).
-* Migracja **40** (39 = cardio, PR #75): `test_migracje_przenosnosc` wymaga ciągu bez luk —
-  **czerwony na tej gałęzi do scalenia #75** (integrator: cardio scalane pierwsze);
-  pełny pytest tej rundy uruchomiony z jawnym `--deselect` tego jednego testu.
+* Migracja **40** po 39 (cardio): do scalenia `main` `test_migracje_przenosnosc` (ciąg bez
+  luk) był czerwony — po scaleniu `8a71116` ciąg 1–40 bez luk, pełny pytest bez wykluczeń.
+  Trzy testy „starej bazy” (`test_migracja_23/22`, `test_migration_19`) dostały stub
+  `notification_settings` (jak stub `workout_entries` dla 39).
 * Synchronizacja motywu z konta idzie polem `theme` w odpowiedzi logowania
   (`_user_payload`, `/api/auth/me`), nie osobnym `GET` ustawień po zalogowaniu —
   jedna odpowiedź mniej na starcie; `Login.tsx` i tak przeładowuje stronę.
@@ -129,7 +138,8 @@ bez „jak w systemie” · zapis na koncie i urządzeniu · „Ciemny (czarno-z
   (~5 kB, w precache SW); `<picture>` nie umie warunkować po atrybucie `data-theme`.
 * Szkic raportu w `sessionStorage` powstaje już przy samym wejściu na pusty formularz
   (widać w bramce A/B) — dług sprzed rundy, poza zakresem.
-* Ekrany cardio/rozgrzewki (0.73.0) — przegląd w obu motywach po scaleniu obu gałęzi.
+* (zrobione po scaleniu) ekrany cardio/rozgrzewki 0.73.0 przejrzane w obu motywach — patrz
+  lista wyżej.
 
 ## Przegląd wewnętrzny (trzy przejścia, zasady v2 §3)
 

@@ -226,7 +226,8 @@ def test_nowa_wersja_trenera_zapisuje_slad_i_tlumaczy_sie_oryginalnym_powodem(se
     assert r.status_code == 201
     nowa = r.json()["version_no"]
     with db_session() as db:
-        s = db.query(WiedzaSlad).filter_by(plan_id=p["plan_id"], plan_revision=nowa).one()
+        # Od 0.73.0 przy tej rewizji jest też ślad H_CARDIO pozycji cardio dnia C — filtr po celu.
+        s = db.query(WiedzaSlad).filter_by(plan_id=p["plan_id"], plan_revision=nowa, target_type="plan_change").one()
         assert s.decision_origin == "professional" and s.reason_note == powod
         assert not slad.waliduj(slad.do_schematu(s))
     r = _wyjasnij(seeded, ha, plan_id=p["plan_id"], plan_revision=nowa, target_type="plan_change", target_id="plan")
@@ -242,6 +243,8 @@ def test_nowa_wersja_trenera_zapisuje_slad_i_tlumaczy_sie_oryginalnym_powodem(se
                   target_id="plan", tryb="history")
     assert r.status_code == 200 and r.json()["historical"] is True and powod in r.json()["paragraphs"][0]
     h = seeded.get(f"/api/wiedza/plany/training/{p['plan_id']}/historia-decyzji", headers=ha).json()["items"]
+    # Od 0.73.0 historia niesie też ślady H_CARDIO (dzień C seedu) — patrzymy na decyzje trenera.
+    h = [x for x in h if x["target_type"] == "plan_change"]
     assert [x["plan_revision"] for x in h] == [nowa + 1, nowa]
     assert h[1]["aktualna"] is False and h[1]["autor"] == "Uzasadnienie autora planu"
     # Trener z relacją widzi wyjaśnienie klienta.

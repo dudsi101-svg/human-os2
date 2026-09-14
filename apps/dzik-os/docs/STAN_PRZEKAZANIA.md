@@ -1,6 +1,6 @@
 # Stan przekazania — przeczytaj przed rozpoczęciem rundy
 
-**Aktualizacja:** 2026-09-14 · **Wersja w `main`:** 0.72.0 (po scaleniu PR #67) — 0.73.0 w PR #75 (`agent/cardio-i-rozgrzewka`, zlecenie 5), **0.74.0 w PR #76** (`agent/motyw-czerwony`, zlecenie 4: motyw jasny czerwono-biały, migracja 40).
+**Aktualizacja:** 2026-09-14 · **Wersja w `main`:** 0.73.0 (po scaleniu PR #75 cardio, `8a71116`) — **0.74.0 w PR #76** (`agent/motyw-czerwony`, zlecenie 4: motyw jasny czerwono-biały, migracja 40).
 **Tryb pracy:** jeden piszący i jeden PR `[WRITER]` naraz
 (`KOORDYNACJA.md`, zasada nadrzędna).
 
@@ -47,9 +47,25 @@ czerwony w jasnym, `/login` ze znakiem + nazwą. Ciemny motyw piksel w piksel
 `test_a11y.mjs` w obu motywach w CI, axe-core devDependency (pierwszy
 przebieg złapał `scrollable-region-focusable` w Postępach — naprawione).
 Przyjęte domyślne: ciemny domyślny, PWA/og/manifest limonkowe (decyzja
-o znaku), bez „jak w systemie”. Uwaga: migracja 40 zakłada 39 z PR #75 —
-`test_migracje_przenosnosc` (ciąg bez luk) zielony dopiero po scaleniu #75.
+o znaku), bez „jak w systemie”. Ekrany cardio 0.73.0 (Bloki, panel suwaków,
+pozycje u klienta) objęte przeglądem kompletności po scaleniu `main`.
 Otwarte i P2: `docs/motyw/PROGRESS.md`.
+**Runda 0.73.0 (gałąź `agent/cardio-i-rozgrzewka`, PR #75, zlecenie 5 z 14.09):**
+rozgrzewka, rozciąganie i cardio z suwakami celów — silnik `cardio_model_v1`
+(`dzik_os/cardio/`: Seiler 3 strefy + Karvonen + Tanaka jako zakres + Fatmax +
+interwały pod VO2max; zero AI; 5 przykładów kontrolnych jako testy), trzy rodzaje
+pozycji planu (`kind` warmup_block/stretch_block/cardio, migawka bloku), katalog
+bloków trenera (`ExerciseBlock`, migracja 39; 9 rozgrzewek + 3 rozciągania
+wbudowane, do przeglądu trenera), `POST /api/clients/{id}/cardio/podglad` za
+bramką zdrowotną konfiguratora (+ leki wpływające na tętno → tylko RPE;
+propose-only), ślad `H_CARDIO` w tej samej transakcji co wersja, dziennik cardio
+bez serii (`export_version` 2.1), panel suwaków i wybór bloków w edytorze planu,
+zakładka Szablony → Bloki, wspólny renderer pozycji u klienta (Dzisiaj/Plan),
+E2E ×2, przeklik ze zrzutami. Przyjęte domyślne §8 (Regeneracja, „Redukcja”,
+warianty G/D/C, rozciąganie bez poziomów, trener wskazuje urządzenia, treści
+„do przeglądu”, `resting_hr` bez migracji). Otwarte dla trenera/właściciela:
+lista do przeglądu w `docs/cardio/PROGRESS.md` (bloki, 9 wpisów katalogu, tabela
+urządzeń, kotwice [C]). Nie zrobione: Postępy-cardio, bloki ze szkicu, TPL-025/026.
 
 **Runda 0.71.0 (gałąź `agent/dni-treningowe`, PR #72, zlecenie 1 z 14.09):**
 dni treningowe na „Dzisiaj” — nakładka klienta na dni tygodnia planu
@@ -413,12 +429,13 @@ nie uruchamiano, ponieważ runda nie zmienia kodu ani zasobów frontendu.
 | `agent/wywiad-zapotrzebowanie` | 0.62.0 | 33 | **scalona** (PR #60, 14.09) i wdrożona | dokument właściciela `wywiad_zapotrzebowanie_kaloryczne.md` nadal niedostarczony — różnice do wyrównania | — |
 | `agent/biblioteka-diet` | 0.64.0 | 35 | **scalona** (PR #66, 14.09), deploy 0.64.0 po CI na `main` | — | — |
 | `agent/landing-czerwony` | 0.72.0 | — | **scalona** (PR #67, `195d475`, 14.09) | znak marki w czerwieni wszędzie (etap 2) — decyzja właściciela | — |
-| `agent/motyw-czerwony` | **0.74.0** (0.73.0 = PR #75 cardio) | **40** (39 = PR #75) | zlecenie 4 (14.09): drugi motyw jasny czerwono-biały — tokeny, mechanizm, zapis na koncie, „Wygląd”, 60 ekranów × 2 motywy przejrzane, bramka pikselowa ciemnego; **PR #76 gotowy do przeglądu** | scalenie #75 (migracja 39 — bez niej `test_migracje_przenosnosc` czerwony); decyzja o znaku (PWA/og/manifest) i ewentualnie „jak w systemie” | po #75 |
+| `agent/motyw-czerwony` | **0.74.0** | **40** | zlecenie 4 (14.09): drugi motyw jasny czerwono-biały — tokeny, mechanizm, zapis na koncie, „Wygląd”, ekrany klienta/trenera/admina/publiczne i cardio 0.73.0 × 2 motywy przejrzane, bramka pikselowa ciemnego; `main` 0.73.0 scalony; **PR #76 gotowy do przeglądu** | decyzja o znaku (PWA/og/manifest w czerwieni) i ewentualnie „jak w systemie” | 1 |
 | `agent/monitoring-postepy` | 0.66.0 | 36 | **scalona** (PR #61, 14.09), deploy 0.66.0 po CI na `main`; flaga na produkcji wyłączona | włączenie flagi + backfill — decyzja właściciela | — |
 | `agent/ukryj-kreator` | 0.67.0 | — | **scalona** (PR #68, 14.09), deploy 0.67.0 po CI na `main`; kreator na produkcji ukryty (brak flagi w `fly.toml`) | — | — |
 | `agent/wymiany-produktow` | 0.69.0 (0.68.0 = dni treningowe) | — | zlecenie 2 (14.09): silnik wymian v2 (poziom 2, powody, NONE 1:1, bramka „nie pogarsza”), grupy pokrewne (45 par, RO), korelacja katalogu → CSV; przegląd 3 recenzentów naprawiony (P0/P1 ×5, P2 w PROGRESS); `main` 0.67.0 scalony, PR #69 — CI | przegląd CSV przez właściciela (TAK/NIE) → import osobnym PR-em; decyzja o luzie bramki | 1 |
 | `agent/dni-treningowe` | 0.71.0 | 38 (37 = PR #70) | zlecenie 1 (14.09): nakładka klienta na dni tygodnia planu, „Dzisiaj” z układem klienta, karta „ustaw dni”, odczyt u trenera; 13 testów API/silnika, E2E, przeklik; **PR #72 gotowy do przeglądu** | scalenie #70 (migracja 37 — bez niej `test_migracje_przenosnosc` czerwony); odpowiedzi właściciela na 3 pytania (domyślne przyjęte) | po #70 |
 | `agent/wywiad-kaloryczny-rozpoznanie` | — (docs) | — (przyszła: 38 lub 39) | etap 0 rundy „wyrównanie wywiadu kalorycznego do spec 1.0” — `docs/wywiad-zapotrzebowanie/01_rozpoznanie_spec_v1.md` (tabela luk, migracja, testy, ryzyka) | **7 decyzji właściciela** (§5 rozpoznania: nowe pytania zdrowotne i klasyfikacja, zakres flagowania, stare wywiady, wiek vs data urodzenia, flaga a Monitoring, kolejność migracji, minimalne kcal) | po decyzjach |
+| `agent/cardio-i-rozgrzewka` | 0.73.0 | 39 | **scalona** (PR #75, `8a71116`, 14.09) | przegląd treści i kotwic [C] przez trenera (`docs/cardio/PROGRESS.md`); odpowiedzi właściciela na 7 pytań §8 (domyślne przyjęte) | — |
 | `agent/powitanie-samouczek` | 0.70.0 | 37 (`users.welcome_seen_at`; dni treningowe → 38) | sekcja E promptu „Panel Dzisiaj” (14.09): dwuetapowy samouczek po pierwszym logowaniu (pomoc, nie bramka), znacznik na serwerze, `POST /api/me/welcome-seen`, „Więcej → Pomoc / Samouczek”; testy backend + E2E + a11y + PWA zielone, przeklik ze zrzutami; `main` 0.69.0 scalony, PR #70 — ready | pytanie: treść kroku 2 wspomina wymianę składnika (moduł szablonów diet na produkcji za flagą) — zostawić warunkowo czy usunąć do czasu włączenia flagi? | 2 |
 
 | Rzecz | Stan | Gdzie |

@@ -709,7 +709,8 @@ def test_motyw_bez_sladu_audytu_ale_w_eksporcie(seeded):
     po2 = [e for e in event_store().all() if e["event_type"] == "NOTIFICATION_SETTINGS_CHANGED"]
     assert len(po2) == len(przed) + 1
     # Eksport danych: wiersz ustawień powiadomień jest zrzucany w całości,
-    # więc `theme` wchodzi bez zmiany kształtu (export_version bez podbicia).
+    # więc `theme` wchodzi bez zmiany kształtu (bez podbicia przez tę rundę;
+    # 2.1 = dziennik cardio z 0.73.0).
     ex = seeded.get("/api/me/export", headers=ha).json()
-    assert ex["export_version"] == "2.0"
+    assert ex["export_version"] == "2.1"
     assert [row["theme"] for row in ex["notification_settings"]] == ["ciemny"]

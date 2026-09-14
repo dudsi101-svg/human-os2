@@ -1553,11 +1553,39 @@ MIGRATIONS.append(
 )
 
 MIGRATIONS.append(
+    (39, "rozgrzewka, rozciąganie i cardio: exercise_blocks + pola cardio w workout_entries", [
+        # Addytywna; wycofanie = ignorowanie tabeli i kolumn. Numer 38 = dni treningowe.
+        (
+            "CREATE TABLE IF NOT EXISTS exercise_blocks ("
+            " id VARCHAR(40) PRIMARY KEY,"
+            " coach_id VARCHAR(40) NOT NULL REFERENCES users(id),"
+            " kind VARCHAR(20) NOT NULL,"
+            " level VARCHAR(30),"
+            " variant VARCHAR(4) NOT NULL,"
+            " name VARCHAR(300) NOT NULL,"
+            " duration_min INTEGER,"
+            " items_json TEXT NOT NULL DEFAULT '[]',"
+            " source VARCHAR(120) NOT NULL DEFAULT 'trener',"
+            " status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',"
+            " created_by VARCHAR(40) NOT NULL,"
+            " created_at VARCHAR(40) NOT NULL,"
+            " updated_at VARCHAR(40) NOT NULL)"
+        ),
+        "CREATE INDEX IF NOT EXISTS ix_exercise_blocks_coach_id ON exercise_blocks (coach_id)",
+        # ALTER ADD COLUMN bez DEFAULT (jak migracja 14) — wpisy siłowe mają NULL.
+        "ALTER TABLE workout_entries ADD COLUMN duration_min INTEGER",
+        "ALTER TABLE workout_entries ADD COLUMN avg_hr INTEGER",
+        "ALTER TABLE workout_entries ADD COLUMN rpe INTEGER",
+        "ALTER TABLE workout_entries ADD COLUMN distance_km FLOAT",
+        "ALTER TABLE workout_entries ADD COLUMN machine VARCHAR(40)",
+    ])
+)
+
+MIGRATIONS.append(
     (40, "motyw aplikacji: notification_settings.theme (ciemny/czerwony)", [
         # Addytywna (ALTER ADD COLUMN bez DEFAULT — jak migracja 37); NULL =
         # motyw domyślny (ciemny). Wycofanie = ignorowanie kolumny. Numer 39 =
-        # rozgrzewka/cardio (PR #75, `agent/cardio-i-rozgrzewka`) — scalany
-        # przed tą gałęzią; do tego czasu ciąg ma lukę 38 → 40 (oczekiwane).
+        # rozgrzewka/cardio (PR #75, scalony przed tą rundą).
         "ALTER TABLE notification_settings ADD COLUMN theme VARCHAR(20)",
     ])
 )

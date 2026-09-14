@@ -41,7 +41,17 @@ JEDNOSTKI: dict[str | None, str] = {
     "weeks": "tyg.",
     "minutes": "min",
     "hours": "h",
+    # cardio (0.73.0)
+    "bpm": "ud./min",
+    "percent_hrmax": "% HRmax",
+    "percent_hrr": "% rezerwy tętna",
+    "rpe": "RPE",
+    "kcal": "kcal",
+    "percent": "%",
 }
+
+#: Wersja reguły H_CARDIO (silnik `cardio/model.py`, `cardio_model_v1`).
+WERSJA_REGUL_CARDIO = "1.0"
 
 #: Wersja reguł konfiguratora zapisywana w śladach (z pakietu K1).
 WERSJA_REGUL_KONFIGURATORA = "1.0"
@@ -253,4 +263,33 @@ def slady_diety_trenera(db: Session, *, owner_id: str, plan_id: str, plan_revisi
             article_ids=["k-macros"],
         )
         n += 1
+    return n
+
+
+def slady_cardio(db: Session, *, owner_id: str, plan_id: str, plan_revision: int,
+                 content: dict) -> int:
+    """Ślad `H_CARDIO` dla każdej pozycji `kind: "cardio"` w treści wersji
+    planu (cel `cardio_prescription` → `d{dzień}:e{pozycja}`), w TEJ SAMEJ
+    transakcji co wersja. Fakty: wagi celów, poziom, nazwa źródła HRmax,
+    zakresy, struktura, urządzenia, wersja modelu, nadpisania trenera,
+    zastrzeżenia — bez wieku, tętna spoczynkowego i bloku zdrowotnego."""
+    from ..cardio import model as cardio_model
+
+    teraz = now_iso()
+    n = 0
+    for di, day in enumerate((content or {}).get("days") or []):
+        for ei, ex in enumerate((day or {}).get("exercises") or []):
+            if not isinstance(ex, dict) or ex.get("kind") != "cardio" or not isinstance(ex.get("cardio"), dict):
+                continue
+            fakty = [fakt(k, v, u, teraz) for k, v, u in cardio_model.fakty_sladu(ex["cardio"])]
+            czas = (ex["cardio"].get("prescription") or {}).get("duration_min")
+            zapisz_slad(
+                db, owner_id=owner_id, plan_kind="training", plan_id=plan_id,
+                plan_revision=plan_revision, target_type="cardio_prescription",
+                target_id=f"d{di}:e{ei}", decision_origin="engine", rule_id="H_CARDIO",
+                rule_version=WERSJA_REGUL_CARDIO, data_quality="sufficient",
+                facts=fakty, outcome_code="cardio_prescription", outcome_value=czas,
+                reason_note=None, article_ids=["k-cardio"],
+            )
+            n += 1
     return n

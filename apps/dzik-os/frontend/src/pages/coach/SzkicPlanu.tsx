@@ -2,6 +2,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { api, ApiError } from "../../api";
 import { WEEKDAYS } from "../../dates";
+import { KIND_BADGE, opisPozycji, rodzajPozycji } from "../../pozycje";
+import { Exercise } from "../../types";
 import { ErrorBox, Spinner } from "../../components";
 import {
   PlanKind,
@@ -402,7 +404,23 @@ function EdytorTreningu({ tresc, ustaw, operacja, usun }: { tresc: SzkicTrening;
               { label: "Usuń dzień", danger: true, onClick: () => usun(day.id, day.name || `dzień ${di + 1}`, "days", 1 + day.exercises.length) },
             ]} />
           </div>
-          {day.exercises.map((ex, ei) => (
+          {day.exercises.map((ex, ei) => rodzajPozycji(ex as unknown as Exercise) !== "strength" ? (
+            // Rozgrzewka / rozciąganie / cardio (0.73.0): w szkicu tylko odczyt i usunięcie —
+            // treść pochodzi z katalogu bloków albo z panelu suwaków w edytorze nowej wersji.
+            <div key={ex.id} style={{ borderTop: "1px solid var(--border)", paddingTop: 8, marginTop: 8 }}>
+              <div className="row row--between" style={{ gap: 8 }}>
+                <div style={{ flex: 1 }}>
+                  <b>{ex.name}</b> <span className="badge">{KIND_BADGE[rodzajPozycji(ex as unknown as Exercise)]}</span>
+                  <div className="meta">{opisPozycji(ex as unknown as Exercise)}</div>
+                </div>
+                <MenuDzialan etykieta={ex.name || `pozycja ${ei + 1}`} akcje={[
+                  { label: "Wyżej", onClick: () => operacja({ op: "move", id: ex.id, index: ei - 1 }), disabled: ei === 0 ? "pierwsze w dniu" : undefined },
+                  { label: "Niżej", onClick: () => operacja({ op: "move", id: ex.id, index: ei + 1 }), disabled: ei === day.exercises.length - 1 ? "ostatnie w dniu" : undefined },
+                  { label: "Usuń pozycję", danger: true, onClick: () => usun(ex.id, ex.name || `pozycja ${ei + 1}`, "exercises", 1) },
+                ]} />
+              </div>
+            </div>
+          ) : (
             <div key={ex.id} style={{ borderTop: "1px solid var(--border)", paddingTop: 8, marginTop: 8 }}>
               <div className="row row--between" style={{ alignItems: "flex-end", gap: 8 }}>
                 <div style={{ flex: 1 }}>

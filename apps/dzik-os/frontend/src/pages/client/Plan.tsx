@@ -1,9 +1,10 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api, getUser } from "../../api";
 import { WEEKDAYS, localToday, plDate } from "../../dates";
 import { ErrorBox, ExerciseTechniqueLink, Icon, Spinner, TopBar } from "../../components";
-import { DniPlanu, PlanVersion, TrainingPlan, WorkoutRow } from "../../types";
+import { PozycjaBloku, PozycjaCardio, RestTimer, parseRestSeconds, rodzajPozycji } from "../../pozycje";
+import { DniPlanu, MACHINE_LABELS, PlanVersion, TrainingPlan, WorkoutRow } from "../../types";
 import { Dlaczego } from "../../wiedza/Dlaczego";
 import DniTreningowe, { etykietaDnia } from "./DniTreningowe";
 
@@ -20,68 +21,6 @@ function toApiSets(rows: SetRow[]): { weight_kg: number; reps: number }[] {
     .filter((s) => isFinite(s.weight_kg) && s.weight_kg > 0 && s.reps > 0);
 }
 
-/** "120 s" / "2 min" / "90" → sekundy (null, gdy nie da się odczytać). */
-function parseRestSeconds(rest: string | null | undefined): number | null {
-  if (!rest) return null;
-  const m = rest.replace(",", ".").match(/([\d.]+)\s*(min|m\b)?/i);
-  if (!m) return null;
-  const value = parseFloat(m[1]);
-  if (!isFinite(value) || value <= 0) return null;
-  return Math.round(m[2] ? value * 60 : value);
-}
-
-/** Timer przerwy między seriami — czysto lokalny, niczego nie zapisuje. */
-function RestTimer({ seconds }: { seconds: number }) {
-  const [left, setLeft] = useState<number | null>(null);
-  const interval = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  useEffect(() => () => { if (interval.current) clearInterval(interval.current); }, []);
-
-  function start() {
-    if (interval.current) clearInterval(interval.current);
-    setLeft(seconds);
-    interval.current = setInterval(() => {
-      setLeft((prev) => {
-        if (prev === null) return null;
-        if (prev <= 1) {
-          if (interval.current) clearInterval(interval.current);
-          if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-  }
-
-  function stop() {
-    if (interval.current) clearInterval(interval.current);
-    setLeft(null);
-  }
-
-  if (left === null) {
-    return (
-      <button type="button" className="btn btn--ghost btn--small" onClick={start}>
-        <Icon name="timer" size={16} /> przerwa {seconds >= 60 ? `${Math.round(seconds / 60)} min` : `${seconds} s`}
-      </button>
-    );
-  }
-  const done = left === 0;
-  return (
-    <button
-      type="button"
-      className="btn btn--small"
-      style={done
-        ? { background: "var(--accent)", color: "var(--accent-ink)" }
-        : { background: "var(--bg-raised)", color: "var(--accent)", fontVariantNumeric: "tabular-nums" }}
-      onClick={done ? () => start() : stop}
-    >
-      {done
-        ? "✓ Koniec przerwy — jeszcze raz?"
-        : <><Icon name="timer" size={16} /> {Math.floor(left / 60)}:{String(left % 60).padStart(2, "0")} (stop)</>}
-    </button>
-  );
-}
-
 export default function Plan() {
   const user = getUser()!;
   const [plans, setPlans] = useState<TrainingPlan[] | null>(null);
@@ -93,6 +32,11 @@ export default function Plan() {
   const [results, setResults] = useState<Record<number, string>>({});
   const [sets, setSets] = useState<Record<number, SetRow[]>>({});
   const [comment, setComment] = useState("");
+  // Cardio (0.73.0): urządzenie wybrane na dziś (per pozycja) i wpis bez serii.
+  const [maszyny, setMaszyny] = useState<Record<number, string>>({});
+  const [cardioLog, setCardioLog] = useState<Record<number, { czas: string; rpe: string; tetno: string; dystans: string }>>({});
+  // Blok rozgrzewki/rozciągania odhaczany jako całość.
+  const [blokiDone, setBlokiDone] = useState<Record<number, boolean>>({});
   const [pain, setPain] = useState(false);
   const [painNote, setPainNote] = useState("");
 
@@ -166,16 +110,32 @@ export default function Plan() {
         comment: comment || null,
         pain_flag: pain,
         pain_note: pain ? painNote : null,
-        entries: day.exercises.map((ex, i) => ({
-          exercise_index: i,
-          exercise_name: ex.name,
-          result: results[i] || null,
-          sets: toApiSets(sets[i] ?? []),
-        })),
+        entries: day.exercises.map((ex, i) => {
+          const rodzaj = rodzajPozycji(ex);
+          if (rodzaj === "cardio") {
+            const c = cardioLog[i] ?? { czas: "", rpe: "", tetno: "", dystans: "" };
+            const liczba = (v: string) => { const n = Number(v.replace(",", ".")); return v.trim() && isFinite(n) ? n : null; };
+            return {
+              exercise_index: i, exercise_name: ex.name, result: results[i] || null, sets: [],
+              duration_min: liczba(c.czas) !== null ? Math.round(liczba(c.czas)!) : null,
+              rpe: liczba(c.rpe) !== null ? Math.round(liczba(c.rpe)!) : null,
+              avg_hr: liczba(c.tetno) !== null ? Math.round(liczba(c.tetno)!) : null,
+              distance_km: liczba(c.dystans),
+              machine: maszyny[i] ?? ex.cardio?.machines[0] ?? null,
+            };
+          }
+          if (rodzaj !== "strength") {
+            return { exercise_index: i, exercise_name: ex.name, sets: [],
+              result: blokiDone[i] ? "wykonano" : results[i] || null };
+          }
+          return { exercise_index: i, exercise_name: ex.name, result: results[i] || null, sets: toApiSets(sets[i] ?? []) };
+        }),
       });
       setLogDay(null);
       setResults({});
       setSets({});
+      setCardioLog({});
+      setBlokiDone({});
       setComment("");
       setPain(false);
       setPainNote("");
@@ -265,6 +225,17 @@ export default function Plan() {
                 })()}
               </div>
               {day.exercises.map((ex, i) => {
+                const rodzaj = rodzajPozycji(ex);
+                if (rodzaj === "warmup_block" || rodzaj === "stretch_block") {
+                  return <PozycjaBloku key={i} ex={ex} testid={`blok-${di}-${i}`} />;
+                }
+                if (rodzaj === "cardio") {
+                  return (
+                    <PozycjaCardio key={i} ex={ex} testid={`cardio-${di}-${i}`}
+                      machine={maszyny[i] ?? null} onMachine={(m) => setMaszyny({ ...maszyny, [i]: m })}
+                      dlaczego={{ plan_id: plan.id, plan_revision: plan.current_version_no, target_id: `d${di}:e${i}` }} />
+                  );
+                }
                 const restSeconds = parseRestSeconds(ex.rest);
                 return (
                   <div className="exercise" key={i}>
@@ -296,6 +267,40 @@ export default function Plan() {
               {logDay === di ? (
                 <div style={{ marginTop: 10 }}>
                   {day.exercises.map((ex, i) => {
+                    const rodzaj = rodzajPozycji(ex);
+                    if (rodzaj === "warmup_block" || rodzaj === "stretch_block") {
+                      return (
+                        <label key={i} className="row" style={{ alignItems: "center", margin: "10px 0" }}>
+                          <input type="checkbox" checked={!!blokiDone[i]} data-testid={`blok-done-${di}-${i}`}
+                            onChange={(e) => setBlokiDone({ ...blokiDone, [i]: e.target.checked })} />
+                          <span>{ex.name} — wykonane w całości</span>
+                        </label>
+                      );
+                    }
+                    if (rodzaj === "cardio") {
+                      const c = cardioLog[i] ?? { czas: "", rpe: "", tetno: "", dystans: "" };
+                      const ustaw = (k: keyof typeof c, v: string) => setCardioLog({ ...cardioLog, [i]: { ...c, [k]: v } });
+                      const urzadzenie = maszyny[i] ?? ex.cardio?.machines[0];
+                      return (
+                        <div key={i} style={{ marginBottom: 12 }} data-testid={`cardio-log-${di}-${i}`}>
+                          <span style={{ display: "block", fontSize: "0.85rem", color: "var(--text-dim)", margin: "10px 0 2px" }}>
+                            {ex.name}{urzadzenie && <> · {MACHINE_LABELS[urzadzenie] ?? urzadzenie}</>}
+                          </span>
+                          <div className="field-row">
+                            <input type="number" inputMode="numeric" placeholder="czas (min)" aria-label={`${ex.name} — czas w minutach`}
+                              value={c.czas} onChange={(e) => ustaw("czas", e.target.value)} />
+                            <input type="number" inputMode="numeric" min={1} max={10} placeholder="RPE 1–10" aria-label={`${ex.name} — RPE (1–10)`}
+                              value={c.rpe} onChange={(e) => ustaw("rpe", e.target.value)} />
+                          </div>
+                          <div className="field-row" style={{ marginTop: 6 }}>
+                            <input type="number" inputMode="numeric" placeholder="średnie tętno (opcjonalnie)" aria-label={`${ex.name} — średnie tętno (ud./min, opcjonalnie)`}
+                              value={c.tetno} onChange={(e) => ustaw("tetno", e.target.value)} />
+                            <input type="text" inputMode="decimal" placeholder="dystans km (opcjonalnie)" aria-label={`${ex.name} — dystans w km (opcjonalnie)`}
+                              value={c.dystans} onChange={(e) => ustaw("dystans", e.target.value)} />
+                          </div>
+                        </div>
+                      );
+                    }
                     const rows = sets[i] ?? [{ weight: "", reps: "" }];
                     const setRows = (next: SetRow[]) => setSets({ ...sets, [i]: next });
                     return (
@@ -371,12 +376,16 @@ export default function Plan() {
               <div>
                 <b>{plDate(w.performed_on)}</b>
                 {w.pain_flag && <span className="badge badge--danger" style={{ marginLeft: 8 }}>ból</span>}
-                {w.entries.filter((e) => e.result || e.sets.length > 0).map((e, i) => (
+                {w.entries.filter((e) => e.result || e.sets.length > 0 || e.duration_min || e.rpe).map((e, i) => (
                   <div className="meta" key={i}>
                     {e.exercise_name}:{" "}
                     {e.sets.length > 0
                       ? e.sets.map((s) => `${s.weight_kg} kg×${s.reps}`).join(", ")
-                      : e.result}
+                      : (e.duration_min || e.rpe)
+                        ? [e.machine && (MACHINE_LABELS[e.machine] ?? e.machine), e.duration_min && `${e.duration_min} min`,
+                          e.rpe && `RPE ${e.rpe}`, e.avg_hr && `${e.avg_hr} ud./min`, e.distance_km && `${e.distance_km} km`]
+                          .filter(Boolean).join(" · ")
+                        : e.result}
                   </div>
                 ))}
               </div>

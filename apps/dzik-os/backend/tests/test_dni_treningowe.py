@@ -408,7 +408,7 @@ def test_eksport_usuniecie_konta_i_audyt(seeded):
     url = DNI.format(cid, plan["id"])
     assert seeded.put(url, headers=hb, json={"choices": [{"day_key": "idx:0", "weekday": 1}]}).status_code == 200
     ex = seeded.get("/api/me/export", headers=hb).json()
-    assert ex["export_version"] == "2.0" and len(ex["plan_weekday_choices"]) == 1
+    assert ex["export_version"] == "2.1" and len(ex["plan_weekday_choices"]) == 1
     assert ex["plan_weekday_choices"][0]["plan_id"] == plan["id"]
     assert seeded.delete(url, headers=hb).status_code == 200
     assert seeded.put(url, headers=hb, json={"choices": [{"day_key": "idx:1", "weekday": 2}]}).status_code == 200

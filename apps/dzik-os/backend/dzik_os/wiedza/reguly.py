@@ -87,6 +87,18 @@ REGULY: dict[str, Regula] = {
         akcje=(("Dlaczego wybrano ten posiłek", "open_article", "k-meal"),
                ("Jak czytać porcję w jadłospisie", "open_article", "k-portion")),
     ),
+    # Cardio z suwakami (0.73.0): ślad z silnika `cardio_model_v1` — wagi celów,
+    # zakres tętna w %HRmax, RPE, czas, struktura; bez danych zdrowotnych.
+    "H_CARDIO": Regula(
+        id="H_CARDIO",
+        wymagane=("goal_redukcja", "goal_wydolnosc", "goal_regeneracja", "level", "hrmax_source",
+                  "hr_pct_min", "hr_pct_max", "rpe_min", "rpe_max", "duration_min", "structure",
+                  "model_version"),
+        nieujemne=("goal_redukcja", "goal_wydolnosc", "goal_regeneracja", "hr_pct_min", "hr_pct_max",
+                   "rpe_min", "rpe_max", "duration_min"),
+        artykuly=("k-cardio",),
+        akcje=(("Jak czytać zakres tętna i RPE", "open_article", "k-cardio"),),
+    ),
 }
 
 #: Szablony dla pochodzenia innego niż silnik (rule_id = null).
@@ -155,6 +167,14 @@ def sprawdz(regula: Regula, trace: dict) -> tuple[str | None, str]:
             return "inconsistent_data", "reps_min większe od reps_max"
         if trace.get("outcome_value") != fakty["sets"]["value"]:
             return "inconsistent_data", "wynik nie zgadza się z liczbą serii"
+    if regula.id == "H_CARDIO":
+        suma = sum(int(fakty[k]["value"]) for k in ("goal_redukcja", "goal_wydolnosc", "goal_regeneracja"))
+        if abs(suma - 100) > 1:
+            return "inconsistent_data", "wagi celów nie sumują się do 100 %"
+        if fakty["hr_pct_min"]["value"] > fakty["hr_pct_max"]["value"]:
+            return "inconsistent_data", "hr_pct_min większe od hr_pct_max"
+        if trace.get("outcome_value") != fakty["duration_min"]["value"]:
+            return "inconsistent_data", "wynik nie zgadza się z czasem sesji"
     if (regula.id == "ENERGY_INITIAL"
             and trace.get("outcome_value") != fakty["calculated_value"]["value"]):
         return "inconsistent_data", "wynik nie zgadza się z obliczoną wartością"
@@ -203,6 +223,11 @@ def _z_jednostka(f: dict) -> str:
 POZIOMY = {"beginner": "początkujący", "intermediate": "średniozaawansowany",
            "advanced": "zaawansowany"}
 ZAANGAZOWANIE = {"minimum": "minimalne", "standard": "standardowe", "maximum": "maksymalne"}
+POZIOMY_KATALOGU = {"POCZATKUJACY": "początkujący", "SREDNIOZAAWANSOWANY": "średniozaawansowany",
+                    "ZAAWANSOWANY": "zaawansowany"}
+ZRODLA_HRMAX = {"tanaka": "tętno maksymalne z wzoru wiekowego (±10 ud./min)",
+                "karvonen": "tętno z rezerwy tętna (wzór wiekowy + tętno spoczynkowe)",
+                "none": "bez wzoru na tętno (RPE i test mowy)"}
 KOREKTY_OPIS = {
     "LOW_RECOVERY_ADJUSTMENT": "objętość obniżono z powodu zadeklarowanej niskiej regeneracji",
     "RETURN_AFTER_BREAK": "po przerwie w treningu serie i zapas są ostrożniejsze",
@@ -294,6 +319,29 @@ def renderuj(regula: Regula, trace: dict, *, historia: bool) -> tuple[list[str],
             wplyw,
             ("Kiedy to się zmieni: ciężar rośnie dopiero po wykonaniu wszystkich serii na "
             "górnym końcu zakresu z zadanym zapasem; plan jest do przeglądu po 4 tygodniach."),
+        ], uzyte)
+    if regula.id == "H_CARDIO":
+        wr, ww, wg = f("goal_redukcja"), f("goal_wydolnosc"), f("goal_regeneracja")
+        hr_lo, hr_hi = f("hr_pct_min"), f("hr_pct_max")
+        rpe_lo, rpe_hi = f("rpe_min"), f("rpe_max")
+        czas = f("duration_min")
+        strukt = f("structure")
+        poziom = POZIOMY_KATALOGU.get(f("level"), fakty["level"]["value"])
+        zrodlo = ZRODLA_HRMAX.get(f("hrmax_source"), "bez wzoru na tętno")
+        nadpisania = fakty.get("overridden_by_coach", {}).get("value") or []
+        wplyw = (f"Co na nią wpłynęło: suwaki celów — Redukcja {wr} %, Wydolność {ww} %, Regeneracja "
+                 f"{wg} % — poziom {poziom}, {zrodlo}; struktura: {strukt}. To reguła modelu "
+                 f"(wersja {trace.get('rule_version')}: strefy wg progów, rezerwa tętna, interwały "
+                 "pod wydolność), nie wynik badania ani porada medyczna.")
+        if nadpisania:
+            uzyte.append("overridden_by_coach")
+            wplyw += " Trener zmienił ręcznie: " + ", ".join(str(x) for x in nadpisania) + "."
+        return ([
+            (f"{prefiks}Decyzja: cardio {czas} min w zakresie {hr_lo}–{hr_hi} % tętna maksymalnego "
+             f"(RPE {rpe_lo}–{rpe_hi}). Zakres, nie jedna liczba — kieruj się też testem mowy."),
+            wplyw,
+            ("Kiedy to się zmieni: przy kolejnej wersji planu — trener przesuwa suwaki albo "
+             "zmienia liczby; aplikacja nie podnosi intensywności sama."),
         ], uzyte)
     if regula.id == "ENERGY_INITIAL":
         metoda = f("method_label")

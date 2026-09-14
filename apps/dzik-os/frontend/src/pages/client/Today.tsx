@@ -5,6 +5,7 @@ import { plDate } from "../../dates";
 import {
   ErrorBox, ExerciseTechniqueLink, Icon, PushContextPrompt, Spinner, TopBar,
 } from "../../components";
+import { PozycjaBloku, PozycjaCardio, rodzajPozycji } from "../../pozycje";
 import { CATEGORY_LABELS, ConsultSlotRow, TodayData } from "../../types";
 import { powitanie } from "../../powitanie";
 import PanelNawykow from "../nawyki/PanelNawykow";
@@ -14,6 +15,8 @@ export default function Today() {
   const [data, setData] = useState<TodayData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [marking, setMarking] = useState(false);
+  // Cardio (0.73.0): urządzenie wybrane na dziś (lista dozwolonych od trenera).
+  const [maszyna, setMaszyna] = useState<string | null>(null);
   const [markingSchedule, setMarkingSchedule] = useState<string | null>(null);
   const [needsIntake, setNeedsIntake] = useState(false);
   const [nextConsult, setNextConsult] = useState<ConsultSlotRow | null>(null);
@@ -181,7 +184,18 @@ export default function Today() {
           <small>{data.workout.plan_title} · <span data-testid="zrodlo-dnia">
             {data.workout.weekday_source === "client" ? "Twój wybór" : "propozycja trenera"}</span></small>
           <div style={{ marginTop: 8 }}>
-            {data.workout.day.exercises.map((ex, i) => (
+            {data.workout.day.exercises.map((ex, i) => {
+              // Rozgrzewka / rozciąganie / cardio (0.73.0): wspólny renderer z Planem.
+              const rodzaj = rodzajPozycji(ex);
+              if (rodzaj === "warmup_block" || rodzaj === "stretch_block") return <PozycjaBloku key={i} ex={ex} testid={`dzis-blok-${i}`} />;
+              if (rodzaj === "cardio") {
+                return (
+                  <PozycjaCardio key={i} ex={ex} kompakt testid={`dzis-cardio-${i}`}
+                    machine={maszyna} onMachine={setMaszyna}
+                    dlaczego={{ plan_id: data.workout!.plan_id, plan_revision: data.workout!.version_no, target_id: `d${data.workout!.day_index}:e${i}` }} />
+                );
+              }
+              return (
               <div className="exercise" key={i}>
                 <div>
                   <b>{ex.name}</b>
@@ -196,7 +210,8 @@ export default function Today() {
                     .join(" · ")}
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
           <div style={{ marginTop: 12 }}>
             {data.workout.done_today ? (

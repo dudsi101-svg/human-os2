@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from pydantic import BaseModel, EmailStr, Field, model_validator
+import json
+
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator, model_validator
 
 from .exercise_parser import ENGINES as PARSER_ENGINES
 from .exercise_parser import MAX_INPUT_CHARS as PARSER_MAX_INPUT_CHARS
@@ -65,6 +67,143 @@ class GoalIn(BaseModel):
     target_date: str | None = None
 
 
+class BlockItemIn(BaseModel):
+    """Pozycja bloku rozgrzewki/rozciągania: nazwa, dawka („3 min”, „2×10”,
+    „20 s/str.”), notatka, miękkie odniesienie do bazy ćwiczeń."""
+
+    name: str = Field(min_length=1, max_length=300)
+    dose: str | None = Field(default=None, max_length=60)
+    note: str | None = Field(default=None, max_length=300)
+    exercise_id: str | None = Field(default=None, max_length=40)
+
+
+class BlockSnapshotIn(BaseModel):
+    """Migawka treści bloku zapisywana w wersji planu (0.73.0) — archiwizacja
+    bloku w katalogu nie zmienia opublikowanego planu."""
+
+    name: str = Field(min_length=1, max_length=300)
+    kind: str = Field(pattern="^(WARMUP|STRETCH)$")
+    level: str | None = Field(default=None, pattern="^(POCZATKUJACY|SREDNIOZAAWANSOWANY|ZAAWANSOWANY)$")
+    variant: str = Field(pattern="^(G|D|C)$")
+    duration_min: int | None = Field(default=None, ge=1, le=60)
+    items: list[BlockItemIn] = Field(default=[], max_length=20)
+
+
+def _zakres(lo_min: int, hi_max: int, *, nazwa: str):
+    """Walidator zakresu [lo, hi]: obie liczby w granicach, lo ≤ hi."""
+    def _v(v):
+        if v is None:
+            return None
+        if not isinstance(v, (list, tuple)) or len(v) != 2:
+            raise ValueError(f"{nazwa}: zakres to para liczb")
+        lo, hi = v
+        for x in (lo, hi):
+            if isinstance(x, bool) or not isinstance(x, (int, float)) or not (lo_min <= x <= hi_max):
+                raise ValueError(f"{nazwa}: wartości w zakresie {lo_min}–{hi_max}")
+        if lo > hi:
+            raise ValueError(f"{nazwa}: dolna granica większa od górnej")
+        return [round(lo), round(hi)]
+    return _v
+
+
+class CardioStructureIn(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    type: str = Field(pattern="^(ciagla|tempo|interwaly)$")
+    rounds: int = Field(ge=1, le=30)
+    work_min: int = Field(ge=0, le=180)
+    rest_min: int = Field(ge=0, le=60)
+    label: str = Field(min_length=1, max_length=120)
+    total_min: int = Field(ge=1, le=600)
+
+
+class CardioPrescriptionIn(BaseModel):
+    """Wynik silnika zapisywany w pozycji planu (0.73.0) — kształt sprawdzany,
+    bo treść wersji trafia do klienta bez dalszej walidacji (pusty albo
+    absurdalny obiekt wywracałby widok planu). Nieznane klucze są pomijane."""
+
+    model_config = ConfigDict(extra="ignore")
+
+    hr_pct_range: list[int]
+    hr_pct_rest_range: list[int] | None = None
+    hrr_pct_range: list[int] | None = None
+    hr_bpm_range: list[int] | None = None
+    hr_bpm_rest_range: list[int] | None = None
+    hrmax_estimate: int | None = Field(default=None, ge=100, le=230)
+    hrmax_error_bpm: int | None = Field(default=None, ge=0, le=30)
+    hrr_used: bool = False
+    rpe_range: list[int]
+    rpe_rest_range: list[int] | None = None
+    talk_test: str = Field(default="", max_length=120)
+    duration_min: int = Field(ge=1, le=600)
+    structure: CardioStructureIn
+    machine_params: list[dict] = Field(default=[], max_length=5)
+    kcal_estimate: int | None = Field(default=None, ge=0, le=5000)
+    caveats: list[str] = Field(default=[], max_length=12)
+
+    _v_hr = field_validator("hr_pct_range", "hr_pct_rest_range", mode="before")(_zakres(30, 100, nazwa="% tętna maks."))
+    _v_hrr = field_validator("hrr_pct_range", mode="before")(_zakres(0, 100, nazwa="% rezerwy tętna"))
+    _v_bpm = field_validator("hr_bpm_range", "hr_bpm_rest_range", mode="before")(_zakres(30, 230, nazwa="ud./min"))
+    _v_rpe = field_validator("rpe_range", "rpe_rest_range", mode="before")(_zakres(1, 10, nazwa="RPE"))
+
+    @field_validator("caveats")
+    @classmethod
+    def _caveats(cls, v: list[str]) -> list[str]:
+        if any(not isinstance(x, str) or len(x) > 300 for x in v):
+            raise ValueError("zastrzeżenia: teksty do 300 znaków")
+        return v
+
+    @field_validator("machine_params")
+    @classmethod
+    def _params(cls, v: list[dict]) -> list[dict]:
+        if len(json.dumps(v, ensure_ascii=False)) > 4000:
+            raise ValueError("machine_params: za duży obiekt")
+        return v
+
+
+class CardioIn(BaseModel):
+    """Pozycja cardio z suwakami (0.73.0). `goal_mix` = wagi celów (suma 1,
+    sprawdzana przez silnik — nie normalizowana po cichu), `machines` = lista
+    dozwolonych urządzeń (klient wybiera w dniu treningu), `prescription` =
+    wynik silnika (trener mógł nadpisać liczby — `overridden_by_coach`),
+    `trace` = fakty do śladu `H_CARDIO`. Blok zdrowotny NIGDY tu nie trafia."""
+
+    goal_mix: dict[str, float]
+    level: str = Field(pattern="^(POCZATKUJACY|SREDNIOZAAWANSOWANY|ZAAWANSOWANY)$")
+    machines: list[str] = Field(min_length=1, max_length=5)
+    prescription: CardioPrescriptionIn
+    trace: dict = Field(default_factory=dict)
+    model_version: str = Field(default="cardio_model_v1", max_length=40)
+    overridden_by_coach: list[str] = Field(default=[], max_length=20)
+
+    @field_validator("trace")
+    @classmethod
+    def _trace(cls, v: dict) -> dict:
+        if len(json.dumps(v, ensure_ascii=False)) > 4000:
+            raise ValueError("trace: za duży obiekt")
+        return v
+
+    @field_validator("goal_mix")
+    @classmethod
+    def _wagi(cls, v: dict[str, float]) -> dict[str, float]:
+        from .cardio import model as cardio_model
+
+        try:
+            return cardio_model.waliduj_wagi(v)
+        except cardio_model.BladWejscia as exc:
+            raise ValueError(str(exc)) from exc
+
+    @field_validator("machines")
+    @classmethod
+    def _urzadzenia(cls, v: list[str]) -> list[str]:
+        from .cardio import model as cardio_model
+
+        try:
+            return cardio_model.waliduj_urzadzenia(v)
+        except cardio_model.BladWejscia as exc:
+            raise ValueError(str(exc)) from exc
+
+
 class ExerciseIn(BaseModel):
     """Pozycja ćwiczenia w wersji planu (treść JSON, bez migracji).
 
@@ -92,6 +231,22 @@ class ExerciseIn(BaseModel):
     #: niczego na jej podstawie nie przelicza ani nie podnosi automatycznie.
     #: Pole jest wolne: trener może wpisać własny kod albo zostawić puste.
     progression: str | None = Field(default=None, max_length=40)
+    #: Rodzaj pozycji (0.73.0): brak/`strength` = ćwiczenie siłowe jak dotąd;
+    #: `warmup_block` / `stretch_block` = blok z katalogu bloków trenera
+    #: (`block_id` miękko + migawka `block`); `cardio` = sesja cardio z
+    #: suwakami (`cardio`). Stare plany bez `kind` działają bez zmian.
+    kind: str | None = Field(default=None, pattern="^(strength|warmup_block|stretch_block|cardio)$")
+    block_id: str | None = Field(default=None, max_length=40)
+    block: BlockSnapshotIn | None = None
+    cardio: CardioIn | None = None
+
+    @model_validator(mode="after")
+    def _rodzaj_spojny(self) -> ExerciseIn:
+        if self.kind in ("warmup_block", "stretch_block") and self.block is None:
+            raise ValueError("pozycja bloku wymaga migawki treści bloku (block)")
+        if self.kind == "cardio" and self.cardio is None:
+            raise ValueError("pozycja cardio wymaga obiektu cardio")
+        return self
 
 
 class PlanDayIn(BaseModel):
@@ -104,6 +259,25 @@ class PlanDayIn(BaseModel):
 class PlanVersionIn(BaseModel):
     reason: str = Field(min_length=1, max_length=2000)
     days: list[PlanDayIn] = []
+
+
+#: Nowe, opcjonalne klucze pozycji (0.73.0) — pomijane w zrzucie, gdy puste,
+#: żeby treść wersji planów bez bloków/cardio była bajt w bajt jak dotąd.
+_KLUCZE_POZYCJI_0_73 = ("kind", "block_id", "block", "cardio")
+
+
+def dni_do_zapisu(days: list[PlanDayIn]) -> list[dict]:
+    """`model_dump()` dni z pozycjami; klucze `kind`/`block_id`/`block`/`cardio`
+    tylko wtedy, gdy są ustawione."""
+    out = []
+    for d in days:
+        dd = d.model_dump()
+        for ex in dd.get("exercises") or []:
+            for k in _KLUCZE_POZYCJI_0_73:
+                if ex.get(k) is None:
+                    ex.pop(k, None)
+        out.append(dd)
+    return out
 
 
 class PlanCreateIn(BaseModel):
@@ -131,6 +305,13 @@ class WorkoutEntryIn(BaseModel):
     sets: list[WorkoutSetIn] = Field(default=[], max_length=30)
     comment: str | None = Field(default=None, max_length=1000)
     file_id: str | None = None
+    # Cardio (0.73.0): wpis bez serii — czas, RPE (CR10 1–10), tętno średnie
+    # (opcjonalnie), dystans, urządzenie wybrane w dniu treningu.
+    duration_min: int | None = Field(default=None, ge=1, le=600)
+    avg_hr: int | None = Field(default=None, ge=30, le=230)
+    rpe: int | None = Field(default=None, ge=1, le=10)
+    distance_km: float | None = Field(default=None, ge=0, le=500)
+    machine: str | None = Field(default=None, pattern="^(rowerek|bieznia|bieznia_skos|steper|wioslarz)$")
 
 
 class WorkoutSessionIn(BaseModel):

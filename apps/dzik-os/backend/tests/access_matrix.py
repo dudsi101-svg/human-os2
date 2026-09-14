@@ -172,6 +172,17 @@ MATRIX: dict[tuple[str, str], Access] = {
     ("POST", "/api/clients/{client_id}/habits"): Access.CLIENT_SCOPED,
     ("PATCH", "/api/clients/{client_id}/habits/{habit_id}"): Access.CLIENT_SCOPED,
     ("POST", "/api/clients/{client_id}/habits/{habit_id}/complete"): Access.CLIENT_SCOPED,
+    # Cardio z suwakami (0.73.0): propozycja tylko u trenera z relacją; klient → 403.
+    ("GET", "/api/clients/{client_id}/cardio/prefill"): Access.COACH_ONLY,
+    ("POST", "/api/clients/{client_id}/cardio/podglad"): Access.COACH_ONLY,
+    ("GET", "/api/cardio/katalog"): Access.AUTHENTICATED,
+    # Bloki rozgrzewki/rozciągania (0.73.0): katalog trenera, broadcast jak ćwiczenia.
+    ("GET", "/api/coach/exercise-blocks"): Access.COACH_ONLY,
+    ("POST", "/api/coach/exercise-blocks"): Access.COACH_ONLY,
+    ("POST", "/api/coach/exercise-blocks/load-builtin"): Access.COACH_ONLY,
+    ("GET", "/api/coach/exercise-blocks/{block_id}"): Access.COACH_ONLY,
+    ("PUT", "/api/coach/exercise-blocks/{block_id}"): Access.COACH_ONLY,
+    ("POST", "/api/coach/exercise-blocks/{block_id}/status"): Access.COACH_ONLY,
     # Dni treningowe (0.71.0): nakładka klienta na dni tygodnia planu.
     ("GET", "/api/clients/{client_id}/plans/{plan_id}/dni"): Access.CLIENT_SCOPED,
     ("PUT", "/api/clients/{client_id}/plans/{plan_id}/dni"): Access.CLIENT_SCOPED,
