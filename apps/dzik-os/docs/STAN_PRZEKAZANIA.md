@@ -367,6 +367,7 @@ nie uruchamiano, ponieważ runda nie zmienia kodu ani zasobów frontendu.
 | `agent/biblioteka-diet` | 0.64.0 | 35 | etapy 0–4 gotowe, przegląd naprawiony (P1 ×8, P2 ×10), PR #66 po scaleniu `main` z migracją 34 | — | 1 |
 | `agent/landing-czerwony` | 0.65.0 | — | etap 0–3 w toku (strona publiczna, wariant czerwono-biały), PR #67 | scalenie #66 (wspólny tylko `package.json`) | 2 |
 | `agent/monitoring-postepy` | 0.66.0 (przesunięte przez nawyki, bibliotekę diet i stronę publiczną) | 36 (przesunięta z 34) | etap 0 — STOP (brak flagi rozgrzewki i wariantów ćwiczeń, decyzje właściciela) | decyzje z `docs/monitoring-tab/00_rozpoznanie.md`; flaga zdrowotna `hidden_for_client` (pytanie `zk_zaburzenia`) z 0.62.0 | 3 |
+| `agent/ukryj-kreator` | 0.67.0 | — | zlecenie 0 (14.09): kreator diety za flagą `DZIK_DIET_WIZARD_ENABLED`, nic nie kasowane; PR #68 | scalenie #61 (0.66.0 < 0.67.0) | 2 |
 
 | Rzecz | Stan | Gdzie |
 |---|---|---|

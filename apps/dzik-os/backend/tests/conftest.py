@@ -36,6 +36,9 @@ os.environ["DZIK_DIET_TEMPLATES_ENABLED"] = "true"
 os.environ["DZIK_DIET_SEED_ON_STARTUP"] = "false"
 os.environ["DZIK_MAIL_TEST_ENDPOINT_ENABLED"] = "true"
 os.environ["DZIK_CALORIE_INTERVIEW_ENABLED"] = "true"
+# Kreator diety (0.67.0) za flagą: testy kreatora i katalogu chodzą z włączoną;
+# test wyłączenia przełącza settings punktowo.
+os.environ["DZIK_DIET_WIZARD_ENABLED"] = "true"
 
 import pytest
 from fastapi.testclient import TestClient

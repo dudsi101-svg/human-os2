@@ -1,5 +1,25 @@
 # Changelog — Dzik OS
 
+## 0.67.0 — 2026-09-14
+
+**Kreator diety ukryty za flagą (zlecenie 0 właściciela z 14.09; gałąź
+`agent/ukryj-kreator`, bez migracji).**
+
+* Zakładka **„Dieta”** w Bazie wiedzy trenera („Ułóż dietę”: „Wygeneruj
+  propozycję”, „Ułóż sam z produktów”, „Ułóż z dań”) oraz trasy
+  `POST /api/coach/diet-wizard` i `POST /api/coach/diet-suggestion` są za
+  flagą `DZIK_DIET_WIZARD_ENABLED` (domyślnie **wyłączona**, bez wpisu
+  w `fly.toml`): bez flagi trasy odpowiadają 404, `features.diet_wizard`
+  w `/api/health` jest `false`, a interfejs nie pokazuje zakładki.
+* **Nic nie jest kasowane:** kod kreatora, testy, dane, ręczne plany
+  żywieniowe i istniejące plany klientów zostają widoczne i edytowalne.
+  Zakładka **„Produkty”** z katalogiem zostaje (źródło dla zlecenia 2 —
+  korelacja katalogu trenera z katalogiem diet). Trasy kreatora dań
+  (`/api/kulinaria/*`) i szablonów diet nie są objęte flagą.
+* Testy: bez flagi 404 na obu trasach i `features` `false`, katalog i plany
+  działają; z flagą trasy jak dotąd (`test_diet_wizard_flaga.py`); serwer
+  E2E i testy backendu chodzą z włączoną flagą.
+
 ## 0.64.0 — 2026-09-14
 
 **Biblioteka szablonów diet po audycie 14.09 (zgłoszenie właściciela

@@ -269,7 +269,8 @@ def create_app() -> FastAPI:
             "diet_seed_error": getattr(app.state, "diet_seed_error", None),
             "features": {"diet_templates": settings.diet_templates_enabled,
                          "mail_test_endpoint": settings.mail_test_endpoint_enabled,
-                         "calorie_interview": settings.calorie_interview_enabled},
+                         "calorie_interview": settings.calorie_interview_enabled,
+                         "diet_wizard": settings.diet_wizard_enabled},
         }
 
     @app.get("/api/ready")

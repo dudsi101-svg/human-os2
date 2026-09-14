@@ -1,6 +1,6 @@
 # Stan wydania — Dzik OS
 
-**Wersja:** 0.60.0 · **Data:** 2026-09-13 · **Środowisko:** produkcja
+**Wersja:** 0.67.0 (po scaleniu PR #68; na produkcji 0.64.0 do czasu wdrożenia) · **Data:** 2026-09-14 · **Środowisko:** produkcja
 (pilotaż) — https://dzik-os-panel.fly.dev
 
 Jedna strona prawdy o tym, co DZIAŁA na produkcji teraz. Aktualizowana
@@ -82,6 +82,15 @@ z ostrzeżeniem, aplikacja wstaje. Diagnostyka z maszyny: workflow
 opcjonalny input `test_email` wysyła wiadomość testową tą samą ścieżką
 co endpoint). Endpoint testowy admina/trenera za flagą, domyślnie
 wyłączony na produkcji. Plan i odstępstwa: `docs/plan-sesji/poczta-brevo.md`.
+
+## Kreator diety (0.44–0.48) — od 0.67.0 za flagą, na produkcji UKRYTY
+
+Zlecenie właściciela z 14.09: zakładka „Dieta” w Bazie wiedzy trenera
+i trasy `/api/coach/diet-wizard`, `/api/coach/diet-suggestion` działają
+tylko przy `DZIK_DIET_WIZARD_ENABLED=true` (brak wpisu w `fly.toml` =
+ukryty). Nic nie skasowano: kod, testy, dane, ręczne plany żywieniowe
+i plany klientów zostają; zakładka „Produkty” z katalogiem zostaje.
+Przywrócenie = jedna zmienna środowiskowa.
 
 ## Panel rozwojowy „Dzisiaj” (0.63.0) — bez flagi, na produkcji od deployu
 
