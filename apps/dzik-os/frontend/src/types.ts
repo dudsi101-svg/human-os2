@@ -393,9 +393,44 @@ export interface MessageRow {
   pending?: boolean;
 }
 
+export interface HabitOut {
+  id: string;
+  client_id: string;
+  name: string;
+  days_of_week: string;
+  target_days: number;
+  author_id: string;
+  author_note: string | null;
+  started_on: string;
+  status: "ACTIVE" | "GRADUATED" | "ARCHIVED";
+  graduated_on: string | null;
+  ack_on: string | null;
+  progress: number;
+  progress_label: string;
+  done_count: number;
+  planned_count: number;
+  scheduled_today: boolean;
+  done_today: boolean;
+  created_at: string;
+}
+
+export const HABIT_STATUS_LABELS: Record<HabitOut["status"], string> = {
+  ACTIVE: "w trakcie", GRADUATED: "utrwalony", ARCHIVED: "zarchiwizowany",
+};
+
+export interface DailyMessage {
+  text: string;
+  author: string;
+  note: string;
+}
+
 export interface TodayData {
   date: string;
   weekday: number;
+  /** Panel rozwojowy (0.63.0). */
+  greeting_name: string;
+  daily_message: DailyMessage;
+  habits: HabitOut[];
   workout: {
     plan_id: string;
     plan_title: string;
