@@ -251,14 +251,14 @@ export default function Plan() {
             </div>
           )}
 
-          <DniTreningowe clientId={user.id} planId={plan.id} tryb="klient" onZmiana={setDni} />
+          <DniTreningowe key={`dni-${plan.id}-${plan.current_version_no}`} clientId={user.id} planId={plan.id} tryb="klient" onZmiana={setDni} />
 
           {plan.current_version.content.days.map((day, di) => (
             <div className="card" key={di}>
               <div className="row row--between">
                 <h2>{day.name}</h2>
                 {(() => {
-                  const wpis = dni?.days[di];
+                  const wpis = dni?.days.find((x) => x.day_index === di);
                   const etykieta = dni && wpis ? etykietaDnia(dni.source, wpis.weekday) : null;
                   if (etykieta) return <span className="badge" data-testid={`dzien-${di}`}>{etykieta}</span>;
                   return day.weekday ? <span className="badge">{WEEKDAYS[day.weekday - 1]}</span> : null;

@@ -625,9 +625,11 @@ function PlanTab({ clientId }: { clientId: string }) {
           {plan.current_version.content.days.map((d, i) => (
             <div key={i} style={{ marginTop: 8 }}>
               <b>{d.name}</b>{" "}
-              {dni?.source === "client" && dni.days[i]
-                ? <span className="badge">{etykietaDnia("client", dni.days[i].weekday, "trener")}</span>
-                : d.weekday && <span className="badge">{WEEKDAYS[d.weekday - 1]}</span>}
+              {(() => {
+                const wpis = dni?.source === "client" ? dni.days.find((x) => x.day_index === i) : undefined;
+                if (wpis) return <span className="badge">{etykietaDnia("client", wpis.weekday, "trener")}</span>;
+                return d.weekday ? <span className="badge">{WEEKDAYS[d.weekday - 1]}</span> : null;
+              })()}
               {d.exercises.map((ex, j) => (
                 <div className="exercise" key={j}>
                   <div>{ex.name}</div>

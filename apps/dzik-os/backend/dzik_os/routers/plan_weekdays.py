@@ -13,6 +13,7 @@ import json
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from .. import dni_treningowe as D
@@ -127,11 +128,18 @@ def put_dni(client_id: str, plan_id: str, body: DniIn, user: User = Depends(curr
     row.choices_json = json.dumps(D.do_json(uklad), ensure_ascii=False)
     row.author_note = body.author_note
     row.updated_at = now_iso()
-    db.flush()
+    try:
+        db.flush()
+    except IntegrityError:
+        # Dwa równoległe pierwsze zapisy (klient i trener naraz): jeden wiersz per
+        # (klient, plan) — drugi dostaje 409 i ponawia na aktualnym stanie.
+        db.rollback()
+        raise HTTPException(status_code=409, detail="Ktoś właśnie zapisał dni dla tego planu — odśwież i spróbuj ponownie.") from None
     record_event(db, action="PLAN_WEEKDAYS_SET", actor_id=user.id, subject_ids=[client_id],
                  payload={"plan_id": plan_id, "version_no": version.version_no, "author_id": user.id,
                           "assigned_days": sum(1 for v in uklad.values() if v is not None)},
-                 summary="Klient ustawił dni tygodnia dla jednostek planu")
+                 summary="Ustawiono dni tygodnia dla jednostek planu"
+                         + (" (przez trenera)" if user.id != client_id else ""))
     out = odpowiedz(plan, version, row)
     db.commit()
     return out

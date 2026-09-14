@@ -79,6 +79,8 @@ export default function DniTreningowe({ clientId, planId, tryb, onZmiana }: {
   );
 
   if (bladOdczytu) {
+    // Trener: brak dostępu (np. cofnięta zgoda) = brak linii, nie komunikat o awarii.
+    if (tryb === "trener") return null;
     return (
       <div className="card" data-testid="dni-treningowe">
         <p className="dim" style={{ margin: 0 }}>Nie udało się wczytać dni treningowych. {bladOdczytu}{" "}

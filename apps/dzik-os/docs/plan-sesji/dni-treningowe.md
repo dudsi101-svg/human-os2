@@ -131,12 +131,73 @@ wersja planu „z dniami”, wpinanie w Harmonogram.
 
 ## Odstępstwa od planu
 
-⟨uzupełnia sesja pisząca⟩
+1. **Przegląd 3 recenzentów wsadowo:** w tej sesji nie ma narzędzia Agent — przegląd
+   wykonany jako trzy oddzielne przejścia tematyczne po pełnym diffie (bezpieczeństwo/zgody/
+   IDOR; silnik i `today`; testy/UX/treść). Znaleziska i naprawy w `docs/dni-treningowe/
+   PROGRESS.md`. Nie jest to przegląd niezależny — odnotowane wprost.
+2. **Model błędu 422 „przy polu”:** prompt zakładał `detail` jako obiekt; aplikacja wymusza
+   `detail` tekstowy (`observability.http_exception_handler`) i listę `errors[{field,type,msg}]`
+   wyłącznie przy 422 — użyty ten wspólny model (`error_response`, kod `WEEKDAY_CHOICE`),
+   front czyta `ApiError.body.errors[0].field`.
+3. **Porty E2E:** 8096 zajęty przez cudzy proces (PID 13819), 8097 zajęty w trakcie rundy —
+   użyto **8102/8103** i katalogu `/tmp/dzik-e2e-8102`. `DZIK_E2E_PORT_POSTEPY` nie istnieje
+   jeszcze na `main` (przychodzi z PR #70) — drugi serwer = `PORT+1`.
+4. **Migracja 38 przy braku 37 w `main`:** `test_migracje_przenosnosc::test_numery_migracji_
+   sa_unikalne_i_rosnace` (ciąg bez luk) jest czerwony na tej gałęzi do scalenia PR #70 —
+   zgodnie z poleceniem integratora numer 38 zostaje; jedyny czerwony test pełnego przebiegu.
+5. **Przeklik na Annie Wilk (klient demo D, bez planu w seedzie)** zamiast nowego konta —
+   omija bramę zgód świeżego konta, a stan „plan bez dni” tworzy `POST /api/plans` trenera;
+   seed nietknięty (jak w planie).
+6. **`today` zwraca `workout_hint.kind = "stale"` także wtedy, gdy trening na dziś istnieje**
+   (front pokazuje notkę nad kartą) — uściślenie promptu, nie zmiana zakresu.
+7. Bez `docs/dni-treningowe/`-owego wpisu w `RISK_REGISTER`/`ANALIZA_RYNKU` — brak nowego
+   ryzyka (dane organizacyjne bez treści zdrowotnej, test INTENDED_PURPOSE bez wątpliwości).
 
 ## Weryfikacja wykonana
 
-⟨uzupełnia sesja pisząca: co uruchomiono i co zobaczono — nie „sprawdzone”⟩
+**Przeklik przez serwer E2E** (port 8102, świeża baza + seed; skrypt Playwright poza repo,
+zrzuty w scratchpadzie sesji `dni-zrzuty/01–06`), co kliknąłem i co zobaczyłem:
+
+1. Trener przez API: `POST /api/plans` dla Anny Wilk (klient demo bez planu) — dwie jednostki
+   „Jednostka A — góra” / „Jednostka B — dół”, `weekday: null` → 201.
+2. Anna loguje się formularzem (Pixel 7, `Europe/Warsaw`). **„Dzisiaj”**: zamiast „Dziś bez
+   treningu” karta akcentowa **„Masz plan, ale nie wybrałeś dni tygodnia”** z tekstem
+   „Wybierz, w które dni robisz poszczególne jednostki — trening z dzisiejszego dnia pojawi
+   się tutaj.” i przyciskiem **„Ustaw dni tygodnia”** (zrzut 01).
+3. Klik „Ustaw dni tygodnia” → `/plan`, karta **„Twoje dni treningowe”** nad listą dni,
+   dwa `select` z „— (bez dnia)” i pon…niedz (zrzut 02). Wybrałem dzisiejszy dzień (pon) dla
+   A i wt dla B → **„Zapisz dni”** → status „Zapisano dni. Trening z dzisiejszego dnia
+   zobaczysz na ekranie „Dzisiaj”.”; odznaki przy dniach: **„pon (Twój wybór)”**,
+   **„wt (Twój wybór)”**; opis karty zmienił się na „Obowiązuje Twój układ…”, pojawił się
+   przycisk „Wróć do propozycji trenera” (zrzut 03).
+4. Ustawiłem B także na pon → „Zapisz dni” → **422** pokazany przy polu B (`aria-invalid`):
+   „W poniedziałek jest już „Jednostka A — góra” — jeden dzień tygodnia to jedna jednostka.”
+   (zrzut 04); nic nie zapisane.
+5. **„Dzisiaj”** po zapisie: karta treningu **„Jednostka A — góra”**, „plan v1”, podpis
+   „Siła 2x/tydz. — bez dni · **Twój wybór**”, ćwiczenie 3×8 · 40 kg · 120 s, przycisk
+   „Wykonane ✓” (zrzut 05).
+6. Trener (desktop 1280) → karta Anny → zakładka **Plan**: linia „Klient wybrał dni tygodnia:
+   Jednostka A — góra — pon, Jednostka B — dół — wt.” i odznaki **„pon (wg klienta)”** /
+   **„wt (wg klienta)”** (zrzut 06).
+7. Konsola: 0 `pageerror`; dwa wpisy „Failed to load resource” = zamierzony 422 z pkt 4 oraz
+   401 z pomocniczego `fetch` w skrypcie przeklikania (zły klucz tokenu w skrypcie, nie
+   w aplikacji).
+
+**Bramki** (z `/home/user/wt/dni`, jak CI): `python -m ruff check apps/dzik-os/backend
+apps/dzik-os/tools` — czysto; Core `python -m pytest tests -q` — **275 passed**;
+`tools/spojnosc.py` — czysto (13 kontroli; uwagi: K-001 sprzed rundy); `tools/mutacje.py` —
+**17/17 wykrytych**; `tools/mutacje_bezpieczenstwa.py` — ⟨patrz PROGRESS⟩; backend
+`pytest tests` (pełny) — ⟨patrz PROGRESS⟩; `tsc --noEmit` — czysto; `npm run build` — 90,4 kB
+gzip (budżet 120 kB, bez zmiany); `test:helpers` — 142/142; E2E
+`playwright test dni-treningowe nawyki --project=telefon` (8102) — **3/3**;
+`e2e/test_a11y.mjs` — wszystkie kontrole; `e2e/test_pwa_offline.mjs` — wszystkie kontrole.
 
 ## Plan kontra rzeczywistość (zasady v2 §5)
 
-⟨uzupełnia sesja pisząca⟩
+Zgodnie z planem: pięć etapów w zaplanowanej kolejności, nakładka bez dotykania
+`content_json`, klucz `id`/`idx:n`, jeden `select` skopiowany z `PlanEditor`, karta na
+„Dzisiaj” w kształcie panelu nawyków, seed nietknięty. Nieprzewidziane: (1) `export_version`
+1.9 zamiast 1.8 z promptu (cztery testy zamiast jednego); (2) wspólny model błędów wymusił
+`errors[].field` zamiast `detail`-obiektu; (3) dwa zajęte porty E2E; (4) `api.del`, nie
+`api.delete`; (5) luka 37 czerwieni jeden test do scalenia #70. Nakład: etap 4 największy
+zgodnie z przewidywaniem; etap 3 mniejszy niż „setki tys.” dzięki wzorcowi `habits.py` 1:1.

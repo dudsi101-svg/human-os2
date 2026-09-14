@@ -28,4 +28,32 @@
 
 ## Przegląd kodu (3 przejścia tematyczne, zasady v2 §3)
 
-⟨uzupełnia sesja pisząca po przeglądzie⟩
+Bez narzędzia Agent w sesji — trzy przejścia po pełnym diffie wykonane przez sesję
+piszącą (nie niezależny przegląd; odnotowane w planie sesji, „Odstępstwa”).
+
+**Bezpieczeństwo / zgody / IDOR:** `resolve_client_access` przed odczytem planu (obcy
+klient 404 zanim cokolwiek o planie wiadomo); cudzy plan/szablon pod `client_id` → `deny`
+(404 z audytem); `PUT` z ciałem domyślnym dochodzi do warstwy uprawnień (macierz: twarda
+odmowa dla klienta B, obcego trenera i admina); trener po cofnięciu zgody `dane_treningowe`
+traci GET/PUT/DELETE (test); usunięcie konta kasuje wybór, `TrainingPlan` nie jest kasowany
+w `privacy.py`, więc FK `plan_id` bezpieczny także na PostgreSQL; audyt bez treści planu.
+**P2 naprawione:** wyścig dwóch pierwszych zapisów (klient i trener naraz) dawał 500 z
+`IntegrityError` → 409 z komunikatem; podsumowanie audytu „Klient ustawił…” także przy
+autorze-trenerze → neutralne z dopiskiem „(przez trenera)”; w trybie trenera błąd odczytu
+`/dni` (np. cofnięta zgoda) renderował kartę „nie udało się wczytać” → milczy.
+
+**Silnik i `today`:** układ klienta obowiązuje w całości (test), pusta lista ≠ DELETE
+(test), klucze spoza wersji ignorowane/`stale_keys` (test), `day_index` bez zmian — `POST
+…/workouts` i `done_today` działają jak dotąd (test), `z_json` z bazy nie rzuca (test).
+**P2 odnotowane:** `podpowiedz` zwraca `stale` przed `no_weekdays` — przy nieaktualnym
+wyborze bez żadnego przypisania „Dzisiaj” pokazuje notkę + „Dziś bez treningu” (notka
+prowadzi do Planu; wystarczające); wiele planów ACTIVE: `today` bierze najnowszy po
+`updated_at`, `Plan.tsx` pierwszy ACTIVE po `created_at` — rozjazd sprzed rundy, nie
+dotykany.
+
+**Testy / UX / treść:** **P2 naprawione:** odznaki w `Plan.tsx` i `ClientDetail.tsx`
+mapowane po pozycji tablicy → po `day_index`; karta klienta nie przeładowywała `/dni` po
+„Wczytaj zmiany” (nowa wersja) → `key` z numerem wersji. Odnotowane: etykieta „propozycja
+trenera” na „Dzisiaj” także, gdy trener nie wpisał `weekday`, a trafienie i tak nastąpiło
+(niemożliwe — bez `weekday` nie ma trafienia); brak testu jednostkowego `etykietaDnia`
+(pokryte E2E przez odznaki).
