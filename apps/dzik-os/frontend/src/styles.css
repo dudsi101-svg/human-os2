@@ -4,7 +4,12 @@
    celowy i zawsze uszanuje prefers-reduced-motion. */
 
 :root {
-  /* Schodki powierzchni: każdy poziom bliżej użytkownika jest odrobinę
+  /* Bez `color-scheme: dark` — celowo. Ustawienie go zmienia natywne kontrolki
+     (pole pliku, niezaznaczony checkbox, paski przewijania) na ciemne, czyli
+     ZMIENIA ciemny motyw — a bramka 0.74.0 wymaga piksel w piksel (zmierzone:
+     „Choose File” i checkbox w Postępach). Ewentualne przejście na ciemne
+     kontrolki = osobna decyzja właściciela (docs/motyw/PROGRESS.md).
+     Schodki powierzchni: każdy poziom bliżej użytkownika jest odrobinę
      jaśniejszy — to, nie cień, buduje hierarchię na czarnym tle. */
   --bg: #0b0d0f;
   --bg-raised: #14171a;
@@ -23,6 +28,21 @@
   --danger: #ff7a7a;
   --warn: #ffc94d;
   --ok: #6fe08a;
+  /* Tokeny dołożone w 0.74.0 (drugi motyw): wartości = dawne literały w tych
+     samych regułach, więc ciemny motyw renderuje się piksel w piksel tak samo.
+     Każdy z nich ma odpowiednik w bloku html[data-theme="czerwony"] niżej. */
+  --danger-soft: rgba(255, 122, 122, 0.12);      /* tło .alert--error */
+  --danger-soft-hover: rgba(255, 122, 122, 0.1); /* tło .btn--danger:hover */
+  --warn-soft: rgba(240, 180, 80, 0.12);         /* tło .alert--warn (dryf wobec --warn — zachowany) */
+  --nav-bg: rgba(20, 23, 26, 0.92);              /* pasek nawigacji pod backdrop-filter */
+  --landing-top-bg: rgba(11, 13, 15, 0.92);      /* pasek górny /prywatnosc (blok bazowy .landing) */
+  --scrim: rgba(0, 0, 0, 0.45);                  /* przyciemnienie pod panelem „Dlaczego?” */
+  --scrim-strong: rgba(0, 0, 0, 0.55);           /* przyciemnienie pod oknem powitania */
+  --mmap-body: rgba(255, 255, 255, 0.05);        /* sylwetka na mapie mięśni */
+  --mmap-region: rgba(255, 255, 255, 0.07);      /* partia niepracująca */
+  --mmap-secondary: rgba(179, 242, 62, 0.34);    /* partia pomocnicza */
+  --bar-muted: #0f1607;                          /* słupek tygodnia poza bieżącym (Postępy) */
+  --shadow-card: none;                           /* na ciemnym głębię buduje schodek powierzchni */
   --radius-sm: 10px;
   --radius: 14px;
   --radius-lg: 20px;
@@ -31,6 +51,93 @@
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --nav-h: 62px;
 }
+
+/* ------------------------------------------------------------------ */
+/* Drugi motyw „Jasny (czerwono-biały)” (0.74.0, decyzja właściciela z 14.09:
+   dwa kompletne motywy do wyboru użytkownika). Jeden blok nadpisujący tokeny
+   :root — komponenty przełączają się same (w src/**.tsx nie ma literałów
+   kolorów). Atrybut ustawia src/theme.ts przed pierwszym renderem; CSP nie
+   dopuszcza stylów inline, więc wszystko jest tutaj. Wartości z kanwy „Dzik OS —
+   wariant jasny” (jak .landing--czerwony niżej); współczynniki kontrastu
+   policzone wg WCAG (luminancja względna) — tabela w docs/DOSTEPNOSC.md.     */
+/* ------------------------------------------------------------------ */
+html[data-theme="czerwony"] {
+  color-scheme: light;
+  --bg: #FFFFFF;             /* biel — tło strony */
+  --bg-raised: #FBF5F5;      /* róż popielaty — pola, pasma, plakietki */
+  --bg-card: #FFFFFF;        /* karta biała z obrysem + cieniem (na ciemnym hierarchię budują schodki) */
+  --bg-hover: #FDECEE;       /* pasmo różowe */
+  --border: #ECE4E4;         /* obrys kart i separatory (nie kontrolki) */
+  --border-strong: #B3878A;  /* obrys pól / ghost / chipów — 3,11:1 na bieli (WCAG 1.4.11) */
+  --text: #101418;           /* grafit — 17,6:1 na bieli */
+  --text-dim: #566372;       /* 6,13:1 na bieli, 5,69:1 na różu popielatym */
+  --accent: #E11D2E;         /* czerwień marki — przyciski, aktywna zakładka, linki; biały tekst 4,75:1 */
+  --accent-soft: #FDE3E5;    /* poświata — tła plakietek i alertów informacyjnych */
+  --accent-glow: rgba(225, 29, 46, 0.22);
+  --accent-ink: #FFFFFF;     /* tekst na przycisku akcentowym */
+  --danger: #B3121F;         /* 6,95:1 na bieli */
+  --warn: #8A5A00;           /* 5,93:1 — ciemny bursztyn (żółć #FFC94D nie ma AA na bieli) */
+  --ok: #1E7A46;             /* 5,35:1 */
+  --danger-soft: rgba(179, 18, 31, 0.10);
+  --danger-soft-hover: rgba(179, 18, 31, 0.08);
+  --warn-soft: rgba(138, 90, 0, 0.12);
+  --nav-bg: rgba(255, 255, 255, 0.94);  /* biel, nie róż: aktywna pozycja (--accent) 4,75:1 zamiast 4,41 na #FBF5F5 */
+  --landing-top-bg: rgba(255, 255, 255, 0.92);
+  --scrim: rgba(16, 20, 24, 0.35);
+  --scrim-strong: rgba(16, 20, 24, 0.45);
+  --mmap-body: rgba(16, 20, 24, 0.06);
+  --mmap-region: rgba(16, 20, 24, 0.08);
+  --mmap-secondary: rgba(225, 29, 46, 0.30);
+  --bar-muted: #E0CFCF;
+  --shadow-card: 0 1px 2px rgba(16, 20, 24, 0.04), 0 10px 30px rgba(122, 10, 20, 0.06);
+}
+/* Alert informacyjny: czerwień #E11D2E na poświacie #FDE3E5 ma 3,96 — poniżej AA dla
+   małego tekstu; w jasnym motywie tekst alertu bierze ciemniejszą czerwień (5,72). */
+html[data-theme="czerwony"] .alert--info { color: var(--danger); }
+/* Znak marki: w ciemnym limonkowy dzik, w jasnym czerwony (dwa <img> w Logo,
+   przełączane wyłącznie tym atrybutem — bez JS, bez nowej grafiki poza PNG z 0.72.0). */
+.logo--czerwony { display: none; }
+html[data-theme="czerwony"] .logo--ciemny { display: none; }
+html[data-theme="czerwony"] .logo--czerwony { display: inline-block; }
+/* Ekran logowania: pełne logo (logo-full.png) jest limonkowe — w jasnym motywie
+   zastępuje je znak + nazwa tekstem (jak strona publiczna), zero nowej grafiki. */
+.login-brand--czerwony { display: none; }
+html[data-theme="czerwony"] .login-logo--ciemny { display: none; }
+html[data-theme="czerwony"] .login-brand--czerwony {
+  display: flex; align-items: center; justify-content: center; gap: 10px; margin: 0 auto 8px;
+  font-family: var(--font-display); font-weight: 700; font-size: 1.5rem; color: var(--text);
+}
+.login-brand--czerwony img { width: 56px; height: 56px; object-fit: contain; }
+
+/* Sekcja „Wygląd” w „Więcej” (0.74.0): dwie karty-przyciski jako grupa radiowa.
+   Próbki kolorów pokazują CELOWO stałe barwy każdego motywu (podgląd tego, co
+   się wybiera — niezależny od motywu aktywnego), stąd jedyne literały poza
+   blokami tokenów; strażnik scripts/test-tokeny.mjs zna ten wyjątek. */
+.wyglad__karty { display: grid; grid-template-columns: 1fr; gap: 10px; }
+@media (min-width: 460px) { .wyglad__karty { grid-template-columns: 1fr 1fr; } }
+.wyglad__karta {
+  display: flex; align-items: center; gap: 12px; text-align: left; width: 100%;
+  background: var(--bg-raised); color: var(--text); font: inherit; cursor: pointer;
+  border: 2px solid var(--border-strong); border-radius: var(--radius-sm); padding: 10px 12px;
+  min-height: 64px;
+}
+.wyglad__karta:hover { background: var(--bg-hover); }
+.wyglad__karta--aktywna { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.wyglad__opis { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.wyglad__opis b { font-size: 0.92rem; }
+.wyglad__opis small { color: var(--text-dim); font-size: 0.78rem; }
+.wyglad__probka { flex: 0 0 auto; width: 56px; height: 40px; border-radius: 8px; overflow: hidden;
+  border: 1px solid var(--border-strong); display: block; }
+.wyglad__probka-tlo { display: flex; align-items: flex-end; gap: 4px; width: 100%; height: 100%; padding: 6px; }
+.wyglad__probka-tlo b, .wyglad__probka-tlo u { display: block; height: 10px; border-radius: 3px; }
+.wyglad__probka-tlo b { width: 22px; }
+.wyglad__probka-tlo u { width: 14px; }
+.wyglad__probka--ciemny .wyglad__probka-tlo { background: #0b0d0f; }
+.wyglad__probka--ciemny b { background: #b3f23e; }
+.wyglad__probka--ciemny u { background: #eef0f2; }
+.wyglad__probka--czerwony .wyglad__probka-tlo { background: #FFFFFF; }
+.wyglad__probka--czerwony b { background: #E11D2E; }
+.wyglad__probka--czerwony u { background: #101418; }
 
 * { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; }
@@ -112,6 +219,7 @@ small, .dim { color: var(--text-dim); }
   border-radius: var(--radius);
   padding: 16px 18px;
   margin-bottom: 14px;
+  box-shadow: var(--shadow-card); /* none w ciemnym; różowawy cień w jasnym (karta na bieli) */
   animation: card-in 320ms var(--ease-out) both;
 }
 a.card, button.card {
@@ -169,7 +277,7 @@ a.card--nav svg, button.card--nav svg { flex-shrink: 0; color: var(--accent); }
   .btn--small, .tabs button, .knowledge-card__toggle { min-height: 44px; }
 }
 .btn--danger { background: transparent; color: var(--danger); border: 1px solid var(--danger); }
-.btn--danger:not(:disabled):hover { background: rgba(255, 122, 122, 0.1); filter: none; }
+.btn--danger:not(:disabled):hover { background: var(--danger-soft-hover); filter: none; }
 
 input, textarea, select {
   width: 100%;
@@ -243,7 +351,7 @@ h3.section-label:first-of-type, .card h3.section-label:first-of-type {
 
 .nav {
   position: fixed; bottom: 0; left: 0; right: 0; height: var(--nav-h);
-  background: rgba(20, 23, 26, 0.92);
+  background: var(--nav-bg);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
   border-top: 1px solid var(--border);
@@ -282,9 +390,9 @@ h3.section-label:first-of-type, .card h3.section-label:first-of-type {
 .grow { flex: 1; }
 
 .alert { border-radius: var(--radius-sm); padding: 10px 12px; margin: 10px 0; font-size: 0.9rem; }
-.alert--error { background: rgba(255, 122, 122, 0.12); color: var(--danger); }
+.alert--error { background: var(--danger-soft); color: var(--danger); }
 .alert--info { background: var(--accent-soft); color: var(--accent); }
-.alert--warn { background: rgba(240, 180, 80, 0.12); color: var(--warn); }
+.alert--warn { background: var(--warn-soft); color: var(--warn); }
 
 /* Pasek postępu rozmowy startowej (onboarding). Wartość dla czytników
    ekranu niesie role="progressbar" + aria-valuenow na kontenerze —
@@ -519,16 +627,16 @@ table.simple th { color: var(--text-dim); font-weight: 600; font-size: 0.78rem; 
 .mmap__svg { display: block; height: clamp(150px, 34vw, 200px); width: auto; }
 .mmap__cap { font-size: 0.78rem; color: var(--text-dim); margin-top: 2px; }
 /* Kontur sylwetki: sam obrys, żeby podświetlone partie były czytelne. */
-.mmap__body { fill: rgba(255, 255, 255, 0.05); stroke: var(--border-strong); stroke-width: 1; }
+.mmap__body { fill: var(--mmap-body); stroke: var(--border-strong); stroke-width: 1; }
 /* Partia niepracująca: ledwie widoczna — mapa ma pokazywać, co pracuje. */
-.mmap__region { fill: rgba(255, 255, 255, 0.07); stroke: none; }
-.mmap__region--secondary { fill: rgba(179, 242, 62, 0.34); }
+.mmap__region { fill: var(--mmap-region); stroke: none; }
+.mmap__region--secondary { fill: var(--mmap-secondary); }
 .mmap__region--primary { fill: var(--accent); }
 .mmap__legend { display: flex; align-items: center; justify-content: center; gap: 6px;
   font-size: 0.78rem; color: var(--text-dim); margin: 6px 0 0; flex-wrap: wrap; }
 .mmap__key { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
 .mmap__key--primary { background: var(--accent); }
-.mmap__key--secondary { background: rgba(179, 242, 62, 0.34); }
+.mmap__key--secondary { background: var(--mmap-secondary); }
 .mmap__note { font-size: 0.75rem; text-align: center; margin: 4px 0 0; }
 
 /* ------------------------------------------------------------------ */
@@ -540,7 +648,7 @@ table.simple th { color: var(--text-dim); font-weight: 600; font-size: 0.78rem; 
 /* ------------------------------------------------------------------ */
 .landing { max-width: 1040px; margin: 0 auto; padding: 0 18px 40px; }
 .landing h1, .landing h2, .landing h3 { font-family: var(--font-display); }
-.landing-top { position: sticky; top: 0; z-index: 10; background: rgba(11, 13, 15, 0.92);
+.landing-top { position: sticky; top: 0; z-index: 10; background: var(--landing-top-bg);
   backdrop-filter: blur(8px); margin: 0 -18px; border-bottom: 1px solid var(--border); }
 .landing-top__inner { max-width: 1040px; margin: 0 auto; display: flex; align-items: center;
   gap: 10px; padding: 10px 18px; }
@@ -948,7 +1056,7 @@ table.simple th { color: var(--text-dim); font-weight: 600; font-size: 0.78rem; 
 .dlaczego {
   position: fixed; inset: 0; z-index: 500; /* nad dolną nawigacją */
   display: flex; align-items: flex-end; justify-content: center;
-  background: rgba(0, 0, 0, 0.45);
+  background: var(--scrim);
 }
 .dlaczego__panel {
   background: var(--bg-card); color: var(--text);
@@ -993,7 +1101,7 @@ table.simple th { color: var(--text-dim); font-weight: 600; font-size: 0.78rem; 
 .powitanie-tlo {
   position: fixed; inset: 0; z-index: 500; /* nad dolną nawigacją */
   display: flex; align-items: center; justify-content: center;
-  padding: 16px; background: rgba(0, 0, 0, 0.55);
+  padding: 16px; background: var(--scrim-strong);
 }
 .powitanie-okno {
   width: 100%; max-width: 440px; margin: 0;
@@ -1018,7 +1126,7 @@ table.simple th { color: var(--text-dim); font-weight: 600; font-size: 0.78rem; 
 .postepy-wstega .card { flex: 0 0 auto; min-width: 200px; margin: 0; scroll-snap-align: start; }
 .postepy-slupki { display: flex; align-items: stretch; gap: 4px; height: 90px; }
 .postepy-slupki .kolumna { flex: 1; position: relative; display: flex; align-items: flex-end; min-width: 4px; }
-.postepy-slupki .slupek { display: block; width: 100%; background: var(--accent-ink); border-radius: 3px 3px 0 0; }
+.postepy-slupki .slupek { display: block; width: 100%; background: var(--bar-muted); border-radius: 3px 3px 0 0; }
 .postepy-slupki .slupek.biezacy { background: var(--accent); }
 /* linia średniej 4 tyg.: pozycja względem CAŁEJ kolumny (bottom = średnia/max), nie słupka */
 .postepy-srednia { border-top: 1px dashed var(--text-dim); position: absolute; left: -2px; right: -2px; pointer-events: none; }

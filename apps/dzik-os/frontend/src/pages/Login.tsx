@@ -73,7 +73,13 @@ export default function Login() {
       <div className="login-box">
         <div style={{ textAlign: "center", marginBottom: 14 }}>
           <h1 className="sr-only">Dzik OS — logowanie</h1>
-          <img src="/icons/logo-full.png" alt="Dzik OS" className="login-logo" />
+          {/* Pełne logo jest limonkowe (motyw ciemny); w jasnym motywie (0.74.0)
+              CSS pokazuje zamiast niego czerwony znak + nazwę tekstem. */}
+          <img src="/icons/logo-full.png" alt="Dzik OS" className="login-logo login-logo--ciemny" />
+          <div className="login-brand--czerwony" aria-hidden="true">
+            <img src="/icons/boar-mark-red.png" alt="" width={56} height={56} />
+            <span>Dzik OS</span>
+          </div>
           <small className="dim">Panel Podopiecznego</small>
           {!mfaToken && (
             <>

@@ -1551,3 +1551,13 @@ MIGRATIONS.append(
         "CREATE INDEX IF NOT EXISTS ix_plan_weekday_choices_plan_id ON plan_weekday_choices (plan_id)",
     ])
 )
+
+MIGRATIONS.append(
+    (40, "motyw aplikacji: notification_settings.theme (ciemny/czerwony)", [
+        # Addytywna (ALTER ADD COLUMN bez DEFAULT — jak migracja 37); NULL =
+        # motyw domyślny (ciemny). Wycofanie = ignorowanie kolumny. Numer 39 =
+        # rozgrzewka/cardio (PR #75, `agent/cardio-i-rozgrzewka`) — scalany
+        # przed tą gałęzią; do tego czasu ciąg ma lukę 38 → 40 (oczekiwane).
+        "ALTER TABLE notification_settings ADD COLUMN theme VARCHAR(20)",
+    ])
+)

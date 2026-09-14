@@ -126,6 +126,8 @@ class SettingsIn(BaseModel):
     active_days: str | None = None  # CSV dni ISO (1=pn ... 7=nd)
     raport_frequency: str | None = None  # DAILY / WEEKLY
     timezone: str | None = None  # IANA, np. "Europe/Warsaw"
+    # Motyw aplikacji (0.74.0): "ciemny" | "czerwony"; None = nie zmieniaj.
+    theme: str | None = Field(default=None, pattern=r"^(ciemny|czerwony)$")
     preferences: list[PreferenceIn] = []
 
 
@@ -158,6 +160,7 @@ def get_notification_settings(
             "active_days": setting.active_days,
             "raport_frequency": setting.raport_frequency,
             "timezone": user.timezone,
+            "theme": setting.theme,
         },
     }
 
@@ -202,6 +205,8 @@ def update_notification_settings(
         setting.active_days = body.active_days
     if body.raport_frequency is not None:
         setting.raport_frequency = body.raport_frequency
+    if body.theme is not None:
+        setting.theme = body.theme
     setting.updated_at = now_iso()
     if body.timezone is not None:
         user.timezone = body.timezone or None
@@ -222,15 +227,26 @@ def update_notification_settings(
         row.enabled = p.enabled
         row.updated_at = now_iso()
 
-    record_event(
-        db,
-        action="NOTIFICATION_SETTINGS_CHANGED",
-        actor_id=user.id,
-        subject_ids=[user.id],
-        # Bez treści — wyłącznie fakt zmiany i liczba preferencji.
-        payload={"preferences_changed": len(body.preferences),
-                 "timezone_changed": body.timezone is not None},
-        summary="Zmiana ustawień powiadomień",
+    # Sam motyw (0.74.0) nie zostawia śladu w audycie: to preferencja wyglądu
+    # klasy D0 (docs/plan-sesji/motyw-czerwony.md) — zdarzenie „użytkownik
+    # przełączył kolory” nie niesie niczego, co trzeba by kiedyś odtworzyć,
+    # a zaśmiecałoby historię konta. Reszta ustawień audytowana jak dotąd.
+    tylko_motyw = (
+        body.theme is not None and not body.preferences
+        and body.quiet_hours_start is None and body.quiet_hours_end is None
+        and body.active_days is None and body.raport_frequency is None
+        and body.timezone is None
     )
+    if not tylko_motyw:
+        record_event(
+            db,
+            action="NOTIFICATION_SETTINGS_CHANGED",
+            actor_id=user.id,
+            subject_ids=[user.id],
+            # Bez treści — wyłącznie fakt zmiany i liczba preferencji.
+            payload={"preferences_changed": len(body.preferences),
+                     "timezone_changed": body.timezone is not None},
+            summary="Zmiana ustawień powiadomień",
+        )
     db.commit()
     return {"ok": True}

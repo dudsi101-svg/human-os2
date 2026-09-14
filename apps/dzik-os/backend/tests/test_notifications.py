@@ -656,3 +656,60 @@ def test_email_channel_optional_and_neutral(seeded, monkeypatch):
     assert len(emails) == 1
     assert emails[0]["to"] == "klient.a@example.com"
     assert "Poufna treść" not in emails[0]["subject"] + emails[0]["body"]
+
+
+# ——— Motyw aplikacji (0.74.0): pole `theme` w ustawieniach, klasa D0 ———
+
+def test_motyw_walidacja_roundtrip_i_login(seeded):
+    from conftest import CLIENT_B
+    ha = login(seeded, CLIENT_A)
+    # Domyślnie brak wyboru na koncie (NULL) — interfejs bierze ciemny.
+    assert seeded.get("/api/notifications/settings", headers=ha).json()["settings"]["theme"] is None
+    assert seeded.post("/api/auth/login", json=CLIENT_A).json()["user"]["theme"] is None
+    # Tylko dwie wartości; „system” (pyt. 3 z pakietu: nie w v1) i puste → 422.
+    for zly in ("system", "", "CZERWONY", "jasny"):
+        assert seeded.put("/api/notifications/settings", headers=ha,
+                          json={"theme": zly}).status_code == 422, zly
+    assert seeded.put("/api/notifications/settings", headers=ha,
+                      json={"theme": "czerwony"}).status_code == 200
+    data = seeded.get("/api/notifications/settings", headers=ha).json()
+    assert data["settings"]["theme"] == "czerwony"
+    # Pozostałe ustawienia nietknięte przez zapis samego motywu.
+    assert data["settings"]["raport_frequency"] == "DAILY"
+    # Odpowiedź logowania i /me niosą motyw z konta (synchronizacja urządzenia).
+    assert seeded.post("/api/auth/login", json=CLIENT_A).json()["user"]["theme"] == "czerwony"
+    assert seeded.get("/api/auth/me", headers=ha).json()["theme"] == "czerwony"
+    # Zapis innych pól bez `theme` nie kasuje wyboru.
+    assert seeded.put("/api/notifications/settings", headers=ha,
+                      json={"raport_frequency": "WEEKLY"}).status_code == 200
+    assert seeded.get("/api/notifications/settings", headers=ha).json()["settings"]["theme"] == "czerwony"
+    # Konto B widzi wyłącznie swoje (NULL) — ustawienia są per current_user.
+    hb = login(seeded, CLIENT_B)
+    assert seeded.get("/api/notifications/settings", headers=hb).json()["settings"]["theme"] is None
+    # Trener wybiera dla siebie tą samą trasą.
+    hc = login(seeded, COACH)
+    assert seeded.put("/api/notifications/settings", headers=hc,
+                      json={"theme": "ciemny"}).status_code == 200
+    assert seeded.get("/api/notifications/settings", headers=hc).json()["settings"]["theme"] == "ciemny"
+    assert seeded.get("/api/notifications/settings", headers=ha).json()["settings"]["theme"] == "czerwony"
+
+
+def test_motyw_bez_sladu_audytu_ale_w_eksporcie(seeded):
+    from dzik_os.hos_bridge import event_store
+    ha = login(seeded, CLIENT_A)
+    przed = [e for e in event_store().all() if e["event_type"] == "NOTIFICATION_SETTINGS_CHANGED"]
+    # Sam motyw = preferencja wyglądu (D0): bez zdarzenia w łańcuchu audytu.
+    assert seeded.put("/api/notifications/settings", headers=ha,
+                      json={"theme": "czerwony"}).status_code == 200
+    po = [e for e in event_store().all() if e["event_type"] == "NOTIFICATION_SETTINGS_CHANGED"]
+    assert len(po) == len(przed)
+    # Motyw razem z innym polem — zdarzenie jak dotąd (dla tamtego pola).
+    assert seeded.put("/api/notifications/settings", headers=ha,
+                      json={"theme": "ciemny", "raport_frequency": "WEEKLY"}).status_code == 200
+    po2 = [e for e in event_store().all() if e["event_type"] == "NOTIFICATION_SETTINGS_CHANGED"]
+    assert len(po2) == len(przed) + 1
+    # Eksport danych: wiersz ustawień powiadomień jest zrzucany w całości,
+    # więc `theme` wchodzi bez zmiany kształtu (export_version bez podbicia).
+    ex = seeded.get("/api/me/export", headers=ha).json()
+    assert ex["export_version"] == "2.0"
+    assert [row["theme"] for row in ex["notification_settings"]] == ["ciemny"]

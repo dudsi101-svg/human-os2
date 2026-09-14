@@ -19,6 +19,9 @@
 // zainstalowanego pakietu backendu — jak istniejące e2e):
 //   NODE_PATH=/opt/node22/lib/node_modules node e2e/test_a11y.mjs
 // Ścieżkę Chromium można nadpisać przez DZIK_E2E_CHROMIUM.
+// DZIK_THEME=czerwony (0.74.0) uruchamia ten sam zestaw w jasnym motywie
+// czerwono-białym — motyw ustawiany tak, jak robi to aplikacja
+// (localStorage["dzik_theme"] przed nawigacją); CI ma dwa przebiegi.
 
 import { spawn, execFileSync } from "node:child_process";
 import { mkdtempSync, existsSync, readFileSync } from "node:fs";
@@ -65,6 +68,12 @@ for (const base of [import.meta.url, "/opt/node22/lib/node_modules/"]) {
 
 const APP_DIR = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const DIST = join(APP_DIR, "frontend", "dist");
+// Motyw (0.74.0): "ciemny" (domyślny, bez atrybutu) albo "czerwony".
+const MOTYW = process.env.DZIK_THEME || "ciemny";
+if (!["ciemny", "czerwony"].includes(MOTYW)) {
+  console.error(`Nieznany DZIK_THEME=${MOTYW} (ciemny|czerwony).`);
+  process.exit(1);
+}
 const CHROMIUM =
   process.env.DZIK_E2E_CHROMIUM ||
   (existsSync("/opt/pw-browsers/chromium") ? "/opt/pw-browsers/chromium" : undefined);
@@ -207,15 +216,25 @@ const browser = await chromium.launch({
   executablePath: CHROMIUM,
   args: ["--no-sandbox"],
 });
+/** Kontekst przeglądarki z motywem z DZIK_THEME (jasny = wpis w localStorage
+ * przed pierwszą nawigacją, dokładnie jak robi to sama aplikacja). */
+async function nowyKontekst(opcje) {
+  const ctx = await browser.newContext(opcje);
+  if (MOTYW !== "ciemny") {
+    await ctx.addInitScript((m) => { try { localStorage.setItem("dzik_theme", m); } catch { /* brak magazynu */ } }, MOTYW);
+  }
+  return ctx;
+}
 let exitCode = 1;
 try {
   console.log(axeSource
     ? "axe-core dostępny — audyt automatyczny + asercje własne"
     : "axe-core niedostępny w środowisku — działają asercje własne");
+  console.log(`Motyw: ${MOTYW}`);
 
   // ————— 1. Ekran logowania (320×568 — najwęższy wspierany) —————
   console.log("1. Ekran logowania (320 px)");
-  const ctx320 = await browser.newContext({ viewport: { width: 320, height: 568 } });
+  const ctx320 = await nowyKontekst({ viewport: { width: 320, height: 568 } });
   const login320 = await ctx320.newPage();
   await login320.goto(`${url}/login`, { waitUntil: "networkidle" });
 
@@ -224,6 +243,19 @@ try {
     viewport: document.querySelector('meta[name="viewport"]')?.content ?? "",
   }));
   check("html[lang=pl]", docMeta.lang === "pl", docMeta.lang);
+  // Motyw obowiązuje już na /login (z urządzenia): atrybut, kolor tła i paska.
+  const motywDoc = await login320.evaluate(() => ({
+    atrybut: document.documentElement.getAttribute("data-theme"),
+    tlo: getComputedStyle(document.body).backgroundColor,
+    meta: document.querySelector('meta[name="theme-color"]')?.content,
+  }));
+  check(
+    `motyw ${MOTYW}: atrybut, tło i theme-color zgodne`,
+    MOTYW === "ciemny"
+      ? motywDoc.atrybut === null && motywDoc.tlo === "rgb(11, 13, 15)" && motywDoc.meta === "#0b0d0f"
+      : motywDoc.atrybut === "czerwony" && motywDoc.tlo === "rgb(255, 255, 255)" && motywDoc.meta === "#FFFFFF",
+    JSON.stringify(motywDoc)
+  );
   check(
     "viewport nie blokuje powiększania (bez maximum-scale/user-scalable=no)",
     !/maximum-scale|user-scalable\s*=\s*no/i.test(docMeta.viewport),
@@ -239,12 +271,15 @@ try {
 
   // — niski ekran (landscape telefonu): formularz logowania osiągalny —
   console.log("2. Logowanie w orientacji poziomej (844×390)");
-  const ctxLand = await browser.newContext({ viewport: { width: 844, height: 390 } });
+  const ctxLand = await nowyKontekst({ viewport: { width: 844, height: 390 } });
   const landPage = await ctxLand.newPage();
   await landPage.goto(`${url}/login`, { waitUntil: "networkidle" });
+  // W jasnym motywie pełne logo jest schowane, a znak marki to blok
+  // .login-brand--czerwony (znak 56 px + nazwa) — mierzymy to, co widać.
   const logoH = await landPage.evaluate(() => {
-    const img = document.querySelector(".login-logo");
-    return img ? img.getBoundingClientRect().height : 0;
+    const el = [...document.querySelectorAll(".login-logo, .login-brand--czerwony")]
+      .find((e) => e.getBoundingClientRect().height > 0);
+    return el ? el.getBoundingClientRect().height : 0;
   });
   check("landscape: logo zmniejszone (≤ 120 px wysokości)", logoH > 0 && logoH <= 120,
     String(logoH));
@@ -259,7 +294,7 @@ try {
 
   // ————— 3. Klient: Dzisiaj — landmarki, skip-link, nawigacja —————
   console.log("3. Klient — Dzisiaj (375 px)");
-  const ctxClient = await browser.newContext({ viewport: { width: 375, height: 812 } });
+  const ctxClient = await nowyKontekst({ viewport: { width: 375, height: 812 } });
   const page = await ctxClient.newPage();
   await login(page, "klient.a@example.com", "KlientA#2026!x", "h1:has-text('Dzisiaj')");
 
@@ -396,7 +431,7 @@ try {
 
   // ————— 7. Trener: zakładki WAI-ARIA + klawiatura —————
   console.log("7. Trener — zakładki bazy wiedzy (klawiatura)");
-  const ctxCoach = await browser.newContext({ viewport: { width: 1024, height: 800 } });
+  const ctxCoach = await nowyKontekst({ viewport: { width: 1024, height: 800 } });
   const coach = await ctxCoach.newPage();
   await login(coach, "dzik@example.com", "DzikTrener#2026", "h1:has-text('Klienci')");
   await assertNoHorizontalScroll(coach, "lista klientów @1024");
