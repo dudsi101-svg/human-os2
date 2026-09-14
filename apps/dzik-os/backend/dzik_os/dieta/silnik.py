@@ -89,10 +89,21 @@ def fill_defaults(ing: dict, products: Products) -> dict:
     for k, v in d.items():
         if ing.get(k) is None:
             ing[k] = v
-    # tłuszcze dodawane w małych ilościach (5-15 g) mogą rosnąć do 3x - nadal praktyczne
-    if (products[ing["product"]].category == "tłuszcze" and cls == "LINIOWY"
-            and "max_factor" not in ing.get("_explicit", ())):
+    prod = products[ing["product"]]
+    # Limity porcji (engine.py v1.1 po audycie 14.09): maks. 300 g surowego mięsa/ryby
+    # na posiłek (twardy limit) i maks. 4 jajka na posiłek — silnik woli oflagować
+    # posiłek niż zaproponować talerz nie do zjedzenia.
+    if (prod.category in ("mięso", "ryby") and prod.substitution_group != "wędlina" and cls == "LINIOWY"
+            and float(ing["grams"]) > 0):
+        ing["max_factor"] = min(ing["max_factor"], 300 / float(ing["grams"]))
+        ing["min_factor"] = min(ing["min_factor"], ing["max_factor"])
+    if ing["product"] == "Jajko kurze (całe)" and cls == "DYSKRETNY" and ing.get("unit_g") and float(ing["grams"]) > 0:
+        ing["max_factor"] = min(ing["max_factor"], max(1.0, 4 * float(ing["unit_g"]) / float(ing["grams"])))
+    # tłuszcze dodawane w małych ilościach (5-15 g) mogą rosnąć do 3x - nadal praktyczne;
+    # krok zaokrąglenia 1 g (5 g to ~10 % dziennego tłuszczu na redukcji).
+    if prod.category == "tłuszcze" and cls == "LINIOWY":
         ing["max_factor"] = max(ing["max_factor"], 3.0)
+        ing["round_step"] = 1
     if cls == "DYSKRETNY":
         if not ing.get("unit_g"):
             raise ValueError(f"{ing['product']}: DYSKRETNY wymaga unit_g")
@@ -268,7 +279,8 @@ def scale_meal(meal: dict, target: dict, products: Products, *, enforce_groups_:
     return {"name": meal["name"], "slot": meal["slot"], "ingredients": ings, "macros": cur,
                 "target": target, "deviation": dev, "status": status, "k": k, "steps": meal.get("steps", ""),
                 "tags": list(meal.get("tags", []) or []), "flexible": bool(meal.get("flexible")),
-                "kcal_share": meal["kcal_share"], "meal_id": meal.get("meal_id")}
+                "kcal_share": meal["kcal_share"], "meal_id": meal.get("meal_id"),
+                "allergens": list(meal.get("allergens", []) or [])}
 
 
 def scale_day(day: dict, day_target: dict, products: Products, *, enforce_groups_: bool = False) -> dict:

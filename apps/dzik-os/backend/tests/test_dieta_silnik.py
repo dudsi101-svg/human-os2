@@ -25,7 +25,7 @@ def prods() -> S.Products:
 
 @pytest.fixture(scope="module")
 def tpl() -> dict:
-    return json.loads(seed._plik("szablon_standard_v1.json"))
+    return json.loads(seed._szablon("template_standard_v1.json"))
 
 
 def _golden_dni() -> dict[int, dict]:
@@ -129,10 +129,18 @@ def test_grupa_ma_identyczny_wspolczynnik_z_regula_group(prods, tpl):
                     if i.get("group"):
                         grupy.setdefault(i["group"], set()).add(round(i["grams"] / i["base_grams"], 6))
                 assert all(len(f) == 1 for f in grupy.values()), (kcal, r["name"], grupy)
-    # Referencja tej reguły nie wymusza — test dokumentuje różnicę (racuchy dzień 3).
-    r = S.scale_week(tpl, 2000, prods)[2]["meals"][0]
-    f = {i["product"]: i["grams"] / i["base_grams"] for i in r["ingredients"] if i.get("group")}
-    assert len({round(v, 3) for v in f.values()}) > 1
+    # Referencja tej reguły nie wymusza — test dokumentuje różnicę: w bibliotece istnieje
+    # posiłek (ciasto naleśników/racuchów), którego składniki tej samej grupy dostają
+    # bez wymuszenia różne współczynniki (inaczej reguła byłaby pusta).
+    roznice = 0
+    for plik in seed.pliki_szablonow():
+        t = json.loads(plik.read_text(encoding="utf-8"))
+        for d in S.scale_week(t, 2000, prods):
+            for r in d["meals"]:
+                f = {i["product"]: i["grams"] / i["base_grams"] for i in r["ingredients"] if i.get("group")}
+                if len({round(v, 3) for v in f.values()}) > 1:
+                    roznice += 1
+    assert roznice > 0
 
 
 def test_liniowy_bez_korekty_makro_2000_do_3000_to_x1_5(prods):
@@ -155,7 +163,9 @@ def test_swap_candidates_nie_wyprowadza_poza_tolerancje_i_skyr_bez_laktozy_pusty
     idx = next(i for i, x in enumerate(ob["ingredients"]) if x["product"] == "Pierś z kurczaka (surowa)")
     cands = S.swap_candidates(ob, idx, prods)
     assert [c["product"] for c in cands] == ["Pierś z indyka (surowa)", "Schab bez kości (surowy)", "Polędwiczka wieprzowa (surowa)"]
-    assert [c["grams"] for c in cands] == [155, 150, 170]
+    # Gramatury kandydatów przypięte z przebiegu silnika v1.1 (golden po audycie nie
+    # zawiera już demo wymiany) — pilnują regresji, nie „prawdy” z dokumentu.
+    assert [c["grams"] for c in cands] == [160, 155, 175]
     for c in cands:
         ok, _ = S.check(c["macros"], ob["target"], S.TOL_MEAL)
         assert ok
@@ -166,7 +176,12 @@ def test_swap_candidates_nie_wyprowadza_poza_tolerancje_i_skyr_bez_laktozy_pusty
                 assert S.check(c["macros"], r["target"], S.TOL_MEAL)[0]
     sn = week[0]["meals"][0]
     idx = next(i for i, x in enumerate(sn["ingredients"]) if x["product"] == "Skyr naturalny")
-    assert S.swap_candidates(sn, idx, prods, exclusions=("lactose",)) == []
+    # Baza 181 produktów (14.09) ma nabiał bez laktozy w tej samej grupie zamienników:
+    # z wykluczeniem `lactose` kandydaci istnieją, ale ŻADEN nie zawiera laktozy
+    # (w bazie 142 produktów lista była pusta — zmiana danych, nie algorytmu).
+    kand = S.swap_candidates(sn, idx, prods, exclusions=("lactose",))
+    assert kand and all("lactose" not in prods[c["product"]].diet_exclusions for c in kand)
+    assert all(S.check(c["macros"], sn["target"], S.TOL_MEAL)[0] for c in kand)
 
 
 def test_day_target_i_bledy_definicji(prods):

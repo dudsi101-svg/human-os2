@@ -2,12 +2,12 @@ import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api, ApiError } from "../../api";
 import { ErrorBox, Spinner, TopBar } from "../../components";
-import { DietProductRow, DietProfileRow, DietSweep, DietWeekFull } from "../../types";
+import { DietProductRow, DietProfileRow, DietSweep, DietWeekFull, slotLabel } from "../../types";
 
 /**
  * Panel wprowadzania szablonów diet (0.60.0, etap 6 — minimalny):
  * profile, odsłony, dni, posiłki, składniki (produkt z bazy + reguły
- * skalowania), „Testuj skalowanie” (sweep 1400–3200, flagi per posiłek),
+ * skalowania), „Testuj skalowanie” (sweep zakresu odsłony co 100 kcal, flagi per posiłek),
  * publikacja tylko przy ≥ 95 % dni OK, import odsłony z JSON.
  */
 export default function SzablonyDiet() {
@@ -108,7 +108,7 @@ export default function SzablonyDiet() {
 }
 
 const KLASY = ["", "LINIOWY", "DYSKRETNY", "TŁUMIONY", "STAŁY"];
-const SLOTY = ["śniadanie", "obiad", "przekąska", "kolacja", "drugie śniadanie", "podwieczorek"];
+const SLOTY = ["śniadanie", "obiad", "przekąska", "kolacja", "drugie śniadanie", "podwieczorek", "obiad_1", "obiad_2"];
 
 function EdytorOdslony({ weekId, produkty, onWroc }: { weekId: string; produkty: DietProductRow[]; onWroc: () => void }) {
   const [w, setW] = useState<DietWeekFull | null>(null);
@@ -159,7 +159,7 @@ function EdytorOdslony({ weekId, produkty, onWroc }: { weekId: string; produkty:
         </div>
         <small className="dim">Baza {w.base_kcal} kcal · zakres {w.kcal_min}–{w.kcal_max} · makro {w.macro_pct.map((x) => Math.round(x * 100)).join("/")}</small>
         <div className="row" style={{ gap: 6, marginTop: 8 }}>
-          <button type="button" className="btn btn--small" disabled={busy} onClick={() => void testuj()}>Testuj skalowanie (1400–3200)</button>
+          <button type="button" className="btn btn--small" disabled={busy} onClick={() => void testuj()}>Testuj skalowanie (zakres odsłony)</button>
           {w.status !== "PUBLISHED"
             ? <button type="button" className="btn btn--small" disabled={busy} onClick={() => void publikuj()}>Opublikuj (≥ 95 % dni OK)</button>
             : <button type="button" className="btn btn--ghost btn--small" disabled={busy} onClick={() => void akcja(() => api.post(`/api/diet/weeks/${weekId}/unpublish`))}>Cofnij publikację</button>}
@@ -172,7 +172,7 @@ function EdytorOdslony({ weekId, produkty, onWroc }: { weekId: string; produkty:
             {sweep.error && <p className="alert alert--warn">{sweep.error}</p>}
             {sweep.meals.filter((m) => m.flags > 0).length > 0 && (
               <ul style={{ fontSize: "0.85rem", paddingLeft: 18 }}>
-                {sweep.meals.filter((m) => m.flags > 0).map((m) => <li key={m.meal_id}>D{m.day} {m.slot}: {m.name} — flag {m.flags}/19{m.out_of_range ? ` (poza zakresem ${m.out_of_range})` : ""}</li>)}
+                {sweep.meals.filter((m) => m.flags > 0).map((m) => <li key={m.meal_id}>D{m.day} {slotLabel(m.slot)}: {m.name} — flag {m.flags}/19{m.out_of_range ? ` (poza zakresem ${m.out_of_range})` : ""}</li>)}
               </ul>
             )}
           </div>
@@ -187,7 +187,7 @@ function EdytorOdslony({ weekId, produkty, onWroc }: { weekId: string; produkty:
           {d.meals.map((m) => (
             <div key={m.meal_id} style={{ marginTop: 8, paddingTop: 8, borderTop: "1px solid var(--border)" }}>
               <div className="row row--between">
-                <b>{m.slot}: {m.name}</b>
+                <b>{slotLabel(m.slot)}: {m.name}</b>
                 <span className="row" style={{ gap: 6 }}>
                   <small className="dim">{Math.round(m.kcal_share * 100)} %{m.flexible ? " · elastyczny" : ""}</small>
                   <button type="button" className="btn btn--ghost btn--small" disabled={busy} onClick={() => void akcja(() => api.del(`/api/diet/meals/${m.meal_id}`))}>Usuń posiłek</button>

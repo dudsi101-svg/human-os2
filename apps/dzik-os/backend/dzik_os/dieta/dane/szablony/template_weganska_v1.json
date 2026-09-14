@@ -1,0 +1,1848 @@
+{
+ "profile": "Wegańska",
+ "variant": 1,
+ "base_kcal": 2000,
+ "kcal_min": 1400,
+ "kcal_max": 3200,
+ "macro_pct": [
+  0.2,
+  0.3,
+  0.5
+ ],
+ "days": [
+  {
+   "day": 1,
+   "meals": [
+    {
+     "name": "Owsianka na napoju sojowym z masłem orzechowym i odżywką",
+     "slot": "śniadanie",
+     "kcal_share": 0.25,
+     "ingredients": [
+      {
+       "product": "Płatki owsiane",
+       "role": "C",
+       "grams": 30
+      },
+      {
+       "product": "Napój sojowy",
+       "role": "NONE",
+       "grams": 175,
+       "min_factor": 0.7,
+       "max_factor": 1.3
+      },
+      {
+       "product": "Odżywka białkowa roślinna (groch/ryż)",
+       "role": "P",
+       "grams": 25
+      },
+      {
+       "product": "Masło orzechowe",
+       "role": "F",
+       "grams": 13
+      },
+      {
+       "product": "Banan",
+       "role": "C",
+       "grams": 60.0,
+       "class": "DYSKRETNY",
+       "unit_g": 120,
+       "unit_step": 0.5
+      },
+      {
+       "product": "Cynamon",
+       "role": "NONE",
+       "grams": 2
+      },
+      {
+       "product": "Siemię lniane",
+       "role": "F",
+       "grams": 8
+      }
+     ],
+     "steps": "Płatki ugotuj w napoju, ostudź chwilę, wmieszaj odżywkę, podaj z bananem i masłem orzechowym. Posyp zmielonym siemieniem lnianym.",
+     "flexible": false,
+     "tags": [
+      "szybkie"
+     ],
+     "allergens": [
+      "gluten",
+      "orzechy_ziemne",
+      "soja"
+     ]
+    },
+    {
+     "name": "Curry z ciecierzycy i szpinaku z ryżem",
+     "slot": "obiad",
+     "kcal_share": 0.35,
+     "ingredients": [
+      {
+       "product": "Ciecierzyca z puszki (odsączona)",
+       "role": "P",
+       "grams": 240
+      },
+      {
+       "product": "Ryż biały (suchy)",
+       "role": "C",
+       "grams": 20
+      },
+      {
+       "product": "Mleczko kokosowe",
+       "role": "F",
+       "grams": 30
+      },
+      {
+       "product": "Pomidory krojone z puszki",
+       "role": "NONE",
+       "grams": 180
+      },
+      {
+       "product": "Szpinak świeży",
+       "role": "NONE",
+       "grams": 70
+      },
+      {
+       "product": "Cebula",
+       "role": "NONE",
+       "grams": 50
+      },
+      {
+       "product": "Curry (mieszanka)",
+       "role": "NONE",
+       "grams": 6
+      },
+      {
+       "product": "Czosnek",
+       "role": "NONE",
+       "grams": 5
+      },
+      {
+       "product": "Imbir świeży",
+       "role": "NONE",
+       "grams": 5
+      },
+      {
+       "product": "Olej rzepakowy",
+       "role": "F",
+       "grams": 3
+      },
+      {
+       "product": "Edamame (mrożone)",
+       "role": "P",
+       "grams": 65
+      },
+      {
+       "product": "Sól",
+       "role": "NONE",
+       "grams": 0.5
+      },
+      {
+       "product": "Pieprz czarny",
+       "role": "NONE",
+       "grams": 1
+      }
+     ],
+     "steps": "Cebulę, czosnek i imbir zeszklij, dodaj curry, pomidory, ciecierzycę i mleczko, duś 12 min, wmieszaj szpinak i edamame. Podaj z ryżem.",
+     "flexible": false,
+     "tags": [
+      "na_zapas",
+      "na_wynos"
+     ],
+     "allergens": [
+      "soja"
+     ]
+    },
+    {
+     "name": "Hummus z warzywami i waflami",
+     "slot": "przekąska",
+     "kcal_share": 0.15,
+     "ingredients": [
+      {
+       "product": "Hummus",
+       "role": "F",
+       "grams": 45
+      },
+      {
+       "product": "Marchew",
+       "role": "NONE",
+       "grams": 90
+      },
+      {
+       "product": "Papryka czerwona",
+       "role": "NONE",
+       "grams": 70
+      },
+      {
+       "product": "Wafle ryżowe",
+       "role": "C",
+       "grams": 9.0,
+       "class": "DYSKRETNY",
+       "unit_g": 9,
+       "unit_step": 1.0
+      },
+      {
+       "product": "Edamame (mrożone)",
+       "role": "P",
+       "grams": 85
+      }
+     ],
+     "steps": "Warzywa maczaj w hummusie; edamame ugotuj 5 min.",
+     "flexible": true,
+     "tags": [
+      "szybkie",
+      "na_wynos"
+     ],
+     "allergens": [
+      "sezam",
+      "soja"
+     ]
+    },
+    {
+     "name": "Miska z pieczoną ciecierzycą, komosą i tahini",
+     "slot": "kolacja",
+     "kcal_share": 0.25,
+     "ingredients": [
+      {
+       "product": "Ciecierzyca z puszki (odsączona)",
+       "role": "P",
+       "grams": 220
+      },
+      {
+       "product": "Komosa ryżowa (sucha)",
+       "role": "C",
+       "grams": 10
+      },
+      {
+       "product": "Papryka czerwona",
+       "role": "NONE",
+       "grams": 90
+      },
+      {
+       "product": "Rukola",
+       "role": "NONE",
+       "grams": 30
+      },
+      {
+       "product": "Tahini",
+       "role": "F",
+       "grams": 10
+      },
+      {
+       "product": "Sok z cytryny",
+       "role": "NONE",
+       "grams": 10
+      },
+      {
+       "product": "Papryka słodka mielona",
+       "role": "NONE",
+       "grams": 3
+      },
+      {
+       "product": "Oliwa z oliwek",
+       "role": "F",
+       "grams": 3
+      },
+      {
+       "product": "Sól",
+       "role": "NONE",
+       "grams": 0.5
+      },
+      {
+       "product": "Pieprz czarny",
+       "role": "NONE",
+       "grams": 1
+      }
+     ],
+     "steps": "Ciecierzycę i paprykę piecz 20 min w 200°C. Komosę ugotuj. Sos z tahini, cytryny i wody.",
+     "flexible": false,
+     "tags": [
+      "na_wynos"
+     ],
+     "allergens": [
+      "sezam"
+     ]
+    }
+   ]
+  },
+  {
+   "day": 2,
+   "meals": [
+    {
+     "name": "Pudding chia na napoju sojowym z owocami i odżywką",
+     "slot": "śniadanie",
+     "kcal_share": 0.25,
+     "ingredients": [
+      {
+       "product": "Nasiona chia",
+       "role": "F",
+       "grams": 31
+      },
+      {
+       "product": "Napój sojowy",
+       "role": "NONE",
+       "grams": 230,
+       "min_factor": 0.7,
+       "max_factor": 1.3
+      },
+      {
+       "product": "Odżywka białkowa roślinna (groch/ryż)",
+       "role": "P",
+       "grams": 25
+      },
+      {
+       "product": "Owoce jagodowe mrożone",
+       "role": "C",
+       "grams": 40
+      },
+      {
+       "product": "Migdały",
+       "role": "F",
+       "grams": 12
+      },
+      {
+       "product": "Syrop klonowy",
+       "role": "C",
+       "grams": 10
+      }
+     ],
+     "steps": "Chia z napojem i odżywką odstaw na noc; podaj z owocami, migdałami i syropem.",
+     "flexible": false,
+     "tags": [
+      "na_wynos"
+     ],
+     "allergens": [
+      "orzechy",
+      "soja"
+     ]
+    },
+    {
+     "name": "Kotlety z fasoli i siemienia z ziemniakami i surówką",
+     "slot": "obiad",
+     "kcal_share": 0.35,
+     "ingredients": [
+      {
+       "product": "Fasola czerwona z puszki (odsączona)",
+       "role": "P",
+       "grams": 315
+      },
+      {
+       "product": "Płatki owsiane",
+       "role": "C",
+       "grams": 5
+      },
+      {
+       "product": "Siemię lniane",
+       "role": "F",
+       "grams": 13
+      },
+      {
+       "product": "Cebula",
+       "role": "NONE",
+       "grams": 40
+      },
+      {
+       "product": "Olej rzepakowy",
+       "role": "F",
+       "grams": 11
+      },
+      {
+       "product": "Ziemniaki (surowe)",
+       "role": "C",
+       "grams": 35
+      },
+      {
+       "product": "Kapusta kiszona",
+       "role": "NONE",
+       "grams": 110
+      },
+      {
+       "product": "Marchew",
+       "role": "NONE",
+       "grams": 40
+      },
+      {
+       "product": "Papryka słodka mielona",
+       "role": "NONE",
+       "grams": 4
+      },
+      {
+       "product": "Czosnek",
+       "role": "NONE",
+       "grams": 5
+      },
+      {
+       "product": "Sól",
+       "role": "NONE",
+       "grams": 0.5
+      },
+      {
+       "product": "Pieprz czarny",
+       "role": "NONE",
+       "grams": 1
+      }
+     ],
+     "steps": "Fasolę rozgnieć z płatkami, zmielonym siemieniem (namoczonym), cebulą i przyprawami, uformuj kotlety, smaż na oleju. Ziemniaki ugotuj, surówka z kapusty i marchwi.",
+     "flexible": false,
+     "tags": [],
+     "allergens": [
+      "gluten"
+     ]
+    },
+    {
+     "name": "Wafle z pastą z fasoli i pomidorem",
+     "slot": "przekąska",
+     "kcal_share": 0.15,
+     "ingredients": [
+      {
+       "product": "Wafle ryżowe",
+       "role": "C",
+       "grams": 9.0,
+       "class": "DYSKRETNY",
+       "unit_g": 9,
+       "unit_step": 1.0
+      },
+      {
+       "product": "Fasola biała z puszki (odsączona)",
+       "role": "P",
+       "grams": 140
+      },
+      {
+       "product": "Oliwa z oliwek",
+       "role": "F",
+       "grams": 7
+      },
+      {
+       "product": "Czosnek",
+       "role": "NONE",
+       "grams": 3
+      },
+      {
+       "product": "Sok z cytryny",
+       "role": "NONE",
+       "grams": 8
+      },
+      {
+       "product": "Pomidor",
+       "role": "NONE",
+       "grams": 80
+      },
+      {
+       "product": "Sól",
+       "role": "NONE",
+       "grams": 0.5
+      },
+      {
+       "product": "Pieprz czarny",
+       "role": "NONE",
+       "grams": 1
+      }
+     ],
+     "steps": "Fasolę zmiksuj z oliwą, czosnkiem i cytryną, nałóż na wafle, pomidor obok.",
+     "flexible": true,
+     "tags": [
+      "szybkie",
+      "na_wynos"
+     ],
+     "allergens": []
+    },
+    {
+     "name": "Placki z cukinii i ciecierzycy z sosem jogurtowym",
+     "slot": "kolacja",
+     "kcal_share": 0.25,
+     "ingredients": [
+      {
+       "product": "Cukinia",
+       "role": "NONE",
+       "grams": 200
+      },
+      {
+       "product": "Ciecierzyca z puszki (odsączona)",
+       "role": "P",
+       "grams": 145
+      },
+      {
+       "product": "Mąka pełnoziarnista",
+       "role": "C",
+       "grams": 5,
+       "group": "ciasto"
+      },
+      {
+       "product": "Siemię lniane",
+       "role": "F",
+       "grams": 5,
+       "group": "ciasto"
+      },
+      {
+       "product": "Jogurt sojowy naturalny",
+       "role": "P",
+       "grams": 145
+      },
+      {
+       "product": "Czosnek",
+       "role": "NONE",
+       "grams": 5
+      },
+      {
+       "product": "Olej rzepakowy",
+       "role": "F",
+       "grams": 5
+      },
+      {
+       "product": "Koperek",
+       "role": "NONE",
+       "grams": 5
+      },
+      {
+       "product": "Chleb żytni",
+       "role": "C",
+       "grams": 35.0,
+       "class": "DYSKRETNY",
+       "unit_g": 35,
+       "unit_step": 1.0
+      },
+      {
+       "product": "Sól",
+       "role": "NONE",
+       "grams": 0.5
+      },
+      {
+       "product": "Pieprz czarny",
+       "role": "NONE",
+       "grams": 1
+      }
+     ],
+     "steps": "Cukinię zetrzyj i odciśnij, ciecierzycę rozgnieć, wymieszaj z mąką i namoczonym siemieniem, smaż placki na oleju. Jogurt z czosnkiem i koperkiem.",
+     "flexible": false,
+     "tags": [],
+     "allergens": [
+      "gluten",
+      "soja"
+     ]
+    }
+   ]
+  },
+  {
+   "day": 3,
+   "meals": [
+    {
+     "name": "Kanapki z pastą z ciecierzycy i warzywami",
+     "slot": "śniadanie",
+     "kcal_share": 0.25,
+     "ingredients": [
+      {
+       "product": "Chleb żytni",
+       "role": "C",
+       "grams": 70.0,
+       "class": "DYSKRETNY",
+       "unit_g": 35,
+       "unit_step": 1.0
+      },
+      {
+       "product": "Ciecierzyca z puszki (odsączona)",
+       "role": "P",
+       "grams": 165
+      },
+      {
+       "product": "Tahini",
+       "role": "F",
+       "grams": 4
+      },
+      {
+       "product": "Sok z cytryny",
+       "role": "NONE",
+       "grams": 10
+      },
+      {
+       "product": "Czosnek",
+       "role": "NONE",
+       "grams": 3
+      },
+      {
+       "product": "Ogórek",
+       "role": "NONE",
+       "grams": 50
+      },
+      {
+       "product": "Papryka czerwona",
+       "role": "NONE",
+       "grams": 50
+      },
+      {
+       "product": "Oliwa z oliwek",
+       "role": "F",
+       "grams": 2
+      },
+      {
+       "product": "Sól",
+       "role": "NONE",
+       "grams": 0.5
+      },
+      {
+       "product": "Pieprz czarny",
+       "role": "NONE",
+       "grams": 1
+      },
+      {
+       "product": "Siemię lniane",
+       "role": "F",
+       "grams": 4
+      }
+     ],
+     "steps": "Ciecierzycę zmiksuj z tahini, cytryną, czosnkiem i oliwą, nałóż na chleb, podaj z warzywami. Posyp zmielonym siemieniem lnianym.",
+     "flexible": false,
+     "tags": [
+      "szybkie",
+      "na_wynos"
+     ],
+     "allergens": [
+      "gluten",
+      "sezam"
+     ]
+    },
+    {
+     "name": "Chili sin carne z tortillą i awokado",
+     "slot": "obiad",
+     "kcal_share": 0.35,
+     "ingredients": [
+      {
+       "product": "Fasola czerwona z puszki (odsączona)",
+       "role": "P",
+       "grams": 135
+      },
+      {
+       "product": "Soczewica czerwona (sucha)",
+       "role": "P",
+       "grams": 35
+      },
+      {
+       "product": "Pomidory krojone z puszki",
+       "role": "NONE",
+       "grams": 220
+      },
+      {
+       "product": "Kukurydza z puszki",
+       "role": "C",
+       "grams": 50
+      },
+      {
+       "product": "Papryka czerwona",
+       "role": "NONE",
+       "grams": 90
+      },
+      {
+       "product": "Cebula",
+       "role": "NONE",
+       "grams": 50
+      },
+      {
+       "product": "Tortilla pszenna",
+       "role": "C",
+       "grams": 45.0,
+       "class": "DYSKRETNY",
+       "unit_g": 45,
+       "unit_step": 1.0
+      },
+      {
+       "product": "Awokado",
+       "role": "F",
+       "grams": 42
+      },
+      {
+       "product": "Oliwa z oliwek",
+       "role": "F",
+       "grams": 4
+      },
+      {
+       "product": "Papryka słodka mielona",
+       "role": "NONE",
+       "grams": 5
+      },
+      {
+       "product": "Czosnek",
+       "role": "NONE",
+       "grams": 5
+      },
+      {
+       "product": "Sól",
+       "role": "NONE",
+       "grams": 0.5
+      },
+      {
+       "product": "Pieprz czarny",
+       "role": "NONE",
+       "grams": 1
+      }
+     ],
+     "steps": "Cebulę i czosnek zeszklij, dodaj paprykę, pomidory, soczewicę, fasolę i kukurydzę, duś 20 min. Podaj z tortillą i awokado.",
+     "flexible": false,
+     "tags": [
+      "na_zapas"
+     ],
+     "allergens": [
+      "gluten"
+     ]
+    },
+    {
+     "name": "Kanapka z tahini i dżemem, jogurt sojowy",
+     "slot": "przekąska",
+     "kcal_share": 0.15,
+     "ingredients": [
+      {
+       "product": "Chleb żytni",
+       "role": "C",
+       "grams": 35.0,
+       "class": "DYSKRETNY",
+       "unit_g": 35,
+       "unit_step": 1.0
+      },
+      {
+       "product": "Tahini",
+       "role": "F",
+       "grams": 15
+      },
+      {
+       "product": "Dżem",
+       "role": "C",
+       "grams": 10
+      },
+      {
+       "product": "Jogurt sojowy naturalny",
+       "role": "P",
+       "grams": 135
+      },
+      {
+       "product": "Odżywka białkowa roślinna (groch/ryż)",
+       "role": "P",
+       "grams": 5
+      }
+     ],
+     "steps": "Chleb z tahini i dżemem; jogurt z odżywką obok.",
+     "flexible": true,
+     "tags": [
+      "szybkie",
+      "na_wynos"
+     ],
+     "allergens": [
+      "gluten",
+      "sezam",
+      "soja"
+     ]
+    },
+    {
+     "name": "Tofu smażone z warzywami i komosą",
+     "slot": "kolacja",
+     "kcal_share": 0.25,
+     "ingredients": [
+      {
+       "product": "Tofu twarde",
+       "role": "P",
+       "grams": 160
+      },
+      {
+       "product": "Komosa ryżowa (sucha)",
+       "role": "C",
+       "grams": 20
+      },
+      {
+       "product": "Papryka czerwona",
+       "role": "NONE",
+       "grams": 90
+      },
+      {
+       "product": "Szpinak świeży",
+       "role": "NONE",
+       "grams": 50
+      },
+      {
+       "product": "Cebula",
+       "role": "NONE",
+       "grams": 30
+      },
+      {
+       "product": "Sos sojowy",
+       "role": "NONE",
+       "grams": 10
+      },
+      {
+       "product": "Olej rzepakowy",
+       "role": "F",
+       "grams": 4
+      },
+      {
+       "product": "Orzechy nerkowca",
+       "role": "F",
+       "grams": 9
+      },
+      {
+       "product": "Czosnek",
+       "role": "NONE",
+       "grams": 5
+      },
+      {
+       "product": "Imbir świeży",
+       "role": "NONE",
+       "grams": 5
+      }
+     ],
+     "steps": "Tofu obsmaż do zrumienienia, dodaj warzywa i sos sojowy. Podaj na komosie z nerkowcami.",
+     "flexible": false,
+     "tags": [
+      "na_wynos"
+     ],
+     "allergens": [
+      "gluten",
+      "orzechy",
+      "soja"
+     ]
+    }
+   ]
+  },
+  {
+   "day": 4,
+   "meals": [
+    {
+     "name": "Smoothie bowl z odżywką, mango i orzechami",
+     "slot": "śniadanie",
+     "kcal_share": 0.25,
+     "ingredients": [
+      {
+       "product": "Odżywka białkowa roślinna (groch/ryż)",
+       "role": "P",
+       "grams": 20
+      },
+      {
+       "product": "Napój sojowy",
+       "role": "NONE",
+       "grams": 135,
+       "min_factor": 0.7,
+       "max_factor": 1.3
+      },
+      {
+       "product": "Mango",
+       "role": "C",
+       "grams": 120
+      },
+      {
+       "product": "Banan",
+       "role": "C",
+       "grams": 60.0,
+       "class": "DYSKRETNY",
+       "unit_g": 120,
+       "unit_step": 0.5
+      },
+      {
+       "product": "Płatki owsiane",
+       "role": "C",
+       "grams": 30
+      },
+      {
+       "product": "Orzechy nerkowca",
+       "role": "F",
+       "grams": 12
+      },
+      {
+       "product": "Nasiona chia",
+       "role": "F",
+       "grams": 5
+      }
+     ],
+     "steps": "Zmiksuj odżywkę z napojem, mango i bananem; posyp płatkami, orzechami i chia.",
+     "flexible": false,
+     "tags": [
+      "szybkie"
+     ],
+     "allergens": [
+      "gluten",
+      "orzechy",
+      "soja"
+     ]
+    },
+    {
+     "name": "Falafel z kaszą bulgur, hummusem i sałatką",
+     "slot": "obiad",
+     "kcal_share": 0.35,
+     "ingredients": [
+      {
+       "product": "Ciecierzyca z puszki (odsączona)",
+       "role": "P",
+       "grams": 130
+      },
+      {
+       "product": "Mąka pełnoziarnista",
+       "role": "C",
+       "grams": 20
+      },
+      {
+       "product": "Cebula",
+       "role": "NONE",
+       "grams": 40
+      },
+      {
+       "product": "Czosnek",
+       "role": "NONE",
+       "grams": 5
+      },
+      {
+       "product": "Natka pietruszki",
+       "role": "NONE",
+       "grams": 10
+      },
+      {
+       "product": "Olej rzepakowy",
+       "role": "F",
+       "grams": 9
+      },
+      {
+       "product": "Kasza bulgur (sucha)",
+       "role": "C",
+       "grams": 60
+      },
+      {
+       "product": "Hummus",
+       "role": "F",
+       "grams": 30
+      },
+      {
+       "product": "Ogórek",
+       "role": "NONE",
+       "grams": 90
+      },
+      {
+       "product": "Pomidor",
+       "role": "NONE",
+       "grams": 90
+      },
+      {
+       "product": "Sok z cytryny",
+       "role": "NONE",
+       "grams": 10
+      },
+      {
+       "product": "Sól",
+       "role": "NONE",
+       "grams": 0.5
+      },
+      {
+       "product": "Pieprz czarny",
+       "role": "NONE",
+       "grams": 1
+      }
+     ],
+     "steps": "Ciecierzycę zmiksuj z cebulą, czosnkiem, natką i mąką, uformuj kulki, piecz 20 min w 200°C z olejem. Bulgur ugotuj. Hummus i sałatka obok.",
+     "flexible": false,
+     "tags": [
+      "na_wynos"
+     ],
+     "allergens": [
+      "gluten",
+      "sezam"
+     ]
+    },
+    {
+     "name": "Jogurt sojowy z orzechami i owocami",
+     "slot": "przekąska",
+     "kcal_share": 0.15,
+     "ingredients": [
+      {
+       "product": "Jogurt sojowy naturalny",
+       "role": "P",
+       "grams": 230
+      },
+      {
+       "product": "Odżywka białkowa roślinna (groch/ryż)",
+       "role": "P",
+       "grams": 10
+      },
+      {
+       "product": "Orzechy włoskie",
+       "role": "F",
+       "grams": 11
+      },
+      {
+       "product": "Borówki",
+       "role": "C",
+       "grams": 80
+      },
+      {
+       "product": "Syrop klonowy",
+       "role": "C",
+       "grams": 10
+      }
+     ],
+     "steps": "Wymieszaj.",
+     "flexible": true,
+     "tags": [
+      "szybkie",
+      "na_wynos"
+     ],
+     "allergens": [
+      "orzechy",
+      "soja"
+     ]
+    },
+    {
+     "name": "Sałatka z tempehem, kaszą gryczaną i warzywami",
+     "slot": "kolacja",
+     "kcal_share": 0.25,
+     "ingredients": [
+      {
+       "product": "Tempeh",
+       "role": "P",
+       "grams": 105
+      },
+      {
+       "product": "Kasza gryczana (sucha)",
+       "role": "C",
+       "grams": 40
+      },
+      {
+       "product": "Ogórek",
+       "role": "NONE",
+       "grams": 90
+      },
+      {
+       "product": "Pomidor",
+       "role": "NONE",
+       "grams": 90
+      },
+      {
+       "product": "Rukola",
+       "role": "NONE",
+       "grams": 30
+      },
+      {
+       "product": "Sos sojowy",
+       "role": "NONE",
+       "grams": 7
+      },
+      {
+       "product": "Olej rzepakowy",
+       "role": "F",
+       "grams": 5
+      },
+      {
+       "product": "Słonecznik łuskany",
+       "role": "F",
+       "grams": 5
+      },
+      {
+       "product": "Sok z cytryny",
+       "role": "NONE",
+       "grams": 10
+      },
+      {
+       "product": "Sól",
+       "role": "NONE",
+       "grams": 0.5
+      },
+      {
+       "product": "Pieprz czarny",
+       "role": "NONE",
+       "grams": 1
+      }
+     ],
+     "steps": "Tempeh w kostce obsmaż z sosem sojowym. Kaszę ugotuj i ostudź. Wymieszaj z warzywami, skrop olejem i cytryną, posyp słonecznikiem.",
+     "flexible": false,
+     "tags": [
+      "na_wynos"
+     ],
+     "allergens": [
+      "gluten",
+      "soja"
+     ]
+    }
+   ]
+  },
+  {
+   "day": 5,
+   "meals": [
+    {
+     "name": "Kanapki z hummusem, awokado i pomidorem",
+     "slot": "śniadanie",
+     "kcal_share": 0.25,
+     "ingredients": [
+      {
+       "product": "Chleb pełnoziarnisty",
+       "role": "C",
+       "grams": 64.0,
+       "class": "DYSKRETNY",
+       "unit_g": 32,
+       "unit_step": 1.0
+      },
+      {
+       "product": "Hummus",
+       "role": "F",
+       "grams": 55
+      },
+      {
+       "product": "Awokado",
+       "role": "F",
+       "grams": 45
+      },
+      {
+       "product": "Pomidor",
+       "role": "NONE",
+       "grams": 120
+      },
+      {
+       "product": "Rukola",
+       "role": "NONE",
+       "grams": 20
+      },
+      {
+       "product": "Edamame (mrożone)",
+       "role": "P",
+       "grams": 60
+      },
+      {
+       "product": "Sok z cytryny",
+       "role": "NONE",
+       "grams": 5
+      },
+      {
+       "product": "Sól",
+       "role": "NONE",
+       "grams": 0.5
+      },
+      {
+       "product": "Pieprz czarny",
+       "role": "NONE",
+       "grams": 1
+      }
+     ],
+     "steps": "Chleb z hummusem, awokado i pomidorem; edamame ugotuj 5 min i posyp solą.",
+     "flexible": false,
+     "tags": [
+      "szybkie",
+      "na_wynos"
+     ],
+     "allergens": [
+      "gluten",
+      "sezam",
+      "soja"
+     ]
+    },
+    {
+     "name": "Tofu teriyaki z ryżem i brokułem",
+     "slot": "obiad",
+     "kcal_share": 0.35,
+     "ingredients": [
+      {
+       "product": "Tofu twarde",
+       "role": "P",
+       "grams": 140
+      },
+      {
+       "product": "Ryż biały (suchy)",
+       "role": "C",
+       "grams": 65
+      },
+      {
+       "product": "Brokuł",
+       "role": "NONE",
+       "grams": 150
+      },
+      {
+       "product": "Marchew",
+       "role": "NONE",
+       "grams": 50
+      },
+      {
+       "product": "Sos sojowy",
+       "role": "NONE",
+       "grams": 14
+      },
+      {
+       "product": "Syrop klonowy",
+       "role": "C",
+       "grams": 10
+      },
+      {
+       "product": "Olej rzepakowy",
+       "role": "F",
+       "grams": 6
+      },
+      {
+       "product": "Orzechy nerkowca",
+       "role": "F",
+       "grams": 10
+      },
+      {
+       "product": "Imbir świeży",
+       "role": "NONE",
+       "grams": 5
+      },
+      {
+       "product": "Czosnek",
+       "role": "NONE",
+       "grams": 5
+      }
+     ],
+     "steps": "Tofu obsmaż do zrumienienia, dodaj warzywa, smaż 5 min, dolej sos sojowy z syropem. Podaj na ryżu z nerkowcami.",
+     "flexible": false,
+     "tags": [
+      "na_wynos"
+     ],
+     "allergens": [
+      "gluten",
+      "orzechy",
+      "soja"
+     ]
+    },
+    {
+     "name": "Smoothie z odżywką roślinną i truskawkami",
+     "slot": "przekąska",
+     "kcal_share": 0.15,
+     "ingredients": [
+      {
+       "product": "Odżywka białkowa roślinna (groch/ryż)",
+       "role": "P",
+       "grams": 15
+      },
+      {
+       "product": "Napój sojowy",
+       "role": "NONE",
+       "grams": 175,
+       "min_factor": 0.7,
+       "max_factor": 1.3
+      },
+      {
+       "product": "Truskawki",
+       "role": "C",
+       "grams": 200
+      },
+      {
+       "product": "Siemię lniane",
+       "role": "F",
+       "grams": 8
+      },
+      {
+       "product": "Płatki owsiane",
+       "role": "C",
+       "grams": 10
+      }
+     ],
+     "steps": "Zmiksuj.",
+     "flexible": true,
+     "tags": [
+      "szybkie",
+      "na_wynos"
+     ],
+     "allergens": [
+      "gluten",
+      "soja"
+     ]
+    },
+    {
+     "name": "Sałatka z pieczonym batatem, ciecierzycą i pestkami",
+     "slot": "kolacja",
+     "kcal_share": 0.25,
+     "ingredients": [
+      {
+       "product": "Batat (surowy)",
+       "role": "C",
+       "grams": 115
+      },
+      {
+       "product": "Ciecierzyca z puszki (odsączona)",
+       "role": "P",
+       "grams": 210
+      },
+      {
+       "product": "Rukola",
+       "role": "NONE",
+       "grams": 40
+      },
+      {
+       "product": "Papryka czerwona",
+       "role": "NONE",
+       "grams": 50
+      },
+      {
+       "product": "Pestki dyni",
+       "role": "F",
+       "grams": 5
+      },
+      {
+       "product": "Oliwa z oliwek",
+       "role": "F",
+       "grams": 3
+      },
+      {
+       "product": "Sok z cytryny",
+       "role": "NONE",
+       "grams": 10
+      },
+      {
+       "product": "Papryka słodka mielona",
+       "role": "NONE",
+       "grams": 3
+      },
+      {
+       "product": "Sól",
+       "role": "NONE",
+       "grams": 0.5
+      },
+      {
+       "product": "Pieprz czarny",
+       "role": "NONE",
+       "grams": 1
+      }
+     ],
+     "steps": "Batata piecz 25 min w 200°C, wymieszaj z ciecierzycą, rukolą i papryką, posyp pestkami, skrop oliwą i cytryną.",
+     "flexible": false,
+     "tags": [
+      "na_wynos"
+     ],
+     "allergens": []
+    }
+   ]
+  },
+  {
+   "day": 6,
+   "meals": [
+    {
+     "name": "Jogurt sojowy z granolą orzechową i owocami",
+     "slot": "śniadanie",
+     "kcal_share": 0.25,
+     "ingredients": [
+      {
+       "product": "Jogurt sojowy naturalny",
+       "role": "P",
+       "grams": 225
+      },
+      {
+       "product": "Odżywka białkowa roślinna (groch/ryż)",
+       "role": "P",
+       "grams": 10
+      },
+      {
+       "product": "Płatki owsiane",
+       "role": "C",
+       "grams": 50
+      },
+      {
+       "product": "Orzechy włoskie",
+       "role": "F",
+       "grams": 11
+      },
+      {
+       "product": "Truskawki",
+       "role": "C",
+       "grams": 150
+      },
+      {
+       "product": "Syrop klonowy",
+       "role": "C",
+       "grams": 10
+      }
+     ],
+     "steps": "Jogurt wymieszaj z odżywką i płatkami, dodaj owoce, orzechy i syrop.",
+     "flexible": false,
+     "tags": [
+      "szybkie",
+      "na_wynos"
+     ],
+     "allergens": [
+      "gluten",
+      "orzechy",
+      "soja"
+     ]
+    },
+    {
+     "name": "Tempeh w sosie orzechowym z makaronem ryżowym",
+     "slot": "obiad",
+     "kcal_share": 0.35,
+     "ingredients": [
+      {
+       "product": "Tempeh",
+       "role": "P",
+       "grams": 135
+      },
+      {
+       "product": "Makaron ryżowy (suchy)",
+       "role": "C",
+       "grams": 60
+      },
+      {
+       "product": "Masło orzechowe",
+       "role": "F",
+       "grams": 12
+      },
+      {
+       "product": "Sos sojowy",
+       "role": "NONE",
+       "grams": 10
+      },
+      {
+       "product": "Sok z cytryny",
+       "role": "NONE",
+       "grams": 10
+      },
+      {
+       "product": "Papryka czerwona",
+       "role": "NONE",
+       "grams": 90
+      },
+      {
+       "product": "Brokuł",
+       "role": "NONE",
+       "grams": 100
+      },
+      {
+       "product": "Olej rzepakowy",
+       "role": "F",
+       "grams": 4
+      },
+      {
+       "product": "Czosnek",
+       "role": "NONE",
+       "grams": 5
+      },
+      {
+       "product": "Imbir świeży",
+       "role": "NONE",
+       "grams": 5
+      }
+     ],
+     "steps": "Tempeh obsmaż na oleju, dodaj warzywa. Sos: masło orzechowe, sos sojowy, cytryna, czosnek, imbir, woda. Wymieszaj z makaronem.",
+     "flexible": false,
+     "tags": [
+      "na_wynos"
+     ],
+     "allergens": [
+      "gluten",
+      "orzechy_ziemne",
+      "soja"
+     ]
+    },
+    {
+     "name": "Edamame z sezamem i wafle",
+     "slot": "przekąska",
+     "kcal_share": 0.15,
+     "ingredients": [
+      {
+       "product": "Edamame (mrożone)",
+       "role": "P",
+       "grams": 115
+      },
+      {
+       "product": "Słonecznik łuskany",
+       "role": "F",
+       "grams": 4
+      },
+      {
+       "product": "Wafle ryżowe",
+       "role": "C",
+       "grams": 27.0,
+       "class": "DYSKRETNY",
+       "unit_g": 9,
+       "unit_step": 1.0
+      },
+      {
+       "product": "Sok z cytryny",
+       "role": "NONE",
+       "grams": 5
+      },
+      {
+       "product": "Sól",
+       "role": "NONE",
+       "grams": 0.5
+      },
+      {
+       "product": "Pieprz czarny",
+       "role": "NONE",
+       "grams": 1
+      }
+     ],
+     "steps": "Edamame ugotuj, posyp solą i słonecznikiem; wafle obok.",
+     "flexible": true,
+     "tags": [
+      "szybkie",
+      "na_wynos"
+     ],
+     "allergens": [
+      "soja"
+     ]
+    },
+    {
+     "name": "Dal z ciecierzycy i szpinaku z pieczywem",
+     "slot": "kolacja",
+     "kcal_share": 0.25,
+     "ingredients": [
+      {
+       "product": "Ciecierzyca z puszki (odsączona)",
+       "role": "P",
+       "grams": 115
+      },
+      {
+       "product": "Pomidory krojone z puszki",
+       "role": "NONE",
+       "grams": 140
+      },
+      {
+       "product": "Szpinak świeży",
+       "role": "NONE",
+       "grams": 50
+      },
+      {
+       "product": "Cebula",
+       "role": "NONE",
+       "grams": 50
+      },
+      {
+       "product": "Mleczko kokosowe",
+       "role": "F",
+       "grams": 30
+      },
+      {
+       "product": "Curry (mieszanka)",
+       "role": "NONE",
+       "grams": 5
+      },
+      {
+       "product": "Czosnek",
+       "role": "NONE",
+       "grams": 5
+      },
+      {
+       "product": "Chleb żytni",
+       "role": "C",
+       "grams": 70.0,
+       "class": "DYSKRETNY",
+       "unit_g": 35,
+       "unit_step": 1.0
+      },
+      {
+       "product": "Olej rzepakowy",
+       "role": "F",
+       "grams": 2
+      },
+      {
+       "product": "Sól",
+       "role": "NONE",
+       "grams": 0.5
+      },
+      {
+       "product": "Pieprz czarny",
+       "role": "NONE",
+       "grams": 1
+      }
+     ],
+     "steps": "Cebulę i czosnek zeszklij, dodaj curry, pomidory i ciecierzycę, duś 10 min, wmieszaj mleczko i szpinak. Podaj z chlebem.",
+     "flexible": false,
+     "tags": [
+      "na_zapas"
+     ],
+     "allergens": [
+      "gluten"
+     ]
+    }
+   ]
+  },
+  {
+   "day": 7,
+   "meals": [
+    {
+     "name": "Tosty z awokado i wędzonym tofu",
+     "slot": "śniadanie",
+     "kcal_share": 0.25,
+     "ingredients": [
+      {
+       "product": "Chleb pełnoziarnisty",
+       "role": "C",
+       "grams": 32.0,
+       "class": "DYSKRETNY",
+       "unit_g": 32,
+       "unit_step": 1.0
+      },
+      {
+       "product": "Awokado",
+       "role": "F",
+       "grams": 49
+      },
+      {
+       "product": "Tofu twarde",
+       "role": "P",
+       "grams": 125
+      },
+      {
+       "product": "Sos sojowy",
+       "role": "NONE",
+       "grams": 7
+      },
+      {
+       "product": "Papryka słodka mielona",
+       "role": "NONE",
+       "grams": 3
+      },
+      {
+       "product": "Olej rzepakowy",
+       "role": "F",
+       "grams": 3
+      },
+      {
+       "product": "Pomidor",
+       "role": "NONE",
+       "grams": 130
+      },
+      {
+       "product": "Sok z cytryny",
+       "role": "NONE",
+       "grams": 5
+      },
+      {
+       "product": "Sól",
+       "role": "NONE",
+       "grams": 0.5
+      },
+      {
+       "product": "Pieprz czarny",
+       "role": "NONE",
+       "grams": 1
+      },
+      {
+       "product": "Siemię lniane",
+       "role": "F",
+       "grams": 10
+      }
+     ],
+     "steps": "Tofu w plastrach natrzyj sosem sojowym i papryką, obsmaż na oleju. Chleb z rozgniecionym awokado, tofu i pomidorem. Posyp zmielonym siemieniem lnianym.",
+     "flexible": false,
+     "tags": [
+      "szybkie"
+     ],
+     "allergens": [
+      "gluten",
+      "soja"
+     ]
+    },
+    {
+     "name": "Pieczone bataty z fasolą, kukurydzą i awokado",
+     "slot": "obiad",
+     "kcal_share": 0.35,
+     "ingredients": [
+      {
+       "product": "Batat (surowy)",
+       "role": "C",
+       "grams": 265
+      },
+      {
+       "product": "Fasola czerwona z puszki (odsączona)",
+       "role": "P",
+       "grams": 155
+      },
+      {
+       "product": "Kukurydza z puszki",
+       "role": "C",
+       "grams": 60
+      },
+      {
+       "product": "Awokado",
+       "role": "F",
+       "grams": 52
+      },
+      {
+       "product": "Jogurt sojowy naturalny",
+       "role": "NONE",
+       "grams": 50
+      },
+      {
+       "product": "Papryka słodka mielona",
+       "role": "NONE",
+       "grams": 4
+      },
+      {
+       "product": "Szczypiorek",
+       "role": "NONE",
+       "grams": 5
+      },
+      {
+       "product": "Oliwa z oliwek",
+       "role": "F",
+       "grams": 5
+      },
+      {
+       "product": "Sok z cytryny",
+       "role": "NONE",
+       "grams": 5
+      },
+      {
+       "product": "Sól",
+       "role": "NONE",
+       "grams": 0.5
+      },
+      {
+       "product": "Pieprz czarny",
+       "role": "NONE",
+       "grams": 1
+      },
+      {
+       "product": "Sałata",
+       "role": "NONE",
+       "grams": 50
+      },
+      {
+       "product": "Pomidor",
+       "role": "NONE",
+       "grams": 90
+      },
+      {
+       "product": "Ogórek",
+       "role": "NONE",
+       "grams": 90
+      }
+     ],
+     "steps": "Bataty piecz 40 min w 200°C, przekrój, nadziej fasolą z kukurydzą i przyprawami, podaj z awokado i jogurtem. Podaj z sałatką z sałaty, pomidora i ogórka.",
+     "flexible": false,
+     "tags": [],
+     "allergens": [
+      "soja"
+     ]
+    },
+    {
+     "name": "Banan z masłem orzechowym i odżywką",
+     "slot": "przekąska",
+     "kcal_share": 0.15,
+     "ingredients": [
+      {
+       "product": "Banan",
+       "role": "C",
+       "grams": 60.0,
+       "class": "DYSKRETNY",
+       "unit_g": 120,
+       "unit_step": 0.5
+      },
+      {
+       "product": "Masło orzechowe",
+       "role": "F",
+       "grams": 11
+      },
+      {
+       "product": "Odżywka białkowa roślinna (groch/ryż)",
+       "role": "P",
+       "grams": 20
+      },
+      {
+       "product": "Napój sojowy",
+       "role": "NONE",
+       "grams": 90,
+       "min_factor": 0.7,
+       "max_factor": 1.3
+      },
+      {
+       "product": "Płatki owsiane",
+       "role": "C",
+       "grams": 15
+      }
+     ],
+     "steps": "Odżywkę rozmieszaj w napoju, banana maczaj w maśle orzechowym.",
+     "flexible": true,
+     "tags": [
+      "szybkie",
+      "na_wynos"
+     ],
+     "allergens": [
+      "gluten",
+      "orzechy_ziemne",
+      "soja"
+     ]
+    },
+    {
+     "name": "Kanapki z pastą z białej fasoli i kiszonym ogórkiem",
+     "slot": "kolacja",
+     "kcal_share": 0.25,
+     "ingredients": [
+      {
+       "product": "Chleb żytni",
+       "role": "C",
+       "grams": 70.0,
+       "class": "DYSKRETNY",
+       "unit_g": 35,
+       "unit_step": 1.0
+      },
+      {
+       "product": "Fasola biała z puszki (odsączona)",
+       "role": "P",
+       "grams": 120
+      },
+      {
+       "product": "Oliwa z oliwek",
+       "role": "F",
+       "grams": 6
+      },
+      {
+       "product": "Czosnek",
+       "role": "NONE",
+       "grams": 5
+      },
+      {
+       "product": "Sok z cytryny",
+       "role": "NONE",
+       "grams": 10
+      },
+      {
+       "product": "Ogórek kiszony",
+       "role": "NONE",
+       "grams": 60
+      },
+      {
+       "product": "Papryka czerwona",
+       "role": "NONE",
+       "grams": 100
+      },
+      {
+       "product": "Natka pietruszki",
+       "role": "NONE",
+       "grams": 5
+      },
+      {
+       "product": "Tofu twarde",
+       "role": "P",
+       "grams": 40
+      },
+      {
+       "product": "Sól",
+       "role": "NONE",
+       "grams": 0.5
+      },
+      {
+       "product": "Pieprz czarny",
+       "role": "NONE",
+       "grams": 1
+      }
+     ],
+     "steps": "Fasolę zmiksuj z oliwą, czosnkiem i cytryną. Tofu w plastrach obsmaż. Chleb z pastą, tofu, ogórkiem i papryką.",
+     "flexible": false,
+     "tags": [
+      "szybkie",
+      "na_wynos"
+     ],
+     "allergens": [
+      "gluten",
+      "soja"
+     ]
+    }
+   ]
+  }
+ ],
+ "audit": {
+  "version": "2026-09-14",
+  "fixes": {
+   "role": 0,
+   "warzywa": 1,
+   "tłusta_ryba": 0,
+   "czerwone": 0,
+   "wędliny": 0,
+   "strączki": 0,
+   "białko": 3,
+   "ala_błonnik": 3
+  },
+  "remaining": []
+ },
+ "sodium_note": "Sól w przepisach 0,5 g/posiłek; bulion warzywny wybieraj niskosodowy; sos sojowy o obniżonej zawartości soli.",
+ "supplements_note": [
+  "B12 (25–100 µg/dzień lub 1000 µg 2×/tydz.)",
+  "D3 (jesień–zima, 2000 IU)",
+  "omega-3 z alg (EPA+DHA 250 mg)"
+ ]
+}

@@ -39,8 +39,15 @@ def fill_defaults(ing):
     for k, v in d.items():
         ing.setdefault(k, v)
     # tłuszcze dodawane w małych ilościach (5-15 g) mogą rosnąć do 3x - nadal praktyczne
-    if PRODUCTS[ing['product']].category == 'tłuszcze' and cls == 'LINIOWY' and 'max_factor' not in ing.get('_explicit', ()):
+    p = PRODUCTS[ing['product']]
+    if p.category in ('mięso', 'ryby') and p.substitution_group != 'wędlina' and cls == 'LINIOWY' and ing['grams'] > 0:
+        ing['max_factor'] = min(ing['max_factor'], 300 / ing['grams'])   # maks. 300 g surowego na posiłek (twardy limit)
+        ing['min_factor'] = min(ing['min_factor'], ing['max_factor'])
+    if ing['product'] == 'Jajko kurze (całe)' and cls == 'DYSKRETNY':
+        ing['max_factor'] = min(ing['max_factor'], max(1.0, 4 * ing['unit_g'] / ing['grams']))  # maks. 4 jajka na posiłek
+    if PRODUCTS[ing['product']].category == 'tłuszcze' and cls == 'LINIOWY':
         ing['max_factor'] = max(ing['max_factor'], 3.0)
+        ing['round_step'] = 1  # oleje, orzechy, nasiona: 1 g (5 g to ~10% dziennego tłuszczu na redukcji)
     if cls == 'DYSKRETNY':
         assert 'unit_g' in ing, f"{ing['product']}: DYSKRETNY wymaga unit_g"
         ing.setdefault('unit_step', 1.0)

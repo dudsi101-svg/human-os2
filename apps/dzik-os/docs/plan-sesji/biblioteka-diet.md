@@ -54,6 +54,8 @@ współdzielone: `models.py` (kolumny w istniejących klasach diet), `db.py` (wp
 | 3 API + UI | `routers/diet.py` (out odsłony/posiłku), `dieta/wspolne.tsx`, `PrzypiszDiete`, `DietaSzablon`, `SzablonyDiet` | pola notatek/alergenów w odpowiedziach, `SLOT_LABEL`, notatki w podglądzie i widoku klienta, sweep wszystkich odsłon w teście | `tsc`, build, E2E `dieta-szablon` (istniejący) + krótki spec na profil Sportowa (5 slotów), a11y | setki tys. |
 | 4 zamknięcie | — | CHANGELOG 0.64.0, `docs/diet-module/PROGRESS.md`, RELEASE_STATUS, STAN_PRZEKAZANIA, raport | pełny `pytest`, ruff, spójność, CI | dziesiątki tys. |
 
+**Stan (14.09, koniec sesji):** etapy 0–3 zrobione, etap 4 w toku — zob. `docs/diet-module/PROGRESS.md` (sekcja 0.64.0).
+
 **Największy koszt:** etap 2 (dane + podmiana). Taniej bez utraty informacji: jeden test
 parametryzowany po 45 plikach zamiast 45 testów; sweep całej biblioteki jako jeden test
 (45 × 19 kaloryczności × 7 dni ≈ 6 tys. dni — sekundy). Bezpiecznik: 3× plan.

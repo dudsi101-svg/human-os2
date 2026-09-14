@@ -1,4 +1,4 @@
-import { DietDayOut, DietIngredientOut, DietMacros, DietMealOut, DietStatus } from "../../types";
+import { DietDayOut, DietIngredientOut, DietMacros, DietMealOut, DietNotatkiOdslony, DietStatus } from "../../types";
 
 /** Wspólne elementy modułu szablonów diet (0.60.0): etykiety statusów,
  * formatowanie gramatur (dyskretne jako „2 szt. (~110 g)”), makro. */
@@ -53,5 +53,25 @@ export function TagiPosilku({ m }: { m: DietMealOut }) {
       {m.flexible && <span className="badge" style={{ fontSize: "0.7rem" }}>elastyczny</span>}
       {m.tags.map((t) => <span key={t} className="badge" style={{ fontSize: "0.7rem" }}>{t.replace(/_/g, " ")}</span>)}
     </span>
+  );
+}
+
+/** Notatki odsłony z biblioteki (0.64.0): suplementacja, sód, pochodzenie.
+ * Treść informacyjna od autora szablonu — nie jest zaleceniem medycznym. */
+export function NotatkiOdslony({ n }: { n: Partial<DietNotatkiOdslony> | null | undefined }) {
+  if (!n) return null;
+  const supl = n.supplements_note ?? [];
+  if (supl.length === 0 && !n.sodium_note && !n.derived_from) return null;
+  return (
+    <div className="alert alert--info" style={{ marginTop: 8, fontSize: "0.85rem" }}>
+      {n.derived_from && <div><b>Odsłona pochodna:</b> na bazie „{n.derived_from}”.</div>}
+      {supl.length > 0 && (
+        <div><b>Uwagi o suplementacji:</b>
+          <ul style={{ paddingLeft: 18, margin: "2px 0" }}>{supl.map((x, i) => <li key={i}>{x}</li>)}</ul>
+        </div>
+      )}
+      {n.sodium_note && <div><b>Sód:</b> {n.sodium_note}</div>}
+      <small className="dim">Notatki autora szablonu — o suplementach decydujesz z trenerem lub lekarzem.</small>
+    </div>
   );
 }

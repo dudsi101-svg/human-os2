@@ -6,7 +6,7 @@ posiłku) → `assign` (migawka; blokada przy dniu POZA_TOLERANCJĄ, chyba że
 posiłku / blokada wymian). Klient: `assigned/current`, kandydaci wymiany,
 zapis wymiany (gramatura liczona i walidowana po stronie serwera).
 Admin/dietetyk (rola COACH lub ADMIN): CRUD profili, odsłon, posiłków,
-składników, sweep 1400–3200, publikacja ≥ 95 % dni OK, import JSON.
+składników, sweep zakresu odsłony (kcal_min–kcal_max), publikacja ≥ 95 % dni OK, import JSON.
 
 Cały moduł za flagą `DZIK_DIET_TEMPLATES_ENABLED` (404 gdy wyłączony).
 Uprawnienia po stronie serwera: trener tylko własny klient z aktywną
@@ -202,10 +202,11 @@ def _szablon_podglad(db: Session, w: DietTemplateWeek) -> dict[str, Any]:
     tpl = serwis.szablon_dict(db, w)
     return {"week_id": w.id, "profile": tpl["profile"], "profile_id": w.profile_id, "variant_no": w.variant_no,
             "name": w.name, "status": w.status, "base_kcal": w.base_kcal, "kcal_min": w.kcal_min,
-            "kcal_max": w.kcal_max, "macro_pct": tpl["macro_pct"],
+            "kcal_max": w.kcal_max, "macro_pct": tpl["macro_pct"], **serwis.notatki_odslony(w),
             "days": [{"day": d["day"], "meals": [{"meal_id": m["meal_id"], "name": m["name"], "slot": m["slot"],
                                                   "kcal_share": m["kcal_share"], "flexible": m["flexible"],
-                                                  "tags": m["tags"], "ingredients": len(m["ingredients"])}
+                                                  "tags": m["tags"], "allergens": m.get("allergens", []),
+                                                  "ingredients": len(m["ingredients"])}
                                                  for m in d["meals"]]} for d in tpl["days"]]}
 
 
@@ -717,8 +718,10 @@ def delete_ingredient(ingredient_id: str, user: User = Depends(_edytor), db: Ses
 
 
 def _sweep(db: Session, w: DietTemplateWeek) -> dict[str, Any]:
-    """Sweep 1400–3200 co 100: dni OK, flagi per posiłek; błąd definicji
-    (np. DYSKRETNY bez unit_g, brak składników) wraca jako `error`."""
+    """Sweep zakresu ważności odsłony (`kcal_min`–`kcal_max`, co 100 kcal —
+    jak audyt biblioteki 14.09; Standard 1400–3200, Masa 2200–4000): dni OK,
+    flagi per posiłek; błąd definicji (np. DYSKRETNY bez unit_g, brak
+    składników) wraca jako `error`."""
     tpl = serwis.szablon_dict(db, w)
     prods, _ = serwis.produkty(db)
     flagi: dict[str, dict[str, Any]] = {}
@@ -726,7 +729,7 @@ def _sweep(db: Session, w: DietTemplateWeek) -> dict[str, Any]:
     brakujace = [d["day"] for d in tpl["days"] if not d["meals"]]
     tpl_pelne = {**tpl, "days": [d for d in tpl["days"] if d["meals"]]}
     try:
-        for kcal in range(1400, 3201, 100):
+        for kcal in range(int(w.kcal_min), int(w.kcal_max) + 1, 100):
             for d in S.scale_week(tpl_pelne, kcal, prods):
                 dni += 1
                 dni_ok += d["status"] == "OK"

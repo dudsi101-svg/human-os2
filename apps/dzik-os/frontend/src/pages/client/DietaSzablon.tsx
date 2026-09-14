@@ -3,8 +3,8 @@ import { Link } from "react-router-dom";
 import { api, ApiError } from "../../api";
 import { plDate } from "../../dates";
 import { ErrorBox } from "../../components";
-import { DietAssignedOut, DietIngredientOut, DietMealOut, DietSwapCandidate } from "../../types";
-import { gramatura, KartaDnia, makro, StatusDiety } from "../dieta/wspolne";
+import { DietAssignedOut, DietIngredientOut, DietMealOut, DietSwapCandidate, slotLabel } from "../../types";
+import { gramatura, KartaDnia, makro, NotatkiOdslony, StatusDiety } from "../dieta/wspolne";
 
 /**
  * Widok klienta diety z szablonu (0.60.0): dzień z posiłkami, gramatury
@@ -64,6 +64,7 @@ export default function DietaSzablon({ onStan }: { onStan?: (jest: boolean) => v
           <span className="badge badge--ok">v{a.version}</span>
         </div>
         <small className="dim">Cel dnia: {makro(a.target)} · od {plDate(a.created_at)}{a.swaps_enabled ? " · możesz wymieniać produkty oznaczone ↔" : " · wymiany wyłączone przez trenera"}</small>
+        <NotatkiOdslony n={a} />
         <div className="row" style={{ gap: 6, marginTop: 8 }} role="tablist" aria-label="Dzień tygodnia">
           {a.plan.days.map((x) => (
             <button key={x.day} type="button" role="tab" aria-selected={x.day === d.day}
@@ -77,10 +78,10 @@ export default function DietaSzablon({ onStan }: { onStan?: (jest: boolean) => v
         {d.meals.map((m) => (
           <div key={m.meal_id} style={{ marginTop: 10, paddingTop: 8, borderTop: "1px solid var(--border)" }}>
             <div className="row row--between">
-              <b>{m.slot.charAt(0).toUpperCase() + m.slot.slice(1)}: {m.name}</b>
+              <b>{slotLabel(m.slot).charAt(0).toUpperCase() + slotLabel(m.slot).slice(1)}: {m.name}</b>
               <StatusDiety s={m.status} />
             </div>
-            <small className="dim">{makro(m.macros)}</small>
+            <small className="dim">{makro(m.macros)}{m.allergens && m.allergens.length > 0 ? ` · alergeny: ${m.allergens.join(", ")}` : ""}</small>
             <ul style={{ paddingLeft: 18, margin: "4px 0" }}>
               {m.ingredients.map((i) => (
                 <li key={i.ingredient_id}>

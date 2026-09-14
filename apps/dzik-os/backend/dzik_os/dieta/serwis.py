@@ -63,7 +63,22 @@ def posilek_dict(db: Session, m: DietTemplateMeal, nazwy: dict[str, str]) -> dic
     return {"meal_id": m.id, "name": m.name, "slot": m.slot, "kcal_share": m.kcal_share,
             "flexible": bool(m.flexible), "steps": m.recipe_steps or "",
             "tags": [t for t in (m.tags or "").split(",") if t], "prep_minutes": m.prep_minutes,
+            "allergens": [a for a in (m.allergens or "").split(",") if a],
             "ingredients": [skladnik_dict(i, nazwy[i.product_id]) for i in ings]}
+
+
+def notatki_odslony(week: DietTemplateWeek | None) -> dict[str, Any]:
+    """Notatki biblioteki (audyt 14.09): suplementacja, sód, pochodzenie odsłony.
+    Treść informacyjna — nie wchodzi do migawki planu, czytana z odsłony."""
+    if week is None:
+        return {"derived_from": None, "supplements_note": [], "sodium_note": ""}
+    try:
+        supl = json.loads(week.supplements_note or "[]")
+    except ValueError:
+        supl = [week.supplements_note]
+    return {"derived_from": week.derived_from or None,
+            "supplements_note": [str(x) for x in (supl if isinstance(supl, list) else [supl]) if x],
+            "sodium_note": week.sodium_note or ""}
 
 
 def szablon_dict(db: Session, week: DietTemplateWeek) -> dict[str, Any]:
@@ -473,4 +488,4 @@ def dieta_out(db: Session, a: DietAssigned, *, z_korektami: bool = True) -> dict
             "macro_mode": a.macro_mode, "body_weight": a.body_weight,
             "exclusions": json.loads(a.exclusions_json or "[]"), "status": a.status, "version": a.version,
             "swaps_enabled": bool(a.swaps_enabled), "created_at": a.created_at, "updated_at": a.updated_at,
-            "plan": plan}
+            **notatki_odslony(week), "plan": plan}

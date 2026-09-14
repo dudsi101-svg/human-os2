@@ -1,7 +1,8 @@
 # PROGRESS — moduł „Szablony diet ze skalowaniem”
 
-Stan po etapach (aktualizowany po każdym etapie). Wersja docelowa 0.60.0,
-gałąź `agent/szablony-diet`.
+Stan po etapach (aktualizowany po każdym etapie). Wersja 0.60.0 (gałąź
+`agent/szablony-diet`), rozszerzenie 0.64.0 (gałąź `agent/biblioteka-diet`) —
+sekcja na dole.
 
 ## Etap 0 — rozpoznanie: zrobione
 `00_rozpoznanie.md`. Decyzje: pakiet `dzik_os/dieta/`, migracja 32, flaga
@@ -193,3 +194,43 @@ Aplikacja z flagą (`.env`: `DZIK_DIET_TEMPLATES_ENABLED=true`) seeduje dane prz
 * Wpis w centrum powiadomień klienta „Trener przypisał dietę” przez outbox.
 * Lista zakupów z migawki (dane są w `computed_plan`).
 * Statystyki wymian (tabela `diet_swap_events` już je zbiera).
+
+
+---
+
+# Biblioteka po audycie 14.09 (0.64.0, gałąź `agent/biblioteka-diet`, migracja 35)
+
+Plan: `docs/plan-sesji/biblioteka-diet.md`; rozpoznanie paczki:
+`01_rozpoznanie_biblioteki.md`; raport źródłowy: `raport_audytu_biblioteki.md`.
+
+| Etap | Stan | Dowód |
+|---|---|---|
+| 0 rozpoznanie | ✅ | `01_rozpoznanie_biblioteki.md` |
+| 1 silnik v1.1 | ✅ | `silnik.fill_defaults` (3 reguły), `engine.py`/golden z paczki, `test_dieta_silnik` 15 |
+| 2 model + migracja 35 + dane + seed | ✅ | kolumny notatek/`source_hash`/`allergens`, 45 JSON + CSV 181 w `dieta/dane`, import zastępujący po skrócie, `test_dieta_seed` 7 (w tym podmiana bez ruszania migawek, sweep 45 odsłon) |
+| 3 API + UI | ✅ | `notatki_odslony`, `allergens` w posiłku (silnik → API), `slotLabel`, `NotatkiOdslony` (trener + klient), sweep zakresu odsłony, E2E „Sportowa 5 slotów” |
+| 4 zamknięcie | 🔄 | CHANGELOG 0.64.0, RELEASE_STATUS, STAN_PRZEKAZANIA; przegląd 3 recenzentów; scalenie po #65 |
+
+## Decyzje i odstępstwa od planu
+* **Sweep w zakresie odsłony** (nie stałe 1400–3200): audyt sprawdzał każdy
+  szablon w jego `kcal_min`–`kcal_max` (Masa 2200–4000 nie da się policzyć przy
+  1400 kcal — cel posiłku ujemny). Stała była błędem 0.60.0 widocznym dopiero
+  przy profilach o innym zakresie.
+* **Testy odniesienia**: liczby w `test_dieta_api`/`test_dieta_poprawki` (kcal dnia
+  2027 → 2000,3; kurczak 160 → 165 g; 142 → 181 produktów; kandydaci + krewetki;
+  skyr bez laktozy ma zamienniki) to zmiana danych referencyjnych po audycie, nie
+  asercje dopasowane do wyniku — golden z paczki potwierdza silnik 1:1.
+* Fixture API testów wybiera jawnie „Standard zbilansowana / odsłona 1” (przy 9
+  profilach kolejność listy nie jest gwarancją).
+* Import testowy w panelu używa nowego profilu („Standard (import testowy)”),
+  bo odsłony 1–5 Standardu są już zajęte przez bibliotekę.
+* `_usun_tresc` kasuje jawnie składniki → posiłki → dni (brak relacji ORM;
+  unit-of-work kasował dni przed posiłkami → naruszenie klucza obcego).
+
+## Pytania otwarte (dla właściciela)
+1. Etykiety „obiad I / obiad II” dla profilu Sportowa — czy wolisz „obiad” i
+   „drugi obiad”?
+2. Notatki o suplementacji z biblioteki są pokazywane klientowi (jako treść
+   autora). Jeśli mają być tylko dla trenera — jedna linia w `DietaSzablon`.
+3. Poprzednie pytania 1–4 z 0.60.0 bez zmian; pytanie 5 (produkty bezlaktozowe)
+   zamknięte przez bazę 181.

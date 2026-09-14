@@ -92,6 +92,14 @@ w Dieta (klient) i karcie klienta (trener), „Zaproponuj kcal” w „Przypisz
 dietę”. Filtr flagi zdrowotnej po stronie serwera. Szczegóły:
 `docs/WYWIAD.md` §8, `docs/plan-sesji/wywiad-zapotrzebowanie.md`.
 
+## Biblioteka szablonów diet (0.64.0) — za tą samą flagą co 0.60.0
+
+Po audycie 14.09: 45 odsłon (9 profili × 5), 181 produktów, silnik v1.1
+(limity porcji), notatki autora (suplementacja, sód, pochodzenie) i
+alergeny posiłków w podglądzie trenera i widoku klienta, sweep w zakresie
+odsłony, seed zastępujący po skrócie pliku (migawki nietknięte).
+Migracja 35 (kolumny addytywne). Stan: `docs/diet-module/PROGRESS.md`.
+
 ## Szablony diet ze skalowaniem (0.60.0) — za flagą, na produkcji WYŁĄCZONE
 
 Moduł równoległy do planów żywieniowych: biblioteka szablonów
