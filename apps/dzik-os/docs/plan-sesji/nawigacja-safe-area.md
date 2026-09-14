@@ -52,4 +52,16 @@ i #77 (`agent/szablony-i-opisy`, 0.75.0) — zadania równoległe wg `KOORDYNACJ
 
 ## Odstępstwa od planu
 
-(uzupełniane)
+* Emulacja wcięcia: `Emulation.setSafeAreaInsets` nie istnieje w Chromium Playwrighta,
+  a CSP (`style-src 'self'`) blokuje wstrzyknięty `<style>`. Rozwiązanie: token
+  `--safe-bottom` na `:root`, test nadpisuje go przez `documentElement.style.setProperty`
+  (CSSOM). Konsekwencja: **test nie jest czerwony na starym CSS** (tam tokenu nie ma,
+  więc wcięcia nie da się zasymulować) — dowód działa tylko w jedną stronę: z tokenem
+  reguły `.nav`/`.page` są ćwiczone naprawdę. Odczyt `clientHeight` nie liczy 1 px
+  obramowania → próg 61, nie 62.
+* Wersje po scaleniu `main` 0.74.0: 0.75.1 zakłada, że #77 (0.75.0) wchodzi pierwszy.
+
+## Weryfikacja wykonana
+
+* `tsc` 0 błędów · build 92,8 kB gzip (budżet 120) · E2E `nawigacja-safe-area` +
+  `logowanie` (telefon, port 8136): 5/5 · a11y i spojnosc — wynik niżej po scaleniu `main`.
