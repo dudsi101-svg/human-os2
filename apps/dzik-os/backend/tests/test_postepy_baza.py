@@ -53,7 +53,8 @@ def test_zapis_sesji_przelicza_rekordy_jednostki_i_rozgrzewke_oraz_jedno_powiado
     assert weight == [(110.0, 100.0, (dzis - timedelta(days=7)).isoformat(), None, None)]
     workouts = seeded.get(f"/api/clients/{id_a}/workouts", headers=ha).json()["workouts"]
     sets = next(w for w in workouts if w["performed_on"] == (dzis - timedelta(days=7)).isoformat())["entries"][0]["sets"]
-    assert sets[1] == {"weight_kg": 110.0, "reps": 5, "warmup": False} and sets[0]["warmup"] is True
+    # Seria robocza bez klucza `warmup` (kształt sprzed 0.66.0), rozgrzewka z `warmup: true`.
+    assert sets[1] == {"weight_kg": 110.0, "reps": 5} and sets[0]["warmup"] is True
     # Jedno zbiorcze powiadomienie na sesję, tylko w aplikacji (bez push/e-mail).
     powiadomienia = [n for n in seeded.get("/api/notifications", headers=ha).json()["notifications"] if n["category"] == "REKORD"]
     assert len(powiadomienia) == 1 and "4 nowe rekordy" in powiadomienia[0]["title"]

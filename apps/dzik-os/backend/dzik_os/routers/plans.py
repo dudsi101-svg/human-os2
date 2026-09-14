@@ -371,10 +371,11 @@ def log_workout(
             exercise_name=e.exercise_name,
             result=e.result,
             # Jednostki normalizowane do kg PRZY ZAPISIE (Postępy §8.2.6);
-            # w bazie zostaje {"weight_kg", "reps", "warmup"}.
+            # w bazie zostaje {"weight_kg", "reps"} + "warmup": true tylko dla
+            # rozgrzewki — seria robocza ma ten sam kształt co przed 0.66.0.
             sets_json=(
                 json.dumps([{"weight_kg": R.normalizuj_ciezar(s.weight_kg, s.unit), "reps": s.reps,
-                             "warmup": s.warmup} for s in e.sets]) if e.sets else None
+                             **({"warmup": True} if s.warmup else {})} for s in e.sets]) if e.sets else None
             ),
             comment=e.comment,
             file_id=e.file_id,
