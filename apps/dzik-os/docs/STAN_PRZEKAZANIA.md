@@ -1,6 +1,6 @@
 # Stan przekazania — przeczytaj przed rozpoczęciem rundy
 
-**Aktualizacja:** 2026-09-14 · **Wersja w `main`:** 0.61.0 (po scaleniu rundy poczty)
+**Aktualizacja:** 2026-09-14 · **Wersja w `main`:** 0.62.0 (po scaleniu rundy wywiadu zapotrzebowania; PR #60)
 **Tryb pracy:** jeden piszący i jeden PR `[WRITER]` naraz
 (`KOORDYNACJA.md`, zasada nadrzędna).
 
@@ -33,7 +33,24 @@ pierwszy commit, draft PR `[WRITER]`, reszta agentów read-only.
 jednym prawdziwym klientem, **NO-GO na szerszą produkcję** — siedem
 blokerów wypisanych w §5 tamtego dokumentu.
 
-**Ostatnia runda (0.61.0, gałąź `agent/poczta-brevo`):** poczta Brevo SMTP
+**Ostatnia runda (0.62.0, gałąź `agent/wywiad-zapotrzebowanie`, PR #60):**
+wywiad „Zapotrzebowanie kaloryczne” — trzeci typ wywiadu w zakładce
+„Wywiad” (rodzaj pytania NUMBER), silnik Mifflin-St Jeor × PAL z korektą
+pod cel i podstawieniem liczb, `calorie_estimates` (migracja 33),
+nadpisanie i odsłonięcie przez trenera, filtr flagi zdrowotnej po stronie
+serwera, karty w Wywiad/Dieta (klient) i karcie klienta (trener),
+„Zaproponuj kcal” w „Przypisz dietę”, flaga
+`DZIK_CALORIE_INTERVIEW_ENABLED` (produkcja: włączona). Przegląd
+tematyczny 3 recenzentów: P0 (opcja flagi z przecinkiem) i P1 naprawione
+przed scaleniem — `docs/wywiad-zapotrzebowanie/PROGRESS.md`. Hotfixy
+#62/#63: zakres `brevo` w „Sekretach produkcji” i krok diagnostyczny
+w „Sprawdzeniu SMTP”. **Kanał Brevo potwierdzony 14.09 01:37 UTC:**
+4/4 kroki OK z maszyny, testowa wysyłka przyjęta przez serwer, **odbiór
+w skrzynce potwierdzony przez właściciela** (przyczyną wcześniejszego 525
+była lista autoryzowanych IP w Brevo — właściciel wyłączył blokadę dla
+kluczy SMTP).
+
+**Poprzednia runda (0.61.0, gałąź `agent/poczta-brevo`):** poczta Brevo SMTP
 — moduł właściciela `mailer.py` 1:1, inicjalizacja przy starcie
 (`MAIL_ENABLED=0` bez zmiennych), `POST /api/admin/mail/test` za flagą
 `DZIK_MAIL_TEST_ENDPOINT_ENABLED`, `smtp_check.py` z maszyny (workflow
@@ -345,9 +362,10 @@ nie uruchamiano, ponieważ runda nie zmienia kodu ani zasobów frontendu.
 
 | Gałąź | Wersja | Migracja | Etap | Co blokuje | Kolejność scalania |
 |---|---|---|---|---|---|
-| `agent/nawyki-dzisiaj` | 0.63.0 | 34 | etapy 0–5 gotowe, przegląd naprawiony, PR #65 | — | 1 |
-| `agent/wywiad-zapotrzebowanie` | 0.62.0 | 33 | etapy 0–6 gotowe, PR #60 do przeglądu | dokument właściciela `wywiad_zapotrzebowanie_kaloryczne.md` (pracuję na założeniach) | 1 |
-| `agent/monitoring-postepy` | 0.64.0 (przesunięte z 0.63.0 przez `agent/nawyki-dzisiaj`) | 35 (przesunięta z 34) | etap 0 — STOP (brak flagi rozgrzewki i wariantów ćwiczeń, decyzje właściciela) | decyzje z `docs/monitoring-tab/00_rozpoznanie.md`; flaga zdrowotna `hidden_for_client` (pytanie `zk_zaburzenia`) z 0.62.0 | 2 |
+| `agent/nawyki-dzisiaj` | 0.63.0 | 34 | etapy 0–5 gotowe, przegląd naprawiony, PR #65 (CI zielone) | — | 1 |
+| `agent/wywiad-zapotrzebowanie` | 0.62.0 | 33 | **scalona** (PR #60, 14.09) i wdrożona | dokument właściciela `wywiad_zapotrzebowanie_kaloryczne.md` nadal niedostarczony — różnice do wyrównania | — |
+| `agent/biblioteka-diet` | 0.64.0 | 35 | etapy 0–3 gotowe lokalnie (45 odsłon, 181 produktów, silnik v1.1, notatki/alergeny) | scalenie #65, potem ponowne scalenie `main` | 2 |
+| `agent/monitoring-postepy` | 0.65.0 (przesunięte z 0.63.0 przez nawyki i bibliotekę diet) | 36 (przesunięta z 34) | etap 0 — STOP (brak flagi rozgrzewki i wariantów ćwiczeń, decyzje właściciela) | decyzje z `docs/monitoring-tab/00_rozpoznanie.md`; flaga zdrowotna `hidden_for_client` (pytanie `zk_zaburzenia`) z 0.62.0 | 3 |
 
 | Rzecz | Stan | Gdzie |
 |---|---|---|
