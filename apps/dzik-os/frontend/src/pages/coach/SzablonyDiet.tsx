@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api, ApiError } from "../../api";
 import { ErrorBox, Spinner, TopBar } from "../../components";
-import { alergenLabel, DietProductRow, DietProfileRow, DietSweep, DietWeekFull, slotLabel } from "../../types";
+import { alergenLabel, DietProductRow, DietProfileRow, DietRelatedGroupsFile, DietSweep, DietWeekFull, slotLabel } from "../../types";
 
 /**
  * Panel wprowadzania szablonów diet (0.60.0, etap 6 — minimalny):
@@ -13,6 +13,7 @@ import { alergenLabel, DietProductRow, DietProfileRow, DietSweep, DietWeekFull, 
 export default function SzablonyDiet() {
   const [profile, setProfile] = useState<DietProfileRow[] | null>(null);
   const [produkty, setProdukty] = useState<DietProductRow[]>([]);
+  const [powiazania, setPowiazania] = useState<DietRelatedGroupsFile | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const [nowyProfil, setNowyProfil] = useState({ name: "", description: "", p: "25", f: "30", c: "45" });
@@ -23,7 +24,9 @@ export default function SzablonyDiet() {
   const zaladuj = useCallback(() => {
     setError(null);
     api.get<{ profiles: DietProfileRow[] }>("/api/diet/profiles").then((d) => setProfile(d.profiles)).catch((e) => setError((e as Error).message));
-    api.get<{ products: DietProductRow[] }>("/api/diet/products").then((d) => setProdukty(d.products)).catch(() => setProdukty([]));
+    api.get<{ products: DietProductRow[]; related_groups?: DietRelatedGroupsFile }>("/api/diet/products")
+      .then((d) => { setProdukty(d.products); setPowiazania(d.related_groups ?? null); })
+      .catch(() => setProdukty([]));
   }, []);
   useEffect(zaladuj, [zaladuj]);
 
@@ -102,6 +105,29 @@ export default function SzablonyDiet() {
             <button type="button" className="btn btn--small" style={{ marginTop: 8 }} disabled={busy || !importJson.trim()} onClick={() => void importuj()}>Importuj jako szkic</button>
           </div>
         </>
+      )}
+      {powiazania && (
+        <details className="card">
+          <summary>Grupy pokrewne zamienników — {powiazania.links.length} par ({powiazania.status.toLowerCase()}, do przeglądu trenera/dietetyka)</summary>
+          <p className="dim" style={{ fontSize: "0.85rem" }}>
+            Poziom 2 wymiany produktu u klienta: kandydat z grupy pokrewnej musi jeszcze pasować metodą przygotowania,
+            rolą makro i nie może pogorszyć makr posiłku. Pary wyłączone (oznaczone „?” przez właściciela) nie działają,
+            dopóki ich nie zatwierdzisz — zgłoś poprawkę do właściciela, edycja z panelu to osobna runda.
+          </p>
+          <div style={{ overflowX: "auto" }}>
+            <table>
+              <thead><tr><th>Grupa A</th><th>Grupa B</th><th>Powód</th><th>Stan</th></tr></thead>
+              <tbody>
+                {powiazania.links.map((l) => (
+                  <tr key={`${l.a}-${l.b}`}>
+                    <td>{l.a}</td><td>{l.b}</td><td>{l.reason}</td>
+                    <td>{l.enabled ? <span className="badge badge--ok">włączona</span> : <span className="badge">wyłączona ({l.status.toLowerCase().replace("_", " ")})</span>}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </details>
       )}
     </div>
   );

@@ -101,6 +101,19 @@ bez tej propozycji. Model nigdy nie układa planu ani diety.
   od razu na swojej liście;
 * „Historia wersji" — każda zmiana planu ma powód i datę; nic nie znika.
 
+## Wymiana produktu w diecie (zakładka „Dieta")
+
+Przy składniku posiłku jest przycisk „↔ wymień" — także przy warzywach
+i dodatkach. Zobaczysz do trzech zamienników: „z tej samej grupy" albo
+„grupa pokrewna: …" (np. kasza zamiast makaronu), gramaturę policzoną tak,
+żeby posiłek zachował swoją rolę, i zmianę makr posiłku po polsku. Serwer
+sprawdza wymianę: nie przejdzie taka, która zepsuje makra posiłku bardziej,
+niż są dziś. Jeśli listy nie ma, przeczytasz dlaczego (brak zamienników
+w bazie, Twoje wykluczenia, inna metoda przygotowania, porcja poza
+zakresem albo każdy zamiennik psuje makra). Gdy brak zamienników w bazie,
+porcja jest poza zakresem albo każdy zamiennik psuje makra — napisz do
+trenera, on poprawi posiłek.
+
 ## Postępy (zakładka „Postępy" — gdy trener włączy moduł)
 
 Jedno miejsce z trzema osiami, zawsze w tej kolejności: **Forma**

@@ -121,6 +121,18 @@ klientów wymagających uwagi.
 * **Historia** — pełna lista zmian z pokwitowaniami (kto, co, kiedy,
   z jakim powodem).
 
+## Wymiany produktów u klienta (szablony diet)
+
+Klient wymienia składniki sam; Ty decydujesz, czy wymiany są włączone
+(globalnie albo per posiłek) i widzisz historię z poziomem: „ta sama grupa"
+lub „grupa pokrewna". Grupy pokrewne (np. kasza ↔ makaron, jogurt ↔ jajka)
+to tabela tylko do odczytu w panelu „Szablony diet" — propozycja do Twojego
+przeglądu; pary oznaczone „?" są wyłączone, dopóki właściciel ich nie
+włączy. Wymiana nie wyprowadza posiłku poza tolerancję, a posiłku już
+poza nią nie pogarsza; nigdy nie omija alergenów i wykluczeń klienta. Poprawki powiązań zgłaszasz właścicielowi (edycja
+z panelu to osobna runda). Katalog produktów z Bazy wiedzy nie zasila
+wymian bezpośrednio — trafia tam tylko przez przeglądany import (CSV
+propozycji z decyzjami TAK/NIE, alergeny do potwierdzenia przez Ciebie).
 ## Monitoring (zakładka „Monitoring" — po włączeniu modułu)
 
 Lista Twoich aktywnych klientów posortowana po sygnałach: brak treningu

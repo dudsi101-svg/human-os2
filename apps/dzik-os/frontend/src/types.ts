@@ -1730,7 +1730,24 @@ export interface DietAssignedOut extends Partial<DietNotatkiOdslony> {
   target: DietMacros; macro_mode: string; body_weight: number | null; exclusions: string[]; status: string;
   version: number; swaps_enabled: boolean; created_at: string; updated_at: string; plan: DietPlanOut;
 }
-export interface DietSwapCandidate { product: string; product_id: string; grams: number; macros: DietMacros }
+export interface DietSwapCandidate {
+  product: string; product_id: string; grams: number; macros: DietMacros;
+  /** Wymiany v2: 1 = ta sama grupa zamienników, 2 = grupa pokrewna (`group`, `tier_reason`). */
+  tier?: 1 | 2; meal_delta?: DietMacros; group?: string; tier_reason?: string | null;
+}
+/** Powód pustej listy zamienników (wymiany v2) — każdy ma własny komunikat po polsku. */
+export type DietSwapReason = "SINGLETON" | "EXCLUDED" | "FUNCTION" | "PORTION" | "TOLERANCE";
+export const DIET_SWAP_REASON_LABELS: Record<DietSwapReason, string> = {
+  SINGLETON: "Ten produkt nie ma jeszcze zamienników w bazie.",
+  EXCLUDED: "Wszystkie zamienniki odpadły przez Twoje wykluczenia (alergeny, dieta, „nie lubię”).",
+  FUNCTION: "Zamienniki z tej grupy nie pasują do tego posiłku (inny sposób przygotowania albo inna rola makro).",
+  PORTION: "Zamienniki wymagałyby porcji poza rozsądnym zakresem — poproś trenera o korektę posiłku.",
+  TOLERANCE: "Zamienniki są, ale każdy zepsułby makra tego posiłku — poproś trenera o korektę posiłku.",
+};
+export interface DietRelatedGroupsFile {
+  version: number; status: string; reviewed_by: string | null; source?: string; note?: string;
+  links: { a: string; b: string; reason: string; enabled: boolean; status: string }[];
+}
 export interface DietLibraryMeal { meal_id: string; name: string; slot: string; tags: string[]; week_id: string; variant_no: number; day_no: number; ingredients: string[] }
 export interface DietProductRow {
   id: string; name_pl: string; category: string; substitution_group: string; kcal_100: number; protein_100: number;

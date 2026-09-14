@@ -193,11 +193,15 @@ def test_panel_walidacja_odslony_skladnika_i_importu(dieta):
     # Banan ma domyślną klasę DYSKRETNY → unit_g wymagany także bez jawnej klasy.
     assert prod["Banan"]["default_scaling"] == "DYSKRETNY"
     assert c.post(f"{D}/meals/{mid}/ingredients", headers=hc, json={"product_id": prod["Banan"]["id"], "base_grams": 120}).status_code == 422
-    # Domyślne swappable wg roli (§7.3): NONE → niewymienialny, P → wymienialny.
+    # Domyślne swappable (§7.3, wymiany v2): P → wymienialny; NONE z grupą ≥ 2 produktów (Brokuł) →
+    # wymienialny 1:1; NONE bez grupy / STAŁY (Sól) → nie; jawne false zostaje.
     i1 = c.post(f"{D}/meals/{mid}/ingredients", headers=hc, json={"product_id": prod["Brokuł"]["id"], "base_grams": 100}).json()["ingredient_id"]
     i2 = c.post(f"{D}/meals/{mid}/ingredients", headers=hc, json={"product_id": prod["Pierś z kurczaka (surowa)"]["id"], "base_grams": 150, "macro_role": "P"}).json()["ingredient_id"]
+    i3 = c.post(f"{D}/meals/{mid}/ingredients", headers=hc, json={"product_id": prod["Sól"]["id"], "base_grams": 1}).json()["ingredient_id"]
+    i4 = c.post(f"{D}/meals/{mid}/ingredients", headers=hc, json={"product_id": prod["Marchew"]["id"], "base_grams": 100, "swappable": False}).json()["ingredient_id"]
     ings = {i["ingredient_id"]: i for i in c.get(f"{D}/weeks/{wid}/full", headers=hc).json()["days"][0]["meals"][0]["ingredients"]}
-    assert ings[i1]["swappable"] is False and ings[i2]["swappable"] is True
+    assert ings[i1]["swappable"] is True and ings[i2]["swappable"] is True
+    assert ings[i3]["swappable"] is False and ings[i4]["swappable"] is False
     # Admin ma dostęp do panelu (rola techniczna), klient nie.
     assert c.get(f"{D}/weeks/{wid}/full", headers=ha).status_code == 200
     assert c.get(f"{D}/weeks/{wid}/full", headers=dieta["ha"]).status_code == 403
