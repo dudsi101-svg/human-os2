@@ -69,8 +69,12 @@ test("pierwsze logowanie pokazuje samouczek; zamknięty nie wraca; „Więcej”
   await expect(zaczynajmy).toBeFocused();
   await page.keyboard.press("Shift+Tab");
   await expect(zaczynajmy).toBeFocused();
+  // Znacznik idzie na serwer w tle — czekamy na odpowiedź, zanim odświeżymy
+  // stronę (inaczej nawigacja może przerwać żądanie i test byłby niestabilny).
+  const zapis = page.waitForResponse((r) => r.url().endsWith("/api/me/welcome-seen") && r.ok());
   await zaczynajmy.click();
   await expect(dialog).toBeHidden();
+  await zapis;
 
   // Znacznik jest na serwerze: po odświeżeniu okna nie ma.
   await page.reload();

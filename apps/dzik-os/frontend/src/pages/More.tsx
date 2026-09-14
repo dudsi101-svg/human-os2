@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { getUser, hasFeature, listNotifications } from "../api";
 import {
@@ -15,6 +15,8 @@ export default function More() {
   const [unread, setUnread] = useState(0);
   // Samouczek (0.70.0) otwarty ponownie: bez zapisu znacznika (już był).
   const [samouczek, setSamouczek] = useState(false);
+  // Po zamknięciu fokus wraca na przycisk, który otworzył okno (jak w Dlaczego.tsx).
+  const przyciskSamouczka = useRef<HTMLButtonElement>(null);
   useEffect(() => {
     // Plakietka nieprzeczytanych — podpowiedź, nie krytyczna ścieżka:
     // błąd pobrania po prostu nie pokazuje licznika.
@@ -26,7 +28,7 @@ export default function More() {
     <div className="page">
       <TopBar title="Więcej" right={<LogoutButton />} />
       {samouczek && (
-        <Powitanie imie={user.display_name.trim().split(" ")[0]} onZamknij={() => setSamouczek(false)} />
+        <Powitanie imie={user.display_name.trim().split(" ")[0]} onZamknij={() => { setSamouczek(false); requestAnimationFrame(() => przyciskSamouczka.current?.focus()); }} />
       )}
       <div className="card">
         <b>{user.display_name}</b>
@@ -100,7 +102,7 @@ export default function More() {
             <Link className="card card--nav" to="/profil">
               <Icon name="user" /><span>Profil, zgody i moje dane</span>
             </Link>
-            <button type="button" className="card card--nav" style={{ marginBottom: 0 }}
+            <button type="button" className="card card--nav" style={{ marginBottom: 0 }} ref={przyciskSamouczka}
               onClick={() => setSamouczek(true)}>
               <Icon name="info" /><span>Pomoc / Samouczek</span>
             </button>
