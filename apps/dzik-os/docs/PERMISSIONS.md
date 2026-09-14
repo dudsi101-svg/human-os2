@@ -107,6 +107,7 @@ domeny endpointu (`sensitive` wynika z katalogu kategorii).
 | GET /api/clients/{id}/nutrition; GET /api/nutrition/{plan_id}/versions | W, T | diety jednego klienta | T: tak | T: tak | R |
 | POST /api/schedule; POST /api/schedule/{item_id}/status | W, T | harmonogram jednego klienta (`item.client_id`) | T: tak | T: tak | W |
 | GET /api/clients/{id}/schedule, /reminders | W, T | harmonogram/przypomnienia klienta | T: tak | T: tak | R |
+| GET /api/clients/{id}/habits; POST …/habits; PATCH …/habits/{habit_id}; POST …/habits/{habit_id}/complete (0.63.0) | W, T | nawyki klienta (domena danych treningowych, jak harmonogram); nawyk innego klienta pod tym `client_id` = 404 z audytem | T: tak | T: tak | R/W |
 | POST /api/reminders | T | przypomnienie dla własnego klienta | tak | tak | W |
 | POST /api/checkins | CLIENT (self) | wyłącznie własny raport | — | — | W |
 | GET /api/clients/{id}/checkins; GET /api/checkins/{checkin_id}/revisions | W, T | raporty jednego klienta (`checkin.client_id`) | T: tak | T: tak | R |

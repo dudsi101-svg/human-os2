@@ -67,8 +67,30 @@ testy/UX/treść), P0/P1 naprawione przed scaleniem, P2 do `docs/nawyki/PROGRESS
 
 ## Odstępstwa od planu
 
-(uzupełnię w trakcie)
+* Powitanie liczone na urządzeniu (godzina lokalna telefonu, nie serwera) —
+  backend podaje tylko `greeting_name`; helper `powitanie.ts` z testem.
+* „Zostaw tak jak jest” = pole `ack_on` (karta absolutorium zwija się do
+  jednej linii, nawyk zostaje GRADUATED i nie zajmuje miejsca).
+* Etapy 2–3 wykonane razem (jeden przebieg testów po zestawie zmian).
+* Zasilanie profilu/klasyfikacja nazwy nawyku — świadomie brak (v1: tekst).
 
 ## Weryfikacja wykonana
 
-(uzupełnię po rundzie)
+* Silnik: 7 testów (`tests/test_nawyki_silnik.py`, przykłady ręczne: decay
+  sekwencyjny, podłoga, dni neutralne, „dziś nie karze”, próg).
+* API: 6 testów (`tests/test_habits.py`): limit 3 i proweniencja, odhaczanie
+  idempotentne i cofalne, decay + absolutorium + ack, obcy klient/IDOR,
+  pola „Dzisiaj” + seed, eksport i usuwanie konta.
+* Macierz dostępu, prywatność, onboarding, migracje przenośne: zielone.
+* Frontend: `tsc` czysto, build w budżecie, `test:helpers` 142/142,
+  E2E `nawyki.spec.ts` + logowanie zielone; a11y i PWA offline — wynik w PR.
+* Zrzut ekranu „Dzisiaj” obejrzany przez serwer E2E (zasada uruchomienia).
+
+## Plan kontra rzeczywistość (zasady v2 §5)
+
+Plan: 6 etapów, największy koszt UI. Rzeczywistość: zgodnie z planem —
+jeden wspólny panel (klient/trener) zamiast dwóch widoków; rozpoznanie
+z pliku, bez ponownych odczytów; zero podagentów na budowę, 3 recenzentów
+wsadowo na przegląd (wynik w `docs/nawyki/PROGRESS.md`). Usprawnienie na
+następny raz: seed demo pisać od razu razem z testem, który go czyta
+(tu test API czekał na dane demo jeden przebieg).

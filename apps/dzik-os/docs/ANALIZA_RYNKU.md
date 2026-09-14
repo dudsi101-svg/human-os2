@@ -91,6 +91,13 @@ definiować sukcesu; zakaz rankingowania „wartości" ludzi.
   brak kary za przerwę); przypomnienia jako konfigurowalna usługa, nie
   re-engagement; AI-podsumowania tylko jako oznaczona propozycja za osobną
   zgodą.
+  *Korekta foundera 14.09.2026 (0.63.0, nawyki na „Dzisiaj”):* „bez kary za
+  przerwę” → **łagodny decay −1 za miniony zaplanowany dzień bez wykonania
+  (nie reset), podłoga 0 liczona dzień po dniu, dni poza planem neutralne,
+  UI bez zawstydzania** (opis postępu, zero czerwieni i „passy”). Nawyk ma
+  termin (14–254 dni) i kończy się absolutorium — funkcja czyni samą
+  siebie zbędną. Świadomy wybór właściciela, odwracalny w jednym miejscu
+  (`dzik_os/nawyki.postep`).
 - **NIE**: leaderboardy porównujące klientów; gamifikacja odznakami;
   automaty „dawno Cię nie było"; scoring klienta jednym wynikiem.
 
