@@ -7,6 +7,7 @@ import {
   WywiadPodpowiedzi, WywiadPodsumowanie, WywiadPrzeslanie, WywiadStan, WywiadTyp, WywiadyPrzeglad, ZadanieSprawdzenia,
 } from "../../types";
 import Formularz from "../wywiad/Formularz";
+import ZapotrzebowanieKarta from "../wywiad/Zapotrzebowanie";
 import { opisWersji, PasekPostepu, PodsumowanieWywiadu, SEKCJA_LABEL, StatusBadges } from "../wywiad/wspolne";
 
 /**
@@ -76,6 +77,9 @@ export default function WywiadTab({ clientId }: { clientId: string }) {
       {dane.wywiady.map((w) => (
         <KartaTrenera key={w.typ} w={w} clientId={clientId} onZmiana={zaladuj} onInfo={setInfo} onWspolnie={() => setWspolnie(w.typ)} />
       ))}
+      {dane.wywiady.some((w) => w.typ === "zapotrzebowanie") && (
+        <ZapotrzebowanieKarta clientId={clientId} tryb="trener" onOtworz={() => setWspolnie("zapotrzebowanie")} />
+      )}
       {pods && (
         <div className="card">
           <h2>Podsumowanie</h2>

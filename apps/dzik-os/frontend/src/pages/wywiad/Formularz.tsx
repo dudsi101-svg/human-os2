@@ -335,6 +335,11 @@ function Pytanie({ q, odp, wymagane, blad, doprec, wpisalTrener, onChange }: {
         <input id={id} value={value} placeholder={q.placeholder} maxLength={q.max_len} aria-describedby={`${id}-why`}
           aria-invalid={!!blad} onChange={(e) => onChange({ value: e.target.value, skipped: false })} />
       )}
+      {q.type === "NUMBER" && (
+        <input id={id} value={value} placeholder={q.placeholder} maxLength={q.max_len} inputMode="decimal"
+          aria-describedby={`${id}-why`} aria-invalid={!!blad}
+          onChange={(e) => onChange({ value: e.target.value, skipped: false })} />
+      )}
       {q.type === "LONGTEXT" && (
         <textarea id={id} value={value} placeholder={q.placeholder} maxLength={q.max_len} rows={3} aria-describedby={`${id}-why`}
           aria-invalid={!!blad} onChange={(e) => onChange({ value: e.target.value, skipped: false })} />

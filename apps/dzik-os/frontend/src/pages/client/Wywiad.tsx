@@ -5,6 +5,7 @@ import { plDateTime } from "../../dates";
 import { ErrorBox, Spinner, TopBar } from "../../components";
 import { WywiadPodsumowanie, WywiadPrzeslanie, WywiadStan, WywiadTyp, WywiadyPrzeglad } from "../../types";
 import Formularz from "../wywiad/Formularz";
+import ZapotrzebowanieKarta from "../wywiad/Zapotrzebowanie";
 import { opisWersji, PasekPostepu, PodsumowanieWywiadu, StatusBadges, TYP_LABEL } from "../wywiad/wspolne";
 
 /**
@@ -30,7 +31,7 @@ export default function Wywiad() {
   }, [user.id]);
   useEffect(zaladuj, [zaladuj, typ]);
 
-  if (typ === "wstepny" || typ === "gleboki") {
+  if (typ === "wstepny" || typ === "gleboki" || typ === "zapotrzebowanie") {
     const stan = dane?.wywiady.find((w) => w.typ === typ);
     return (
       <div className="page">
@@ -65,6 +66,9 @@ export default function Wywiad() {
         </p>
       )}
       {dane?.wywiady.map((w) => <KartaWywiadu key={w.typ} w={w} clientId={user.id} onOtworz={() => setParams({ typ: w.typ })} />)}
+      {dane?.wywiady.some((w) => w.typ === "zapotrzebowanie" && w.submission_status === "submitted") && (
+        <ZapotrzebowanieKarta clientId={user.id} tryb="klient" linkDoWywiadu="/wywiad?typ=zapotrzebowanie" />
+      )}
       {pods && (
         <div className="card">
           <h2>Podsumowanie</h2>
@@ -86,7 +90,9 @@ function KartaWywiadu({ w, clientId, onOtworz }: { w: WywiadStan; clientId: stri
     : w.submission_status === "draft" ? "Kontynuuj" : "Aktualizuj odpowiedzi";
   const cel = w.typ === "wstepny"
     ? "Pozwala trenerowi zacząć: cel, punkt wyjścia, ramy treningu, ograniczenia, odżywianie."
-    : "Pogłębia historię, regenerację, organizację i motywację. Nie jest wymagany od każdego.";
+    : w.typ === "zapotrzebowanie"
+      ? "Kilka pytań o ciało, aktywność i cel — wzór szacuje dzienne zapotrzebowanie kaloryczne, trener je potwierdza."
+      : "Pogłębia historię, regenerację, organizację i motywację. Nie jest wymagany od każdego.";
   return (
     <div className="card">
       <div className="row row--between">
