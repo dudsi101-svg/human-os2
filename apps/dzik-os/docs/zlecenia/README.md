@@ -9,7 +9,11 @@ Pakiet nie jest planem sesji i nie rezerwuje niczego sam z siebie — numery wer
 i migracji w nim są **propozycją do sprawdzenia** tuż przed zmianą (`db.py`,
 `CHANGELOG.md`, `STAN_PRZEKAZANIA.md` §2). Pliki tu nie są plikami integracyjnymi.
 
-## 2026-09-14 — trzy zlecenia właściciela
+**Wszystko w jednym pliku:** `PAKIET_ZLECEN_2026-09-14.md` (złożenie promptów, planów, modelu
+i tokenów z tego katalogu, z kolejnością scalania, decyzjami właściciela i zbiorczą listą
+otwartych pytań). Pliki poniżej pozostają źródłem; pakiet jest ich złożeniem.
+
+## 2026-09-14 — zlecenia właściciela
 
 | Zlecenie | Prompt | Szkic planu | Gałąź | Warunek startu |
 |---|---|---|---|---|
