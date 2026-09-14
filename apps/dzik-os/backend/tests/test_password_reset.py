@@ -1,3 +1,5 @@
+import re
+
 """Bezpieczny reset hasła: ogólny komunikat (brak enumeracji kont),
 limit prób, jednorazowy hashowany token z terminem ważności,
 unieważnienie wszystkich sesji po resecie."""
@@ -44,8 +46,11 @@ def test_reset_request_response_identical_for_unknown_account(seeded, monkeypatc
     assert r1.json() == r2.json()
     # E-mail wychodzi tylko dla istniejącego konta.
     assert len(provider.sent) == 1 and provider.sent[0]["to"] == CLIENT_A["email"]
+    # Losowy token w linku może przypadkiem zawierać zakazane słowo („…uraz…”
+    # zdarzyło się w CI) — sprawdzamy treść bez długich ciągów losowych.
+    tresc = re.sub(r"[A-Za-z0-9_-]{24,}", "", provider.sent[0]["body"].lower())
     for forbidden in ("waga", "uraz", "dieta", "trening", "zdrow"):
-        assert forbidden not in provider.sent[0]["body"].lower()
+        assert forbidden not in tresc
 
 
 def test_reset_flow_sets_password_and_revokes_all_sessions(seeded, monkeypatch):
