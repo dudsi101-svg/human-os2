@@ -127,7 +127,7 @@ export function PozycjaBloku({ ex, otwarty = false, rola = "klient", powrot, tes
   const [open, setOpen] = useState(otwarty);
   const b = ex.block;
   if (!b) return <div className="exercise"><div><b>{ex.name}</b></div></div>;
-  const opis = [BLOCK_KIND_LABELS[b.kind] ?? b.kind, BLOCK_VARIANT_LABELS[b.variant],
+  const opis = [BLOCK_KIND_LABELS[b.kind] ?? b.kind, b.variant ? BLOCK_VARIANT_LABELS[b.variant] : null,
     b.level ? EXERCISE_LEVEL_LABELS[b.level] ?? b.level : null, b.duration_min ? `≈${b.duration_min} min` : null]
     .filter(Boolean).join(" · ");
   return (
@@ -190,6 +190,12 @@ export function PozycjaCardio({ ex, machine, onMachine, dlaczego, kompakt = fals
   }
   const machines = Array.isArray(c.machines) && c.machines.length ? c.machines : ["rowerek"];
   const paramsList = Array.isArray(rx.machine_params) ? rx.machine_params : [];
+  // Cardio z bloku (0.76.0): nagłówek jak u bloków (rodzaj · poziom · ≈min) + pozycje opisowe.
+  const blok = ex.block && ex.block.kind === "CARDIO" ? ex.block : null;
+  const opisBloku = blok
+    ? [BLOCK_KIND_LABELS.CARDIO, blok.level ? EXERCISE_LEVEL_LABELS[blok.level] ?? blok.level : null,
+      blok.duration_min ? `≈${blok.duration_min} min` : null].filter(Boolean).join(" · ")
+    : null;
   const wybrane = machine && machines.includes(machine) ? machine : machines[0];
   const params = paramsList.find((p) => p.machine === wybrane) ?? paramsList[0];
   const interwaly = rx.structure.type === "interwaly";
@@ -202,6 +208,15 @@ export function PozycjaCardio({ ex, machine, onMachine, dlaczego, kompakt = fals
     <div className="exercise" data-testid={testid} style={{ gridTemplateColumns: "1fr" }}>
       <div>
         <b>{ex.name}</b> <span className="badge badge--accent">{KIND_BADGE.cardio}</span>
+        {blok && <span className="badge" style={{ marginLeft: 6 }}>z bloku</span>}
+        {opisBloku && <div className="meta" data-testid={testid ? `${testid}-blok` : undefined}>{opisBloku}</div>}
+        {blok && blok.items.length > 0 && (
+          <ol style={{ margin: "4px 0 0", paddingLeft: 20, fontSize: "0.85rem" }}>
+            {blok.items.map((it, i) => (
+              <li key={i}>{it.name}{it.dose && <> — <b>{it.dose}</b></>}{it.note && <span className="dim"> ({it.note})</span>}</li>
+            ))}
+          </ol>
+        )}
         <PaskiCelow mix={c.goal_mix} testid={testid ? `${testid}-cele` : undefined} />
         {machines.length > 1 && onMachine ? (
           <div style={{ marginTop: 8 }}>
@@ -267,12 +282,13 @@ export function opisPozycji(ex: Exercise): string {
     if (!rx || !Array.isArray(rx.hr_pct_range) || !Array.isArray(rx.rpe_range) || !rx.structure) {
       return `${urz} · R ${w[0]} % / W ${w[1]} % / G ${w[2]} % · bez pełnej propozycji`;
     }
-    return `${urz} · R ${w[0]} % / W ${w[1]} % / G ${w[2]} % · `
+    return (ex.block?.kind === "CARDIO" ? "z bloku · " : "")
+      + `${urz} · R ${w[0]} % / W ${w[1]} % / G ${w[2]} % · `
       + `${rx.hr_pct_range[0]}–${rx.hr_pct_range[1]} % HRmax · RPE ${rx.rpe_range[0]}–${rx.rpe_range[1]} · ${rx.duration_min} min · ${rx.structure.label}`;
   }
   if ((rodzaj === "warmup_block" || rodzaj === "stretch_block") && ex.block) {
     const b = ex.block;
-    return [BLOCK_VARIANT_LABELS[b.variant], b.level ? EXERCISE_LEVEL_LABELS[b.level] ?? b.level : null,
+    return [b.variant ? BLOCK_VARIANT_LABELS[b.variant] : null, b.level ? EXERCISE_LEVEL_LABELS[b.level] ?? b.level : null,
       b.duration_min ? `≈${b.duration_min} min` : null, `${b.items.length} pozycji`].filter(Boolean).join(" · ");
   }
   return [ex.sets && `${ex.sets}×${ex.reps ?? "?"}`, ex.weight, ex.rest].filter(Boolean).join(" · ");

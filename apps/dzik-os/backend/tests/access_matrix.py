@@ -410,6 +410,9 @@ MATRIX: dict[tuple[str, str], Access] = {
     ("GET", "/api/plans/{plan_id}/versions"): Access.RESOURCE_SCOPED,
     ("POST", "/api/plans/{plan_id}/versions"): Access.RESOURCE_SCOPED,
     ("POST", "/api/plans/{template_id}/copy-to/{client_id}"): Access.CLIENT_SCOPED,
+    # Bloki jak szablony (0.76.0): plan klienta z samych bloków — trener z relacją
+    # i zgodą; klient → 403, trener bez relacji → 404 (cudzy blok też 404).
+    ("POST", "/api/clients/{client_id}/plans/from-blocks"): Access.CLIENT_SCOPED,
     ("GET", "/api/push/public-key"): Access.PUBLIC,
     ("POST", "/api/push/subscribe"): Access.RESOURCE_SCOPED,
     ("POST", "/api/push/unsubscribe"): Access.RESOURCE_SCOPED,

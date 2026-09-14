@@ -4,7 +4,7 @@ import { KONTA, zaloguj } from "./helpers";
 /**
  * Bloki rozgrzewki i rozciągania (0.73.0).
  *
- * 1. Trener: Szablony → zakładka „Bloki” — 12 wbudowanych z seedu, „Dodaj
+ * 1. Trener: Szablony → zakładka „Bloki” — 21 wbudowanych z seedu (9 rozgrzewek + 9 aerobów + 3 rozciągania, 0.76.0), „Dodaj
  *    wbudowane” jest idempotentne (komunikat „już w Twoim katalogu”).
  * 2. Klient A: dzień C planu demo ma blok „Rozgrzewka — całe ciało
  *    (początkujący)” — rozwija listę 6 pozycji z dawką, odhacza blok jako
@@ -17,18 +17,18 @@ async function klik(loc: Locator) {
   await loc.click();
 }
 
-test("trener widzi 12 bloków wbudowanych, ponowne ładowanie nic nie dubluje", async ({ page }) => {
+test("trener widzi 21 bloków wbudowanych, ponowne ładowanie nic nie dubluje", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await zaloguj(page, KONTA.trener);
   await page.goto("/trener/szablony");
   await klik(page.getByRole("tab", { name: "Bloki" }));
   const tab = page.getByTestId("bloki-tab");
   await expect(tab).toBeVisible({ timeout: 15_000 });
-  await expect(tab.getByTestId("blok-karta")).toHaveCount(12);
+  await expect(tab.getByTestId("blok-karta")).toHaveCount(21);
   await expect(tab).toContainText("do przeglądu trenera");
   await klik(tab.getByRole("button", { name: "Dodaj wbudowane" }));
   await expect(tab.getByRole("status")).toContainText("już w Twoim katalogu", { timeout: 15_000 });
-  await expect(tab.getByTestId("blok-karta")).toHaveCount(12);
+  await expect(tab.getByTestId("blok-karta")).toHaveCount(21);
 });
 
 test("klient rozwija blok rozgrzewki i odhacza go jako całość", async ({ page }) => {

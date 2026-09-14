@@ -38,7 +38,8 @@ test("trener liczy propozycję cardio z suwaków i wstawia ją do nowego planu",
   await page.fill("#pe-day-name-0", "Dzień cardio");
   await page.fill("#pe-ex-0-0", "Przysiad ze sztangą");
 
-  await klik(page.getByRole("button", { name: "+ Cardio" }));
+  // 0.76.0: obok jest „+ Cardio z bloku” — dopasowanie dokładne, żeby nie było dwóch trafień.
+  await klik(page.getByRole("button", { name: "+ Cardio", exact: true }));
   const panel = page.getByTestId("cardio-panel");
   await expect(panel).toBeVisible({ timeout: 15_000 });
   // Suwak: Redukcja na 60 % zabiera pozostałym — suma zostaje 100.

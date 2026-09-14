@@ -1,6 +1,8 @@
-"""Wbudowane bloki rozgrzewki (3 poziomy × 3 warianty) i rozciągania
-(3 warianty, jeden poziom, po treningu) — szkic treści z pakietu zlecenia 5
-(§5 promptu), złożony z pozycji katalogu ćwiczeń (`exercise_catalog.py`).
+"""Wbudowane bloki rozgrzewki (3 poziomy × 3 warianty), aerobów/cardio
+(3 cele × 3 poziomy, od 0.76.0 — preset liczony silnikiem `cardio_model_v1`
+bez danych klienta, patrz `presety.py`) i rozciągania (3 warianty, jeden
+poziom, po treningu) — szkic treści z pakietu zlecenia 5 (§5 promptu),
+złożony z pozycji katalogu ćwiczeń (`exercise_catalog.py`).
 
 DO PRZEGLĄDU TRENERA: każdy blok ma `source="wbudowany — do przeglądu
 trenera"`; trener przegląda dawki i pozycje przed użyciem u prawdziwych
@@ -16,12 +18,16 @@ Warianty: G = góra ciała, D = dół ciała, C = całe ciało (spójne z nazwam
 
 from __future__ import annotations
 
+from . import presety
+from .stale import CELE, ETYKIETY_CELOW
+
 ZRODLO_WBUDOWANE = "wbudowany — do przeglądu trenera"
 
 WARIANTY: tuple[str, ...] = ("G", "D", "C")
 ETYKIETY_WARIANTOW: dict[str, str] = {"G": "góra ciała", "D": "dół ciała", "C": "całe ciało"}
-RODZAJE: tuple[str, ...] = ("WARMUP", "STRETCH")
-ETYKIETY_RODZAJOW: dict[str, str] = {"WARMUP": "rozgrzewka", "STRETCH": "rozciąganie"}
+RODZAJE: tuple[str, ...] = ("WARMUP", "CARDIO", "STRETCH")
+ETYKIETY_RODZAJOW: dict[str, str] = {"WARMUP": "rozgrzewka", "CARDIO": "aeroby (cardio)", "STRETCH": "rozciąganie"}
+POZIOMY: tuple[str, ...] = ("POCZATKUJACY", "SREDNIOZAAWANSOWANY", "ZAAWANSOWANY")
 
 SERIA_WPROWADZAJACA = ("Seria wprowadzająca", "1×8–10 z 40–50 % ciężaru roboczego",
                        "Pierwsze ćwiczenie planu lekkim ciężarem — to opis, nie osobne ćwiczenie.")
@@ -150,8 +156,31 @@ BLOKI: list[dict] = [
 ]
 
 
+def _blok_cardio(goal: str, level: str) -> dict:
+    """Blok CARDIO: preset z silnika (bez danych klienta) + pozycje opisowe
+    (bez karty w bazie). `variant` nie dotyczy (None; w bazie pusty napis)."""
+    cardio = presety.zbuduj_cardio_json(goal, level, presety.URZADZENIA_DOMYSLNE)
+    return {"kind": "CARDIO", "level": level, "variant": None, "goal": goal,
+            "duration_min": cardio["prescription"]["duration_min"],
+            "name": presety.nazwa_bloku_cardio(goal, level), "cardio": cardio,
+            "items": [{**p, "catalog": False} for p in presety.pozycje_opisowe(cardio)]}
+
+
+# --- Aeroby (cardio): 3 cele × 3 poziomy (0.76.0) ---
+# Regeneracja: ciągła ~60 % HRmax, 25 min (początkujący 20); Wydolność: interwały
+# wg poziomu 8×1 / 6×2 / 4×4; Redukcja: ciągła ~69 % HRmax, 40 min (początkujący 30).
+# Liczby pochodzą WYŁĄCZNIE z silnika (`presety.MIESZANKI_CELOW`), nie z ręki.
+BLOKI.extend(_blok_cardio(goal, level) for goal in CELE for level in POZIOMY)
+
+ETYKIETY_CELOW_BLOKOW: dict[str, str] = dict(ETYKIETY_CELOW)
+
+
 def klucz(blok: dict) -> tuple[str, str | None, str]:
-    """Tożsamość bloku wbudowanego (rodzaj, poziom, wariant) — do idempotentnego ładowania."""
+    """Tożsamość bloku wbudowanego — do idempotentnego ładowania:
+    (rodzaj, poziom, wariant) dla rozgrzewki/rozciągania, (rodzaj, poziom, cel)
+    dla CARDIO (wariant nie dotyczy)."""
+    if blok["kind"] == "CARDIO":
+        return (blok["kind"], blok.get("level"), blok["goal"])
     return (blok["kind"], blok.get("level"), blok["variant"])
 
 
