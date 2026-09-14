@@ -1435,3 +1435,39 @@ MIGRATIONS.append(
         "CREATE INDEX IF NOT EXISTS ix_calorie_estimates_client_id ON calorie_estimates (client_id)",
     ])
 )
+
+MIGRATIONS.append(
+    (34, "nawyki na ekranie Dzisiaj: habits, habit_completions", [
+        # Addytywna; wycofanie = ignorowanie tabel.
+        (
+            "CREATE TABLE IF NOT EXISTS habits ("
+            " id VARCHAR(40) PRIMARY KEY,"
+            " client_id VARCHAR(40) NOT NULL REFERENCES users(id),"
+            " name VARCHAR(200) NOT NULL,"
+            " days_of_week VARCHAR(30) NOT NULL DEFAULT '1,2,3,4,5,6,7',"
+            " target_days INTEGER NOT NULL DEFAULT 66,"
+            " author_id VARCHAR(40) NOT NULL,"
+            " author_note TEXT,"
+            " started_on VARCHAR(40) NOT NULL,"
+            " status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',"
+            " graduated_on VARCHAR(40),"
+            " ack_on VARCHAR(40),"
+            " created_at VARCHAR(40) NOT NULL,"
+            " updated_at VARCHAR(40) NOT NULL)"
+        ),
+        "CREATE INDEX IF NOT EXISTS ix_habits_client_id ON habits (client_id)",
+        (
+            "CREATE TABLE IF NOT EXISTS habit_completions ("
+            " id VARCHAR(40) PRIMARY KEY,"
+            " habit_id VARCHAR(40) NOT NULL REFERENCES habits(id),"
+            " client_id VARCHAR(40) NOT NULL REFERENCES users(id),"
+            " completed_on VARCHAR(40) NOT NULL,"
+            " status VARCHAR(20) NOT NULL DEFAULT 'DONE',"
+            " created_by VARCHAR(40) NOT NULL,"
+            " created_at VARCHAR(40) NOT NULL,"
+            " UNIQUE (habit_id, completed_on))"
+        ),
+        "CREATE INDEX IF NOT EXISTS ix_habit_completions_habit_id ON habit_completions (habit_id)",
+        "CREATE INDEX IF NOT EXISTS ix_habit_completions_client_id ON habit_completions (client_id)",
+    ])
+)

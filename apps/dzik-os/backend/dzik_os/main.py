@@ -40,6 +40,7 @@ from .routers import (
     exercises,
     files,
     food_catalog,
+    habits,
     imports,
     interview,
     knowledge,
@@ -191,7 +192,7 @@ def create_app() -> FastAPI:
         records.router, push.router, consultations.router, telemetry.router,
         challenges.router, notifications_router.router, onboarding.router,
         interview.router, nutrition_templates.router, ocr.router, assistant.router, imports.router,
-        public_site.router, konfigurator.router, kulinaria.router, szkice.router, wywiady.router, zapotrzebowanie.router, diet.router,
+        public_site.router, konfigurator.router, kulinaria.router, szkice.router, wywiady.router, zapotrzebowanie.router, diet.router, habits.router,
         mail_admin.router,
     ):
         app.include_router(router)
