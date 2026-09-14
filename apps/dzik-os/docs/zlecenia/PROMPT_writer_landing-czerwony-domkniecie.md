@@ -47,14 +47,70 @@ wymaga, żeby oba wspominały bieżącą wersję z CHANGELOG-a). PR dziś podnos
 
 | # | Objaw (zmierzony) | Przyczyna (`styles.css`, blok `.landing--czerwony`) | Poprawka |
 |---|---|---|---|
-| P1-a | **1024 px: strona przewija się poziomo o 60 px** | `.landing-panel` (l. ~715) ma `overflow: hidden` **tylko** w `@media (max-width: 699px)` (l. ~863); dekoracje `.landing-panel__blob` 440 px i `.landing-panel__ring` 520 px są centrowane i wystają z panelu węższego niż 520 px | dekoracje (plama, pierścień, raster, „LUBELSKI DZIK”) przenieś do wewnętrznej warstwy `.landing-panel__scene { position:absolute; inset:0; overflow:hidden; border-radius: inherit }`, a karty-powiadomienia zostaw poza nią (mają wystawać). Alternatywa minimalna: `.landing-hero { overflow-x: clip }` (nie `hidden` — nie ucina cieni pionowo) |
-| P1-b | **768 px: +4 px przewijania**; odznaka „IFBB PRO / RAPTOR GYM” oderwana od zdjęcia i przy prawej krawędzi ekranu | `.landing-about__badge { position:absolute; right:-22px; bottom:-22px }` (l. ~767) — przy jednej kolumnie kontener zdjęcia ma pełną szerokość, więc `-22px` wychodzi poza viewport | w `@media (max-width: 899px)`: `right: 12px; bottom: 12px` (odznaka wewnątrz zdjęcia) albo `position: static; margin-top: 12px` |
+| P1-a | **900–1150 px: strona przewija się poziomo** (zmierzone: 900 px → `scrollWidth` 1024, panel hero ściśnięty do **235 px**; 1024 px → 1086; 1100 px → 1124) | dwie przyczyny naraz: (1) `.landing-hero__grid { grid-template-columns: 1fr 1fr }` — `1fr` to `minmax(auto,1fr)`, a `.landing-proof__item { white-space: nowrap }` wymusza 581 px na kolumnę tekstu, więc panel się kurczy; (2) `.landing-panel` (l. ~715) ma `overflow: hidden` **tylko** w `@media (max-width: 699px)` (l. ~863), a `.landing-panel__ring` 520 px / `.landing-panel__blob` 440 px są centrowane i wystają | (1) `grid-template-columns: minmax(0,1fr) minmax(0,1fr)` + `.landing-proof { flex-wrap: wrap }` (albo bez `nowrap`); (2) dekoracje (plama, pierścień, raster, „LUBELSKI DZIK”) do wewnętrznej warstwy `.landing-panel__scene { position:absolute; inset:0; overflow:hidden; border-radius:inherit }`, karty-powiadomienia poza nią (mają wystawać) |
+| P1-b | **700–899 px: +4 px przewijania**; odznaka „IFBB PRO / RAPTOR GYM” ok. 70 px na prawo od zdjęcia, nad pustym tłem; czerwony kwadrat `foto-bg` przy samej krawędzi ekranu | `.landing-about__badge { position:absolute; right:-22px; bottom:-22px }` (l. ~767) i `.landing-about__foto-bg { left:-18px }` — w bloku `@media (max-width: 899px)` siatka „O trenerze” spada do jednej kolumny, ale `.landing-about__foto-wrap` dostaje pełną szerokość bez marginesu (reguła `margin: 18px 22px 22px 18px` jest dopiero w ≤699) | w bloku 899: `.landing-about__foto-wrap { max-width: 480px; margin: 18px 22px 22px 18px }` (odznaka wraca na róg zdjęcia, kwadrat odsuwa się od krawędzi) |
 | P1-c | **Cele dotyku < 24 px** w nawigacji kotwic (Oferta / Jak zaczynamy / Aplikacja / Trener / FAQ) na 1440 i 1024 — WCAG 2.2 **2.5.8** (AA) | `.landing-top__nav a` (l. ~697): `font-size: 15px`, brak paddingu → wysokość ~18 px | `padding: 8px 6px; display: inline-block` (wysokość ≥ 24 px); link „informacja o przetwarzaniu danych” w stopce to link w zdaniu — wyjątek 2.5.8, zostaw |
 | P2 | `.wm` (znak wodny 220 px) i `.wm--kontakt` wystają z sekcji — obcięte przez `overflow:hidden` sekcji, **nie** powodują przewijania | — | bez zmian; upewnij się, że oba rodzice mają `overflow:hidden` po Twojej zmianie |
 
 Po poprawkach dołóż do `strona-publiczna.spec.ts` asercję `scrollWidth <= clientWidth`
 także dla viewportu **1024×800 i 768×1024** (jeden test z pętlą po trzech
 szerokościach — dziś jest tylko 390).
+
+### 2b. Przegląd diffu (3 obszary, wykonany 14.09 na scalonym drzewie — do wykonania w tym PR)
+
+**Bez P0.** Brak markerów konfliktu; blok `/prywatnosc` przywrócony dosłownie; style
+Postępów z `main` obecne (26/26 selektorów); nowe reguły scope'owane do
+`.landing--czerwony`; formularz, honeypot (`aria-hidden`, `tabIndex=-1`, −9999 px), notka
+RODO (w `<form>`), kotwice `oferta/jak-to-dziala/aplikacja/o-trenerze/faq/kontakt`,
+`role="status"/"alert"`, linki social i stopka — bez zmian względem `main`.
+
+**P1-3 (semantyka nagłówków).** Stare `<h2>Jak zaczynamy</h2>` i `<h2>O trenerze</h2>` są
+teraz `<div class="eyebrow">` (`Landing.tsx` ~l. 262 i 314), a `h2` to „Trzy kroki do
+pierwszego planu” i „Łukasz Drygiel — Lubelski Dzik”. E2E przechodzi (`/Łukasz Drygiel/`),
+ale każdy, kto szuka nagłówka „O trenerze”, go nie znajdzie. Do wyboru: etykieta jako
+`<p class="eyebrow">` + `h2` z dotychczasową treścią, albo świadoma zmiana wpisana do
+CHANGELOG. Do tego `Naglowek` (`Landing.tsx` l. 83–88) ma nieużywany prop `id` — usuń.
+
+**P2 do wykonania w tym PR (tanie):**
+* `scroll-margin-top`: brak w całym `styles.css`; przy 390 px po kliknięciu CTA etykieta
+  `#kontakt` ląduje pod paskiem 76 px (y = 54). Dodaj `.landing--czerwony section[id]
+  { scroll-margin-top: 76px }`.
+* Pas 700–899: `.landing-steps` zostaje w 3 kolumnach po 207 px (h3 „Trenujemy
+  i korygujemy” łamie się na 88 px) — w bloku 899 daj 1 kolumnę; panel hero
+  `height: 560px` + `order: -1` spycha `h1` na y = 804 przy 768 px (pierwszy ekran to
+  sama dekoracja) — rozważ `height: 360px` w tym pasie.
+* Obraz LCP na telefonie/tablecie: `boar-hero-red.png` 102 kB, 560×721, bez
+  `width/height/fetchpriority` (`Landing.tsx` ~l. 213) — dodaj `width={560} height={721}
+  fetchpriority="high" decoding="async"`; WebP dałby ~30 kB (opcjonalnie).
+* Treść: „−12 kg w 20 tygodni” (`Landing.tsx` ~l. 205 i 336) zgubiło „nawet” z opisu
+  trenera — czyta się jak gwarancja; przywróć „nawet −12 kg”. Karty w hero („Przysiad
+  110 kg — nowy rekord własny”, „Raport z tygodnia 8”, „Odpowiedź trenera: dziś 09:40”)
+  są `aria-hidden` i oznaczone PERSONALIZACJA, ale widzący gość bierze je za prawdziwe —
+  **właściciel potwierdza treść kart** (galeria mówi „dane demonstracyjne”, karty nie).
+* Trzy dowody (IFBB PRO / 30 000+ / −12 kg) są dwa razy (`landing-proof` ~l. 200
+  i `landing-stats` ~l. 333) — czytnik ekranu słyszy oba; jeśli celowo, test
+  `getByText("30 000+")` ma mieć `toHaveCount(2)` zamiast `.first()`.
+* `.landing-gallery` (przewijany poziomo) jest przystankiem fokusu bez nazwy — dodaj
+  `role="region" aria-label="Ekrany aplikacji"` (błąd sprzed PR, tania poprawka).
+* Nity CSS: zdublowane `margin: 0` w `.landing-top`; `.landing-form input:focus-visible`
+  dubluje regułę globalną; komentarz przy bloku `/prywatnosc` nadal mówi „0.65.0”.
+* Precache SW (`inject-precache.mjs` l. 50–81) bierze cały `dist/`, więc oba nowe PNG
+  (+110 kB) trafiają do każdej instalacji PWA, choć używa ich tylko wylogowane `/`.
+  Świadomy kompromis (offline `/` z grafiką) — zapisz w CHANGELOG; nic nie kasuj
+  (`boar-mark.png` i `logo-full.png` nadal używane przez aplikację i `/login`).
+
+**Zmiany treści względem `main` (do CHANGELOG, żeby nic nie zniknęło po cichu):** usunięty
+`<img src="/icons/logo-full.png" alt="Dzik OS">` z hero (plik zostaje — `Login.tsx`);
+akapit `landing-gallery__intro` zastąpiony `sec-head__desc` z dodanym zdaniem „Ciemny motyw
+aplikacji zostaje: na siłowni ma być czytelny, nie jasny.” (**właściciel: to zdanie
+przesądza o motywie aplikacji — zgodne z decyzją? patrz §8**); numery kroków „1/2/3” → „01/02/03”;
+klasy `landing-top__login` i `landing-card` już tylko w `Privacy.tsx`.
+
+**Luki testowe (`strona-publiczna.spec.ts`) — dołóż w tym PR:** `scrollWidth ≤ clientWidth`
+przy 768×1024 i 1024×768 (dziś oba padają: 772 i 1086 — złapałyby P1-a i P1-b);
+nawigacja `aria-label="Sekcje strony"` widoczna ≥ 900 i ukryta ≤ 899; po kliknięciu kotwicy
+nagłówek sekcji poniżej paska; panel hero `aria-hidden`; honeypot niefokusowalny; migawka
+konspektu `h1,h2,h3`; ścieżka błędu formularza (`role="alert"`).
 
 ## 3. Krok 3 — kontrast: decyzja właściciela z policzonymi wartościami
 
@@ -139,4 +195,5 @@ czterech szerokościach jako liczby.
   potrzebna jest kanwa z ekranami aplikacji w wariancie jasnym czerwono-białym
   (min. Dzisiaj i Plan na telefonie, karta klienta trenera na desktopie) i decyzja,
   czy aplikacja przechodzi z ciemnego na jasny — to zmiana dla użytkowników w pilotażu,
-  nie kosmetyka. Rekomendacja: najpierw zlecenie projektowe (kanwa), potem prompt.
+  nie kosmetyka. Uwaga: PR #67 wpisuje na stronę zdanie „Ciemny motyw aplikacji
+  zostaje” — jeśli właściciel planuje jasny motyw, to zdanie trzeba zdjąć już teraz. Rekomendacja: najpierw zlecenie projektowe (kanwa), potem prompt.
