@@ -1469,7 +1469,10 @@ MIGRATIONS.append(
         ),
         "CREATE INDEX IF NOT EXISTS ix_habit_completions_habit_id ON habit_completions (habit_id)",
         "CREATE INDEX IF NOT EXISTS ix_habit_completions_client_id ON habit_completions (client_id)",
-    ]),
+    ])
+)
+
+MIGRATIONS.append(
     (35, "biblioteka szablonów diet po audycie: notatki, alergeny posiłku, skrót źródła", [
         # Addytywna (ALTER ADD COLUMN z DEFAULT — jak migracja 2).
         "ALTER TABLE diet_template_weeks ADD COLUMN derived_from VARCHAR(120)",
