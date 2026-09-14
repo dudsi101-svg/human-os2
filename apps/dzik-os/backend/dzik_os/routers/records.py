@@ -3,9 +3,11 @@ historią klienta (zasada Human OS: system nigdy nie porównuje ludzi między
 sobą ani nie rankinguje ich wartości; punktem odniesienia jest zawsze
 wcześniejsze "ja" tej samej osoby).
 
-Rekord = najwyższy ciężar (kg) sparsowany deterministycznie z tekstowych
-wyników treningów danego ćwiczenia (np. "3x8 @ 80kg"). Żadnej interpretacji
-AI — prosty, jawny regex; wynik bez rozpoznawalnego ciężaru jest pomijany.
+Rekord = najwyższy ciężar (kg) z serii strukturalnych (silnik
+`postepy.rekordy`, 0.66.0 — jedno źródło prawdy dla starych kart i nowej
+zakładki Postępy) albo, dla wpisów bez serii, sparsowany deterministycznie
+z tekstowego wyniku (np. "3x8 @ 80kg"). Żadnej interpretacji AI — prosty,
+jawny regex; wynik bez rozpoznawalnego ciężaru jest pomijany.
 """
 
 from __future__ import annotations
@@ -21,6 +23,7 @@ from ..authz import DOMAIN_TRAINING, resolve_client_access
 from ..dates import local_today
 from ..db import get_db
 from ..models import Measurement, User, WorkoutEntry, WorkoutSession
+from ..postepy import rekordy as R
 from ..security import current_user
 
 router = APIRouter(prefix="/api", tags=["records"])
@@ -49,8 +52,11 @@ def _entry_sets(entry: WorkoutEntry) -> list[dict]:
 
 
 def _entry_max_weight(entry: WorkoutEntry) -> float | None:
-    """Najcięższa seria — najpierw dane strukturalne, potem tekst wyniku."""
-    sets = [s for s in _entry_sets(entry) if s.get("weight_kg")]
+    """Najcięższa seria robocza (rozgrzewkowe i nieukończone pomijane —
+    reguły silnika postępów) — najpierw dane strukturalne, potem tekst."""
+    sets = [s for s in _entry_sets(entry)
+            if s.get("weight_kg") and s.get("reps") and not s.get("warmup")
+            and not s.get("incomplete") and not s.get("assisted")]
     if sets:
         return max(float(s["weight_kg"]) for s in sets)
     if entry.result:
@@ -59,11 +65,9 @@ def _entry_max_weight(entry: WorkoutEntry) -> float | None:
 
 
 def _epley_e1rm(weight_kg: float, reps: int) -> float:
-    """Szacowany 1RM (Epley) — SZACUNEK do obserwacji trendu, nie
-    zalecenie obciążenia treningowego."""
-    if reps <= 1:
-        return weight_kg
-    return weight_kg * (1 + reps / 30)
+    """Szacowany 1RM (Epley, `postepy.rekordy.epley_e1rm`) — SZACUNEK do
+    obserwacji trendu, nie zalecenie obciążenia treningowego."""
+    return R.epley_e1rm(weight_kg, reps)
 
 
 @router.get("/clients/{client_id}/personal-records")
@@ -169,7 +173,7 @@ def strength_series(
     for entry, performed_on in rows:
         sets = [
             s for s in _entry_sets(entry)
-            if s.get("weight_kg") and s.get("reps")
+            if s.get("weight_kg") and s.get("reps") and not s.get("warmup")
         ]
         if not sets:
             continue
@@ -179,7 +183,8 @@ def strength_series(
         for s in sets:
             weight, reps = float(s["weight_kg"]), int(s["reps"])
             day["volume"] += weight * reps
-            day["e1rm"] = max(day["e1rm"], _epley_e1rm(weight, reps))
+            if reps <= R.E1RM_MAX_REPS:  # §8.2.2: Epley tylko do 10 powtórzeń
+                day["e1rm"] = max(day["e1rm"], _epley_e1rm(weight, reps))
     out = []
     for exercise, days in agg.items():
         points = [
