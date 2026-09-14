@@ -36,7 +36,7 @@ export DZIK_WIEDZA_SZKICE="true"
 export DZIK_DIET_TEMPLATES_ENABLED="true"
 export DZIK_CALORIE_INTERVIEW_ENABLED="true"
 # Kreator diety (0.67.0) — E2E kreatora dań (kulinaria.spec.ts) wchodzi przez zakładkę „Dieta”.
-export DZIK_DIET_WIZARD_ENABLED="true"
+export DZIK_DIET_WIZARD_ENABLED="${DZIK_DIET_WIZARD_ENABLED:-true}"
 export DZIK_MAIL_TEST_ENDPOINT_ENABLED="true"
 
 cd "$BACKEND"
