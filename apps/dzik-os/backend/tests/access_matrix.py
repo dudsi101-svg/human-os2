@@ -212,6 +212,10 @@ MATRIX: dict[tuple[str, str], Access] = {
     ("GET", "/api/clients/{client_id}/wywiady/podsumowanie"): Access.CLIENT_SCOPED,
     ("GET", "/api/clients/{client_id}/wywiady/podpowiedzi"): Access.CLIENT_SCOPED,
     ("GET", "/api/clients/{client_id}/wywiady/fakty"): Access.CLIENT_SCOPED,
+    # Zapotrzebowanie kaloryczne (0.62.0): odczyt klient/trener; zmiany tylko trener.
+    ("GET", "/api/clients/{client_id}/zapotrzebowanie"): Access.CLIENT_SCOPED,
+    ("PUT", "/api/clients/{client_id}/zapotrzebowanie/nadpisanie"): Access.COACH_ONLY,
+    ("POST", "/api/clients/{client_id}/zapotrzebowanie/odblokuj"): Access.COACH_ONLY,
     ("POST", "/api/wywiady/zgloszenia/{submission_id}/przeglad"): Access.RESOURCE_SCOPED,
     ("POST", "/api/wywiady/zgloszenia/{submission_id}/doprecyzowania"): Access.RESOURCE_SCOPED,
     ("GET", "/api/wywiady/zgloszenia/{submission_id}"): Access.RESOURCE_SCOPED,

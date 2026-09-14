@@ -1405,3 +1405,33 @@ MIGRATIONS.append(
         "CREATE INDEX IF NOT EXISTS ix_diet_swap_events_assigned_diet_id ON diet_swap_events (assigned_diet_id)",
     ])
 )
+
+MIGRATIONS.append(
+    (33, "wywiad zapotrzebowania kalorycznego: szacunki (calorie_estimates)", [
+        # Addytywna; typ wywiadu za flagą DZIK_CALORIE_INTERVIEW_ENABLED.
+        (
+            "CREATE TABLE IF NOT EXISTS calorie_estimates ("
+            " id VARCHAR(40) PRIMARY KEY,"
+            " client_id VARCHAR(40) NOT NULL REFERENCES users(id),"
+            " submission_id VARCHAR(40) NOT NULL UNIQUE,"
+            " version_no INTEGER NOT NULL,"
+            " inputs_json TEXT NOT NULL,"
+            " ppm INTEGER NOT NULL,"
+            " pal FLOAT NOT NULL,"
+            " cpm INTEGER NOT NULL,"
+            " korekta_pct INTEGER NOT NULL,"
+            " kcal INTEGER NOT NULL,"
+            " podstawienie_json TEXT NOT NULL DEFAULT '[]',"
+            " ostrzezenia_json TEXT NOT NULL DEFAULT '[]',"
+            " hidden_for_client BOOLEAN NOT NULL DEFAULT 0,"
+            " unhidden_by VARCHAR(40),"
+            " unhidden_at VARCHAR(40),"
+            " override_kcal INTEGER,"
+            " override_by VARCHAR(40),"
+            " override_at VARCHAR(40),"
+            " override_reason TEXT,"
+            " created_at VARCHAR(40) NOT NULL)"
+        ),
+        "CREATE INDEX IF NOT EXISTS ix_calorie_estimates_client_id ON calorie_estimates (client_id)",
+    ])
+)

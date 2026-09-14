@@ -388,6 +388,9 @@ def przeslij(db: Session, *, client_id: str, typ: str, actor: User, revision: in
                              source=f"WYWIAD_{typ.upper()}", items=pola)
     zadania = _zadania_sprawdzenia(db, client_id=client_id, coach_id=coach_id, submission=sub,
                                    zmienione=zmienione, pierwsza_wersja=poprzednia is None)
+    # Wywiad „zapotrzebowanie” (0.62.0): wynik liczony i zapisywany razem z wersją.
+    from . import zapotrzebowanie_serwis
+    zapotrzebowanie_serwis.przelicz_po_przeslaniu(db, submission=sub, answers=do_wersji)
     for cr in otwarte_doprecyzowania(db, client_id, typ):
         cr.status = "RESOLVED"
         cr.resolved_at = now_iso()
@@ -513,7 +516,8 @@ def otwarte_zadania_planu(db: Session, plan_kind: str, plan_id: str) -> list[Pla
 
 # --- doręczanie z outboxu ---------------------------------------------------------------
 
-_TYP_NAZWA = {"wstepny": "wywiad wstępny", "gleboki": "wywiad głęboki"}
+_TYP_NAZWA = {"wstepny": "wywiad wstępny", "gleboki": "wywiad głęboki",
+              "zapotrzebowanie": "wywiad „Zapotrzebowanie kaloryczne”"}
 
 
 def dorecz_zdarzenie(db: Session, ev: OutboxEvent, dane: dict) -> Notification | None:

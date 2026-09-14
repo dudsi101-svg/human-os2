@@ -33,10 +33,18 @@ from ..onboarding_flow import (
     Step,
     _triggered,
 )
+from . import zapotrzebowanie as Z
 
 WSTEPNY = "wstepny"
 GLEBOKI = "gleboki"
-TYPY = (WSTEPNY, GLEBOKI)
+#: Wywiad „Zapotrzebowanie kaloryczne” (0.62.0) — za flagą
+#: DZIK_CALORIE_INTERVIEW_ENABLED (router filtruje `TYPY` przez `typy_aktywne`).
+ZAPOTRZEBOWANIE = "zapotrzebowanie"
+TYPY = (WSTEPNY, GLEBOKI, ZAPOTRZEBOWANIE)
+
+#: Rodzaj pytania liczbowego (tylko w wywiadzie zapotrzebowania): odpowiedź
+#: tekstowa walidowana serwerowo jako liczba z zakresu `Pytanie.zakres`.
+KIND_NUMBER = "NUMBER"
 
 #: Wersja definicji obu formularzy. Podbicie = nowa wersja pytań; stare
 #: przesłania trzymają swoją.
@@ -98,6 +106,8 @@ class Pytanie:
     placeholder: str
     scan_safety: bool
     flag_options: tuple[str, ...]
+    #: Zakres (min, max) dla pytań NUMBER; None dla pozostałych rodzajów.
+    zakres: tuple[float, float] | None = None
 
     @property
     def informacyjne(self) -> bool:
@@ -317,7 +327,99 @@ def _zbuduj_gleboki() -> Definicja:
     )
 
 
-_DEFINICJE: dict[str, Definicja] = {WSTEPNY: _zbuduj_wstepny(), GLEBOKI: _zbuduj_gleboki()}
+# ---------------------------------------------------------------------------
+# Wywiad „Zapotrzebowanie kaloryczne” (0.62.0)
+# ---------------------------------------------------------------------------
+
+SEKCJE_ZAPOTRZEBOWANIE: tuple[Sekcja, ...] = (
+    Sekcja("zk_dane", "Dane podstawowe", "Płeć, wiek, wzrost i masa — wejścia wzoru na PPM."),
+    Sekcja("zk_aktywnosc", "Aktywność", "Praca, treningi i kroki — z nich wynika współczynnik PAL."),
+    Sekcja("zk_cel", "Cel", "Kierunek i tempo zmian — korekta wyniku."),
+    Sekcja("zk_bezpieczenstwo", "Bezpieczeństwo",
+           "Jedno pytanie zdrowotne. Decyduje, czy liczby pokażą się od razu, czy najpierw omówi je trener."),
+)
+
+_WSZYSTKIE_USLUGI = frozenset(USLUGI)
+ODP_ZABURZENIA_TAK = "Tak, obecnie lub w przeszłości"
+OPCJE_ZABURZEN = (ODP_NIE_ZGLASZAM, ODP_ZABURZENIA_TAK, ODP_NIE_WIEM, ODP_OMOWIC)
+
+
+def _zk(question_id: str, typ: str, label: str, why: str, section: str, *, options: tuple[str, ...] = (),
+        required: bool = True, conditional: bool = False, placeholder: str = "",
+        zakres: tuple[float, float] | None = None, consent_domain: str | None = None,
+        sensitive: bool = False, access_class: str = DOSTEP_PODSTAWOWY, max_len: int = 80,
+        flag_options: tuple[str, ...] = (), visibility_rule: str = "zawsze") -> Pytanie:
+    return Pytanie(
+        question_id=question_id, version=WERSJA, type=typ, label=label, why=why, section=section,
+        options=options, required_for=_WSZYSTKIE_USLUGI if required else frozenset(),
+        visibility_rule=visibility_rule, consent_domain=consent_domain, sensitive=sensitive,
+        access_class=access_class, fact_key=None, max_len=max_len, conditional=conditional,
+        placeholder=placeholder, scan_safety=False, flag_options=flag_options, zakres=zakres,
+    )
+
+
+_PYTANIA_ZAPOTRZEBOWANIE: tuple[Pytanie, ...] = (
+    _zk("zk_plec", KIND_CHOICE, "Płeć", "Wzór na przemianę materii ma inną stałą dla kobiet i mężczyzn.",
+        "zk_dane", options=Z.PLCI),
+    _zk("zk_wiek", KIND_NUMBER, "Wiek (lata)", "Z wiekiem podstawowa przemiana materii maleje — wzór to uwzględnia.",
+        "zk_dane", placeholder="np. 32", zakres=Z.ZAKRES_WIEK, max_len=5),
+    _zk("zk_wzrost", KIND_NUMBER, "Wzrost (cm)", "Wzrost wchodzi do wzoru na PPM.",
+        "zk_dane", placeholder="np. 176", zakres=Z.ZAKRES_WZROST, max_len=6),
+    _zk("zk_masa", KIND_NUMBER, "Aktualna masa ciała (kg)",
+        "Masa ma największy wpływ na wynik. Podaj poranną, po toalecie, przed jedzeniem.",
+        "zk_dane", placeholder="np. 72,5", zakres=Z.ZAKRES_MASA, max_len=7),
+    _zk("zk_praca", KIND_CHOICE, "Jaki masz charakter pracy / dnia?",
+        "Aktywność poza treningiem to zwykle większa część wydatku energii niż sam trening.",
+        "zk_aktywnosc", options=tuple(Z.PRACA)),
+    _zk("zk_treningi", KIND_CHOICE, "Ile treningów robisz w tygodniu (realnie, nie planowo)?",
+        "Treningi dokładają się do współczynnika aktywności. Liczy się to, co się dzieje, nie plan.",
+        "zk_aktywnosc", options=tuple(Z.TRENINGI)),
+    _zk("zk_kroki", KIND_CHOICE, "Ile kroków dziennie robisz przeciętnie?",
+        "Kroki doprecyzowują aktywność poza treningiem. Jeśli nie mierzysz — wybierz „Nie wiem”.",
+        "zk_aktywnosc", options=tuple(Z.KROKI), required=False),
+    _zk("zk_cel", KIND_CHOICE, "Jaki jest cel na najbliższe tygodnie?",
+        "Cel decyduje, czy wynik ma być poniżej, na poziomie, czy powyżej zapotrzebowania.",
+        "zk_cel", options=Z.CELE),
+    _zk("zk_tempo_redukcja", KIND_CHOICE, "Jakie tempo redukcji?",
+        "Łagodniejsze tempo jest łatwiejsze do utrzymania i chroni masę mięśniową. Trener może je zmienić.",
+        "zk_cel", options=tuple(Z.TEMPO_REDUKCJA), conditional=True,
+        visibility_rule="cel: redukcja masy ciała"),
+    _zk("zk_tempo_masa", KIND_CHOICE, "Jakie tempo budowy masy?",
+        "Większa nadwyżka to szybszy przyrost masy, ale też więcej tkanki tłuszczowej.",
+        "zk_cel", options=tuple(Z.TEMPO_MASA), conditional=True,
+        visibility_rule="cel: budowa masy mięśniowej"),
+    _zk("zk_zaburzenia", KIND_CHOICE,
+        "Czy zdiagnozowano u Ciebie zaburzenia odżywiania albo masz z nimi doświadczenie?",
+        "Liczenie kalorii może szkodzić osobom z takim doświadczeniem. Przy „Tak”, „Nie wiem” lub „Wolę "
+        "omówić” wynik nie pokaże się automatycznie — najpierw przejrzy go trener i porozmawiacie.",
+        "zk_bezpieczenstwo", options=OPCJE_ZABURZEN, consent_domain=DOMAIN_HEALTH, sensitive=True,
+        access_class=DOSTEP_ZDROWIE, flag_options=(ODP_ZABURZENIA_TAK, ODP_NIE_WIEM, ODP_OMOWIC),
+        visibility_rule="aktywna zgoda: dane zdrowotne", max_len=60),
+)
+
+
+def _zapotrzebowanie_triggered(question_id: str, wartosci_: dict[str, str | None]) -> bool:
+    if question_id == "zk_tempo_redukcja":
+        return wartosci_.get("zk_cel") == Z.CEL_REDUKCJA
+    if question_id == "zk_tempo_masa":
+        return wartosci_.get("zk_cel") == Z.CEL_MASA
+    return False
+
+
+def _zbuduj_zapotrzebowanie() -> Definicja:
+    return Definicja(
+        typ=ZAPOTRZEBOWANIE, version=WERSJA, title="Zapotrzebowanie kaloryczne",
+        opis="Kilka pytań o ciało, aktywność i cel. Z nich wzór (Mifflin-St Jeor × współczynnik "
+        "aktywności, korekta pod cel) szacuje dzienne zapotrzebowanie. To szacunek — zalecenie "
+        "ustala trener, który widzi całe podstawienie i może wynik nadpisać.",
+        sections=SEKCJE_ZAPOTRZEBOWANIE, questions=_PYTANIA_ZAPOTRZEBOWANIE,
+        triggered=_zapotrzebowanie_triggered,
+    )
+
+
+_DEFINICJE: dict[str, Definicja] = {
+    WSTEPNY: _zbuduj_wstepny(), GLEBOKI: _zbuduj_gleboki(), ZAPOTRZEBOWANIE: _zbuduj_zapotrzebowanie(),
+}
 
 
 def definicja(typ: str) -> Definicja:
@@ -411,6 +513,14 @@ def waliduj(q: Pytanie, value: str) -> str:
         if cleaned not in q.options:
             raise ValueError("Wybierz jedną z dostępnych odpowiedzi.")
         return cleaned
+    if q.type == KIND_NUMBER:
+        n = Z.liczba(cleaned)
+        if n is None:
+            raise ValueError("Wpisz liczbę (np. 72,5).")
+        if q.zakres and not (q.zakres[0] <= n <= q.zakres[1]):
+            lo, hi = (int(x) if float(x).is_integer() else x for x in q.zakres)
+            raise ValueError(f"Wartość poza zakresem {lo}–{hi}.")
+        return cleaned.replace(" ", "")
     if q.type == KIND_MULTI:
         parts = [p.strip() for p in cleaned.split(",") if p.strip()]
         if not parts:
@@ -429,7 +539,7 @@ def pytanie_out(q: Pytanie, *, active: bool, required: bool) -> dict:
         "visibility_rule": q.visibility_rule, "consent_domain": q.consent_domain,
         "sensitive": q.sensitive, "access_class": q.access_class, "fact_key": q.fact_key,
         "max_len": q.max_len, "conditional": q.conditional, "placeholder": q.placeholder,
-        "info": q.informacyjne,
+        "info": q.informacyjne, "range": list(q.zakres) if q.zakres else None,
     }
 
 
