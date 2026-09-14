@@ -6,12 +6,15 @@ import {
   SessionsCard, TopBar,
 } from "../components";
 import { unreadBadge } from "../notificationsUtils";
+import Powitanie from "./client/Powitanie";
 
 export default function More() {
   const user = getUser()!;
   const monitoringTab = hasFeature("monitoring_tab");
   const isClient = user.roles.includes("CLIENT");
   const [unread, setUnread] = useState(0);
+  // Samouczek (0.70.0) otwarty ponownie: bez zapisu znacznika (już był).
+  const [samouczek, setSamouczek] = useState(false);
   useEffect(() => {
     // Plakietka nieprzeczytanych — podpowiedź, nie krytyczna ścieżka:
     // błąd pobrania po prostu nie pokazuje licznika.
@@ -22,6 +25,9 @@ export default function More() {
   return (
     <div className="page">
       <TopBar title="Więcej" right={<LogoutButton />} />
+      {samouczek && (
+        <Powitanie imie={user.display_name.trim().split(" ")[0]} onZamknij={() => setSamouczek(false)} />
+      )}
       <div className="card">
         <b>{user.display_name}</b>
         <div><small>{user.email}</small></div>
@@ -94,6 +100,10 @@ export default function More() {
             <Link className="card card--nav" to="/profil">
               <Icon name="user" /><span>Profil, zgody i moje dane</span>
             </Link>
+            <button type="button" className="card card--nav" style={{ marginBottom: 0 }}
+              onClick={() => setSamouczek(true)}>
+              <Icon name="info" /><span>Pomoc / Samouczek</span>
+            </button>
           </>
         )}
         <Link className="card card--nav" to="/haslo">
