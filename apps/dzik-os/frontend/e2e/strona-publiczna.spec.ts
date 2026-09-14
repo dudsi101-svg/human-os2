@@ -54,3 +54,18 @@ test("gość czyta informację o przetwarzaniu danych bez logowania", async ({ p
   await page.goto("/prywatnosc");
   await expect(page.getByRole("heading", { name: "Informacja o przetwarzaniu danych osobowych" })).toBeVisible();
 });
+
+test("wariant czerwono-biały: kroki, statystyki trenera, chipy, brak poziomego przewijania na telefonie", async ({ page }) => {
+  // 0.65.0: nowa warstwa wizualna — treść i testy powyżej bez zmian.
+  await page.goto("/");
+  await expect(page.getByRole("heading", { name: "Trzy kroki do pierwszego planu" })).toBeVisible();
+  await expect(page.getByText("30 000+").first()).toBeVisible();
+  await expect(page.getByText("Mapa mięśni")).toBeVisible();
+  await expect(page.getByRole("link", { name: "Zaloguj się" })).toHaveCount(1);
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  await expect(page.getByRole("heading", { name: "Trening prowadzony, nie zgadywany" })).toBeVisible();
+  const szerokosc = await page.evaluate(() => document.documentElement.scrollWidth);
+  expect(szerokosc).toBeLessThanOrEqual(390);
+});
