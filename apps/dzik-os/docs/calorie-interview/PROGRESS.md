@@ -28,6 +28,7 @@ rozstrzygnięta.
 | 10 | Zakres flagowania zaburzeń odżywiania | flaguje tylko „tak” (§6.4) | `if a.get('eating_disorder')` | **szerzej: „Tak”, „Nie wiem”, „Wolę omówić z trenerem”** — decyzja właściciela nr 2, uzasadnienie niżej |
 | 11 | `MALOLETNI` a przycisk „odsłoń” | „wynik liczony, ale nie pokazywany klientowi” (§6.4) | `client_view` zwraca sam komunikat | ukrycie **nieodwracalne** przyciskiem „odsłoń” (ten zdejmuje wyłącznie ukrycie z powodu zaburzeń odżywiania). Ani specyfikacja, ani referencja tego nie rozstrzygały; wiek nie zmienia się przez rozmowę, tylko przez nowe przesłanie |
 | 12 | `formulas_version` | „zmiana wzorów nie zmienia starych wyników” (§6.3), bez wartości | `"2026-09-13.1"` | wartość z referencji wzięta 1:1; wyniki sprzed wyrównania dostają `"0.62.0-pal"` |
+| 13 | Zaokrąglanie składników w podstawieniu | „każda liczba ma jednozdaniowe wyjaśnienie «skąd to»” (§2) | liczenie na surowych wartościach, bez warstwy prezentacji | rozbicie („PPM × NEAT”, mnożnik) pokazywane i mnożone z wartości **zaokrąglonych** — tych, które widać w karcie — żeby wiersz podstawienia i kafelek nie dawały dwóch różnych liczb na ten sam składnik. Sam wynik dalej liczy się z wartości surowych; gdy suma zaokrąglonych składników rozjeżdża się z wynikiem, podstawienie mówi to wprost zamiast udawać, że się zgadza |
 
 Rzeczy, w których referencja i specyfikacja się zgadzają, a mimo to warto je
 zapisać, bo łatwo je przeoczyć przy czytaniu samej specyfikacji:
