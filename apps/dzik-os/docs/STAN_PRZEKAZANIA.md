@@ -1,6 +1,6 @@
 # Stan przekazania — przeczytaj przed rozpoczęciem rundy
 
-**Aktualizacja:** 2026-09-14 · **Wersja w `main`:** 0.69.0 (PR #69) — 0.70.0 w PR #70 (w scalaniu), **0.71.0 w PR #72 (`agent/dni-treningowe`, gotowy do przeglądu)**
+**Aktualizacja:** 2026-09-14 · **Wersja w `main`:** 0.71.0 (po scaleniu PR #74 i #72) — **0.72.0 w PR #67** (strona publiczna czerwono-biała, domknięta, decyzja właściciela o scaleniu), 0.73.0 w toku (`agent/cardio-i-rozgrzewka`, zlecenie 5).
 **Tryb pracy:** jeden piszący i jeden PR `[WRITER]` naraz
 (`KOORDYNACJA.md`, zasada nadrzędna).
 
@@ -45,6 +45,22 @@ Przyjęte domyślne: trener zapisuje przez API (UI tylko odczyt), duplikat dnia
 tygodnie A/B (`docs/dni-treningowe/PROGRESS.md`). Uwaga: migracja 38 zakłada
 37 z PR #70 — `test_migracje_przenosnosc` (ciąg bez luk) jest zielony dopiero
 po scaleniu #70 do `main`.
+
+**Runda 0.72.0 (gałąź `agent/landing-czerwony`, PR #67, bez migracji) —
+domknięcie zlecenia 3 z pakietu 14.09:** strona publiczna `/` w wariancie
+czerwono-białym wg kanwy właściciela, po pomiarze: poziome przewijanie
+1024 px (+62) i 768 px (+4) → 0, cele dotyku nawigacji ≥ 24 px, kontrast
+obrysów 1,50 → 3,11 (token `--l-border-ui`, wariant A) i numeru na koralu
+1,48 → 3,14, kotwice pod paskiem, pas tabletu (kroki 1 kolumna, panel
+360 px), h1 `clamp`, LCP z wymiarami; treść: „nawet −12 kg”, zdanie
+o wyborze motywu (decyzja z trzeciej tury), karty w hero z etykietą
+„przykład”. E2E 4 → 8, zrzuty 1440/1024/768/390 w
+`docs/zrzuty/landing-czerwony/`. Przyjęte domyślne i pytania do
+właściciela: `docs/plan-sesji/landing-czerwony.md` (Odstępstwa). Odłożone
+na etap 2 (osobne zlecenie po scaleniu): znak w czerwieni wszędzie
+(`og.png`, ikony PWA, `logo-full.png`, `theme-color` dla trybu jasnego)
+i motyw czerwono-biały aplikacji (zlecenie 4). **Nie scalać
+samodzielnie** — decyzja właściciela.
 
 **Ostatnia runda (0.62.0, gałąź `agent/wywiad-zapotrzebowanie`, PR #60):**
 wywiad „Zapotrzebowanie kaloryczne” — trzeci typ wywiadu w zakładce
@@ -378,7 +394,7 @@ nie uruchamiano, ponieważ runda nie zmienia kodu ani zasobów frontendu.
 | `agent/nawyki-dzisiaj` | 0.63.0 | 34 | **scalona** (PR #65, 14.09), wdrożenie 0.63.0 w toku | — | — |
 | `agent/wywiad-zapotrzebowanie` | 0.62.0 | 33 | **scalona** (PR #60, 14.09) i wdrożona | dokument właściciela `wywiad_zapotrzebowanie_kaloryczne.md` nadal niedostarczony — różnice do wyrównania | — |
 | `agent/biblioteka-diet` | 0.64.0 | 35 | **scalona** (PR #66, 14.09), deploy 0.64.0 po CI na `main` | — | — |
-| `agent/landing-czerwony` | 0.65.0 | — | gotowa, PR #67 „ready”, CI zielone po scaleniu `main` | **decyzja właściciela o scaleniu** (prompt: nie scalać samodzielnie); po scaleniu #61 numer 0.65.0 do zmiany na kolejny wolny | po decyzji |
+| `agent/landing-czerwony` | **0.72.0** (0.70.0 = PR #70 powitanie, 0.71.0 = zlecenie 1 dni treningowe; 0.68.0 nadal zarezerwowane) | — | **domknięta** (zlecenie 3, 14.09): `main` 0.69.0 scalony, poprawki z pomiaru, kontrast wariant A, treść, E2E 8/8, zrzuty w repo; PR #67 „ready” | **decyzja właściciela o scaleniu** + odpowiedzi na pytania z planu sesji (znak marki, treść kart hero, fraza o czasie odpowiedzi) | po decyzji; zlecenie 4 (motyw) dopiero po #67 |
 | `agent/monitoring-postepy` | 0.66.0 | 36 | **scalona** (PR #61, 14.09), deploy 0.66.0 po CI na `main`; flaga na produkcji wyłączona | włączenie flagi + backfill — decyzja właściciela | — |
 | `agent/ukryj-kreator` | 0.67.0 | — | **scalona** (PR #68, 14.09), deploy 0.67.0 po CI na `main`; kreator na produkcji ukryty (brak flagi w `fly.toml`) | — | — |
 | `agent/wymiany-produktow` | 0.69.0 (0.68.0 = dni treningowe) | — | zlecenie 2 (14.09): silnik wymian v2 (poziom 2, powody, NONE 1:1, bramka „nie pogarsza”), grupy pokrewne (45 par, RO), korelacja katalogu → CSV; przegląd 3 recenzentów naprawiony (P0/P1 ×5, P2 w PROGRESS); `main` 0.67.0 scalony, PR #69 — CI | przegląd CSV przez właściciela (TAK/NIE) → import osobnym PR-em; decyzja o luzie bramki | 1 |
