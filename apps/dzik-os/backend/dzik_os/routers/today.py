@@ -25,6 +25,7 @@ from ..models import (
     User,
     WeeklyCheckin,
     WorkoutSession,
+    now_iso,
 )
 from ..payment_state import DUE_STATUSES
 from ..security import current_user
@@ -226,4 +227,20 @@ def today_view(user: User = Depends(current_user), db: Session = Depends(get_db)
         "checkin_due": checkin_due,
         "next_payment": next_payment,
         "last_coach_message": last_coach_message,
+        # Powitanie po pierwszym logowaniu (0.70.0): False = pokaż okno.
+        "welcome_seen": user.welcome_seen_at is not None,
     }
+
+
+@router.post("/me/welcome-seen")
+def welcome_seen(user: User = Depends(current_user), db: Session = Depends(get_db)):
+    """Znacznik obejrzenia okna powitalnego (0.70.0) — pomoc, nie bramka.
+    Idempotentny: pierwsze wywołanie zapisuje datę, kolejne jej nie zmieniają
+    (okno otwarte ponownie z „Więcej → Pomoc” nie woła tej trasy). Bez audytu:
+    to stan interfejsu, nie decyzja o danych."""
+    if user.welcome_seen_at is None:
+        row = db.get(User, user.id)
+        row.welcome_seen_at = now_iso()
+        db.commit()
+        user.welcome_seen_at = row.welcome_seen_at
+    return {"welcome_seen": True, "welcome_seen_at": user.welcome_seen_at}
