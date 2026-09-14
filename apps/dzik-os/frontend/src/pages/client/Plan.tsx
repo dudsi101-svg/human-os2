@@ -3,8 +3,9 @@ import { Link } from "react-router-dom";
 import { api, getUser } from "../../api";
 import { WEEKDAYS, localToday, plDate } from "../../dates";
 import { ErrorBox, ExerciseTechniqueLink, Icon, Spinner, TopBar } from "../../components";
-import { PlanVersion, TrainingPlan, WorkoutRow } from "../../types";
+import { DniPlanu, PlanVersion, TrainingPlan, WorkoutRow } from "../../types";
 import { Dlaczego } from "../../wiedza/Dlaczego";
+import DniTreningowe, { etykietaDnia } from "./DniTreningowe";
 
 /** Wiersze serii (ciężar × powtórzenia) wpisywane jako tekst — puste są
  * pomijane przy zapisie. */
@@ -149,6 +150,8 @@ export default function Plan() {
   }, [plan, showHistory, versions]);
 
   const [saveError, setSaveError] = useState<string | null>(null);
+  // Dni treningowe (0.71.0): układ klienta (albo propozycja trenera) do odznak przy dniach.
+  const [dni, setDni] = useState<DniPlanu | null>(null);
 
   async function saveWorkout(dayIndex: number) {
     if (!plan?.current_version) return;
@@ -248,11 +251,18 @@ export default function Plan() {
             </div>
           )}
 
+          <DniTreningowe clientId={user.id} planId={plan.id} tryb="klient" onZmiana={setDni} />
+
           {plan.current_version.content.days.map((day, di) => (
             <div className="card" key={di}>
               <div className="row row--between">
                 <h2>{day.name}</h2>
-                {day.weekday && <span className="badge">{WEEKDAYS[day.weekday - 1]}</span>}
+                {(() => {
+                  const wpis = dni?.days[di];
+                  const etykieta = dni && wpis ? etykietaDnia(dni.source, wpis.weekday) : null;
+                  if (etykieta) return <span className="badge" data-testid={`dzien-${di}`}>{etykieta}</span>;
+                  return day.weekday ? <span className="badge">{WEEKDAYS[day.weekday - 1]}</span> : null;
+                })()}
               </div>
               {day.exercises.map((ex, i) => {
                 const restSeconds = parseRestSeconds(ex.rest);
