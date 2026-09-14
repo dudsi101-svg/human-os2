@@ -1,6 +1,6 @@
 # Stan przekazania — przeczytaj przed rozpoczęciem rundy
 
-**Aktualizacja:** 2026-09-14 · **Wersja w `main`:** 0.71.0 (po scaleniu PR #74 i #72) — **0.72.0 w PR #67** (strona publiczna czerwono-biała, domknięta, decyzja właściciela o scaleniu), 0.73.0 w toku (`agent/cardio-i-rozgrzewka`, zlecenie 5).
+**Aktualizacja:** 2026-09-14 · **Wersja w `main`:** 0.72.0 (po scaleniu PR #67) — 0.73.0 w PR #75 (`agent/cardio-i-rozgrzewka`, zlecenie 5), **0.74.0 w PR #76** (`agent/motyw-czerwony`, zlecenie 4: motyw jasny czerwono-biały, migracja 40).
 **Tryb pracy:** jeden piszący i jeden PR `[WRITER]` naraz
 (`KOORDYNACJA.md`, zasada nadrzędna).
 
@@ -32,6 +32,24 @@ pierwszy commit, draft PR `[WRITER]`, reszta agentów read-only.
 **Stan jakości** (`docs/BRAMKA_GO_NOGO.md`): warunkowe GO na pilotaż z
 jednym prawdziwym klientem, **NO-GO na szerszą produkcję** — siedem
 blokerów wypisanych w §5 tamtego dokumentu.
+
+**Runda 0.74.0 (gałąź `agent/motyw-czerwony`, PR #76, migracja 40, zlecenie 4
+z 14.09):** motyw jasny czerwono-biały jako drugi, kompletny motyw aplikacji
+do wyboru użytkownika (decyzja właściciela z trzeciej tury) — jeden atrybut
+`html[data-theme="czerwony"]` przełącza blok tokenów (`src/theme.ts`,
+`main.tsx` przed pierwszym renderem), sekcja „Wygląd” w „Więcej” (klient
+i trener, grupa radiowa), zapis na urządzeniu (`localStorage`, wyjątek
+w `clearSession`) i na koncie (`notification_settings.theme`, pole w
+`GET/PUT /api/notifications/settings` i w odpowiedzi logowania), znak
+czerwony w jasnym, `/login` ze znakiem + nazwą. Ciemny motyw piksel w piksel
+(bramka A/B: 55/58 identycznych, 3 = stan danych; `:root` celowo bez
+`color-scheme: dark`). 26 par kontrastu policzonych (`DOSTEPNOSC.md`),
+`test_a11y.mjs` w obu motywach w CI, axe-core devDependency (pierwszy
+przebieg złapał `scrollable-region-focusable` w Postępach — naprawione).
+Przyjęte domyślne: ciemny domyślny, PWA/og/manifest limonkowe (decyzja
+o znaku), bez „jak w systemie”. Uwaga: migracja 40 zakłada 39 z PR #75 —
+`test_migracje_przenosnosc` (ciąg bez luk) zielony dopiero po scaleniu #75.
+Otwarte i P2: `docs/motyw/PROGRESS.md`.
 
 **Runda 0.71.0 (gałąź `agent/dni-treningowe`, PR #72, zlecenie 1 z 14.09):**
 dni treningowe na „Dzisiaj” — nakładka klienta na dni tygodnia planu
@@ -394,7 +412,8 @@ nie uruchamiano, ponieważ runda nie zmienia kodu ani zasobów frontendu.
 | `agent/nawyki-dzisiaj` | 0.63.0 | 34 | **scalona** (PR #65, 14.09), wdrożenie 0.63.0 w toku | — | — |
 | `agent/wywiad-zapotrzebowanie` | 0.62.0 | 33 | **scalona** (PR #60, 14.09) i wdrożona | dokument właściciela `wywiad_zapotrzebowanie_kaloryczne.md` nadal niedostarczony — różnice do wyrównania | — |
 | `agent/biblioteka-diet` | 0.64.0 | 35 | **scalona** (PR #66, 14.09), deploy 0.64.0 po CI na `main` | — | — |
-| `agent/landing-czerwony` | **0.72.0** (0.70.0 = PR #70 powitanie, 0.71.0 = zlecenie 1 dni treningowe; 0.68.0 nadal zarezerwowane) | — | **domknięta** (zlecenie 3, 14.09): `main` 0.69.0 scalony, poprawki z pomiaru, kontrast wariant A, treść, E2E 8/8, zrzuty w repo; PR #67 „ready” | **decyzja właściciela o scaleniu** + odpowiedzi na pytania z planu sesji (znak marki, treść kart hero, fraza o czasie odpowiedzi) | po decyzji; zlecenie 4 (motyw) dopiero po #67 |
+| `agent/landing-czerwony` | 0.72.0 | — | **scalona** (PR #67, `195d475`, 14.09) | znak marki w czerwieni wszędzie (etap 2) — decyzja właściciela | — |
+| `agent/motyw-czerwony` | **0.74.0** (0.73.0 = PR #75 cardio) | **40** (39 = PR #75) | zlecenie 4 (14.09): drugi motyw jasny czerwono-biały — tokeny, mechanizm, zapis na koncie, „Wygląd”, 60 ekranów × 2 motywy przejrzane, bramka pikselowa ciemnego; **PR #76 gotowy do przeglądu** | scalenie #75 (migracja 39 — bez niej `test_migracje_przenosnosc` czerwony); decyzja o znaku (PWA/og/manifest) i ewentualnie „jak w systemie” | po #75 |
 | `agent/monitoring-postepy` | 0.66.0 | 36 | **scalona** (PR #61, 14.09), deploy 0.66.0 po CI na `main`; flaga na produkcji wyłączona | włączenie flagi + backfill — decyzja właściciela | — |
 | `agent/ukryj-kreator` | 0.67.0 | — | **scalona** (PR #68, 14.09), deploy 0.67.0 po CI na `main`; kreator na produkcji ukryty (brak flagi w `fly.toml`) | — | — |
 | `agent/wymiany-produktow` | 0.69.0 (0.68.0 = dni treningowe) | — | zlecenie 2 (14.09): silnik wymian v2 (poziom 2, powody, NONE 1:1, bramka „nie pogarsza”), grupy pokrewne (45 par, RO), korelacja katalogu → CSV; przegląd 3 recenzentów naprawiony (P0/P1 ×5, P2 w PROGRESS); `main` 0.67.0 scalony, PR #69 — CI | przegląd CSV przez właściciela (TAK/NIE) → import osobnym PR-em; decyzja o luzie bramki | 1 |

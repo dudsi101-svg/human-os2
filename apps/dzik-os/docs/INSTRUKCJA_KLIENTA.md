@@ -185,6 +185,10 @@ to ocena kompletności raportu, nie Ciebie.
 * **Wiadomości** — pisz do trenera, wysyłaj zdjęcia i filmy;
 * **Pomoc / Samouczek** — ponownie otwiera powitanie z pierwszego
   logowania (dwa kroki: gdzie co jest, co jeszcze warto wiedzieć);
+* **Wygląd** — wybierasz motyw aplikacji: „Ciemny (czarno-zielony)”
+  (domyślny, czytelny na siłowni) albo „Jasny (czerwono-biały)”. Wybór
+  zapisuje się na tym urządzeniu i na Twoim koncie — po zalogowaniu na
+  innym telefonie aplikacja wróci do Twojego motywu;
 * **Profil, zgody i moje dane** — Twoje dane należą do Ciebie:
   * edytuj profil (historia wersji zostaje),
   * **cofnij zgodę** na dostęp trenera jednym przyciskiem (i udziel ponownie),

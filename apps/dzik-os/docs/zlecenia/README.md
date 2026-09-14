@@ -28,7 +28,9 @@ wersje 0.64.0 i 0.65.0 są zajęte przez `agent/biblioteka-diet` i `agent/monito
 | 2 | zlecenie 0 — ukryj kreator | 0.66.0 (0.65.0 zostaje dla monitoringu, jeśli wejdzie wcześniej — wtedy przesuń) | — |
 | 3 | zlecenie 1 — dni treningowe | **0.71.0** (PR #72; 0.70.0 = powitanie, PR #70) | **38** (37 = `users.welcome_seen_at`, PR #70) |
 | 4 | zlecenie 2 — wymiany produktów v2 (+ korelacja katalogu) | kolejna wolna | — (przegląd CSV przez właściciela może iść równolegle) |
-| 5 | PR #67 `agent/landing-czerwony` — zlecenie 3, domknięcie (stan 14.09 wieczór: `main` = 0.69.0; 0.70.0 = PR #70 powitanie, 0.71.0 = dni treningowe) | **0.72.0 (zajęte, w PR)** | — |
+| 5 | PR #67 `agent/landing-czerwony` — zlecenie 3, domknięcie (stan 14.09 wieczór: `main` = 0.69.0; 0.70.0 = PR #70 powitanie, 0.71.0 = dni treningowe) | **0.72.0 (scalone `195d475`)** | — |
+| 6 | zlecenie 5 — rozgrzewka, rozciąganie, cardio (`agent/cardio-i-rozgrzewka`, PR #75) | **0.73.0 (zajęte, w PR)** | **39** |
+| 7 | zlecenie 4 — motyw jasny czerwono-biały (`agent/motyw-czerwony`, PR #76; po #75) | **0.74.0 (zajęte, w PR)** | **40** (`notification_settings.theme`) |
 
 Decyzje właściciela z drugiej tury (14.09): kreator diety odłożony i ukryty; klient na
 diecie z szablonu; katalog pojedynczych produktów (2058 pozycji) ma zasilić zamienniki

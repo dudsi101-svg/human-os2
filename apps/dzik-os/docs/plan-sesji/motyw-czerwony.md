@@ -100,16 +100,30 @@ jasnego motywu z policzonymi parami; regresja ciemnego piksel w piksel + brak li
 kompletność ekranów/UX/testy/dokumenty), P0/P1 naprawione przed przekazaniem, P2 do
 `docs/motyw/PROGRESS.md`.
 
-**axe-core:** decyzja w etapie 6 — instalacja jako devDependency wyłącznie, jeśli nie
-zmienia bundla (nie może — to narzędzie testowe) i nie wydłuża CI znacząco; jeśli rejestr
-npm jest niedostępny z sesji, zapis w PROGRESS: „kontrast liczony ręcznie, tabela w
-DOSTEPNOSC.md”.
+**axe-core:** zainstalowany (`axe-core@4.13.0`, devDependency — poza bundlem, budżet
+92,9 kB bez zmian; a11y w obu motywach ≈ +1 min CI). Pierwsze obowiązkowe uruchomienie
+złapało `scrollable-region-focusable` na wstędze rekordów w Postępach (dług 0.66.0) —
+naprawione w tej rundzie (`role="region"` + `tabIndex=0`). Kontrast i tak policzony
+ręcznie (tabela w `DOSTEPNOSC.md`), bo axe liczy tylko to, co widzi na 7 ekranach.
 
 ## Bramka etapu 1 — wynik (uzupełniane w trakcie)
 
 Porównanie programowe (`PIL.ImageChops.difference(a, b).getbbox()`), Chromium Playwright,
 `reducedMotion: reduce`, ten sam seed, te same trasy i rozmiary:
-_(wpis po wykonaniu etapu 1)_
+
+* **Podejście 1** (dwa osobne serwery/seedy, przed → po): 35/58 identycznych; różnice =
+  znaczniki czasu seedu (15:09 vs 15:14), hashe zdarzeń, kolejność sesji — plus **jedna
+  prawdziwa regresja**: `:root { color-scheme: dark }` z prompta zmieniał natywne
+  kontrolki („Choose File”, checkbox, pasek przewijania). **Zdjęte.**
+* **Podejście 2 — tryb A/B** (`DZIK_ZRZUTY_AB` w `zrzuty-motywy.mjs`: jeden serwer, jeden
+  seed, podmiana zawartości serwowanego `dist/` per ekran, SW zablokowany, czekanie na koniec
+  animacji): **58 ekranów, 55 identycznych co do bajta, 3 różne** — `admin-panel` (łańcuch
+  audytu urósł o zdarzenia z wizyty `przed`), `klient-raport` („Przywrócono wersję roboczą”
+  z `sessionStorage` po pierwszej wizycie), `pub-strona` (obrazy `lazy` niezdekodowane przy
+  pierwszej wizycie). Każda obejrzana jako wycinek przed|po — żadna nie jest różnicą CSS.
+* Migracja 40 przy luce 39: `test_migracje_przenosnosc::test_numery_migracji_sa_unikalne_i_rosnace`
+  wymaga ciągu bez luk — na tej gałęzi czerwony do scalenia #75 (pełny pytest rundy
+  uruchomiony z jawnym `--deselect` tego testu; `test_db_migracje` dopuszcza luki).
 
 ## Czego świadomie NIE robimy
 

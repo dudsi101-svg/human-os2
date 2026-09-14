@@ -32,6 +32,9 @@ klientów wymagających uwagi.
   telefonu; nowy komplet wygenerujesz w „Więcej".
 * W „Więcej" znajdziesz też aktywne sesje (wyloguj zapomniane
   urządzenie) i historię zdarzeń bezpieczeństwa konta.
+* **Wygląd** („Więcej → Wygląd"): motyw aplikacji dla Twojego konta —
+  „Ciemny (czarno-zielony)" albo „Jasny (czerwono-biały)"; wybór klienta
+  jest niezależny od Twojego (każde konto ma swój).
 * Zapomniane hasło: „Nie pamiętasz hasła?" na ekranie logowania (wymaga
   skonfigurowanej wysyłki e-mail).
 
