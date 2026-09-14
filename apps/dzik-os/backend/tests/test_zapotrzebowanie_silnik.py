@@ -374,3 +374,12 @@ def test_rozbicie_w_podstawieniu_liczy_sie_z_liczb_widocznych_w_karcie():
     # Gdy suma zaokrąglonych składników nie wychodzi na wynik, mówimy to wprost.
     if round((po_neat + w.training_kcal_day) * 1.10) != w.cpm:
         assert any("są zaokrąglone" in p for p in w.podstawienie)
+
+
+def test_wiek_liczony_w_pelnych_latach():
+    """Formularz dopuszcza „30,5”, ale wzór (jak w referencji właściciela)
+    bierze pełne lata — inaczej podstawienie i wynik mówiłyby co innego."""
+    a, b = Z.oblicz(_w(wiek=30)), Z.oblicz(_w(wiek=30.9))
+    assert a.wiek == b.wiek == 30
+    assert a.ppm_mifflin == b.ppm_mifflin
+    assert "− 5 × 30 lat" in a.podstawienie[0]

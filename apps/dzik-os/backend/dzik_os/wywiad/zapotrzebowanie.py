@@ -494,6 +494,9 @@ def oblicz(w: Wejscie) -> Wynik:
     _sprawdz(w)
     flagi: list[str] = []
     ostrzezenia: list[str] = []
+    # Wiek w pełnych latach — tak jak w referencji właściciela (tam wychodzi
+    # z daty urodzenia). Formularz dopuszcza „30,5”; bez ucięcia podstawienie
+    # pokazywałoby „30 lat”, a wzór liczyłby z 30,5.
     wiek = int(w.wiek)
     bmi = w.masa_kg / (w.wzrost_cm / 100) ** 2
     if wiek < 18:
@@ -502,7 +505,7 @@ def oblicz(w: Wejscie) -> Wynik:
         flagi.append(FLAGA_BMI_SKRAJNE)
     flagi.extend(_flagi_zdrowotne(w))
 
-    ppm_m = ppm_mifflin(w.plec, w.masa_kg, w.wzrost_cm, w.wiek)
+    ppm_m = ppm_mifflin(w.plec, w.masa_kg, w.wzrost_cm, wiek)
     ppm_k = ppm_katch(w.masa_kg, w.procent_tluszczu) if w.procent_tluszczu else None
     uzyj_katch = ppm_k is not None and abs(ppm_k - ppm_m) / ppm_m > 0.10
     ppm = ppm_k if uzyj_katch else ppm_m
