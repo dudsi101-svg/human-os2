@@ -1423,7 +1423,7 @@ MIGRATIONS.append(
             " kcal INTEGER NOT NULL,"
             " podstawienie_json TEXT NOT NULL DEFAULT '[]',"
             " ostrzezenia_json TEXT NOT NULL DEFAULT '[]',"
-            " hidden_for_client BOOLEAN NOT NULL DEFAULT 0,"
+            " hidden_for_client BOOLEAN NOT NULL DEFAULT false,"
             " unhidden_by VARCHAR(40),"
             " unhidden_at VARCHAR(40),"
             " override_kcal INTEGER,"
