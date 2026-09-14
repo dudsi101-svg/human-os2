@@ -220,7 +220,8 @@ z promptu — historia cardio w „Ostatnich treningach” w Planie).
     (blok linkuje przez `block_id`, jego pozycje przez `exercise_id`) i
     `test_wiedza_api::test_nowa_wersja_trenera…` (ślad `plan_change` filtrowany po
     celu, historia decyzji niesie też `H_CARDIO` z dnia C) oraz stub `workout_entries`
-    dla migracji 39 w `test_migration_19…` (wzorzec 0.70.0).
+    dla migracji 39 w trzech testach „starej bazy” (`test_migration_19…`,
+    `test_migracja_22…`, `test_migracja_23…` — wzorzec stubu `users` z 0.70.0).
 
 ## Przegląd (trzy przejścia tematyczne po diffie — patrz odstępstwo 7)
 
@@ -312,5 +313,29 @@ repo, zrzuty w scratchpadzie sesji `cardio-zrzuty/01–12`), co kliknąłem i co
    (zrzut 12).
 8. Konsola: **0 `pageerror`, 0 błędów konsoli** w obu przebiegach.
 
-**Bramki** (z `/home/user/wt/cardio`, jak CI) — patrz tabela na końcu (uzupełniona po
-pełnym przebiegu).
+**Bramki** (z `/home/user/wt/cardio`, jak CI): `python -m ruff check apps/dzik-os/backend
+apps/dzik-os/tools` — czysto; Core `python -m pytest tests -q` — **275 passed**; backend
+`PYTHONPATH=. python -m pytest tests -q` (pełny, 14 min 16 s) — **1915 zaliczonych,
+1 pominięty (Tesseract), 2 czerwone: `test_migracja_22…` i `test_migracja_23…` na
+stubowanej „starej bazie” bez `workout_entries`** → stuby dołożone (odstępstwo 10), trzy
+testy migracji 19/22/23 zielone w osobnym przebiegu; `tools/spojnosc.py` — czysto
+(13 kontroli; uwagi: K-001 sprzed rundy); `tools/mutacje.py` — **17/17 wykrytych**;
+`tools/mutacje_bezpieczenstwa.py` — **9/9 zabitych** (oryginały przywrócone);
+`npx tsc --noEmit` — czysto; `npm run build` — **90,7 kB gzip** (budżet 120 kB; panel
+cardio i zakładka Bloki za `React.lazy`); `npm run test:helpers` — **147/147**
+(w tym `test-suwaki.mjs` 5/5); E2E `playwright test … --project=telefon` (8110/8111) —
+**cały zestaw telefonowy 34/34** (cardio 3/3, rozgrzewka 2/2, nawyki, dni-treningowe);
+`e2e/test_a11y.mjs` — wszystkie kontrole; `e2e/test_pwa_offline.mjs` — wszystkie kontrole.
+
+## Plan kontra rzeczywistość (zasady v2 §5)
+
+Zgodnie z planem: sześć etapów w zaplanowanej kolejności, jedna reprezentacja pozycji
+(`kind`), silnik jako czyste funkcje z przykładami kontrolnymi jako testami, bramka
+zdrowotna konfiguratora 1:1, ślad w tej samej transakcji, wspólny renderer pozycji,
+panel i zakładka za `React.lazy`, Postępy-cardio wycięte wg kolejności cięcia.
+Nieprzewidziane: (1) trzy testy „starej bazy” wymagały stubu `workout_entries` (ALTER
+w migracji 39); (2) seedowa pozycja cardio w dniu C zmieniła założenia dwóch testów
+(blok bez `exercise_id`, drugi ślad w rewizji); (3) przykłady kontrolne §4 modelu były
+sprzeczne z tekstem reguły struktury (`wW ≥ 0,5`) — próg ostry i „tempo” z mieszaną
+intensywnością; (4) P1 z przeglądu: maskowanie `avg_hr` bez zgody zdrowotnej. Nakład:
+etap 4/5 największy zgodnie z przewidywaniem; bezpiecznik 3× nieprzekroczony.

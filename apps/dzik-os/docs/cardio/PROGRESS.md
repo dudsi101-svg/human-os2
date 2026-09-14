@@ -45,4 +45,19 @@ w danych (`source`, `review`) i wymaga potwierdzenia albo poprawki:
 
 ## 4. P2 z przeglądu (nienaprawione, do kolejnej rundy)
 
-*(uzupełniane po trzech przejściach recenzenckich — patrz plan sesji, „Przegląd”)*
+Z trzech przejść tematycznych (plan sesji, „Przegląd”; P1 naprawione: maskowanie
+`avg_hr` dla trenera bez zgody zdrowotnej):
+
+1. `prescription.hrmax_estimate` w treści planu pozwala odtworzyć wiek (208 − 0,7·w);
+   treść planu jest w domenie treningowej — rozważyć pominięcie liczby w treści planu
+   (zostawić tylko zakres ud./min) albo zgodę na to jawnie w PERMISSIONS.
+2. Numeracja „Ćwiczenie N” w edytorze liczy indeks w tablicy (blok rozgrzewki jako
+   pozycja 1 → pierwsze siłowe to „Ćwiczenie 2”).
+3. Podsumowanie różnic szkicu dla pozycji cardio jest generyczne („zmieniono <nazwa>”),
+   bez frazy „zmieniono cel cardio”.
+4. Czas interwałów u zaawansowanych (4×4/3 = 28 min) nie jest wielokrotnością 5 —
+   suma rund wygrywa z zaokrągleniem; potwierdzić z trenerem, czy woli 30 min.
+5. Klient nie może zmienić urządzenia po zapisaniu wykonania (wybór w dniu treningu
+   żyje w widoku, zapis w `WorkoutEntry.machine`) — bez „ulubionego urządzenia” na koncie.
+6. „Dzisiaj” → „Wykonane ✓” zapisuje sesję bez wpisów (jak dotąd); cardio z czasem/RPE
+   zapisuje się z Planu („Zapisz wykonanie z wynikami”) — rozważyć skrót na „Dzisiaj”.
