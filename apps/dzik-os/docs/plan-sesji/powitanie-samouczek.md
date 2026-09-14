@@ -94,6 +94,10 @@ Nie scalam PR-a, nie robię force-pusha, nie ruszam integracji/AI/klucza.
 * **Scalenie `main` w trakcie rundy:** PR #69 (0.69.0) wszedł na `main` przed pierwszym
   pushem kodu — scalony bez konfliktów (commit scalający), wszystkie bramki powtórzone
   na scalonym drzewie.
+* **Dwa testy „starej bazy” poza planem:** `test_migration_19_…` i `test_migracja_22_…`
+  stemplują migracje 1–18 i tworzą stuby tylko dla tabel, które późniejsze migracje
+  ALTER-ują; migracja 37 ALTER-uje `users` → „no such table: users”. Dopisany stub
+  `users` w obu testach (osobny commit z powodem) — bez zmiany ich sensu.
 * **Bez zdarzenia audytu** przy `POST /api/me/welcome-seen`: to stan interfejsu, nie
   decyzja o danych (jak `last_login_at`) — świadomie, żeby nie zaśmiecać audytu.
 
@@ -102,8 +106,9 @@ Nie scalam PR-a, nie robię force-pusha, nie ruszam integracji/AI/klucza.
 * Backend: `tests/test_powitanie.py` 3 testy (świeży klient bez znacznika + idempotencja
   + `today.welcome_seen`; anonim 401 + konta demo; eksport bez pola, `export_version`
   1.9); macierz dostępu, migracje przenośne (SQLite), `test_db_migracje`, nawyki,
-  onboarding, prywatność — zielone. Pełny zestaw backendu: patrz PR (liczba po
-  ostatnim przebiegu na scalonym drzewie). Core: 275/275. `ruff` czysto.
+  onboarding, prywatność — zielone. Pełny zestaw backendu na scalonym drzewie
+  (po `main` 0.69.0): **1871 zaliczonych, 1 pominięty** (opcjonalny Tesseract), 13:00.
+  Core: 275/275. `ruff` czysto.
 * Frontend: `tsc` czysto, build 90,4 kB gzip (budżet 120), `test:helpers` 142/142.
 * E2E (projekt `telefon`, port 8095): 27/27, w tym `powitanie.spec.ts` (konto przez API
   → brama zgód → krok 1 → krok 2 → pułapka fokusu w obu krokach → reload bez okna →
@@ -111,7 +116,8 @@ Nie scalam PR-a, nie robię force-pusha, nie ruszam integracji/AI/klucza.
   wszystkie kontrole przeszły (klient A ze znacznikiem — kontrakty „Dzisiaj”
   nienaruszone).
 * `tools/spojnosc.py`: czysto (13 kontroli, 1 uwaga — otwarta konsultacja K-001 sprzed
-  rundy). Przeglądy mutacyjne: wynik w PR.
+  rundy). Przeglądy mutacyjne: `mutacje.py` 17/17 wykryte (suma kontrolna oryginału
+  zgodna), `mutacje_bezpieczenstwa.py` 9/9 zabitych (oryginały przywrócone).
 * **Uruchomienie (ZASADA_URUCHOMIENIA):** serwer E2E na 8095, konto „Kasia Zrzutowa”
   utworzone przez API (201/200), logowanie formularzem, brama zgód, na „Dzisiaj” okno
   kroku 1 z fokusem na `h2`, „Dalej” → krok 2 (bez poziomego scrolla 375 px),
