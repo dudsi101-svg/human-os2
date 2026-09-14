@@ -68,6 +68,12 @@ for (const base of [import.meta.url, "/opt/node22/lib/node_modules/"]) {
 
 const APP_DIR = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const DIST = join(APP_DIR, "frontend", "dist");
+// Backend z TEGO drzewa roboczego, nie z zainstalowanego pakietu. Serwer
+// startuje z katalogu tymczasowego (świeża baza), więc bez tego `python -m`
+// importowałby `dzik_os` z site-packages — czyli kod SPRZED zmian rundy,
+// a test dostępności milcząco sprawdzałby nie tę aplikację (`e2e/serve.sh`
+// robi to samo przez `cd "$BACKEND"`).
+const BACKEND = join(APP_DIR, "backend");
 // Motyw (0.74.0): "ciemny" (domyślny, bez atrybutu) albo "czerwony".
 const MOTYW = process.env.DZIK_THEME || "ciemny";
 if (!["ciemny", "czerwony"].includes(MOTYW)) {
@@ -119,6 +125,10 @@ const env = {
   // Zakładka Postępy/Monitoring (0.66.0) — docelowy stan nawigacji:
   // klient ma „Postępy” zamiast „Raportu”, trener szóstą pozycję „Monitoring”.
   DZIK_MONITORING_TAB_ENABLED: "true",
+  // Wywiad kaloryczny (0.62.0, wyrównany w 0.77.0) — na produkcji włączony;
+  // sekcja 4c ogląda kartę bilansu, która bez tej flagi w ogóle się nie renderuje.
+  DZIK_CALORIE_INTERVIEW_ENABLED: "true",
+  PYTHONPATH: [BACKEND, process.env.PYTHONPATH].filter(Boolean).join(":"),
 };
 execFileSync("python3", ["-m", "dzik_os.seed"], { env, cwd: tmp });
 const port = await freePort();
@@ -388,6 +398,66 @@ try {
   check("plan z opisem: jeden h1, bez przeskoków nagłówków",
     hPlan.h1 === 1 && hPlan.skip === null, JSON.stringify(hPlan));
   await runAxe(page, "plan z rozwiniętym opisem");
+
+  // ————— 4c. Bilans kaloryczny (0.77.0): karta z wynikiem na 320 px —————
+  // Karta pokazuje wynik dopiero po przesłaniu wywiadu, więc najpierw
+  // wypełniamy go przez API (tą samą sesją co interfejs), a potem oglądamy
+  // to, co naprawdę zobaczy klient: pięć kafelków, flagi i podstawienie.
+  console.log("4c. Bilans kaloryczny — karta z wynikiem na 320 px");
+  await page.setViewportSize({ width: 320, height: 800 });
+  const wynikWywiadu = await page.evaluate(async () => {
+    const token = sessionStorage.getItem("dzik_token");
+    const me = JSON.parse(sessionStorage.getItem("dzik_user") || "{}");
+    const h = { "Content-Type": "application/json", Authorization: `Bearer ${token}` };
+    const base = `/api/clients/${me.id}/wywiady/zapotrzebowanie`;
+    const rev = async () => (await (await fetch(`${base}/definicja`, { headers: h })).json()).draft?.revision ?? 1;
+    const odp = {
+      zk_plec: "Kobieta", zk_wiek: "30", zk_wzrost: "170", zk_masa: "70",
+      zk_neat: "Siedząca — biurko, samochód, mało chodzenia (poniżej 5 000 kroków)",
+      zk_sila_tydz: "3", zk_cardio_tydz: "0",
+      zk_cel: "Redukcja tkanki tłuszczowej", zk_tempo: "Umiarkowane",
+    };
+    const patch = async (a) => (await fetch(`${base}/szkic`, {
+      method: "PATCH", headers: h,
+      body: JSON.stringify({ revision: await rev(), answers: Object.fromEntries(
+        Object.entries(a).map(([k, v]) => [k, { value: v }])) }),
+    })).json();
+    await patch(odp);
+    await patch({ zk_sila_minuty: "60 minut" });
+    const r = await fetch(`${base}/przeslij`, {
+      method: "POST", headers: h, body: JSON.stringify({ revision: await rev() }),
+    });
+    return { status: r.status, body: await r.text() };
+  });
+  check("bilans: wywiad kaloryczny przesłany przez API", wynikWywiadu.status === 201,
+    wynikWywiadu.body.slice(0, 200));
+  await page.goto(`${url}/wywiad`, { waitUntil: "networkidle" });
+  await page.waitForSelector("[data-testid='zapotrzebowanie-kcal']");
+  await assertNoHorizontalScroll(page, "wywiad z bilansem @320");
+  const bilans = await page.evaluate(() => {
+    const karta = document.querySelector("[data-testid='zapotrzebowanie-karta']");
+    const przycisk = [...karta.querySelectorAll("button")].find((b) => b.hasAttribute("aria-expanded"));
+    return {
+      region: karta.getAttribute("role") === "region" && !!karta.getAttribute("aria-label"),
+      kafelki: karta.querySelectorAll(".stat").length,
+      // Każdy kafelek: liczba (b) i zdanie wyjaśniające (span) — sama liczba nie wystarczy.
+      opisane: [...karta.querySelectorAll(".stat")].every((s) => s.querySelector("b") && s.querySelector("span")),
+      expanded: przycisk?.getAttribute("aria-expanded"),
+      // Cele dotyku: każdy przycisk karty co najmniej 44 px wysokości.
+      male: [...karta.querySelectorAll("button, a")]
+        .map((b) => ({ t: b.textContent.trim().slice(0, 30), h: Math.round(b.getBoundingClientRect().height) }))
+        .filter((b) => b.h < 44),
+    };
+  });
+  check("bilans: karta jest regionem z nazwą", bilans.region);
+  check("bilans: pięć kafelków wyniku, każdy z liczbą i wyjaśnieniem",
+    bilans.kafelki >= 4 && bilans.opisane, JSON.stringify(bilans));
+  check("bilans: „Skąd ta liczba?” ma aria-expanded", bilans.expanded === "false", String(bilans.expanded));
+  check("bilans: cele dotyku w karcie >= 44 px", bilans.male.length === 0, JSON.stringify(bilans.male));
+  const hBilans = await page.evaluate(HEADINGS_JS);
+  check("bilans: jeden h1, bez przeskoków nagłówków", hBilans.h1 === 1 && hBilans.skip === null,
+    JSON.stringify(hBilans));
+  await runAxe(page, "wywiad z bilansem @320");
 
   // ————— 4b. Postępy (0.66.0): nagłówki sekcji, wykresy z opisem, formularz —————
   console.log("4b. Postępy — nagłówki, opisy wykresów, etykiety pól");

@@ -1155,6 +1155,9 @@ table.simple th { color: var(--text-dim); font-weight: 600; font-size: 0.78rem; 
    Widok klienta to kafelki `.stat` (liczba + jedno zdanie „skąd to”), widok
    trenera dokłada rozbicie CPM na składniki i tabelę historii. Wyłącznie
    tokeny — karta wygląda tak samo w obu motywach. */
+/* Cele dotyku: przyciski karty bilansu są realnymi celami palca na telefonie,
+   a `.btn--small` ma 38 px. Podniesienie dotyczy wyłącznie tej karty. */
+[data-testid="zapotrzebowanie-karta"] .btn { min-height: 44px; }
 .bilans__liczby { margin-top: 8px; }
 .bilans__liczby .stat b { font-size: 1.15rem; line-height: 1.25; }
 .bilans__naglowek { font-size: 0.9rem; margin: 12px 0 4px; color: var(--text-dim); font-weight: 600; }
