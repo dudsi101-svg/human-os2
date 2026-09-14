@@ -569,7 +569,11 @@ def _podstawienie(w: Wejscie, y: Wynik, *, neat: float, ppm: float) -> tuple[str
                        f"= {_fmt(neat)}")
     else:
         wiersze.append(f"NEAT (aktywność poza treningiem): {_fmt(neat)}")
-    wiersze.append(f"PPM × NEAT = {y.ppm_used} × {_fmt(neat)} = {round(ppm * neat)} kcal")
+    # Rozbicie liczone z wartości ZAOKRĄGLONYCH (tych, które widać w karcie),
+    # nie z surowych — inaczej wiersz podstawienia i kafelek w interfejsie
+    # potrafiłyby pokazać dwie różne liczby na ten sam składnik.
+    po_neat = round(y.ppm_used * y.neat_multiplier)
+    wiersze.append(f"PPM × NEAT = {y.ppm_used} × {_fmt(y.neat_multiplier)} = {po_neat} kcal")
     for rodzaj, n, m in _sesje(w):
         if not n or not m:
             continue
@@ -580,8 +584,12 @@ def _podstawienie(w: Wejscie, y: Wynik, *, neat: float, ppm: float) -> tuple[str
                        f"(MET {_fmt(MET[rodzaj])}) ÷ 7 dni")
     wiersze.append(f"trening na dzień = {y.training_kcal_day} kcal")
     wiersze.append(f"TEF (termiczny efekt pożywienia, 10 %) = {y.tef} kcal")
-    wiersze.append(f"CPM = ({round(ppm * neat)} + {y.training_kcal_day}) × 1,10 = {y.cpm} kcal "
+    wiersze.append(f"CPM = ({po_neat} + {y.training_kcal_day}) × 1,10 = {y.cpm} kcal "
                    f"(zakres {y.cpm_min}–{y.cpm_max})")
+    if round((po_neat + y.training_kcal_day) * 1.10) != y.cpm:
+        # Uczciwiej powiedzieć to wprost, niż podać sumę, która nie wychodzi.
+        wiersze.append("składniki wyżej są zaokrąglone do pełnych kcal — suma z nich bywa o 1 kcal "
+                       "inna niż wynik liczony bez zaokrągleń")
     if y.korekta_pct == 0:
         wiersze.append(f"cel: {_nazwa_celu(w.cel)} → bez korekty = {y.target_kcal} kcal")
     else:

@@ -362,3 +362,15 @@ def test_zaburzenia_flaguje_tez_nie_wiem_i_wole_omowic():
 def test_pal_efektywny_to_cpm_przez_ppm():
     w = Z.oblicz(_w(plec="M", wiek=30, wzrost_cm=180, masa_kg=80, sila_tydz=3, sila_minuty=60))
     assert w.pal_efektywny == pytest.approx(round(2548 / 1780, 2))
+
+
+def test_rozbicie_w_podstawieniu_liczy_sie_z_liczb_widocznych_w_karcie():
+    """Wiersz podstawienia i kafelek w interfejsie muszą pokazywać tę samą
+    liczbę na ten sam składnik — stąd rozbicie z wartości zaokrąglonych."""
+    w = Z.oblicz(_w(sila_tydz=3, sila_minuty=60, cel="cut", tempo="moderate"))
+    po_neat = round(w.ppm_used * w.neat_multiplier)
+    assert f"PPM × NEAT = {w.ppm_used} × 1,2 = {po_neat} kcal" in w.podstawienie
+    assert f"CPM = ({po_neat} + {w.training_kcal_day}) × 1,10 = {w.cpm} kcal" in " | ".join(w.podstawienie)
+    # Gdy suma zaokrąglonych składników nie wychodzi na wynik, mówimy to wprost.
+    if round((po_neat + w.training_kcal_day) * 1.10) != w.cpm:
+        assert any("zaokrąglone do pełnych kcal" in p for p in w.podstawienie)
