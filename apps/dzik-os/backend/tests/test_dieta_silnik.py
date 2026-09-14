@@ -333,7 +333,7 @@ def test_poziom_2_daje_kandydatow_z_grupy_pokrewnej_po_poziomie_1(prods, tpl):
 def test_rola_none_wymiana_1_do_1_wagowo_tylko_w_tej_samej_grupie(prods, tpl):
     week = S.scale_week(tpl, 2000, prods)
     m, i = _skladnik(week, "stir-fry", "Brokuł")
-    out, meta = S.swap_candidates_z_powodami(m, i, prods, n=10, related=_pokrewne())
+    out, _meta = S.swap_candidates_z_powodami(m, i, prods, n=10, related=_pokrewne())
     assert out and all(o["grams"] == m["ingredients"][i]["grams"] for o in out)
     assert all(o["tier"] == 1 and prods[o["product"]].substitution_group == "warzywa_gotowane" for o in out)
     assert any(o["product"] == "Kalafior" for o in out)
