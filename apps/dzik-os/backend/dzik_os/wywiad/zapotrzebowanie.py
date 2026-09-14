@@ -112,8 +112,10 @@ CEL_REKOMPOZYCJA = "Rekompozycja (mniej tłuszczu, więcej mięśni)"
 CELE = (CEL_REDUKCJA, CEL_UTRZYMANIE, CEL_MASA, CEL_REKOMPOZYCJA)
 KOD_CELU = {CEL_REDUKCJA: "cut", CEL_UTRZYMANIE: "maintain",
             CEL_MASA: "bulk", CEL_REKOMPOZYCJA: "recomp"}
+CELE_KODY = ("cut", "maintain", "bulk", "recomp")
 #: Cele, dla których pytanie o tempo ma sens (pozostałe mają korektę stałą).
 CELE_Z_TEMPEM = ("cut", "bulk")
+TEMPA_KODY = ("gentle", "moderate", "fast")
 
 TEMPO_LAGODNE = "Łagodne"
 TEMPO_UMIARKOWANE = "Umiarkowane"
@@ -421,11 +423,10 @@ def _sprawdz(w: Wejscie) -> None:
         bledy["cardio_minuty"] = "brak czasu cardio"
     if w.cardio_tydz and f"cardio_{w.cardio_intensywnosc}" not in MET:
         bledy["cardio_intensywnosc"] = "brak lub nieznana intensywność cardio"
-    if w.cel not in KOREKTA and (w.cel, w.tempo) not in KOREKTA:
-        if w.cel not in ("cut", "maintain", "bulk", "recomp"):
-            bledy["cel"] = "brak lub nieznany"
-        elif w.cel in CELE_Z_TEMPEM and w.tempo not in ("gentle", "moderate", "fast"):
-            bledy["tempo"] = "brak lub nieznane tempo"
+    if w.cel not in CELE_KODY:
+        bledy["cel"] = "brak lub nieznany"
+    elif w.cel in CELE_Z_TEMPEM and w.tempo not in TEMPA_KODY:
+        bledy["tempo"] = "brak lub nieznane tempo"
     if w.masa_docelowa_kg is not None and not (
             ZAKRES_MASA_DOCELOWA[0] <= w.masa_docelowa_kg <= ZAKRES_MASA_DOCELOWA[1]):
         bledy["masa_docelowa_kg"] = f"poza zakresem {_fmt(ZAKRES_MASA_DOCELOWA[0])}–{_fmt(ZAKRES_MASA_DOCELOWA[1])}"
