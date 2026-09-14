@@ -2,8 +2,11 @@ import { Suspense, lazy, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../../api";
 import { plDate } from "../../dates";
-import { ErrorBox, SheetImportPanel, Spinner, TopBar } from "../../components";
+import { ErrorBox, Icon, SheetImportPanel, Spinner, TopBar } from "../../components";
 import { TrainingPlan } from "../../types";
+import { odmien } from "../../plural";
+import { KIND_BADGE, opisPozycji, rodzajPozycji } from "../../pozycje";
+import { LinkKartyTrenera } from "../../opisCwiczenia";
 import BuiltinTemplates from "./BuiltinTemplates";
 import PlanEditor from "./PlanEditor";
 import PublikacjaPanel from "./PublikacjaPanel";
@@ -14,6 +17,15 @@ export default function Templates() {
   const [templates, setTemplates] = useState<TrainingPlan[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
+  // 0.75.0 (polecenie właściciela): lista pokazuje NAZWY, a treść szablonu
+  // (dni, ćwiczenia, serie, uwagi, panel publikacji) rozwija się dopiero po
+  // kliknięciu w nazwę. Stan rozwinięcia jest lokalny — nic nie zapisuje.
+  const [rozwiniete, setRozwiniete] = useState<Set<string>>(new Set());
+  const przelacz = (id: string) => setRozwiniete((prev) => {
+    const next = new Set(prev);
+    if (next.has(id)) next.delete(id); else next.add(id);
+    return next;
+  });
 
   const load = () => {
     setCreating(false);
@@ -67,33 +79,64 @@ export default function Templates() {
         <PlanEditor clientId={null} existingPlan={null} onSaved={load}
           onCancel={() => setCreating(false)} />
       )}
-      {templates.map((t) => (
-        <div className="card" key={t.id}>
-          <div className="row row--between">
-            <h2>{t.title}</h2>
-            <small>{plDate(t.current_version?.created_at ?? "")}</small>
+      {templates.length === 0 && (
+        <p className="dim">Nie masz jeszcze szablonów treningowych — dodaj pierwszy powyżej.</p>
+      )}
+      {templates.map((t) => {
+        const dni = t.current_version?.content.days ?? [];
+        const liczbaCwiczen = dni.reduce((s, d) => s + d.exercises.length, 0);
+        const open = rozwiniete.has(t.id);
+        const tresc = `szablon-tresc-${t.id}`;
+        return (
+        <div className="card" key={t.id} data-testid="szablon-karta">
+          {/* Nagłówek = przycisk (h2 z przyciskiem w środku to wzorzec akordeonu:
+              czytnik ekranu dostaje i poziom nagłówka, i stan rozwinięcia). */}
+          <div className="row row--between" style={{ alignItems: "flex-start", gap: 8 }}>
+            <h2 style={{ margin: 0, flex: 1 }}>
+              <button type="button" className="knowledge-card__toggle" aria-expanded={open}
+                aria-controls={tresc} onClick={() => przelacz(t.id)} data-testid="szablon-nazwa">
+                <span>
+                  {t.title}
+                  <span className="meta" style={{ display: "block", fontWeight: 400 }}>
+                    {dni.length} {odmien(dni.length, "dzień", "dni", "dni")} · {liczbaCwiczen} {odmien(liczbaCwiczen, "pozycja", "pozycje", "pozycji")}
+                    {t.current_version?.created_at ? ` · ${plDate(t.current_version.created_at)}` : ""}
+                  </span>
+                </span>
+                <span className="dim"><Icon name={open ? "chevron-up" : "chevron-down"} size={18} /></span>
+              </button>
+            </h2>
           </div>
-          {t.current_version?.content.days.map((d, i) => (
-            <div key={i}>
-              <b>{d.name}</b>
-              {d.exercises.map((ex, j) => (
-                <div className="exercise" key={j}>
-                  <div>{ex.name}</div>
-                  <div className="meta">{[ex.sets && `${ex.sets}×${ex.reps ?? "?"}`, ex.weight].filter(Boolean).join(" · ")}</div>
+          {open && (
+            <div id={tresc} style={{ marginTop: 8 }}>
+              {dni.map((d, i) => (
+                <div key={i}>
+                  <b>{d.name}</b>
+                  {d.exercises.map((ex, j) => (
+                    <div className="exercise" key={j}>
+                      <div>
+                        {ex.name}
+                        {KIND_BADGE[rodzajPozycji(ex)] && <span className="badge" style={{ marginLeft: 8 }}>{KIND_BADGE[rodzajPozycji(ex)]}</span>}
+                        {rodzajPozycji(ex) === "strength" && <LinkKartyTrenera exerciseId={ex.exercise_id} />}
+                        {ex.comment && <div className="meta">{ex.comment}</div>}
+                      </div>
+                      <div className="meta">{opisPozycji(ex)}</div>
+                    </div>
+                  ))}
                 </div>
               ))}
+              {/* 0.58.0: szablon jest edytowalny jak plan — szkic → sprawdź zmiany →
+                  publikuj (bez powiadomienia, bo nie ma klienta); kopie u klientów
+                  zostają nietknięte (pochodzenie zapisane na ich wersji v1). */}
+              <PublikacjaPanel planKind="training" planId={t.id} clientId={null} onZmiana={load} />
+              <small className="dim">
+                Kopiowanie do klienta: karta klienta → Plan → „Z szablonu…”. Kopia jest
+                niezależna: zmiany szablonu nie zmieniają planów klientów.
+              </small>
             </div>
-          ))}
-          {/* 0.58.0: szablon jest edytowalny jak plan — szkic → sprawdź zmiany →
-              publikuj (bez powiadomienia, bo nie ma klienta); kopie u klientów
-              zostają nietknięte (pochodzenie zapisane na ich wersji v1). */}
-          <PublikacjaPanel planKind="training" planId={t.id} clientId={null} onZmiana={load} />
-          <small className="dim">
-            Kopiowanie do klienta: karta klienta → Plan → „Z szablonu…”. Kopia jest
-            niezależna: zmiany szablonu nie zmieniają planów klientów.
-          </small>
+          )}
         </div>
-      ))}
+        );
+      })}
       </>)}
     </div>
   );

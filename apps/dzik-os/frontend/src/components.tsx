@@ -1284,60 +1284,6 @@ export function ExerciseDetail({ item }: { item: ExerciseLibraryItem }) {
   );
 }
 
-/** Rozwijana karta techniki przy pozycji planu (klient). Ćwiczenie
- * zarchiwizowane lub usunięte z bazy = po prostu brak karty; plan
- * wyświetla się normalnie. Widoczność rządzi się zwykłą zasadą
- * broadcastu (aktywna relacja z trenerem) — API zwraca 404 w innym
- * przypadku. */
-export function ExerciseTechniqueLink({ exerciseId, name }: {
-  exerciseId: string; name: string;
-}) {
-  const [open, setOpen] = useState(false);
-  const [item, setItem] = useState<ExerciseLibraryItem | null>(null);
-  const [missing, setMissing] = useState(false);
-  const [loading, setLoading] = useState(false);
-
-  function toggle() {
-    const next = !open;
-    setOpen(next);
-    if (next && !item && !missing && !loading) {
-      setLoading(true);
-      api.get<ExerciseLibraryItem>(`/api/me/exercises/${exerciseId}`)
-        .then(setItem)
-        .catch(() => setMissing(true))
-        .finally(() => setLoading(false));
-    }
-  }
-
-  if (missing && !open) return null;
-  return (
-    <div style={{ marginTop: 6 }}>
-      <button type="button" className="btn btn--ghost btn--small" aria-expanded={open}
-        onClick={toggle}>
-        <Icon name={open ? "chevron-up" : "chevron-down"} size={16} />{" "}
-        {open ? "Ukryj technikę" : "Technika z bazy"}
-      </button>
-      {open && (
-        <div className="card" style={{ marginTop: 6 }}>
-          {loading && <Spinner />}
-          {missing && (
-            <p className="dim" style={{ margin: 0 }}>
-              To ćwiczenie nie jest już dostępne w bazie trenera. Twój plan
-              pozostaje bez zmian — zapytaj trenera, jeśli potrzebujesz opisu.
-            </p>
-          )}
-          {item && (
-            <>
-              <b>{name}</b>
-              <ExerciseDetail item={item} />
-            </>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
-
 /** Punkty Sparkline dla serii TYGODNIOWEJ (raporty) z przerwami w linii
  * zamiast interpolacji przez tygodnie bez danych. */
 export function wellbeingSparkPoints(points: SeriesPoint[]) {

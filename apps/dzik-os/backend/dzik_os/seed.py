@@ -271,8 +271,10 @@ def seed() -> dict[str, str]:
                        weight="70 kg", tempo="2011", rest="120 s",
                        comment="Ostatnia seria do 1 w zapasie",
                        video_url="https://example.com/wyciskanie"),
-                ex_ref("Wiosłowanie hantlem w podporze", sets="3", reps="10",
-                       weight="30 kg", rest="90 s"),
+                # 0.75.0: pozycja BEZ `exercise_id` (jak z importu pliku) — demo
+                # dopasowania do bazy po nazwie („Opis ćwiczenia” w planie).
+                {"name": "Wiosłowanie hantlem w podporze", "sets": "3", "reps": "10",
+                 "weight": "30 kg", "rest": "90 s"},
             ]},
             {"name": "Trening B — dół", "weekday": 3, "exercises": [
                 ex_ref("Przysiad ze sztangą", sets="4", reps="6",

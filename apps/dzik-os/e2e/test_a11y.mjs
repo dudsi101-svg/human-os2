@@ -314,6 +314,7 @@ try {
     await page.setViewportSize({ width, height: 850 });
     for (const [path, sel] of [
       ["/", "h1:has-text('Dzisiaj')"],
+      ["/plan", "h1:has-text('Plan treningowy')"],
       ["/raport", "h1:has-text('Raport tygodniowy')"],
       ["/monitoring", "h1:has-text('Postępy')"],
       ["/platnosci", "h1:has-text('Płatności')"],
@@ -325,6 +326,29 @@ try {
       await assertNoHorizontalScroll(page, `${path} @${width}`);
     }
   }
+
+  // ————— 4a. Plan (0.75.0): „Opis ćwiczenia” rozwijany w miejscu, bez scrolla @320 —————
+  console.log("4a. Plan — opis ćwiczenia rozwinięty na 320 px");
+  await page.setViewportSize({ width: 320, height: 700 });
+  await page.goto(`${url}/plan`, { waitUntil: "networkidle" });
+  await page.waitForSelector("h1:has-text('Plan treningowy')");
+  const opisPrzyciski = await page.evaluate(() =>
+    [...document.querySelectorAll("[data-testid^='opis-'] > button")].map((b) => ({
+      expanded: b.getAttribute("aria-expanded"), label: b.getAttribute("aria-label") || b.textContent.trim(),
+    }))
+  );
+  check("plan: przyciski „Opis ćwiczenia” mają aria-expanded i etykietę z nazwą",
+    opisPrzyciski.length > 0 && opisPrzyciski.every((b) => b.expanded === "false" && b.label.includes(": ")),
+    JSON.stringify(opisPrzyciski.slice(0, 3)));
+  await page.click("[data-testid='opis-0-0'] > button");
+  await page.waitForSelector("[data-testid='opis-0-0-tresc'] h3");
+  check("plan: rozwinięty opis ma aria-expanded=true",
+    (await page.getAttribute("[data-testid='opis-0-0'] > button", "aria-expanded")) === "true");
+  await assertNoHorizontalScroll(page, "plan z rozwiniętym opisem @320");
+  const hPlan = await page.evaluate(HEADINGS_JS);
+  check("plan z opisem: jeden h1, bez przeskoków nagłówków",
+    hPlan.h1 === 1 && hPlan.skip === null, JSON.stringify(hPlan));
+  await runAxe(page, "plan z rozwiniętym opisem");
 
   // ————— 4b. Postępy (0.66.0): nagłówki sekcji, wykresy z opisem, formularz —————
   console.log("4b. Postępy — nagłówki, opisy wykresów, etykiety pól");
@@ -440,6 +464,32 @@ try {
   check("baza wiedzy trenera: wszystkie pola mają etykiety",
     unlabeledCoach.length === 0, JSON.stringify(unlabeledCoach));
   await runAxe(coach, "baza wiedzy trenera");
+
+  // ————— 7a. Trener: Szablony (0.75.0) — nazwa jako przycisk rozwijający —————
+  console.log("7a. Trener — szablony rozwijane po nazwie (1024 px)");
+  await coach.goto(`${url}/trener/szablony`, { waitUntil: "networkidle" });
+  await coach.waitForSelector("[data-testid='szablon-nazwa']");
+  const szablony = await coach.evaluate(() =>
+    [...document.querySelectorAll("[data-testid='szablon-nazwa']")].map((b) => ({
+      expanded: b.getAttribute("aria-expanded"), controls: b.getAttribute("aria-controls"),
+      wH2: b.closest("h2") !== null, name: b.textContent.trim(),
+    }))
+  );
+  check("szablony: nazwa to przycisk w h2 z aria-expanded=false i aria-controls",
+    szablony.length > 0 && szablony.every((s) => s.expanded === "false" && !!s.controls && s.wH2 && s.name.length > 0),
+    JSON.stringify(szablony));
+  await coach.click("[data-testid='szablon-nazwa']");
+  const poKliku = await coach.evaluate(() => {
+    const b = document.querySelector("[data-testid='szablon-nazwa']");
+    return { expanded: b.getAttribute("aria-expanded"), panel: !!document.getElementById(b.getAttribute("aria-controls")) };
+  });
+  check("szablony: po kliknięciu aria-expanded=true i panel o wskazanym id istnieje",
+    poKliku.expanded === "true" && poKliku.panel, JSON.stringify(poKliku));
+  const hSzablony = await coach.evaluate(HEADINGS_JS);
+  check("szablony: jeden h1, bez przeskoków nagłówków",
+    hSzablony.h1 === 1 && hSzablony.skip === null, JSON.stringify(hSzablony));
+  await assertNoHorizontalScroll(coach, "szablony z rozwiniętą kartą @1024");
+  await runAxe(coach, "szablony trenera");
 
   // ————— 7b. Trener: Monitoring (lista sygnałów + widok klienta) —————
   console.log("7b. Trener — Monitoring (1024 px)");
