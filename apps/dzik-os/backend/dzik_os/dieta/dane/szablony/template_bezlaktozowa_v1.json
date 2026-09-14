@@ -1,5 +1,5 @@
 {
- "profile": "Standard zbilansowana",
+ "profile": "Bezlaktozowa",
  "variant": 1,
  "base_kcal": 2000,
  "kcal_min": 1400,
@@ -20,29 +20,29 @@
      "ingredients": [
       {
        "product": "Płatki owsiane",
-       "grams": 45,
+       "grams": 35,
        "role": "C"
       },
       {
-       "product": "Mleko 2%",
-       "grams": 180,
+       "product": "Mleko bez laktozy 2%",
+       "grams": 145,
        "role": "NONE",
        "min_factor": 0.7,
        "max_factor": 1.3
       },
       {
-       "product": "Skyr naturalny",
-       "grams": 120,
+       "product": "Skyr bez laktozy",
+       "grams": 95,
        "role": "P"
       },
       {
        "product": "Masło orzechowe",
-       "grams": 15,
+       "grams": 18,
        "role": "F"
       },
       {
        "product": "Banan",
-       "grams": 120,
+       "grams": 120.0,
        "role": "C",
        "unit_g": 120,
        "unit_step": 0.5,
@@ -58,6 +58,11 @@
      "flexible": false,
      "tags": [
       "szybkie"
+     ],
+     "allergens": [
+      "gluten",
+      "mleko",
+      "orzechy_ziemne"
      ]
     },
     {
@@ -67,7 +72,7 @@
      "ingredients": [
       {
        "product": "Pierś z kurczaka (surowa)",
-       "grams": 150,
+       "grams": 165,
        "role": "P"
       },
       {
@@ -92,12 +97,12 @@
       },
       {
        "product": "Olej rzepakowy",
-       "grams": 10,
+       "grams": 14,
        "role": "F"
       },
       {
        "product": "Sos sojowy",
-       "grams": 15,
+       "grams": 10,
        "role": "NONE"
       },
       {
@@ -115,6 +120,10 @@
      "flexible": false,
      "tags": [
       "na_wynos"
+     ],
+     "allergens": [
+      "gluten",
+      "soja"
      ]
     },
     {
@@ -123,18 +132,18 @@
      "kcal_share": 0.15,
      "ingredients": [
       {
-       "product": "Jogurt grecki 0%",
-       "grams": 150,
+       "product": "Jogurt grecki bez laktozy 0%",
+       "grams": 160,
        "role": "P"
       },
       {
        "product": "Borówki",
-       "grams": 100,
+       "grams": 70,
        "role": "C"
       },
       {
        "product": "Orzechy włoskie",
-       "grams": 15,
+       "grams": 17,
        "role": "F"
       },
       {
@@ -148,6 +157,10 @@
      "tags": [
       "szybkie",
       "na_wynos"
+     ],
+     "allergens": [
+      "mleko",
+      "orzechy"
      ]
     },
     {
@@ -157,18 +170,18 @@
      "ingredients": [
       {
        "product": "Chleb żytni",
-       "grams": 70,
+       "grams": 70.0,
        "role": "C",
        "unit_g": 35,
        "class": "DYSKRETNY"
       },
       {
-       "product": "Twaróg półtłusty",
+       "product": "Twaróg półtłusty bez laktozy",
        "grams": 120,
        "role": "P"
       },
       {
-       "product": "Jogurt naturalny 2%",
+       "product": "Jogurt naturalny bez laktozy",
        "grams": 30,
        "role": "NONE"
       },
@@ -189,12 +202,12 @@
       },
       {
        "product": "Oliwa z oliwek",
-       "grams": 7,
+       "grams": 11,
        "role": "F"
       },
       {
        "product": "Sól",
-       "grams": 1,
+       "grams": 0.5,
        "role": "NONE"
       },
       {
@@ -207,6 +220,10 @@
      "flexible": false,
      "tags": [
       "szybkie"
+     ],
+     "allergens": [
+      "gluten",
+      "mleko"
      ]
     }
    ]
@@ -221,19 +238,19 @@
      "ingredients": [
       {
        "product": "Jajko kurze (całe)",
-       "grams": 110,
+       "grams": 110.0,
        "role": "P",
        "unit_g": 55,
        "class": "DYSKRETNY"
       },
       {
        "product": "Białko jaja",
-       "grams": 60,
+       "grams": 45,
        "role": "P"
       },
       {
        "product": "Masło",
-       "grams": 5,
+       "grams": 3,
        "role": "F"
       },
       {
@@ -243,24 +260,24 @@
       },
       {
        "product": "Chleb pełnoziarnisty",
-       "grams": 64,
+       "grams": 96.0,
        "role": "C",
        "unit_g": 32,
        "class": "DYSKRETNY"
       },
       {
        "product": "Pomidor",
-       "grams": 120,
+       "grams": 110,
        "role": "NONE"
       },
       {
        "product": "Awokado",
-       "grams": 50,
+       "grams": 24,
        "role": "F"
       },
       {
        "product": "Sól",
-       "grams": 1,
+       "grams": 0.5,
        "role": "NONE"
       },
       {
@@ -271,7 +288,12 @@
      ],
      "steps": "Jajka z białkiem roztrzep, usmaż na maśle na małym ogniu. Podaj z pieczywem, pomidorem i awokado.",
      "flexible": false,
-     "tags": []
+     "tags": [],
+     "allergens": [
+      "gluten",
+      "jaja",
+      "mleko"
+     ]
     },
     {
      "name": "Łosoś pieczony z batatem i fasolką",
@@ -280,12 +302,12 @@
      "ingredients": [
       {
        "product": "Łosoś (surowy)",
-       "grams": 150,
+       "grams": 155,
        "role": "P"
       },
       {
        "product": "Batat (surowy)",
-       "grams": 300,
+       "grams": 350,
        "role": "C"
       },
       {
@@ -295,7 +317,7 @@
       },
       {
        "product": "Oliwa z oliwek",
-       "grams": 5,
+       "grams": 1,
        "role": "F"
       },
       {
@@ -315,7 +337,7 @@
       },
       {
        "product": "Sól",
-       "grams": 1,
+       "grams": 0.5,
        "role": "NONE"
       },
       {
@@ -326,7 +348,10 @@
      ],
      "steps": "Batat pokrój w kostkę, skrop połową oliwy, piecz 25 min w 200°C. Łososia dołóż na ostatnie 12-15 min. Fasolkę ugotuj 6 min. Skrop cytryną, posyp koperkiem.",
      "flexible": false,
-     "tags": []
+     "tags": [],
+     "allergens": [
+      "ryby"
+     ]
     },
     {
      "name": "Wafle z hummusem i szynką",
@@ -335,24 +360,24 @@
      "ingredients": [
       {
        "product": "Wafle ryżowe",
-       "grams": 36,
+       "grams": 27.0,
        "role": "C",
        "unit_g": 9,
        "class": "DYSKRETNY"
       },
       {
        "product": "Hummus",
-       "grams": 40,
+       "grams": 50,
        "role": "F"
       },
       {
        "product": "Szynka z indyka (wędlina)",
-       "grams": 40,
+       "grams": 30,
        "role": "P"
       },
       {
        "product": "Papryka czerwona",
-       "grams": 100,
+       "grams": 110,
        "role": "NONE"
       }
      ],
@@ -361,6 +386,9 @@
      "tags": [
       "na_wynos",
       "szybkie"
+     ],
+     "allergens": [
+      "sezam"
      ]
     },
     {
@@ -385,17 +413,17 @@
       },
       {
        "product": "Kukurydza z puszki",
-       "grams": 60,
+       "grams": 70,
        "role": "C"
       },
       {
        "product": "Fasola czerwona z puszki (odsączona)",
-       "grams": 80,
+       "grams": 100,
        "role": "C"
       },
       {
        "product": "Oliwa z oliwek",
-       "grams": 10,
+       "grams": 9,
        "role": "F"
       },
       {
@@ -405,14 +433,14 @@
       },
       {
        "product": "Chleb żytni",
-       "grams": 35,
+       "grams": 35.0,
        "role": "C",
        "unit_g": 35,
        "class": "DYSKRETNY"
       },
       {
        "product": "Sól",
-       "grams": 1,
+       "grams": 0.5,
        "role": "NONE"
       },
       {
@@ -426,6 +454,10 @@
      "tags": [
       "szybkie",
       "na_wynos"
+     ],
+     "allergens": [
+      "gluten",
+      "ryby"
      ]
     }
    ]
@@ -439,13 +471,13 @@
      "kcal_share": 0.25,
      "ingredients": [
       {
-       "product": "Twaróg półtłusty",
-       "grams": 120,
+       "product": "Twaróg półtłusty bez laktozy",
+       "grams": 85,
        "role": "P"
       },
       {
        "product": "Jajko kurze (całe)",
-       "grams": 55,
+       "grams": 55.0,
        "role": "P",
        "unit_g": 55,
        "group": "ciasto",
@@ -453,13 +485,13 @@
       },
       {
        "product": "Mąka pełnoziarnista",
-       "grams": 40,
+       "grams": 30,
        "role": "C",
        "group": "ciasto"
       },
       {
        "product": "Banan",
-       "grams": 120,
+       "grams": 60.0,
        "role": "C",
        "unit_g": 120,
        "unit_step": 0.5,
@@ -471,13 +503,13 @@
        "role": "F"
       },
       {
-       "product": "Jogurt naturalny 2%",
-       "grams": 60,
+       "product": "Jogurt naturalny bez laktozy",
+       "grams": 45,
        "role": "NONE"
       },
       {
        "product": "Maliny",
-       "grams": 100,
+       "grams": 90,
        "role": "NONE"
       },
       {
@@ -488,7 +520,12 @@
      ],
      "steps": "Twaróg, jajko, rozgniecionego banana i mąkę wymieszaj na gęste ciasto. Smaż małe placki na oleju po 2-3 min z każdej strony. Podaj z jogurtem i malinami.",
      "flexible": false,
-     "tags": []
+     "tags": [],
+     "allergens": [
+      "gluten",
+      "jaja",
+      "mleko"
+     ]
     },
     {
      "name": "Chili con carne z ryżem",
@@ -497,17 +534,17 @@
      "ingredients": [
       {
        "product": "Wołowina mielona 90/10 (surowa)",
-       "grams": 120,
+       "grams": 105,
        "role": "P"
       },
       {
        "product": "Fasola czerwona z puszki (odsączona)",
-       "grams": 100,
+       "grams": 95,
        "role": "C"
       },
       {
        "product": "Pomidory krojone z puszki",
-       "grams": 200,
+       "grams": 190,
        "role": "NONE"
       },
       {
@@ -522,12 +559,12 @@
       },
       {
        "product": "Ryż biały (suchy)",
-       "grams": 65,
+       "grams": 60,
        "role": "C"
       },
       {
        "product": "Olej rzepakowy",
-       "grams": 5,
+       "grams": 6,
        "role": "F"
       },
       {
@@ -547,7 +584,7 @@
       },
       {
        "product": "Sól",
-       "grams": 1,
+       "grams": 0.5,
        "role": "NONE"
       },
       {
@@ -561,7 +598,8 @@
      "tags": [
       "na_wynos",
       "na_zapas"
-     ]
+     ],
+     "allergens": []
     },
     {
      "name": "Jabłko, migdały i skyr",
@@ -570,7 +608,7 @@
      "ingredients": [
       {
        "product": "Jabłko",
-       "grams": 180,
+       "grams": 180.0,
        "role": "C",
        "unit_g": 180,
        "unit_step": 0.5,
@@ -578,12 +616,12 @@
       },
       {
        "product": "Migdały",
-       "grams": 25,
+       "grams": 26,
        "role": "F"
       },
       {
-       "product": "Skyr naturalny",
-       "grams": 100,
+       "product": "Skyr bez laktozy",
+       "grams": 90,
        "role": "P"
       }
      ],
@@ -591,6 +629,10 @@
      "flexible": true,
      "tags": [
       "na_wynos"
+     ],
+     "allergens": [
+      "mleko",
+      "orzechy"
      ]
     },
     {
@@ -600,18 +642,18 @@
      "ingredients": [
       {
        "product": "Tortilla pszenna",
-       "grams": 45,
+       "grams": 45.0,
        "role": "C",
        "unit_g": 45,
        "class": "DYSKRETNY"
       },
       {
        "product": "Pierś z kurczaka (surowa)",
-       "grams": 140,
+       "grams": 125,
        "role": "P"
       },
       {
-       "product": "Jogurt grecki 0%",
+       "product": "Jogurt grecki bez laktozy 0%",
        "grams": 40,
        "role": "NONE"
       },
@@ -637,7 +679,7 @@
       },
       {
        "product": "Ciecierzyca z puszki (odsączona)",
-       "grams": 60,
+       "grams": 55,
        "role": "C"
       },
       {
@@ -652,7 +694,7 @@
       },
       {
        "product": "Sól",
-       "grams": 1,
+       "grams": 0.5,
        "role": "NONE"
       },
       {
@@ -663,7 +705,11 @@
      ],
      "steps": "Kurczaka natrzyj papryką i usmaż na oliwie. Jogurt wymieszaj z czosnkiem. Zwiń wszystko w tortillę.",
      "flexible": false,
-     "tags": []
+     "tags": [],
+     "allergens": [
+      "gluten",
+      "mleko"
+     ]
     }
    ]
   },
@@ -676,23 +722,23 @@
      "kcal_share": 0.25,
      "ingredients": [
       {
-       "product": "Skyr naturalny",
-       "grams": 200,
+       "product": "Skyr bez laktozy",
+       "grams": 210,
        "role": "P"
       },
       {
        "product": "Płatki owsiane",
-       "grams": 40,
+       "grams": 25,
        "role": "C"
       },
       {
        "product": "Nasiona chia",
-       "grams": 10,
+       "grams": 14,
        "role": "F"
       },
       {
        "product": "Owoce jagodowe mrożone",
-       "grams": 100,
+       "grams": 70,
        "role": "C"
       },
       {
@@ -702,7 +748,7 @@
       },
       {
        "product": "Orzechy nerkowca",
-       "grams": 15,
+       "grams": 20,
        "role": "F"
       }
      ],
@@ -711,6 +757,11 @@
      "tags": [
       "szybkie",
       "na_wynos"
+     ],
+     "allergens": [
+      "gluten",
+      "mleko",
+      "orzechy"
      ]
     },
     {
@@ -720,17 +771,17 @@
      "ingredients": [
       {
        "product": "Dorsz (surowy)",
-       "grams": 180,
+       "grams": 225,
        "role": "P"
       },
       {
        "product": "Kasza jaglana (sucha)",
-       "grams": 70,
+       "grams": 60,
        "role": "C"
       },
       {
        "product": "Passata pomidorowa",
-       "grams": 200,
+       "grams": 210,
        "role": "NONE"
       },
       {
@@ -745,7 +796,7 @@
       },
       {
        "product": "Oliwa z oliwek",
-       "grams": 10,
+       "grams": 15,
        "role": "F"
       },
       {
@@ -760,7 +811,7 @@
       },
       {
        "product": "Sól",
-       "grams": 1,
+       "grams": 0.5,
        "role": "NONE"
       },
       {
@@ -771,7 +822,10 @@
      ],
      "steps": "Cebulę i czosnek zeszklij, dodaj cukinię i passatę, duś 10 min. Ułóż dorsza w sosie, przykryj i duś 10 min. Podaj z kaszą.",
      "flexible": false,
-     "tags": []
+     "tags": [],
+     "allergens": [
+      "ryby"
+     ]
     },
     {
      "name": "Kanapka z jajkiem i szynką",
@@ -780,14 +834,14 @@
      "ingredients": [
       {
        "product": "Chleb żytni",
-       "grams": 70,
+       "grams": 70.0,
        "role": "C",
        "unit_g": 35,
        "class": "DYSKRETNY"
       },
       {
        "product": "Jajko kurze (całe)",
-       "grams": 55,
+       "grams": 55.0,
        "role": "P",
        "unit_g": 55,
        "class": "DYSKRETNY"
@@ -809,7 +863,7 @@
       },
       {
        "product": "Pomidor",
-       "grams": 80,
+       "grams": 50,
        "role": "NONE"
       }
      ],
@@ -817,6 +871,11 @@
      "flexible": true,
      "tags": [
       "na_wynos"
+     ],
+     "allergens": [
+      "gluten",
+      "gorczyca",
+      "jaja"
      ]
     },
     {
@@ -825,23 +884,23 @@
      "kcal_share": 0.25,
      "ingredients": [
       {
-       "product": "Feta",
-       "grams": 40,
+       "product": "Ser feta bez laktozy",
+       "grams": 35,
        "role": "F"
       },
       {
        "product": "Ciecierzyca z puszki (odsączona)",
-       "grams": 100,
+       "grams": 40,
        "role": "P"
       },
       {
        "product": "Ogórek",
-       "grams": 150,
+       "grams": 120,
        "role": "NONE"
       },
       {
        "product": "Pomidor",
-       "grams": 150,
+       "grams": 120,
        "role": "NONE"
       },
       {
@@ -851,12 +910,12 @@
       },
       {
        "product": "Oliwa z oliwek",
-       "grams": 8,
+       "grams": 7,
        "role": "F"
       },
       {
        "product": "Chleb pełnoziarnisty",
-       "grams": 64,
+       "grams": 96.0,
        "role": "C",
        "unit_g": 32,
        "class": "DYSKRETNY"
@@ -868,7 +927,7 @@
       },
       {
        "product": "Sól",
-       "grams": 1,
+       "grams": 0.5,
        "role": "NONE"
       },
       {
@@ -881,6 +940,10 @@
      "flexible": false,
      "tags": [
       "szybkie"
+     ],
+     "allergens": [
+      "gluten",
+      "mleko"
      ]
     }
    ]
@@ -895,14 +958,14 @@
      "ingredients": [
       {
        "product": "Jajko kurze (całe)",
-       "grams": 110,
+       "grams": 110.0,
        "role": "P",
        "unit_g": 55,
        "class": "DYSKRETNY"
       },
       {
-       "product": "Jogurt grecki 0%",
-       "grams": 40,
+       "product": "Jogurt grecki bez laktozy 0%",
+       "grams": 30,
        "role": "P"
       },
       {
@@ -917,7 +980,7 @@
       },
       {
        "product": "Chleb pełnoziarnisty",
-       "grams": 96,
+       "grams": 96.0,
        "role": "C",
        "unit_g": 32,
        "class": "DYSKRETNY"
@@ -934,12 +997,12 @@
       },
       {
        "product": "Masło",
-       "grams": 5,
+       "grams": 8,
        "role": "F"
       },
       {
        "product": "Sól",
-       "grams": 1,
+       "grams": 0.5,
        "role": "NONE"
       },
       {
@@ -950,7 +1013,13 @@
      ],
      "steps": "Jajka ugotuj na twardo, rozgnieć z jogurtem, musztardą i szczypiorkiem. Kanapki posmaruj cienko masłem, nałóż pastę i warzywa.",
      "flexible": false,
-     "tags": []
+     "tags": [],
+     "allergens": [
+      "gluten",
+      "gorczyca",
+      "jaja",
+      "mleko"
+     ]
     },
     {
      "name": "Gulasz z indyka z kaszą gryczaną",
@@ -959,12 +1028,12 @@
      "ingredients": [
       {
        "product": "Pierś z indyka (surowa)",
-       "grams": 150,
+       "grams": 135,
        "role": "P"
       },
       {
        "product": "Kasza gryczana (sucha)",
-       "grams": 70,
+       "grams": 75,
        "role": "C"
       },
       {
@@ -988,13 +1057,13 @@
        "role": "NONE"
       },
       {
-       "product": "Śmietana 18%",
-       "grams": 30,
+       "product": "Śmietanka bez laktozy 18%",
+       "grams": 40,
        "role": "F"
       },
       {
        "product": "Olej rzepakowy",
-       "grams": 5,
+       "grams": 6,
        "role": "F"
       },
       {
@@ -1009,7 +1078,7 @@
       },
       {
        "product": "Sól",
-       "grams": 1,
+       "grams": 0.5,
        "role": "NONE"
       },
       {
@@ -1022,6 +1091,9 @@
      "flexible": false,
      "tags": [
       "na_zapas"
+     ],
+     "allergens": [
+      "mleko"
      ]
     },
     {
@@ -1031,20 +1103,20 @@
      "ingredients": [
       {
        "product": "Banan",
-       "grams": 120,
+       "grams": 60.0,
        "role": "C",
        "unit_g": 120,
        "unit_step": 0.5,
        "class": "DYSKRETNY"
       },
       {
-       "product": "Skyr naturalny",
-       "grams": 120,
+       "product": "Skyr bez laktozy",
+       "grams": 105,
        "role": "P"
       },
       {
-       "product": "Mleko 2%",
-       "grams": 100,
+       "product": "Mleko bez laktozy 2%",
+       "grams": 105,
        "role": "NONE",
        "min_factor": 0.7,
        "max_factor": 1.3
@@ -1056,12 +1128,12 @@
       },
       {
        "product": "Masło orzechowe",
-       "grams": 8,
+       "grams": 12,
        "role": "F"
       },
       {
        "product": "Płatki owsiane",
-       "grams": 10,
+       "grams": 5,
        "role": "C"
       }
      ],
@@ -1070,6 +1142,11 @@
      "tags": [
       "szybkie",
       "na_wynos"
+     ],
+     "allergens": [
+      "gluten",
+      "mleko",
+      "orzechy_ziemne"
      ]
     },
     {
@@ -1083,8 +1160,8 @@
        "role": "C"
       },
       {
-       "product": "Twaróg półtłusty",
-       "grams": 120,
+       "product": "Twaróg półtłusty bez laktozy",
+       "grams": 105,
        "role": "P"
       },
       {
@@ -1099,7 +1176,7 @@
       },
       {
        "product": "Oliwa z oliwek",
-       "grams": 8,
+       "grams": 10,
        "role": "F"
       },
       {
@@ -1108,13 +1185,13 @@
        "role": "NONE"
       },
       {
-       "product": "Jogurt naturalny 2%",
+       "product": "Jogurt naturalny bez laktozy",
        "grams": 30,
        "role": "NONE"
       },
       {
        "product": "Sól",
-       "grams": 1,
+       "grams": 0.5,
        "role": "NONE"
       },
       {
@@ -1125,7 +1202,10 @@
      ],
      "steps": "Ziemniaki w ćwiartkach skrop połową oliwy i piecz 30 min w 200°C. Twaróg wymieszaj z jogurtem i koperkiem. Kapustę wymieszaj z tartą marchwią i resztą oliwy.",
      "flexible": false,
-     "tags": []
+     "tags": [],
+     "allergens": [
+      "mleko"
+     ]
     }
    ]
   },
@@ -1139,14 +1219,14 @@
      "ingredients": [
       {
        "product": "Jajko kurze (całe)",
-       "grams": 110,
+       "grams": 165.0,
        "role": "P",
        "unit_g": 55,
        "class": "DYSKRETNY"
       },
       {
        "product": "Białko jaja",
-       "grams": 80,
+       "grams": 70,
        "role": "P"
       },
       {
@@ -1160,25 +1240,25 @@
        "role": "NONE"
       },
       {
-       "product": "Mozzarella light",
-       "grams": 25,
+       "product": "Mozzarella bez laktozy",
+       "grams": 10,
        "role": "F"
       },
       {
        "product": "Masło",
-       "grams": 4,
+       "grams": 2,
        "role": "F"
       },
       {
        "product": "Chleb żytni",
-       "grams": 70,
+       "grams": 70.0,
        "role": "C",
        "unit_g": 35,
        "class": "DYSKRETNY"
       },
       {
        "product": "Sól",
-       "grams": 1,
+       "grams": 0.5,
        "role": "NONE"
       },
       {
@@ -1189,7 +1269,12 @@
      ],
      "steps": "Pieczarki podsmaż na maśle, dodaj szpinak. Zalej roztrzepanymi jajkami, posyp mozzarellą, smaż pod przykryciem 4-5 min. Podaj z chlebem.",
      "flexible": false,
-     "tags": []
+     "tags": [],
+     "allergens": [
+      "gluten",
+      "jaja",
+      "mleko"
+     ]
     },
     {
      "name": "Makaron z bolognese z indyka",
@@ -1198,17 +1283,17 @@
      "ingredients": [
       {
        "product": "Makaron pełnoziarnisty (suchy)",
-       "grams": 80,
+       "grams": 65,
        "role": "C"
       },
       {
        "product": "Mięso mielone z indyka (surowe)",
-       "grams": 130,
+       "grams": 150,
        "role": "P"
       },
       {
        "product": "Passata pomidorowa",
-       "grams": 200,
+       "grams": 190,
        "role": "NONE"
       },
       {
@@ -1223,7 +1308,7 @@
       },
       {
        "product": "Oliwa z oliwek",
-       "grams": 8,
+       "grams": 4,
        "role": "F"
       },
       {
@@ -1243,7 +1328,7 @@
       },
       {
        "product": "Sól",
-       "grams": 1,
+       "grams": 0.5,
        "role": "NONE"
       },
       {
@@ -1257,6 +1342,10 @@
      "tags": [
       "na_wynos",
       "na_zapas"
+     ],
+     "allergens": [
+      "gluten",
+      "mleko"
      ]
     },
     {
@@ -1266,27 +1355,27 @@
      "ingredients": [
       {
        "product": "Wafle ryżowe",
-       "grams": 27,
+       "grams": 18.0,
        "role": "C",
        "unit_g": 9,
        "class": "DYSKRETNY"
       },
       {
        "product": "Masło orzechowe",
-       "grams": 15,
+       "grams": 14,
        "role": "F"
       },
       {
        "product": "Gruszka",
-       "grams": 170,
+       "grams": 85.0,
        "role": "C",
        "unit_g": 170,
        "unit_step": 0.5,
        "class": "DYSKRETNY"
       },
       {
-       "product": "Jogurt grecki 0%",
-       "grams": 80,
+       "product": "Jogurt grecki bez laktozy 0%",
+       "grams": 130,
        "role": "P"
       }
      ],
@@ -1295,6 +1384,10 @@
      "tags": [
       "na_wynos",
       "szybkie"
+     ],
+     "allergens": [
+      "mleko",
+      "orzechy_ziemne"
      ]
     },
     {
@@ -1304,17 +1397,17 @@
      "ingredients": [
       {
        "product": "Ciecierzyca z puszki (odsączona)",
-       "grams": 120,
+       "grams": 150,
        "role": "P"
       },
       {
        "product": "Komosa ryżowa (sucha)",
-       "grams": 50,
+       "grams": 35,
        "role": "C"
       },
       {
        "product": "Papryka czerwona",
-       "grams": 100,
+       "grams": 90,
        "role": "NONE"
       },
       {
@@ -1323,13 +1416,13 @@
        "role": "NONE"
       },
       {
-       "product": "Feta",
-       "grams": 30,
+       "product": "Ser feta bez laktozy",
+       "grams": 20,
        "role": "F"
       },
       {
        "product": "Tahini",
-       "grams": 10,
+       "grams": 6,
        "role": "F"
       },
       {
@@ -1349,7 +1442,7 @@
       },
       {
        "product": "Sól",
-       "grams": 1,
+       "grams": 0.5,
        "role": "NONE"
       },
       {
@@ -1362,6 +1455,10 @@
      "flexible": false,
      "tags": [
       "na_wynos"
+     ],
+     "allergens": [
+      "mleko",
+      "sezam"
      ]
     }
    ]
@@ -1376,55 +1473,60 @@
      "ingredients": [
       {
        "product": "Płatki owsiane",
-       "grams": 50,
+       "grams": 30,
        "role": "C",
        "group": "ciasto"
       },
       {
        "product": "Jajko kurze (całe)",
-       "grams": 55,
+       "grams": 55.0,
        "role": "P",
        "unit_g": 55,
        "group": "ciasto",
        "class": "DYSKRETNY"
       },
       {
-       "product": "Mleko 2%",
-       "grams": 100,
+       "product": "Mleko bez laktozy 2%",
+       "grams": 75,
        "role": "NONE",
        "group": "ciasto",
        "min_factor": 0.7,
        "max_factor": 1.3
       },
       {
-       "product": "Twaróg chudy",
-       "grams": 120,
+       "product": "Twaróg chudy bez laktozy",
+       "grams": 110,
        "role": "P"
       },
       {
        "product": "Truskawki",
-       "grams": 120,
+       "grams": 80,
        "role": "C"
       },
       {
        "product": "Miód",
-       "grams": 8,
+       "grams": 10,
        "role": "C"
       },
       {
        "product": "Olej rzepakowy",
-       "grams": 5,
+       "grams": 8,
        "role": "F"
       },
       {
-       "product": "Jogurt naturalny 2%",
-       "grams": 40,
+       "product": "Jogurt naturalny bez laktozy",
+       "grams": 35,
        "role": "NONE"
       }
      ],
      "steps": "Płatki zmiksuj z jajkiem i mlekiem, odstaw 5 min. Smaż cienkie naleśniki na oleju. Twaróg rozgnieć z jogurtem i miodem, nałóż, dodaj truskawki.",
      "flexible": false,
-     "tags": []
+     "tags": [],
+     "allergens": [
+      "gluten",
+      "jaja",
+      "mleko"
+     ]
     },
     {
      "name": "Schab pieczony z ziemniakami i surówką z buraków",
@@ -1433,12 +1535,12 @@
      "ingredients": [
       {
        "product": "Schab bez kości (surowy)",
-       "grams": 160,
+       "grams": 185,
        "role": "P"
       },
       {
        "product": "Ziemniaki (surowe)",
-       "grams": 350,
+       "grams": 290,
        "role": "C"
       },
       {
@@ -1447,13 +1549,13 @@
        "role": "NONE"
       },
       {
-       "product": "Jogurt naturalny 2%",
+       "product": "Jogurt naturalny bez laktozy",
        "grams": 30,
        "role": "NONE"
       },
       {
        "product": "Olej rzepakowy",
-       "grams": 12,
+       "grams": 16,
        "role": "F"
       },
       {
@@ -1473,7 +1575,7 @@
       },
       {
        "product": "Sól",
-       "grams": 1,
+       "grams": 0.5,
        "role": "NONE"
       },
       {
@@ -1484,7 +1586,11 @@
      ],
      "steps": "Schab natrzyj musztardą, czosnkiem, solą i olejem; piecz 25-30 min w 190°C. Ziemniaki ugotuj, posyp koperkiem. Buraki ugotuj, zetrzyj, wymieszaj z jogurtem.",
      "flexible": false,
-     "tags": []
+     "tags": [],
+     "allergens": [
+      "gorczyca",
+      "mleko"
+     ]
     },
     {
      "name": "Jogurt z orzechami i daktylami",
@@ -1492,18 +1598,18 @@
      "kcal_share": 0.15,
      "ingredients": [
       {
-       "product": "Jogurt naturalny 2%",
-       "grams": 200,
+       "product": "Jogurt naturalny bez laktozy",
+       "grams": 185,
        "role": "P"
       },
       {
        "product": "Orzechy włoskie",
-       "grams": 15,
+       "grams": 14,
        "role": "F"
       },
       {
        "product": "Daktyle",
-       "grams": 48,
+       "grams": 24.0,
        "role": "C",
        "unit_g": 24,
        "class": "DYSKRETNY"
@@ -1519,6 +1625,10 @@
      "tags": [
       "szybkie",
       "na_wynos"
+     ],
+     "allergens": [
+      "mleko",
+      "orzechy"
      ]
     },
     {
@@ -1528,12 +1638,12 @@
      "ingredients": [
       {
        "product": "Soczewica czerwona (sucha)",
-       "grams": 60,
+       "grams": 50,
        "role": "P"
       },
       {
        "product": "Pomidory krojone z puszki",
-       "grams": 250,
+       "grams": 230,
        "role": "NONE",
        "max_factor": 1.2
       },
@@ -1549,7 +1659,7 @@
       },
       {
        "product": "Mleczko kokosowe",
-       "grams": 40,
+       "grams": 50,
        "role": "F"
       },
       {
@@ -1569,14 +1679,14 @@
       },
       {
        "product": "Chleb żytni",
-       "grams": 35,
+       "grams": 35.0,
        "role": "C",
        "unit_g": 35,
        "class": "DYSKRETNY"
       },
       {
        "product": "Sól",
-       "grams": 1,
+       "grams": 0.5,
        "role": "NONE"
       },
       {
@@ -1589,9 +1699,31 @@
      "flexible": false,
      "tags": [
       "na_zapas"
+     ],
+     "allergens": [
+      "gluten"
      ]
     }
    ]
   }
+ ],
+ "derived_from": "standard_v1",
+ "audit": {
+  "version": "2026-09-14",
+  "fixes": {
+   "role": 0,
+   "warzywa": 0,
+   "tłusta_ryba": 0,
+   "czerwone": 0,
+   "wędliny": 0,
+   "strączki": 0,
+   "białko": 1,
+   "ala_błonnik": 0
+  },
+  "remaining": []
+ },
+ "sodium_note": "Sól w przepisach 0,5 g/posiłek; bulion warzywny wybieraj niskosodowy; sos sojowy o obniżonej zawartości soli.",
+ "supplements_note": [
+  "D3 (jesień–zima, 2000 IU) – standardowe zalecenie w Polsce"
  ]
 }

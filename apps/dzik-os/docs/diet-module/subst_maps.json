@@ -1,0 +1,32 @@
+{
+ "LF": {
+  "Mleko 2%": "Mleko bez laktozy 2%",
+  "Jogurt naturalny 2%": "Jogurt naturalny bez laktozy",
+  "Jogurt grecki 0%": "Jogurt grecki bez laktozy 0%",
+  "Skyr naturalny": "Skyr bez laktozy",
+  "Kefir 2%": "Kefir bez laktozy",
+  "Twaróg półtłusty": "Twaróg półtłusty bez laktozy",
+  "Twaróg chudy": "Twaróg chudy bez laktozy",
+  "Serek wiejski (cottage)": "Serek wiejski bez laktozy",
+  "Mozzarella light": "Mozzarella bez laktozy",
+  "Śmietana 18%": "Śmietanka bez laktozy 18%",
+  "Feta": "Ser feta bez laktozy",
+  "Ser gouda": "Ser żółty bez laktozy"
+ },
+ "GF": {
+  "Chleb żytni": "Chleb bezglutenowy",
+  "Chleb pełnoziarnisty": "Chleb bezglutenowy",
+  "Tortilla pszenna": "Tortilla kukurydziana",
+  "Makaron pszenny (suchy)": "Makaron bezglutenowy kukurydziano-ryżowy (suchy)",
+  "Makaron pełnoziarnisty (suchy)": "Makaron bezglutenowy kukurydziano-ryżowy (suchy)",
+  "Kasza pęczak (sucha)": "Kasza gryczana (sucha)",
+  "Kasza bulgur (sucha)": "Kasza jaglana (sucha)",
+  "Kuskus (suchy)": "Komosa ryżowa (sucha)",
+  "Płatki owsiane": "Płatki owsiane bezglutenowe",
+  "Mąka pszenna": "Mąka ryżowa",
+  "Mąka pełnoziarnista": "Mąka gryczana",
+  "Sos sojowy": "Sos tamari (bezglutenowy)",
+  "Bulion warzywny": "Bulion warzywny bezglutenowy",
+  "Skwarki": "Oliwa z oliwek"
+ }
+}

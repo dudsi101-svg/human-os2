@@ -1,5 +1,59 @@
 # Changelog — Dzik OS
 
+## 0.64.0 — 2026-09-14
+
+**Biblioteka szablonów diet po audycie 14.09 (zgłoszenie właściciela
+„do zaimplementowania w dieta szablony”, paczka `paczka_dla_agenta.zip`;
+gałąź `agent/biblioteka-diet`, migracja 35 — addytywna).**
+
+* **45 odsłon w 9 profilach** (Standard zbilansowana, Redukcja
+  wysokobiałkowa, Sportowa wysokobiałkowa, Masa / budowa,
+  Niskowęglowodanowa, Wegetariańska, Wegańska, Bezglutenowa,
+  Bezlaktozowa — po 5 odsłon tygodnia, 315 dni, 1295 posiłków) zamiast
+  jednej; **181 produktów** (39 nowych: nabiał bezlaktozowy, pieczywo i
+  makarony bezglutenowe, halibut, krewetki, ananas…) — nadzbiór bazy
+  0.60.0, bez zmian wartości istniejących. Profil Sportowa ma **5 slotów**
+  (dwa obiady: `obiad_1`/`obiad_2` → etykiety „obiad I” / „obiad II”).
+* **Silnik skalowania v1.1** (1:1 z `docs/diet-module/engine.py` po
+  audycie): limity porcji — mięso/ryby liniowe ≤ 300 g surowego na
+  posiłek, jajka ≤ 4 szt. na posiłek, tłuszcze liniowe skalowane do 1 g
+  (bez zaokrąglania do 5 g). Golden i szablon Standard v1 podmienione na
+  wersje z paczki (Standard v1 po audycie ma inne gramatury).
+* **Notatki autora biblioteki** na odsłonie: uwagi o suplementacji
+  (lista), uwaga o sodzie, pochodzenie odsłony („Standard zbilansowana,
+  odsłona 1”) i wynik audytu; **alergeny posiłku** liczone z bieżących
+  składników (po wymianie kurczaka na krewetki pojawiają się
+  skorupiaki). Trener widzi notatki i alergeny w „Przypisz dietę”
+  (przed i po przeliczeniu) oraz w panelu szablonów. Klient widzi w
+  „Twoja dieta” uwagę o sodzie i alergeny posiłków; **uwag o
+  suplementacji klient nie dostaje** — zawierają dawki autora biblioteki,
+  a plan suplementów dla klienta wpisuje człowiek z zapisanym autorem
+  (R-10, ADR-DZIK-003 §4); trener przenosi je świadomie.
+* **Seed zastępujący po skrócie pliku:** odsłona (profil, numer) z innym
+  `source_hash` dostaje nową treść pod tym samym identyfikatorem (dni,
+  posiłki i składniki tworzone od nowa); przypisane diety mają migawki i
+  nie zmieniają się. **Odsłona edytowana w panelu** dostaje znacznik i
+  seed jej nie podmienia (praca trenera ma pierwszeństwo przed plikiem;
+  raport: `szablony_pominiete`). Zwrot seedu: `szablony_nowe`,
+  `szablony_podmienione`, `szablony_pominiete`.
+* Import JSON: limity nowych pól (uwagi ≤ 20 × 500 znaków, audyt ≤ 4 kB,
+  alergeny ≤ 20 nazw), wymagane `kcal_min ≤ base_kcal ≤ kcal_max`;
+  sprawdzenie produktów przed podmianą treści.
+* **Sweep zakresu odsłony:** „Testuj skalowanie” i publikacja sprawdzają
+  `kcal_min`–`kcal_max` danej odsłony co 100 kcal (jak audyt; Masa
+  2200–4000, Niskowęglowodanowa 1400–2800) zamiast stałych 1400–3200.
+  Test biblioteki: każda z 45 odsłon ma ≥ 95 % dni OK w swoim zakresie.
+* Zamienniki: kandydaci uwzględniają nowe produkty (np. krewetki w grupie
+  białka chudego; skyr przy wykluczeniu laktozy ma teraz zamienniki
+  bezlaktozowe). Testy API/seedu/silnika dostosowane do nowych danych
+  referencyjnych (zmiana referencji, nie asercji „pod wynik”).
+* Seed biblioteki wsadowo (cztery paczki INSERT na odsłonę zamiast flush
+  po każdym wierszu) i nowa zmienna `DZIK_DIET_SEED_ON_STARTUP`
+  (domyślnie włączona; testy backendu ją wyłączają, bo każdy test startuje
+  aplikację na świeżej bazie — pełny import 45 odsłon przy 1,8 tys.
+  testów trwałby na PostgreSQL godziny).
+* Bez zmian: flaga `DZIK_DIET_TEMPLATES_ENABLED` (na produkcji wyłączona),
+  stary kreator diet, migawki przypisanych diet, AI.
 ## 0.63.0 — 2026-09-14
 
 **Panel rozwojowy na ekranie „Dzisiaj” (polecenie właściciela z 14.09;

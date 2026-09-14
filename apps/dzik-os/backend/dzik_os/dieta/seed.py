@@ -13,11 +13,20 @@ z plików CSV w runtime silnika.
 from __future__ import annotations
 
 import csv
+import hashlib
 import json
+import logging
 from importlib import resources
+from pathlib import Path
 from typing import Any
 
 from sqlalchemy.orm import Session
+
+logger = logging.getLogger("dzik_os.dieta.seed")
+
+# Znacznik w `source_hash`: odsłona edytowana w panelu trenera — seed biblioteki
+# nie podmienia jej treści (praca człowieka ma pierwszeństwo przed plikiem).
+EDYCJA_PANELU = "panel"
 
 from ..models import (
     DietProduct,
@@ -27,7 +36,17 @@ from ..models import (
     DietTemplateMeal,
     DietTemplateWeek,
     new_id,
+    now_iso,
 )
+
+
+def _szablon(nazwa: str) -> str:
+    """Treść pliku szablonu z `dane/szablony/` (45 odsłon z biblioteki po audycie 14.09)."""
+    return (Path(__file__).parent / "dane" / "szablony" / nazwa).read_text(encoding="utf-8")
+
+
+def pliki_szablonow() -> list[Path]:
+    return sorted((Path(__file__).parent / "dane" / "szablony").glob("template_*.json"))
 
 
 def _plik(nazwa: str) -> str:
@@ -122,6 +141,21 @@ def waliduj_szablon(dane: Any) -> None:
     for k in ("description", "diet_tags"):
         if k in dane and dane[k] is not None and not isinstance(dane[k], str | list):
             raise ValueError(f"{k}: niepoprawny typ")
+    # Pola biblioteki po audycie 14.09 (opcjonalne).
+    if dane.get("derived_from") is not None and (not isinstance(dane["derived_from"], str) or len(dane["derived_from"]) > 120):
+        raise ValueError("derived_from: tekst do 120 znaków")
+    if dane.get("supplements_note") is not None:
+        sn = [dane["supplements_note"]] if isinstance(dane["supplements_note"], str) else dane["supplements_note"]
+        if not isinstance(sn, list) or len(sn) > 20 or any(not isinstance(x, str) or len(x) > 500 for x in sn):
+            raise ValueError("supplements_note: lista do 20 tekstów, każdy do 500 znaków")
+    if dane.get("sodium_note") is not None and (not isinstance(dane["sodium_note"], str) or len(dane["sodium_note"]) > 1000):
+        raise ValueError("sodium_note: tekst do 1000 znaków")
+    if dane.get("audit") is not None and (not isinstance(dane["audit"], dict)
+                                          or len(json.dumps(dane["audit"], ensure_ascii=False)) > 4000):
+        raise ValueError("audit: obiekt do 4000 znaków")
+    kmin, kmax, kbase = dane.get("kcal_min", 1400), dane.get("kcal_max", 3200), dane.get("base_kcal", 2000)
+    if not float(kmin) <= float(kbase) <= float(kmax):
+        raise ValueError("zakres kcal: wymagane kcal_min ≤ base_kcal ≤ kcal_max")
     dni = dane["days"]
     if not isinstance(dni, list) or not 1 <= len(dni) <= LIMITY["dni"]:
         raise ValueError(f"days: 1–{LIMITY['dni']} dni")
@@ -154,6 +188,11 @@ def waliduj_szablon(dane: Any) -> None:
                 raise ValueError(f"{gdzie_m}: steps to tekst do 4000 znaków")
             if "tags" in m and m["tags"] is not None and not isinstance(m["tags"], list):
                 raise ValueError(f"{gdzie_m}: tags to lista")
+            if "allergens" in m and m["allergens"] is not None:
+                al = m["allergens"]
+                if (not isinstance(al, list) or len(al) > 20 or any(not isinstance(x, str) or not 1 <= len(x) <= 40 for x in al)
+                        or len(",".join(al)) > 300):
+                    raise ValueError(f"{gdzie_m}: allergens to lista do 20 nazw po ≤ 40 znaków")
             ings = m["ingredients"]
             if not isinstance(ings, list) or not 1 <= len(ings) <= LIMITY["skladniki_na_posilek"]:
                 raise ValueError(f"{gdzie_m}: 1–{LIMITY['skladniki_na_posilek']} składników")
@@ -178,10 +217,25 @@ def waliduj_szablon(dane: Any) -> None:
                     raise ValueError(f"{gdzie_i}: group to tekst do 60 znaków")
 
 
+def _usun_tresc(db: Session, week: DietTemplateWeek) -> None:
+    # Kolejność jawna (składniki → posiłki → dni): bez relacji ORM
+    # unit-of-work nie zna zależności i mógłby skasować dni przed posiłkami.
+    dni = db.query(DietTemplateDay).filter_by(week_id=week.id).all()
+    for d in dni:
+        posilki = db.query(DietTemplateMeal).filter_by(day_id=d.id).all()
+        for m in posilki:
+            db.query(DietTemplateIngredient).filter_by(meal_id=m.id).delete()
+        db.query(DietTemplateMeal).filter_by(day_id=d.id).delete()
+    db.query(DietTemplateDay).filter_by(week_id=week.id).delete()
+    db.flush()
+
+
 def zaimportuj_szablon(db: Session, dane: dict[str, Any], *, created_by: str | None = None,
-                       status: str = "PUBLISHED") -> tuple[DietTemplateWeek, bool]:
+                       status: str = "PUBLISHED", replace: bool = False) -> tuple[DietTemplateWeek, bool]:
     """Import odsłony w formacie `template_standard_v1.json`. Zwraca
-    (odsłona, czy_nowa). Istniejąca (profil, variant) → bez zmian.
+    (odsłona, czy_nowa). Istniejąca (profil, variant) → bez zmian, chyba że
+    `replace=True` i plik ma inny skrót (seed biblioteki po audycie) — wtedy
+    treść jest podmieniana pod tym samym identyfikatorem odsłony.
     Struktura sprawdzana `waliduj_szablon` (te same reguły co panel)."""
     waliduj_szablon(dane)
     profil = db.query(DietProfile).filter_by(name=dane["profile"]).one_or_none()
@@ -191,10 +245,13 @@ def zaimportuj_szablon(db: Session, dane: dict[str, Any], *, created_by: str | N
                              base_p_pct=float(pct[0]), base_f_pct=float(pct[1]), base_c_pct=float(pct[2]),
                              diet_tags=",".join(dane.get("diet_tags", [])))
         db.add(profil)
-        db.flush()
+    skrot = hashlib.sha256(json.dumps(dane, sort_keys=True, ensure_ascii=False).encode("utf-8")).hexdigest()
     istn = db.query(DietTemplateWeek).filter_by(profile_id=profil.id, variant_no=int(dane["variant"])).one_or_none()
-    if istn is not None:
+    if istn is not None and (not replace or istn.source_hash in (skrot, EDYCJA_PANELU)):
+        # Bez podmiany: ten sam plik albo odsłona edytowana w panelu (praca trenera
+        # ma pierwszeństwo przed biblioteką — zob. `zaseeduj`, `szablony_pominiete`).
         return istn, False
+    # Sprawdzenia produktów PRZED kasowaniem treści — błąd nie zostawia pustej odsłony.
     produkty = {p.name_pl: p for p in db.query(DietProduct).all()}
     brak = sorted({i["product"] for d in dane["days"] for m in d["meals"] for i in m["ingredients"]} - set(produkty))
     if brak:
@@ -203,45 +260,95 @@ def zaimportuj_szablon(db: Session, dane: dict[str, Any], *, created_by: str | N
                             if (i.get("class") or produkty[i["product"]].default_scaling) == "DYSKRETNY" and not i.get("unit_g")})
     if bez_jednostki:
         raise ValueError("składniki DYSKRETNE bez unit_g: " + ", ".join(bez_jednostki))
-    week = DietTemplateWeek(
-        id=new_id("DTW"), profile_id=profil.id, variant_no=int(dane["variant"]),
-        name=dane.get("name") or f"{dane['profile']} — odsłona {dane['variant']}",
-        base_kcal=int(dane.get("base_kcal", 2000)), kcal_min=int(dane.get("kcal_min", 1400)),
-        kcal_max=int(dane.get("kcal_max", 3200)), status=status, created_by=created_by,
-    )
-    db.add(week)
+    if istn is not None and (abs(profil.base_p_pct - float(pct[0])) > 0.005 or abs(profil.base_f_pct - float(pct[1])) > 0.005
+                             or abs(profil.base_c_pct - float(pct[2])) > 0.005):
+        # Makro profilu jest wspólne dla 5 odsłon — cicha rozbieżność zmieniłaby wynik
+        # skalowania względem audytu liczonego plikiem.
+        raise ValueError(f"{dane['profile']}: macro_pct pliku różni się od makro profilu w bazie")
+    suppl = dane.get("supplements_note") or []
+    if isinstance(suppl, str):
+        suppl = [suppl]
+    if istn is not None:
+        if istn.source_hash is None:
+            logger.warning("diet_seed_replace_legacy week_id=%s — odsłona sprzed 0.64.0 (bez skrótu) podmieniana treścią z biblioteki", istn.id)
+        # Podmiana treści (biblioteka po audycie): dni/posiłki/składniki od nowa, ten sam
+        # `week_id` — przypisane diety mają własne migawki (spec §8), nic im się nie zmienia.
+        _usun_tresc(db, istn)
+        week = istn
+        week.name = dane.get("name") or week.name
+        week.base_kcal = int(dane.get("base_kcal", 2000))
+        week.kcal_min = int(dane.get("kcal_min", 1400))
+        week.kcal_max = int(dane.get("kcal_max", 3200))
+        week.updated_at = now_iso()
+    else:
+        week = DietTemplateWeek(
+            id=new_id("DTW"), profile_id=profil.id, variant_no=int(dane["variant"]),
+            name=dane.get("name") or f"{dane['profile']} — odsłona {dane['variant']}",
+            base_kcal=int(dane.get("base_kcal", 2000)), kcal_min=int(dane.get("kcal_min", 1400)),
+            kcal_max=int(dane.get("kcal_max", 3200)), status=status, created_by=created_by,
+        )
+        db.add(week)
+    week.derived_from = dane.get("derived_from")
+    week.supplements_note = json.dumps(list(suppl), ensure_ascii=False)
+    week.sodium_note = dane.get("sodium_note") or ""
+    week.audit_json = json.dumps(dane.get("audit") or {}, ensure_ascii=False)
+    week.source_hash = skrot
+    # Identyfikatory nadaje aplikacja (new_id), więc wystarczą cztery flushe na
+    # odsłonę (odsłona → dni → posiłki → składniki; bez relacji ORM unit-of-work
+    # nie zna kolejności kluczy obcych). Bez flush po każdym dniu/posiłku import
+    # 45 odsłon (1295 posiłków) to cztery paczki INSERT-ów na odsłonę, a nie
+    # tysiące rund do bazy — na PostgreSQL różnica rzędu minut na każdy start.
     db.flush()
+    dni: list[DietTemplateDay] = []
+    posilki: list[DietTemplateMeal] = []
+    skladniki: list[DietTemplateIngredient] = []
     for d in dane["days"]:
         day = DietTemplateDay(id=new_id("DTD"), week_id=week.id, day_no=int(d["day"]))
-        db.add(day)
-        db.flush()
+        dni.append(day)
         for mi, m in enumerate(d["meals"]):
             meal = DietTemplateMeal(
                 id=new_id("DTM"), day_id=day.id, position=mi, slot=m["slot"], name=m["name"],
                 kcal_share=float(m["kcal_share"]), flexible=bool(m.get("flexible")),
                 recipe_steps=m.get("steps", ""), prep_minutes=m.get("prep_minutes"),
                 tags=",".join(m.get("tags", []) or []),
+                allergens=",".join(m.get("allergens", []) or []),
             )
-            db.add(meal)
-            db.flush()
+            posilki.append(meal)
             for ii, i in enumerate(m["ingredients"]):
                 role = i.get("role", "NONE")
-                db.add(DietTemplateIngredient(
+                skladniki.append(DietTemplateIngredient(
                     id=new_id("DTI"), meal_id=meal.id, position=ii, product_id=produkty[i["product"]].id,
                     base_grams=float(i["grams"]), scaling_class=i.get("class"), macro_role=role,
                     min_factor=i.get("min_factor"), max_factor=i.get("max_factor"), round_step=i.get("round_step"),
                     unit_g=i.get("unit_g"), unit_step=i.get("unit_step"), group_name=i.get("group"),
                     swappable=bool(i.get("swappable", role in ("P", "C", "F"))),
                 ))
-    db.flush()
-    return week, True
+    for paczka in (dni, posilki, skladniki):
+        db.add_all(paczka)
+        db.flush()
+    return week, istn is None
 
 
 def zaseeduj(db: Session) -> dict[str, Any]:
-    """Ładuje produkty i odsłonę Standard v1 (ponawialnie)."""
+    """Ładuje 181 produktów i całą bibliotekę (45 odsłon) — ponawialnie;
+    odsłona, której plik się zmienił od poprzedniego seeda, dostaje nową treść."""
     raport = zaseeduj_produkty(db)
-    week, nowa = zaimportuj_szablon(db, json.loads(_plik("szablon_standard_v1.json")))
-    raport.update({"szablon_id": week.id, "szablon_nowy": nowa,
+    nowe = podmienione = pominiete = 0
+    for plik in pliki_szablonow():
+        dane = json.loads(plik.read_text(encoding="utf-8"))
+        przed = db.query(DietTemplateWeek).filter_by(variant_no=int(dane["variant"])).join(
+            DietProfile, DietProfile.id == DietTemplateWeek.profile_id).filter(DietProfile.name == dane["profile"]).one_or_none()
+        skrot_przed = przed.source_hash if przed is not None else None
+        if skrot_przed == EDYCJA_PANELU:
+            pominiete += 1
+            logger.info("diet_seed_skip_edited week_id=%s plik=%s — odsłona edytowana w panelu, plik pominięty", przed.id, plik.name)
+            continue
+        week, nowa = zaimportuj_szablon(db, dane, replace=True)
+        if nowa:
+            nowe += 1
+        elif skrot_przed != week.source_hash:
+            podmienione += 1
+    raport.update({"szablony_nowe": nowe, "szablony_podmienione": podmienione, "szablony_pominiete": pominiete,
                    "odslony_razem": db.query(DietTemplateWeek).count()})
     return raport
 

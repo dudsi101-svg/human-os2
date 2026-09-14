@@ -1,0 +1,1864 @@
+{
+ "profile": "Masa / budowa",
+ "variant": 5,
+ "base_kcal": 3000,
+ "kcal_min": 2200,
+ "kcal_max": 4000,
+ "macro_pct": [
+  0.25,
+  0.25,
+  0.5
+ ],
+ "days": [
+  {
+   "day": 1,
+   "meals": [
+    {
+     "name": "Owsianka z gruszką i tahini",
+     "slot": "śniadanie",
+     "kcal_share": 0.25,
+     "ingredients": [
+      {
+       "product": "Płatki owsiane",
+       "role": "C",
+       "grams": 65
+      },
+      {
+       "product": "Mleko 2%",
+       "role": "NONE",
+       "grams": 245,
+       "min_factor": 0.7,
+       "max_factor": 1.3
+      },
+      {
+       "product": "Gruszka",
+       "role": "C",
+       "grams": 255.0,
+       "class": "DYSKRETNY",
+       "unit_g": 170,
+       "unit_step": 0.5
+      },
+      {
+       "product": "Tahini",
+       "role": "F",
+       "grams": 15
+      },
+      {
+       "product": "Skyr naturalny",
+       "role": "P",
+       "grams": 140
+      },
+      {
+       "product": "Cynamon",
+       "role": "NONE",
+       "grams": 2
+      },
+      {
+       "product": "Miód",
+       "role": "C",
+       "grams": 10
+      }
+     ],
+     "steps": "Płatki zagotuj z mlekiem, gotuj 4 min. Wmieszaj skyr, podaj z gruszką w kostce, tahini, miodem i cynamonem.",
+     "flexible": false,
+     "tags": [
+      "szybkie"
+     ],
+     "allergens": [
+      "gluten",
+      "mleko",
+      "sezam"
+     ]
+    },
+    {
+     "name": "Kurczak w sosie paprykowym z ryżem",
+     "slot": "obiad",
+     "kcal_share": 0.35,
+     "ingredients": [
+      {
+       "product": "Pierś z kurczaka (surowa)",
+       "role": "P",
+       "grams": 260
+      },
+      {
+       "product": "Papryka czerwona",
+       "role": "NONE",
+       "grams": 180
+      },
+      {
+       "product": "Cebula",
+       "role": "NONE",
+       "grams": 70
+      },
+      {
+       "product": "Śmietana 18%",
+       "role": "F",
+       "grams": 30
+      },
+      {
+       "product": "Koncentrat pomidorowy",
+       "role": "NONE",
+       "grams": 15
+      },
+      {
+       "product": "Ryż biały (suchy)",
+       "role": "C",
+       "grams": 125
+      },
+      {
+       "product": "Olej rzepakowy",
+       "role": "F",
+       "grams": 13
+      },
+      {
+       "product": "Papryka słodka mielona",
+       "role": "NONE",
+       "grams": 5
+      },
+      {
+       "product": "Bulion warzywny",
+       "role": "NONE",
+       "grams": 150
+      },
+      {
+       "product": "Czosnek",
+       "role": "NONE",
+       "grams": 5
+      },
+      {
+       "product": "Sól",
+       "role": "NONE",
+       "grams": 0.5
+      },
+      {
+       "product": "Pieprz czarny",
+       "role": "NONE",
+       "grams": 1
+      }
+     ],
+     "steps": "Kurczaka w kostce obsmaż, dodaj cebulę, czosnek i paprykę, smaż 4 min. Dodaj koncentrat, paprykę mieloną, bulion, duś 12 min, zabiel śmietaną. Podaj z ryżem.",
+     "flexible": false,
+     "tags": [
+      "na_wynos",
+      "na_zapas"
+     ],
+     "allergens": [
+      "mleko"
+     ]
+    },
+    {
+     "name": "Pieczone jabłko z jogurtem i orzechami",
+     "slot": "przekąska",
+     "kcal_share": 0.15,
+     "ingredients": [
+      {
+       "product": "Jabłko",
+       "role": "C",
+       "grams": 270.0,
+       "class": "DYSKRETNY",
+       "unit_g": 180,
+       "unit_step": 0.5
+      },
+      {
+       "product": "Jogurt grecki 0%",
+       "role": "P",
+       "grams": 215
+      },
+      {
+       "product": "Orzechy włoskie",
+       "role": "F",
+       "grams": 18
+      },
+      {
+       "product": "Miód",
+       "role": "C",
+       "grams": 10
+      },
+      {
+       "product": "Cynamon",
+       "role": "NONE",
+       "grams": 3
+      }
+     ],
+     "steps": "Jabłko przekrój, posyp cynamonem, piecz 15 min w 180°C (lub 3 min w mikrofali). Podaj z jogurtem, miodem i orzechami.",
+     "flexible": true,
+     "tags": [
+      "szybkie"
+     ],
+     "allergens": [
+      "mleko",
+      "orzechy"
+     ]
+    },
+    {
+     "name": "Placki z cukinii z jogurtem czosnkowym",
+     "slot": "kolacja",
+     "kcal_share": 0.25,
+     "ingredients": [
+      {
+       "product": "Cukinia",
+       "role": "NONE",
+       "grams": 320
+      },
+      {
+       "product": "Jajko kurze (całe)",
+       "role": "P",
+       "grams": 55.0,
+       "class": "DYSKRETNY",
+       "unit_g": 55,
+       "unit_step": 1.0,
+       "group": "ciasto"
+      },
+      {
+       "product": "Mąka pełnoziarnista",
+       "role": "C",
+       "grams": 55,
+       "group": "ciasto"
+      },
+      {
+       "product": "Jogurt grecki 0%",
+       "role": "P",
+       "grams": 225
+      },
+      {
+       "product": "Czosnek",
+       "role": "NONE",
+       "grams": 5
+      },
+      {
+       "product": "Olej rzepakowy",
+       "role": "F",
+       "grams": 13
+      },
+      {
+       "product": "Koperek",
+       "role": "NONE",
+       "grams": 5
+      },
+      {
+       "product": "Szynka z indyka (wędlina)",
+       "role": "P",
+       "grams": 60
+      },
+      {
+       "product": "Chleb żytni",
+       "role": "C",
+       "grams": 35.0,
+       "class": "DYSKRETNY",
+       "unit_g": 35,
+       "unit_step": 1.0
+      },
+      {
+       "product": "Sól",
+       "role": "NONE",
+       "grams": 0.5
+      },
+      {
+       "product": "Pieprz czarny",
+       "role": "NONE",
+       "grams": 1
+      }
+     ],
+     "steps": "Cukinię zetrzyj, posól, odciśnij. Wymieszaj z jajkiem i mąką, smaż placki na oleju po 3 min z każdej strony. Jogurt z czosnkiem i koperkiem, szynka i chleb obok.",
+     "flexible": false,
+     "tags": [],
+     "allergens": [
+      "gluten",
+      "jaja",
+      "mleko"
+     ]
+    }
+   ]
+  },
+  {
+   "day": 2,
+   "meals": [
+    {
+     "name": "Jajecznica z szynką i papryką",
+     "slot": "śniadanie",
+     "kcal_share": 0.25,
+     "ingredients": [
+      {
+       "product": "Jajko kurze (całe)",
+       "role": "P",
+       "grams": 220.0,
+       "class": "DYSKRETNY",
+       "unit_g": 55,
+       "unit_step": 1.0
+      },
+      {
+       "product": "Białko jaja",
+       "role": "P",
+       "grams": 40
+      },
+      {
+       "product": "Szynka z indyka (wędlina)",
+       "role": "P",
+       "grams": 40
+      },
+      {
+       "product": "Papryka czerwona",
+       "role": "NONE",
+       "grams": 100
+      },
+      {
+       "product": "Masło",
+       "role": "F",
+       "grams": 4
+      },
+      {
+       "product": "Chleb żytni",
+       "role": "C",
+       "grams": 140.0,
+       "class": "DYSKRETNY",
+       "unit_g": 35,
+       "unit_step": 1.0
+      },
+      {
+       "product": "Szczypiorek",
+       "role": "NONE",
+       "grams": 5
+      },
+      {
+       "product": "Sól",
+       "role": "NONE",
+       "grams": 0.5
+      },
+      {
+       "product": "Pieprz czarny",
+       "role": "NONE",
+       "grams": 1
+      }
+     ],
+     "steps": "Paprykę i szynkę podsmaż na maśle 2 min, wlej roztrzepane jajka z białkiem, mieszaj na małym ogniu. Podaj z chlebem.",
+     "flexible": false,
+     "tags": [
+      "szybkie"
+     ],
+     "allergens": [
+      "gluten",
+      "jaja",
+      "mleko"
+     ]
+    },
+    {
+     "name": "Mintaj smażony z purée ziemniaczanym i surówką z marchwi",
+     "slot": "obiad",
+     "kcal_share": 0.35,
+     "ingredients": [
+      {
+       "product": "Mintaj (surowy)",
+       "role": "P",
+       "grams": 300
+      },
+      {
+       "product": "Mąka pszenna",
+       "role": "C",
+       "grams": 20
+      },
+      {
+       "product": "Olej rzepakowy",
+       "role": "F",
+       "grams": 19
+      },
+      {
+       "product": "Ziemniaki (surowe)",
+       "role": "C",
+       "grams": 450
+      },
+      {
+       "product": "Mleko 2%",
+       "role": "NONE",
+       "grams": 65,
+       "min_factor": 0.7,
+       "max_factor": 1.3
+      },
+      {
+       "product": "Marchew",
+       "role": "NONE",
+       "grams": 150
+      },
+      {
+       "product": "Jabłko",
+       "role": "C",
+       "grams": 180.0,
+       "class": "DYSKRETNY",
+       "unit_g": 180,
+       "unit_step": 0.5
+      },
+      {
+       "product": "Sok z cytryny",
+       "role": "NONE",
+       "grams": 10
+      },
+      {
+       "product": "Koperek",
+       "role": "NONE",
+       "grams": 5
+      },
+      {
+       "product": "Sól",
+       "role": "NONE",
+       "grams": 0.5
+      },
+      {
+       "product": "Pieprz czarny",
+       "role": "NONE",
+       "grams": 1
+      }
+     ],
+     "steps": "Mintaja obtocz w mące, smaż na oleju po 3 min z każdej strony. Ziemniaki ugotuj, utłucz z mlekiem. Marchew i jabłko zetrzyj, skrop cytryną.",
+     "flexible": false,
+     "tags": [],
+     "allergens": [
+      "gluten",
+      "mleko",
+      "ryby"
+     ]
+    },
+    {
+     "name": "Kanapka z masłem orzechowym i bananem, kefir",
+     "slot": "przekąska",
+     "kcal_share": 0.15,
+     "ingredients": [
+      {
+       "product": "Chleb pełnoziarnisty",
+       "role": "C",
+       "grams": 32.0,
+       "class": "DYSKRETNY",
+       "unit_g": 32,
+       "unit_step": 1.0
+      },
+      {
+       "product": "Masło orzechowe",
+       "role": "F",
+       "grams": 8
+      },
+      {
+       "product": "Banan",
+       "role": "C",
+       "grams": 180.0,
+       "class": "DYSKRETNY",
+       "unit_g": 120,
+       "unit_step": 0.5
+      },
+      {
+       "product": "Kefir 2%",
+       "role": "P",
+       "grams": 295
+      }
+     ],
+     "steps": "Chleb posmaruj masłem orzechowym, ułóż plastry banana. Kefir obok.",
+     "flexible": true,
+     "tags": [
+      "szybkie",
+      "na_wynos"
+     ],
+     "allergens": [
+      "gluten",
+      "mleko",
+      "orzechy_ziemne"
+     ]
+    },
+    {
+     "name": "Zapiekane bataty z twarogiem i sałatką",
+     "slot": "kolacja",
+     "kcal_share": 0.25,
+     "ingredients": [
+      {
+       "product": "Batat (surowy)",
+       "role": "C",
+       "grams": 355
+      },
+      {
+       "product": "Twaróg półtłusty",
+       "role": "P",
+       "grams": 205
+      },
+      {
+       "product": "Jogurt naturalny 2%",
+       "role": "NONE",
+       "grams": 45
+      },
+      {
+       "product": "Szczypiorek",
+       "role": "NONE",
+       "grams": 8
+      },
+      {
+       "product": "Oliwa z oliwek",
+       "role": "F",
+       "grams": 9
+      },
+      {
+       "product": "Rukola",
+       "role": "NONE",
+       "grams": 40
+      },
+      {
+       "product": "Pomidor",
+       "role": "NONE",
+       "grams": 120
+      },
+      {
+       "product": "Papryka słodka mielona",
+       "role": "NONE",
+       "grams": 3
+      },
+      {
+       "product": "Sól",
+       "role": "NONE",
+       "grams": 0.5
+      },
+      {
+       "product": "Pieprz czarny",
+       "role": "NONE",
+       "grams": 1
+      }
+     ],
+     "steps": "Batata w łódkach skrop oliwą, posyp papryką, piecz 30 min w 200°C. Twaróg wymieszaj z jogurtem i szczypiorkiem, nałóż na batata. Rukola z pomidorem obok.",
+     "flexible": false,
+     "tags": [],
+     "allergens": [
+      "mleko"
+     ]
+    }
+   ]
+  },
+  {
+   "day": 3,
+   "meals": [
+    {
+     "name": "Skyr z malinami, płatkami i pestkami dyni",
+     "slot": "śniadanie",
+     "kcal_share": 0.25,
+     "ingredients": [
+      {
+       "product": "Skyr naturalny",
+       "role": "P",
+       "grams": 355
+      },
+      {
+       "product": "Maliny",
+       "role": "C",
+       "grams": 140
+      },
+      {
+       "product": "Płatki owsiane",
+       "role": "C",
+       "grams": 60
+      },
+      {
+       "product": "Pestki dyni",
+       "role": "F",
+       "grams": 19
+      },
+      {
+       "product": "Miód",
+       "role": "C",
+       "grams": 10
+      },
+      {
+       "product": "Masło orzechowe",
+       "role": "F",
+       "grams": 12
+      }
+     ],
+     "steps": "Wymieszaj skyr z płatkami, dodaj maliny, miód, masło orzechowe i pestki.",
+     "flexible": false,
+     "tags": [
+      "szybkie",
+      "na_wynos"
+     ],
+     "allergens": [
+      "gluten",
+      "mleko",
+      "orzechy_ziemne"
+     ]
+    },
+    {
+     "name": "Makaron z kurczakiem, szpinakiem i śmietanką",
+     "slot": "obiad",
+     "kcal_share": 0.35,
+     "ingredients": [
+      {
+       "product": "Makaron pełnoziarnisty (suchy)",
+       "role": "C",
+       "grams": 135
+      },
+      {
+       "product": "Pierś z kurczaka (surowa)",
+       "role": "P",
+       "grams": 245
+      },
+      {
+       "product": "Szpinak świeży",
+       "role": "NONE",
+       "grams": 120
+      },
+      {
+       "product": "Śmietana 18%",
+       "role": "F",
+       "grams": 40
+      },
+      {
+       "product": "Czosnek",
+       "role": "NONE",
+       "grams": 5
+      },
+      {
+       "product": "Parmezan tarty",
+       "role": "NONE",
+       "grams": 10
+      },
+      {
+       "product": "Oliwa z oliwek",
+       "role": "F",
+       "grams": 8
+      },
+      {
+       "product": "Cebula",
+       "role": "NONE",
+       "grams": 50
+      },
+      {
+       "product": "Bulion warzywny",
+       "role": "NONE",
+       "grams": 80
+      },
+      {
+       "product": "Sól",
+       "role": "NONE",
+       "grams": 0.5
+      },
+      {
+       "product": "Pieprz czarny",
+       "role": "NONE",
+       "grams": 1
+      }
+     ],
+     "steps": "Kurczaka w paskach obsmaż na oliwie, dodaj cebulę i czosnek, zalej bulionem, dodaj śmietanę i szpinak, duś 3 min. Wymieszaj z makaronem, posyp parmezanem.",
+     "flexible": false,
+     "tags": [
+      "na_wynos"
+     ],
+     "allergens": [
+      "gluten",
+      "mleko"
+     ]
+    },
+    {
+     "name": "Pomarańcza z migdałami i jogurtem",
+     "slot": "przekąska",
+     "kcal_share": 0.15,
+     "ingredients": [
+      {
+       "product": "Pomarańcza",
+       "role": "C",
+       "grams": 360.0,
+       "class": "DYSKRETNY",
+       "unit_g": 180,
+       "unit_step": 0.5
+      },
+      {
+       "product": "Migdały",
+       "role": "F",
+       "grams": 22
+      },
+      {
+       "product": "Jogurt naturalny 2%",
+       "role": "P",
+       "grams": 195
+      }
+     ],
+     "steps": "Pomarańczę pokrój do jogurtu, posyp migdałami.",
+     "flexible": true,
+     "tags": [
+      "szybkie",
+      "na_wynos"
+     ],
+     "allergens": [
+      "mleko",
+      "orzechy"
+     ]
+    },
+    {
+     "name": "Chili wegetariańskie z fasolą i tortillą",
+     "slot": "kolacja",
+     "kcal_share": 0.25,
+     "ingredients": [
+      {
+       "product": "Fasola czerwona z puszki (odsączona)",
+       "role": "P",
+       "grams": 170
+      },
+      {
+       "product": "Pomidory krojone z puszki",
+       "role": "NONE",
+       "grams": 210
+      },
+      {
+       "product": "Kukurydza z puszki",
+       "role": "C",
+       "grams": 70
+      },
+      {
+       "product": "Papryka czerwona",
+       "role": "NONE",
+       "grams": 90
+      },
+      {
+       "product": "Cebula",
+       "role": "NONE",
+       "grams": 60
+      },
+      {
+       "product": "Jogurt grecki 0%",
+       "role": "NONE",
+       "grams": 60
+      },
+      {
+       "product": "Tortilla pszenna",
+       "role": "C",
+       "grams": 90.0,
+       "class": "DYSKRETNY",
+       "unit_g": 45,
+       "unit_step": 1.0
+      },
+      {
+       "product": "Papryka słodka mielona",
+       "role": "NONE",
+       "grams": 5
+      },
+      {
+       "product": "Czosnek",
+       "role": "NONE",
+       "grams": 5
+      },
+      {
+       "product": "Oliwa z oliwek",
+       "role": "F",
+       "grams": 6
+      },
+      {
+       "product": "Sól",
+       "role": "NONE",
+       "grams": 0.5
+      },
+      {
+       "product": "Pieprz czarny",
+       "role": "NONE",
+       "grams": 1
+      }
+     ],
+     "steps": "Cebulę, czosnek i paprykę podsmaż na oliwie, dodaj pomidory, fasolę, kukurydzę i paprykę mieloną, duś 15 min. Podaj z jogurtem i tortillą podgrzaną na suchej patelni.",
+     "flexible": false,
+     "tags": [
+      "na_zapas"
+     ],
+     "allergens": [
+      "gluten",
+      "mleko"
+     ]
+    }
+   ]
+  },
+  {
+   "day": 4,
+   "meals": [
+    {
+     "name": "Kanapki z awokado, twarogiem i pomidorem",
+     "slot": "śniadanie",
+     "kcal_share": 0.25,
+     "ingredients": [
+      {
+       "product": "Chleb żytni",
+       "role": "C",
+       "grams": 140.0,
+       "class": "DYSKRETNY",
+       "unit_g": 35,
+       "unit_step": 1.0
+      },
+      {
+       "product": "Awokado",
+       "role": "F",
+       "grams": 66
+      },
+      {
+       "product": "Twaróg chudy",
+       "role": "P",
+       "grams": 165
+      },
+      {
+       "product": "Pomidor",
+       "role": "NONE",
+       "grams": 120
+      },
+      {
+       "product": "Sok z cytryny",
+       "role": "NONE",
+       "grams": 5
+      },
+      {
+       "product": "Szczypiorek",
+       "role": "NONE",
+       "grams": 5
+      },
+      {
+       "product": "Jajko kurze (całe)",
+       "role": "P",
+       "grams": 55.0,
+       "class": "DYSKRETNY",
+       "unit_g": 55,
+       "unit_step": 1.0
+      },
+      {
+       "product": "Sól",
+       "role": "NONE",
+       "grams": 0.5
+      },
+      {
+       "product": "Pieprz czarny",
+       "role": "NONE",
+       "grams": 1
+      }
+     ],
+     "steps": "Awokado rozgnieć z cytryną, twaróg rozgnieć osobno ze szczypiorkiem. Chleb posmaruj awokado, nałóż twaróg, pomidora i plastry jajka na twardo.",
+     "flexible": false,
+     "tags": [
+      "szybkie"
+     ],
+     "allergens": [
+      "gluten",
+      "jaja",
+      "mleko"
+     ]
+    },
+    {
+     "name": "Schab pieczony z ziemniakami i kapustą zasmażaną",
+     "slot": "obiad",
+     "kcal_share": 0.35,
+     "ingredients": [
+      {
+       "product": "Schab bez kości (surowy)",
+       "role": "P",
+       "grams": 240
+      },
+      {
+       "product": "Ziemniaki (surowe)",
+       "role": "C",
+       "grams": 570
+      },
+      {
+       "product": "Kapusta biała",
+       "role": "NONE",
+       "grams": 260
+      },
+      {
+       "product": "Cebula",
+       "role": "NONE",
+       "grams": 60
+      },
+      {
+       "product": "Olej rzepakowy",
+       "role": "F",
+       "grams": 17
+      },
+      {
+       "product": "Mąka pszenna",
+       "role": "C",
+       "grams": 10
+      },
+      {
+       "product": "Musztarda",
+       "role": "NONE",
+       "grams": 8
+      },
+      {
+       "product": "Czosnek",
+       "role": "NONE",
+       "grams": 5
+      },
+      {
+       "product": "Koperek",
+       "role": "NONE",
+       "grams": 5
+      },
+      {
+       "product": "Sól",
+       "role": "NONE",
+       "grams": 0.5
+      },
+      {
+       "product": "Pieprz czarny",
+       "role": "NONE",
+       "grams": 1
+      }
+     ],
+     "steps": "Schab natrzyj musztardą, czosnkiem i połową oleju, piecz 25 min w 190°C. Kapustę poszatkuj, ugotuj 10 min; cebulę zeszklij na reszcie oleju, oprósz mąką, wymieszaj z kapustą. Ziemniaki ugotuj z koperkiem.",
+     "flexible": false,
+     "tags": [],
+     "allergens": [
+      "gluten",
+      "gorczyca"
+     ]
+    },
+    {
+     "name": "Wafle z serkiem wiejskim i ogórkiem",
+     "slot": "przekąska",
+     "kcal_share": 0.15,
+     "ingredients": [
+      {
+       "product": "Wafle ryżowe",
+       "role": "C",
+       "grams": 36.0,
+       "class": "DYSKRETNY",
+       "unit_g": 9,
+       "unit_step": 1.0
+      },
+      {
+       "product": "Serek wiejski (cottage)",
+       "role": "P",
+       "grams": 225
+      },
+      {
+       "product": "Ogórek",
+       "role": "NONE",
+       "grams": 90
+      },
+      {
+       "product": "Pestki dyni",
+       "role": "F",
+       "grams": 16
+      },
+      {
+       "product": "Szczypiorek",
+       "role": "NONE",
+       "grams": 5
+      },
+      {
+       "product": "Sól",
+       "role": "NONE",
+       "grams": 0.5
+      },
+      {
+       "product": "Pieprz czarny",
+       "role": "NONE",
+       "grams": 1
+      }
+     ],
+     "steps": "Serek nałóż na wafle, dodaj ogórka i pestki.",
+     "flexible": true,
+     "tags": [
+      "szybkie",
+      "na_wynos"
+     ],
+     "allergens": [
+      "mleko"
+     ]
+    },
+    {
+     "name": "Tabbouleh z ciecierzycą i fetą",
+     "slot": "kolacja",
+     "kcal_share": 0.25,
+     "ingredients": [
+      {
+       "product": "Kasza bulgur (sucha)",
+       "role": "C",
+       "grams": 95
+      },
+      {
+       "product": "Ciecierzyca z puszki (odsączona)",
+       "role": "P",
+       "grams": 100
+      },
+      {
+       "product": "Pomidor",
+       "role": "NONE",
+       "grams": 170
+      },
+      {
+       "product": "Ogórek",
+       "role": "NONE",
+       "grams": 120
+      },
+      {
+       "product": "Natka pietruszki",
+       "role": "NONE",
+       "grams": 15
+      },
+      {
+       "product": "Sok z cytryny",
+       "role": "NONE",
+       "grams": 15
+      },
+      {
+       "product": "Oliwa z oliwek",
+       "role": "F",
+       "grams": 11
+      },
+      {
+       "product": "Feta",
+       "role": "F",
+       "grams": 35
+      },
+      {
+       "product": "Cebula",
+       "role": "NONE",
+       "grams": 30
+      },
+      {
+       "product": "Sól",
+       "role": "NONE",
+       "grams": 0.5
+      },
+      {
+       "product": "Pieprz czarny",
+       "role": "NONE",
+       "grams": 1
+      }
+     ],
+     "steps": "Bulgur zalej wrzątkiem 1:2, odstaw 12 min. Wymieszaj z ciecierzycą, pokrojonymi warzywami, natką, cytryną i oliwą, posyp fetą.",
+     "flexible": false,
+     "tags": [
+      "na_wynos",
+      "szybkie"
+     ],
+     "allergens": [
+      "gluten",
+      "mleko"
+     ]
+    }
+   ]
+  },
+  {
+   "day": 5,
+   "meals": [
+    {
+     "name": "Omlet z brokułem i goudą",
+     "slot": "śniadanie",
+     "kcal_share": 0.25,
+     "ingredients": [
+      {
+       "product": "Jajko kurze (całe)",
+       "role": "P",
+       "grams": 165.0,
+       "class": "DYSKRETNY",
+       "unit_g": 55,
+       "unit_step": 1.0
+      },
+      {
+       "product": "Białko jaja",
+       "role": "P",
+       "grams": 125
+      },
+      {
+       "product": "Brokuł",
+       "role": "NONE",
+       "grams": 130
+      },
+      {
+       "product": "Ser gouda",
+       "role": "F",
+       "grams": 10
+      },
+      {
+       "product": "Masło",
+       "role": "F",
+       "grams": 2
+      },
+      {
+       "product": "Chleb pełnoziarnisty",
+       "role": "C",
+       "grams": 128.0,
+       "class": "DYSKRETNY",
+       "unit_g": 32,
+       "unit_step": 1.0
+      },
+      {
+       "product": "Cebula",
+       "role": "NONE",
+       "grams": 40
+      },
+      {
+       "product": "Sól",
+       "role": "NONE",
+       "grams": 0.5
+      },
+      {
+       "product": "Pieprz czarny",
+       "role": "NONE",
+       "grams": 1
+      }
+     ],
+     "steps": "Brokuł w małych różyczkach podsmaż z cebulą na maśle 4 min, zalej roztrzepanymi jajkami z białkiem, posyp serem, smaż pod przykryciem 4 min. Podaj z chlebem.",
+     "flexible": false,
+     "tags": [],
+     "allergens": [
+      "gluten",
+      "jaja",
+      "mleko"
+     ]
+    },
+    {
+     "name": "Łosoś pieczony z ziemniakami i surówką z kiszonego ogórka",
+     "slot": "obiad",
+     "kcal_share": 0.35,
+     "ingredients": [
+      {
+       "product": "Łosoś (surowy)",
+       "role": "P",
+       "grams": 210
+      },
+      {
+       "product": "Ziemniaki (surowe)",
+       "role": "C",
+       "grams": 685
+      },
+      {
+       "product": "Ogórek kiszony",
+       "role": "NONE",
+       "grams": 130
+      },
+      {
+       "product": "Cebula",
+       "role": "NONE",
+       "grams": 40
+      },
+      {
+       "product": "Olej rzepakowy",
+       "role": "F",
+       "grams": 1
+      },
+      {
+       "product": "Koperek",
+       "role": "NONE",
+       "grams": 8
+      },
+      {
+       "product": "Sok z cytryny",
+       "role": "NONE",
+       "grams": 10
+      },
+      {
+       "product": "Jogurt naturalny 2%",
+       "role": "NONE",
+       "grams": 50
+      },
+      {
+       "product": "Sól",
+       "role": "NONE",
+       "grams": 0.5
+      },
+      {
+       "product": "Pieprz czarny",
+       "role": "NONE",
+       "grams": 1
+      }
+     ],
+     "steps": "Łososia skrop cytryną, piecz 13 min w 200°C. Ziemniaki ugotuj, posyp koperkiem. Ogórki kiszone pokrój, wymieszaj z cebulą, jogurtem i olejem.",
+     "flexible": false,
+     "tags": [],
+     "allergens": [
+      "mleko",
+      "ryby"
+     ]
+    },
+    {
+     "name": "Jogurt grecki z mango i chia",
+     "slot": "przekąska",
+     "kcal_share": 0.15,
+     "ingredients": [
+      {
+       "product": "Jogurt grecki 0%",
+       "role": "P",
+       "grams": 270
+      },
+      {
+       "product": "Mango",
+       "role": "C",
+       "grams": 210
+      },
+      {
+       "product": "Nasiona chia",
+       "role": "F",
+       "grams": 15
+      },
+      {
+       "product": "Miód",
+       "role": "C",
+       "grams": 10
+      },
+      {
+       "product": "Orzechy nerkowca",
+       "role": "F",
+       "grams": 8
+      }
+     ],
+     "steps": "Wymieszaj jogurt z chia, odstaw 10 min, dodaj mango, miód i nerkowce.",
+     "flexible": true,
+     "tags": [
+      "szybkie",
+      "na_wynos"
+     ],
+     "allergens": [
+      "mleko",
+      "orzechy"
+     ]
+    },
+    {
+     "name": "Zupa pomidorowa z ryżem i indykiem",
+     "slot": "kolacja",
+     "kcal_share": 0.25,
+     "ingredients": [
+      {
+       "product": "Pomidory krojone z puszki",
+       "role": "NONE",
+       "grams": 350
+      },
+      {
+       "product": "Ryż biały (suchy)",
+       "role": "C",
+       "grams": 105
+      },
+      {
+       "product": "Mięso mielone z indyka (surowe)",
+       "role": "P",
+       "grams": 125
+      },
+      {
+       "product": "Marchew",
+       "role": "NONE",
+       "grams": 70
+      },
+      {
+       "product": "Cebula",
+       "role": "NONE",
+       "grams": 60
+      },
+      {
+       "product": "Bulion warzywny",
+       "role": "NONE",
+       "grams": 400
+      },
+      {
+       "product": "Śmietana 18%",
+       "role": "F",
+       "grams": 10
+      },
+      {
+       "product": "Oliwa z oliwek",
+       "role": "F",
+       "grams": 2
+      },
+      {
+       "product": "Czosnek",
+       "role": "NONE",
+       "grams": 5
+      },
+      {
+       "product": "Natka pietruszki",
+       "role": "NONE",
+       "grams": 5
+      },
+      {
+       "product": "Sól",
+       "role": "NONE",
+       "grams": 0.5
+      },
+      {
+       "product": "Pieprz czarny",
+       "role": "NONE",
+       "grams": 1
+      }
+     ],
+     "steps": "Cebulę, czosnek i marchew zeszklij na oliwie, dodaj mięso i obsmaż, wlej pomidory i bulion, wsyp ryż, gotuj 15 min. Zabiel śmietaną, posyp natką.",
+     "flexible": false,
+     "tags": [
+      "na_zapas"
+     ],
+     "allergens": [
+      "mleko"
+     ]
+    }
+   ]
+  },
+  {
+   "day": 6,
+   "meals": [
+    {
+     "name": "Tortilla z twarogiem, szynką i warzywami",
+     "slot": "śniadanie",
+     "kcal_share": 0.25,
+     "ingredients": [
+      {
+       "product": "Tortilla pszenna",
+       "role": "C",
+       "grams": 90.0,
+       "class": "DYSKRETNY",
+       "unit_g": 45,
+       "unit_step": 1.0
+      },
+      {
+       "product": "Twaróg półtłusty",
+       "role": "P",
+       "grams": 155
+      },
+      {
+       "product": "Szynka z indyka (wędlina)",
+       "role": "P",
+       "grams": 30
+      },
+      {
+       "product": "Papryka czerwona",
+       "role": "NONE",
+       "grams": 110
+      },
+      {
+       "product": "Sałata",
+       "role": "NONE",
+       "grams": 40
+      },
+      {
+       "product": "Jogurt naturalny 2%",
+       "role": "NONE",
+       "grams": 65
+      },
+      {
+       "product": "Ogórek",
+       "role": "NONE",
+       "grams": 80
+      },
+      {
+       "product": "Oliwa z oliwek",
+       "role": "F",
+       "grams": 6
+      },
+      {
+       "product": "Awokado",
+       "role": "F",
+       "grams": 45
+      },
+      {
+       "product": "Szczypiorek",
+       "role": "NONE",
+       "grams": 5
+      },
+      {
+       "product": "Sól",
+       "role": "NONE",
+       "grams": 0.5
+      },
+      {
+       "product": "Pieprz czarny",
+       "role": "NONE",
+       "grams": 1
+      }
+     ],
+     "steps": "Twaróg rozgnieć z jogurtem, oliwą i szczypiorkiem, rozsmaruj na tortilli, ułóż szynkę i warzywa, zwiń.",
+     "flexible": false,
+     "tags": [
+      "szybkie",
+      "na_wynos"
+     ],
+     "allergens": [
+      "gluten",
+      "mleko"
+     ]
+    },
+    {
+     "name": "Pierś kurczaka z komosą, pieczoną dynią i rukolą",
+     "slot": "obiad",
+     "kcal_share": 0.35,
+     "ingredients": [
+      {
+       "product": "Pierś z kurczaka (surowa)",
+       "role": "P",
+       "grams": 165
+      },
+      {
+       "product": "Komosa ryżowa (sucha)",
+       "role": "C",
+       "grams": 165
+      },
+      {
+       "product": "Dynia",
+       "role": "NONE",
+       "grams": 290
+      },
+      {
+       "product": "Rukola",
+       "role": "NONE",
+       "grams": 40
+      },
+      {
+       "product": "Pestki dyni",
+       "role": "F",
+       "grams": 8
+      },
+      {
+       "product": "Oliwa z oliwek",
+       "role": "F",
+       "grams": 9
+      },
+      {
+       "product": "Papryka słodka mielona",
+       "role": "NONE",
+       "grams": 4
+      },
+      {
+       "product": "Czosnek",
+       "role": "NONE",
+       "grams": 5
+      },
+      {
+       "product": "Sok z cytryny",
+       "role": "NONE",
+       "grams": 10
+      },
+      {
+       "product": "Sól",
+       "role": "NONE",
+       "grams": 0.5
+      },
+      {
+       "product": "Pieprz czarny",
+       "role": "NONE",
+       "grams": 1
+      }
+     ],
+     "steps": "Dynię w kostce skrop połową oliwy, piecz 25 min w 200°C. Kurczaka natrzyj papryką i czosnkiem, usmaż na reszcie oliwy. Komosę ugotuj. Złóż z rukolą, skrop cytryną, posyp pestkami.",
+     "flexible": false,
+     "tags": [
+      "na_wynos"
+     ],
+     "allergens": []
+    },
+    {
+     "name": "Gruszka z waflami i masłem orzechowym",
+     "slot": "przekąska",
+     "kcal_share": 0.15,
+     "ingredients": [
+      {
+       "product": "Gruszka",
+       "role": "C",
+       "grams": 255.0,
+       "class": "DYSKRETNY",
+       "unit_g": 170,
+       "unit_step": 0.5
+      },
+      {
+       "product": "Wafle kukurydziane",
+       "role": "C",
+       "grams": 54.0,
+       "class": "DYSKRETNY",
+       "unit_g": 9,
+       "unit_step": 1.0
+      },
+      {
+       "product": "Masło orzechowe",
+       "role": "F",
+       "grams": 12
+      },
+      {
+       "product": "Skyr naturalny",
+       "role": "P",
+       "grams": 45
+      }
+     ],
+     "steps": "Wafle posmaruj masłem orzechowym; gruszka i skyr obok.",
+     "flexible": true,
+     "tags": [
+      "szybkie",
+      "na_wynos"
+     ],
+     "allergens": [
+      "mleko",
+      "orzechy_ziemne"
+     ]
+    },
+    {
+     "name": "Kanapki z pastą z makreli i kiszonym ogórkiem",
+     "slot": "kolacja",
+     "kcal_share": 0.25,
+     "ingredients": [
+      {
+       "product": "Makrela (surowa)",
+       "role": "F",
+       "grams": 85
+      },
+      {
+       "product": "Twaróg chudy",
+       "role": "P",
+       "grams": 120
+      },
+      {
+       "product": "Ogórek kiszony",
+       "role": "NONE",
+       "grams": 60
+      },
+      {
+       "product": "Cebula",
+       "role": "NONE",
+       "grams": 30
+      },
+      {
+       "product": "Chleb żytni",
+       "role": "C",
+       "grams": 140.0,
+       "class": "DYSKRETNY",
+       "unit_g": 35,
+       "unit_step": 1.0
+      },
+      {
+       "product": "Papryka czerwona",
+       "role": "NONE",
+       "grams": 130
+      },
+      {
+       "product": "Sok z cytryny",
+       "role": "NONE",
+       "grams": 8
+      },
+      {
+       "product": "Szczypiorek",
+       "role": "NONE",
+       "grams": 5
+      },
+      {
+       "product": "Białko jaja",
+       "role": "P",
+       "grams": 45
+      },
+      {
+       "product": "Sól",
+       "role": "NONE",
+       "grams": 0.5
+      },
+      {
+       "product": "Pieprz czarny",
+       "role": "NONE",
+       "grams": 1
+      }
+     ],
+     "steps": "Makrelę upiecz 15 min w 190°C (lub użyj wędzonej), oczyść z ości, rozgnieć z twarogiem, cebulą, ogórkiem, cytryną. Białko usmaż i posiekaj, dodaj. Podaj na chlebie z papryką.",
+     "flexible": false,
+     "tags": [
+      "na_wynos"
+     ],
+     "allergens": [
+      "gluten",
+      "jaja",
+      "mleko",
+      "ryby"
+     ]
+    }
+   ]
+  },
+  {
+   "day": 7,
+   "meals": [
+    {
+     "name": "Tosty z mozzarellą, pomidorem i jajkiem",
+     "slot": "śniadanie",
+     "kcal_share": 0.25,
+     "ingredients": [
+      {
+       "product": "Chleb pełnoziarnisty",
+       "role": "C",
+       "grams": 128.0,
+       "class": "DYSKRETNY",
+       "unit_g": 32,
+       "unit_step": 1.0
+      },
+      {
+       "product": "Mozzarella light",
+       "role": "F",
+       "grams": 45
+      },
+      {
+       "product": "Pomidor",
+       "role": "NONE",
+       "grams": 130
+      },
+      {
+       "product": "Rukola",
+       "role": "NONE",
+       "grams": 30
+      },
+      {
+       "product": "Jajko kurze (całe)",
+       "role": "P",
+       "grams": 110.0,
+       "class": "DYSKRETNY",
+       "unit_g": 55,
+       "unit_step": 1.0
+      },
+      {
+       "product": "Oliwa z oliwek",
+       "role": "F",
+       "grams": 7
+      },
+      {
+       "product": "Oregano suszone",
+       "role": "NONE",
+       "grams": 2
+      },
+      {
+       "product": "Białko jaja",
+       "role": "P",
+       "grams": 100
+      },
+      {
+       "product": "Sól",
+       "role": "NONE",
+       "grams": 0.5
+      },
+      {
+       "product": "Pieprz czarny",
+       "role": "NONE",
+       "grams": 1
+      }
+     ],
+     "steps": "Chleb z mozzarellą i pomidorem zapiecz 6 min w 200°C, posyp oregano. Jajko z białkiem usmaż na oliwie, ułóż na tostach z rukolą.",
+     "flexible": false,
+     "tags": [
+      "szybkie"
+     ],
+     "allergens": [
+      "gluten",
+      "jaja",
+      "mleko"
+     ]
+    },
+    {
+     "name": "Domowy burger wołowy z pieczonymi ziemniakami",
+     "slot": "obiad",
+     "kcal_share": 0.35,
+     "ingredients": [
+      {
+       "product": "Wołowina mielona 90/10 (surowa)",
+       "role": "P",
+       "grams": 200
+      },
+      {
+       "product": "Chleb pełnoziarnisty",
+       "role": "C",
+       "grams": 96.0,
+       "class": "DYSKRETNY",
+       "unit_g": 32,
+       "unit_step": 1.0
+      },
+      {
+       "product": "Ziemniaki (surowe)",
+       "role": "C",
+       "grams": 410
+      },
+      {
+       "product": "Sałata",
+       "role": "NONE",
+       "grams": 40
+      },
+      {
+       "product": "Pomidor",
+       "role": "NONE",
+       "grams": 100
+      },
+      {
+       "product": "Ogórek kiszony",
+       "role": "NONE",
+       "grams": 50
+      },
+      {
+       "product": "Jogurt grecki 0%",
+       "role": "NONE",
+       "grams": 45
+      },
+      {
+       "product": "Musztarda",
+       "role": "NONE",
+       "grams": 8
+      },
+      {
+       "product": "Olej rzepakowy",
+       "role": "F",
+       "grams": 6
+      },
+      {
+       "product": "Cebula",
+       "role": "NONE",
+       "grams": 40
+      },
+      {
+       "product": "Sól",
+       "role": "NONE",
+       "grams": 0.5
+      },
+      {
+       "product": "Pieprz czarny",
+       "role": "NONE",
+       "grams": 1
+      }
+     ],
+     "steps": "Ziemniaki w ćwiartkach skrop połową oleju, piecz 30 min w 200°C. Z mięsa uformuj kotlet, smaż po 4 min z każdej strony. Złóż burgera na chlebie z jogurtem, musztardą i warzywami.",
+     "flexible": false,
+     "tags": [],
+     "allergens": [
+      "gluten",
+      "gorczyca",
+      "mleko"
+     ]
+    },
+    {
+     "name": "Kefir z owocami jagodowymi i płatkami",
+     "slot": "przekąska",
+     "kcal_share": 0.15,
+     "ingredients": [
+      {
+       "product": "Kefir 2%",
+       "role": "P",
+       "grams": 305
+      },
+      {
+       "product": "Owoce jagodowe mrożone",
+       "role": "C",
+       "grams": 160
+      },
+      {
+       "product": "Płatki owsiane",
+       "role": "C",
+       "grams": 40
+      },
+      {
+       "product": "Siemię lniane",
+       "role": "F",
+       "grams": 7
+      },
+      {
+       "product": "Miód",
+       "role": "C",
+       "grams": 10
+      }
+     ],
+     "steps": "Wymieszaj lub zmiksuj.",
+     "flexible": true,
+     "tags": [
+      "szybkie",
+      "na_wynos"
+     ],
+     "allergens": [
+      "gluten",
+      "mleko"
+     ]
+    },
+    {
+     "name": "Krem z brokułów z groszkiem, jajkiem i pieczywem",
+     "slot": "kolacja",
+     "kcal_share": 0.25,
+     "ingredients": [
+      {
+       "product": "Brokuł",
+       "role": "NONE",
+       "grams": 330
+      },
+      {
+       "product": "Groszek zielony (mrożony)",
+       "role": "NONE",
+       "grams": 110
+      },
+      {
+       "product": "Ziemniaki (surowe)",
+       "role": "C",
+       "grams": 150
+      },
+      {
+       "product": "Cebula",
+       "role": "NONE",
+       "grams": 60
+      },
+      {
+       "product": "Bulion warzywny",
+       "role": "NONE",
+       "grams": 400
+      },
+      {
+       "product": "Jogurt grecki 0%",
+       "role": "P",
+       "grams": 75
+      },
+      {
+       "product": "Jajko kurze (całe)",
+       "role": "P",
+       "grams": 55.0,
+       "class": "DYSKRETNY",
+       "unit_g": 55,
+       "unit_step": 1.0
+      },
+      {
+       "product": "Chleb żytni",
+       "role": "C",
+       "grams": 70.0,
+       "class": "DYSKRETNY",
+       "unit_g": 35,
+       "unit_step": 1.0
+      },
+      {
+       "product": "Oliwa z oliwek",
+       "role": "F",
+       "grams": 2
+      },
+      {
+       "product": "Czosnek",
+       "role": "NONE",
+       "grams": 5
+      },
+      {
+       "product": "Szynka z indyka (wędlina)",
+       "role": "P",
+       "grams": 40
+      },
+      {
+       "product": "Sól",
+       "role": "NONE",
+       "grams": 0.5
+      },
+      {
+       "product": "Pieprz czarny",
+       "role": "NONE",
+       "grams": 1
+      }
+     ],
+     "steps": "Cebulę i czosnek zeszklij na oliwie, dodaj ziemniaki, brokuł, groszek i bulion, gotuj 15 min, zmiksuj z jogurtem. Jajko na twardo i szynkę pokrój do zupy. Podaj z chlebem.",
+     "flexible": false,
+     "tags": [
+      "na_zapas"
+     ],
+     "allergens": [
+      "gluten",
+      "jaja",
+      "mleko"
+     ]
+    }
+   ]
+  }
+ ],
+ "derived_from": "standard_v5",
+ "audit": {
+  "version": "2026-09-14",
+  "fixes": {
+   "role": 0,
+   "warzywa": 0,
+   "tłusta_ryba": 0,
+   "czerwone": 0,
+   "wędliny": 0,
+   "strączki": 0,
+   "białko": 0,
+   "ala_błonnik": 0
+  },
+  "remaining": []
+ },
+ "sodium_note": "Sól w przepisach 0,5 g/posiłek; bulion warzywny wybieraj niskosodowy; sos sojowy o obniżonej zawartości soli.",
+ "supplements_note": [
+  "D3 (jesień–zima, 2000 IU) – standardowe zalecenie w Polsce"
+ ]
+}
