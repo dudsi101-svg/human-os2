@@ -24,6 +24,7 @@ każdym pushu niż duży, który nie chodzi.
 | `raport.spec.ts` | Pełna wysyłka raportu tygodniowego oraz reguła „żadne pytanie nie ma wartości domyślnej" |
 | `wiadomosci.spec.ts` | Klient pisze, **trener czyta** — dwie sesje, dwa konta |
 | `szablony.spec.ts` | Katalog gotowych schematów → import; zakładka Dieta; grupy zamienników RO; **0.75.0:** rozwinięcie i zwinięcie szablonu kliknięciem w nazwę (oba projekty) |
+| `zapotrzebowanie.spec.ts` | 0.77.0: klient wypełnia pięć ekranów wywiadu kalorycznego (pytania warunkowe: czas treningu po liczbie sesji, tempo po celu, cardio nie istnieje przy zerze) i widzi bilans — spoczynek, cały dzień z zakresem, cel, makro; trener widzi rozbicie CPM na składniki, nadpisuje wynik z powodem i przenosi kcal, masę oraz makro do „Przypisz dietę” |
 | `plan-opis.spec.ts` | 0.75.0: klient rozwija „Opis ćwiczenia” (po id i po nazwie), przechodzi do pełnej karty w Wiedzy i wraca do planu; karta spoza bazy mówi wprost, że jej nie ma |
 
 Cały pakiet trwa kilka minut; pojedynczy plik uruchamia się w kilkanaście sekund.

@@ -1,5 +1,83 @@
 # Changelog — Dzik OS
 
+## 0.77.0 — 2026-09-14
+
+**Wywiad „Zapotrzebowanie kaloryczne” wyrównany do specyfikacji właściciela 1.0
+z 13.09 (gałąź `agent/wywiad-kaloryczny`, PR #80, migracja 42).** Numer 0.76.0 =
+bloki jak szablony (PR #79, runda równoległa scalana przed tą).
+
+Do 0.76.0 wywiad liczył `PPM × PAL` z sześciu odpowiedzi. Specyfikacja żąda
+pięciu ekranów, CPM rozbitego na składniki, drugiego wzoru na PPM przy znanym
+składzie ciała, makra startowego i siedmiu flag zdrowotnych. Materiał źródłowy
+właściciela (specyfikacja, referencyjna implementacja wzorów `calorie_calc.py`,
+rozpoznanie luk z PR #71) jest w repozytorium: `docs/calorie-interview/`.
+
+* **Silnik** (`wywiad/zapotrzebowanie.py`, przepisany, bez AI): PPM
+  Mifflin-St Jeor zawsze i Katch-McArdle przy podanym procencie tkanki
+  tłuszczowej (użyty przy różnicy ponad 10 % — nietypowy skład ciała to
+  przypadek, w którym Mifflin myli się najbardziej; oba pokazywane trenerowi
+  z różnicą). CPM addytywnie: `(PPM × mnożnik NEAT + kcal treningu z wartości
+  MET) × 1,10`, gdzie ostatnie 1,10 to termiczny efekt pożywienia; zakres ±7 %,
+  bo aktywność poza treningiem jest największym źródłem błędu. Cel kaloryczny
+  z korektą −10/−20/−25 % i +5/+10/+15 %, rekompozycja −5 %, podłoga
+  `max(1,1 × PPM; 1200 kcal K / 1500 kcal M)`. Makro startowe w gramach
+  i procentach, oczekiwane tempo jako zakres kg/tydzień, realistyczny przyrost
+  mięśni ze stażu, orientacyjny czas do masy docelowej. Dziewięć flag z opisem
+  osobno dla trenera i dla klienta.
+  **Kryteria akceptacji ze specyfikacji §7 przechodzą co do jednej kalorii**
+  (PPM 1780 i 1345, Katch 1752, trening 180 kcal/dzień, CPM 2548, podłoga 1480).
+* **Pięć ekranów** (`wywiad/definicje.py`, 23 pytania zamiast 11, własna wersja
+  definicji): dane podstawowe z opcjonalnym procentem tłuszczu, aktywność poza
+  treningiem (cztery opisy albo liczba kroków, która je nadpisuje), trening
+  (siła i cardio osobno, czas i intensywność warunkowe), cel (cztery cele
+  z rekompozycją, tempo, masa docelowa, preferencja białka) i zdrowie.
+* **Ekran zdrowotny w pełnym kształcie ze specyfikacji** (decyzja właściciela):
+  ciąża/karmienie, choroby metaboliczne, zaburzenia odżywiania, leki, brak
+  miesiączki i wolne pole. Wszystkie pytania **dobrowolne**, każde z odpowiedzią
+  „wolę nie odpowiadać”, wszystkie za istniejącą zgodą na dane zdrowotne — bez
+  zgody pytanie nie pada, a trener nie widzi ani odpowiedzi, ani flag z nich
+  wynikających, tylko informację, że wywiad je zawiera. Odpowiedzi zdrowotne
+  nie są kopiowane do tabeli wyników; kopiowany jest wyłącznie skutek (flaga).
+  Wpisy w `DATA_PROCESSING_MAP.md`, `RODO_DPIA.md` §3a i `PERMISSIONS.md`.
+* **Reguła ukrywania liczb zostaje szersza niż w specyfikacji** (decyzja
+  właściciela): „Nie wiem” i „Wolę omówić z trenerem” przy pytaniu
+  o zaburzenia odżywiania dalej ukrywają wynik, nie tylko „Tak”. Zawężenie
+  odsłoniłoby liczby części klientów już obsługiwanych na produkcji, a koszt
+  pomyłki jest niesymetryczny. Nowe: wynik jest ukryty także przed osobą
+  niepełnoletnią i tego ukrycia przycisk „odsłoń” **nie zdejmuje** — to kwestia
+  zgody opiekuna, nie rozmowy.
+* **Migracja 42** (addytywna): 16 kolumn w `calorie_estimates` — rozbicie PPM,
+  mnożnik NEAT, trening na dzień, TEF, zakres CPM, cel, makro, tempo, flagi,
+  BMI i `formulas_version`. Stare kolumny zostają. **Wyniki sprzed wyrównania
+  nie są przeliczane** (decyzja właściciela — nowy wzór potrzebuje rodzaju,
+  czasu i intensywności treningu oraz procentu tłuszczu, których stare
+  przesłania nie mają): dostają `formulas_version = "0.62.0-pal"`, zostają
+  w historii, a klient widzi zachętę do ponownego wypełnienia — bez blokady.
+* **Widok klienta** (specyfikacja §6.1): cztery kafelki — spoczynek, cały dzień
+  z zakresem, cel i makro — każdy z jednym zdaniem „skąd to”, plus oczekiwane
+  tempo i zdanie o tym, że to punkt startowy, nie zalecenie. **Widok trenera**
+  (§6.2) dokłada rozbicie CPM na składniki z podstawionymi liczbami, oba PPM
+  z różnicą, BMI, flagi z opisem i historię wywiadów jako tabelę.
+  „Zaproponuj kcal” w „Przypisz dietę” staje się „Użyj w przypisaniu diety”:
+  przenosi kcal, masę i makro w gramach (preset „ręcznie”).
+* **Szkic sprzed zmiany pytań**: odczyt pomija odpowiedzi, których dzisiejsza
+  definicja nie przyjmie (pytanie zniknęło albo wartość spoza listy) — inaczej
+  postęp liczyłby odpowiedź, której formularz nie umie pokazać, a przesłanie
+  wpisałoby ją do niezmiennej wersji. Przesłane wersje nietknięte.
+* **Naprawione przy okazji:** sygnał monitoringu „cel redukcja, a trend w górę”
+  porównywał `inputs_json["cel"]` z wartością `"redukcja"`, której żaden silnik
+  nigdy nie zapisywał — nie zapalił się więc ani razu na produkcji, a zielony
+  test wstawiał ten wiersz ręcznie. Teraz przez `cel_redukcja`, rozumiejące kod
+  nowego silnika i etykietę starego.
+* **Bez zmiany kształtu eksportu**: `export_version` zostaje „2.1” — eksport
+  RODO zrzuca wiersze `calorie_estimates` generycznie po kolumnach, więc nowe
+  pola wchodzą same (test to sprawdza).
+* **Testy:** 43 silnika (wektory ze specyfikacji i z referencji właściciela),
+  20 API (flagi bez zgody zdrowotnej, małoletni, stary wiersz w historii,
+  szkic sprzed zmiany pytań, eksport), E2E przepisany na pięć ekranów.
+  Plan i odstępstwa: `docs/plan-sesji/wywiad-kaloryczny.md`; rozbieżności
+  specyfikacja kontra referencja i lista P2: `docs/calorie-interview/PROGRESS.md`.
+
 ## 0.75.1 — 2026-09-14
 
 **Dolna nawigacja na iPhonie: ikony ściskane przez wcięcie systemowe (zgłoszenie

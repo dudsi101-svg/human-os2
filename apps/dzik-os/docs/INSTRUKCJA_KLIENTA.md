@@ -102,6 +102,49 @@ jako propozycję do Twojej korekty i tylko wtedy, gdy włączysz zgodę
 „Funkcje AI". Bez niej rozmowa i podsumowanie działają tak samo, tylko
 bez tej propozycji. Model nigdy nie układa planu ani diety.
 
+## Bilans kaloryczny („Więcej → Wywiad" → karta „Bilans kaloryczny"; wynik także w zakładce „Dieta")
+
+Pięć krótkich ekranów: ciało (płeć, wiek, wzrost, masa i — jeśli znasz —
+procent tkanki tłuszczowej), ruch poza treningiem, trening, cel i zdrowie.
+Wypełnienie zajmuje kilka minut; możesz zapisać część i wrócić.
+
+Po przesłaniu zobaczysz cztery liczby, każdą z jednym zdaniem wyjaśnienia:
+
+* **Spoczynek (PPM)** — tyle spala Twoje ciało, gdybyś cały dzień leżał.
+* **Cały dzień (CPM)** z zakresem — z Twoją aktywnością i treningami.
+  Zakres nie jest ostrożnością na wszelki wypadek: aktywność poza treningiem
+  jest najtrudniejsza do oszacowania i to ona najbardziej rozjeżdża wynik.
+* **Twój cel** — po korekcie pod cel sylwetkowy i wybrane tempo.
+* **Makro na start** — białko, tłuszcz i węglowodany w gramach.
+
+Pod spodem jest oczekiwane tempo („~0,4–0,5 kg tygodniowo”) i przycisk
+**„Skąd ta liczba?”**, który pokazuje całe podstawienie krok po kroku —
+nie musisz nikomu wierzyć na słowo.
+
+**To punkt startowy, nie zalecenie.** Błąd takich wzorów to około ±10 %
+u konkretnej osoby. Po 2–3 tygodniach trener skoryguje kalorie na
+podstawie Twoich ważeń — i może wpisać własną liczbę zamiast wyliczonej;
+wtedy zobaczysz jego liczbę razem z powodem.
+
+**Ekran „Zdrowie i kontekst" jest dobrowolny w całości.** Każde pytanie
+możesz pominąć, a przy każdym jest odpowiedź „wolę nie odpowiadać”.
+Pytamy, bo część odpowiedzi zmienia wynik: przy ciąży, karmieniu albo
+braku miesiączki aplikacja nie zaproponuje deficytu, a przy chorobach
+i lekach zaznaczy trenerowi, że plan wymaga konsultacji z lekarzem.
+**Niczego nie ocenia ani nie diagnozuje.** Te odpowiedzi widzi trener
+tylko wtedy, gdy masz włączoną zgodę „Dane zdrowotne” — bez niej pytania
+w ogóle nie padają.
+
+Jeśli w pytaniu o zaburzenia odżywiania zaznaczysz „Tak”, „Nie wiem” albo
+„Wolę omówić z trenerem”, liczby nie pokażą się od razu — najpierw
+zobaczy je trener i porozmawiacie. To nie jest kara ani błąd: liczenie
+kalorii bywa dla części osób szkodliwe i wolimy zacząć od rozmowy.
+
+Jeśli wypełniałeś ten wywiad przed wrześniem 2026, Twój stary wynik
+zostaje w historii, ale policzył go prostszy wzór. Nie przeliczamy go —
+nie mamy danych, o które wtedy nie pytaliśmy. Możesz wypełnić wywiad
+jeszcze raz, żeby dostać rozbicie i makro; nic nie musisz robić od razu.
+
 ## Trening (zakładka „Plan")
 
 * aktualny plan z rozpiską dni i ćwiczeń (serie × powtórzenia, ciężar,

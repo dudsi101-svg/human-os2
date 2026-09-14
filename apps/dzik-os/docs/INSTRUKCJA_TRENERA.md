@@ -52,6 +52,39 @@ klientów wymagających uwagi.
   się sygnał do konsultacji medycznej, zobaczysz go tu wyraźnie —
   wstrzymaj się z obciążaniem tej okolicy do czasu konsultacji.
   Podsumowanie **nie jest planem**: plan układasz Ty.
+* **Bilans kaloryczny** (zakładka Wywiad i Dieta) — wynik wywiadu
+  „Zapotrzebowanie kaloryczne”: spoczynek (PPM), całodzienne
+  zapotrzebowanie (CPM) z zakresem, cel po korekcie i makro startowe.
+  Widzisz **rozbicie CPM na składniki** z podstawionymi liczbami —
+  PPM × aktywność poza treningiem, trening na dzień (z wartości MET
+  rodzaju i czasu), termiczny efekt pożywienia — oraz oba wzory na PPM
+  (Mifflin-St Jeor i Katch-McArdle, jeśli klient podał procent tkanki
+  tłuszczowej) z różnicą i wskazaniem, którego użyto. Do tego BMI, flagi,
+  historia wywiadów (masa i CPM w czasie) i przycisk **„Użyj w przypisaniu
+  diety”**, który przenosi kcal, masę i makro w gramach do formularza
+  przypisania — samo wstawienie niczego nie przypisuje.
+  **Możesz nadpisać wynik własną liczbą**; powód jest obowiązkowy i klient
+  go zobaczy. Nadpisanie dotyczy tej wersji wywiadu: po nowym przesłaniu
+  wynik wraca do wzoru, a poprzednie ustalenie zostaje w historii.
+  Wynik to szacunek ze wzoru, nie zalecenie — błąd u konkretnej osoby to
+  około ±10 %, dlatego CPM pokazujemy jako zakres, a nie jedną liczbę.
+
+  **Flagi, na które warto patrzeć:** ciąża lub karmienie i brak miesiączki
+  wyłączają deficyt (przy braku miesiączki rozważ RED-S i skieruj do
+  lekarza); choroba metaboliczna i leki nie zmieniają liczb, ale mówią,
+  że plan wymaga konsultacji z lekarzem prowadzącym; „deficyt ograniczony”
+  znaczy, że wybrane tempo schodziło poniżej bezpiecznej granicy
+  (1,1 × PPM albo 1200 kcal u kobiet / 1500 u mężczyzn) i cel podniesiono;
+  BMI poza 17–40 oznacza, że wzory są tu mniej trafne.
+  **Zaburzenia odżywiania:** klient nie widzi żadnych liczb do czasu
+  Waszej rozmowy — po niej możesz je odsłonić przyciskiem. **Osoba
+  niepełnoletnia:** liczby też są przed nią ukryte i tego **nie odsłaniasz**
+  — wzory są dla dorosłych, a rozmowa nie zastępuje zgody opiekuna.
+
+  Odpowiedzi z ekranu zdrowotnego i flagi z nich wynikające widzisz
+  **wyłącznie przy aktywnej zgodzie klienta na dane zdrowotne**. Bez niej
+  pytania w ogóle nie padają, a przy wyniku zobaczysz zdanie, że wywiad
+  zawiera odpowiedzi, których nie widzisz — sam wynik i rozbicie zostają.
 * **Wywiad** — głęboki wywiad (46 pytań w 9 modułach: motywacja trzy
   warstwy głębiej, historia treningowa, przesiew zdrowotny, sen, stres
   i głowa, żywienie pod lupą, logistyka tygodnia, punkt startu, zasady

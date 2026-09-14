@@ -42,6 +42,41 @@ prowadzi regularny „monitoring postępów" klientów, w tym samopoczucia).
   4. integracją z urządzeniami (wearables) lub nowymi kategoriami
      danych zdrowotnych.
 
+## 3a. Ekran zdrowotny wywiadu kalorycznego (od 0.77.0)
+
+Wywiad „Zapotrzebowanie kaloryczne” zbiera od 0.77.0 pięć deklaracji
+zdrowotnych (ciąża/karmienie, choroby metaboliczne, zaburzenia odżywiania,
+leki wpływające na masę ciała, brak miesiączki) plus wolne pole. To
+**dane szczególnej kategorii (art. 9)** — ta sama klasa, co pomiary,
+urazy i alergie już zbierane w wywiadzie wstępnym; nowa jest ich treść,
+nie kategoria, więc wskazanie z §3 nie zmienia się co do zasady.
+
+Przesłanki, które ograniczają ryzyko tego rozszerzenia:
+
+* **Niezbędność.** Każda z pięciu deklaracji zmienia wynik albo
+  ostrzeżenie: ciąża/karmienie i brak miesiączki wyłączają deficyt,
+  zaburzenia odżywiania ukrywają liczby przed klientem, choroby i leki
+  zapalają ostrzeżenie o konsultacji lekarskiej. Żadna nie jest zbierana
+  „na zapas”.
+* **Dobrowolność.** Wszystkie pytania są opcjonalne i każde ma odpowiedź
+  „wolę nie odpowiadać” (przy zaburzeniach odżywiania: „wolę omówić
+  z trenerem”). Brak odpowiedzi nie blokuje wyniku.
+* **Zgoda przed pytaniem.** Bez aktywnej zgody `health_data` pytanie nie
+  pada w ogóle — nie jest zadawane i zapisywane, a potem ukrywane.
+* **Minimalizacja przy przetwarzaniu wtórnym.** Odpowiedzi zdrowotne nie
+  są kopiowane do tabeli wyników; kopiowany jest wyłącznie skutek (flaga).
+* **Brak automatycznej decyzji.** Aplikacja proponuje liczbę i ostrzeżenie;
+  decyzję podejmuje człowiek (trener), a przy flagach medycznych komunikat
+  kieruje do lekarza zamiast liczyć „bezpieczną” wersję planu.
+* **Brak AI i brak wysyłki poza system** — wynik liczy jawny wzór
+  (`wywiad/zapotrzebowanie.py`), bez dostawcy zewnętrznego.
+
+**Wskazanie:** rozszerzenie nie tworzy nowej przesłanki obowiązkowej DPIA
+(skala i brak profilowania bez zmian), ale należy do materiału
+uproszczonej oceny ryzyka rekomendowanej w §3 — i powinno być w niej
+wymienione wprost, bo poszerza zakres danych art. 9 o deklaracje
+dotyczące ciąży i chorób. DECYZJA ADMINISTRATORA DANYCH.
+
 ## 4. Materiał wejściowy do DPIA (gotowy w repo)
 
 * opis operacji i celów: `RODO_REJESTR_CZYNNOSCI.md`,
