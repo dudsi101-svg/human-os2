@@ -26,9 +26,13 @@ gałąź `agent/nawyki-dzisiaj`, migracja 34).**
   klienta → Harmonogram (trener: proponuje startowe z notatką, odhacza
   wspólnie). Zero czerwieni, zero „passa”, zero komunikatów-kar.
 * **API:** `GET/POST /api/clients/{id}/habits`, `PATCH …/{habit_id}`
-  (edycja, `status=ARCHIVED`, `ack`), `POST …/{habit_id}/complete`
-  (CLIENT_SCOPED, domena danych treningowych — bez nowej bramki zgód).
-  Audyt `HABIT_CREATED`/`HABIT_ARCHIVED` bez treści nazwy.
+  (edycja tylko aktywnego, `status=ARCHIVED` / `ACTIVE` = przywrócenie
+  z listy przy wolnym miejscu, `ack`; notatkę zmienia tylko autor),
+  `POST …/{habit_id}/complete` (CLIENT_SCOPED, domena danych
+  treningowych — bez nowej bramki zgód). Absolutorium datowane na dzień
+  osiągnięcia terminu; po nim postęp zamrożony. Audyt `HABIT_CREATED` /
+  `HABIT_UPDATED` (nazwy pól) / `HABIT_ARCHIVED` / `HABIT_RESTORED` /
+  `HABIT_GRADUATED` — bez treści nazwy i notatki.
 * **Prywatność:** eksport `habits`/`habit_completions` (`export_version`
   1.8), usuwanie konta kasuje nawyki. Seed: 3 nawyki demo klienta A
   (bliski absolutorium, z opuszczeniami, świeży).

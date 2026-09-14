@@ -31,7 +31,7 @@ decyzje właściciela) przesuwa się na **0.64.0 / migrację 35** — odnotowane
   długa przerwa nie tworzy „długu” do odrobienia — po niej start od 0, nie od −20);
   dni poza `days_of_week` neutralne; dzisiejszy dzień nie karze, dopóki nie minie.
   Koryguje filtr `ANALIZA_RYNKU` §E („bez kary za przerwę”) → „łagodny decay −1, UI bez
-  zawstydzania” — notka w §E; wpis R-19 w `RISK_REGISTER` (świadome odstępstwo).
+  zawstydzania” — notka w §E; wpis R-20 w `RISK_REGISTER` (świadome odstępstwo).
 * **Postęp liczony serwerowo przy odczycie** (bez crona); status GRADUATED utrwalany
   przy odczycie/odhaczeniu, gdy `progress ≥ target_days`. Limit **3 ACTIVE** na klienta;
   GRADUATED/ARCHIVED zwalniają miejsce. GRADUATED bez przycisku odhaczania; karta

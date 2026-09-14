@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api, getUser, money } from "../../api";
 import { plDate } from "../../dates";
@@ -22,10 +22,10 @@ export default function Today() {
   const [interviewDismissed, setInterviewDismissed] = useState(false);
   const user = getUser();
 
-  const load = () => {
+  const load = useCallback(() => {
     setError(null);
     api.get<TodayData>("/api/me/today").then(setData).catch((e) => setError(e.message));
-  };
+  }, []);
   useEffect(() => {
     load();
     if (user) {
@@ -101,7 +101,7 @@ export default function Today() {
         </p>
         <small className="dim">— {data.daily_message.author}{data.daily_message.note ? ` (${data.daily_message.note})` : ""}</small>
       </div>
-      <PanelNawykow clientId={user?.id ?? ""} tryb="klient" habits={data.habits} onZmiana={load} />
+      {user && <PanelNawykow clientId={user.id} tryb="klient" habits={data.habits} onZmiana={load} />}
       {needsIntake && (
         <div className="card card--accent" style={{ marginBottom: 10 }}>
           <b style={{ color: "var(--text)" }}>👋 Zacznijmy od rozmowy startowej</b>

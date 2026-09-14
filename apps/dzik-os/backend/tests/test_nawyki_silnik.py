@@ -66,3 +66,12 @@ def test_imie():
     assert N.imie("Anna Wilk") == "Anna"
     assert N.imie("  Marek ") == "Marek"
     assert N.imie("") == "" and N.imie(None) == ""
+
+
+def test_absolutorium_w_dniu_osiagniecia_terminu_i_bez_decay_po_nim():
+    wyk = {_d(n) for n in range(5)}
+    # Termin 5: osiągnięty w dniu 4; późniejsze opuszczenia (5, 6) nie cofają.
+    p = N.postep(D0, _d(7), set(range(1, 8)), wyk, target_days=5)
+    assert p.graduated_on == _d(4) and p.progress == 5
+    # Bez terminu: zwykły decay do 3.
+    assert N.postep(D0, _d(7), set(range(1, 8)), wyk).progress == 3 and N.postep(D0, _d(7), set(range(1, 8)), wyk).graduated_on is None

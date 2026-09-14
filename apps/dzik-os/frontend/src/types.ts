@@ -414,10 +414,6 @@ export interface HabitOut {
   created_at: string;
 }
 
-export const HABIT_STATUS_LABELS: Record<HabitOut["status"], string> = {
-  ACTIVE: "w trakcie", GRADUATED: "utrwalony", ARCHIVED: "zarchiwizowany",
-};
-
 export interface DailyMessage {
   text: string;
   author: string;

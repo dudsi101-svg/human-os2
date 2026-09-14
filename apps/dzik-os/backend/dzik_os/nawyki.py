@@ -56,12 +56,17 @@ class Postep:
     missed_count: int
     scheduled_today: bool
     done_today: bool
+    #: Dzień, w którym bieżący postęp po raz pierwszy osiągnął termin (absolutorium);
+    #: None, gdy jeszcze nie. Po tym dniu decay już nie obowiązuje.
+    graduated_on: date | None = None
 
 
-def postep(started_on: date, today: date, dni: set[int], wykonane: set[date]) -> Postep:
+def postep(started_on: date, today: date, dni: set[int], wykonane: set[date],
+           target_days: int | None = None) -> Postep:
     plan = zaplanowane(started_on, today, dni)
     p = 0
     done = missed = 0
+    graduated: date | None = None
     for d in plan:
         if d in wykonane:
             p += 1
@@ -70,9 +75,12 @@ def postep(started_on: date, today: date, dni: set[int], wykonane: set[date]) ->
             p = max(0, p - 1)
             missed += 1
         # d == today bez wykonania: neutralne, dopóki dzień nie minie
+        if target_days is not None and graduated is None and p >= target_days:
+            graduated = d
+            break  # absolutorium: dalsze dni nie liczą się (nawyk utrwalony)
     return Postep(progress=p, done_count=done, planned_count=len(plan), missed_count=missed,
                   scheduled_today=today.isoweekday() in dni and today >= started_on,
-                  done_today=today in wykonane)
+                  done_today=today in wykonane, graduated_on=graduated)
 
 
 def absolutorium(progress: int, target_days: int) -> bool:

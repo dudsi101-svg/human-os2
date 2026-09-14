@@ -9,10 +9,11 @@ utrwalany, gdy postęp osiągnie termin.
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from .. import nawyki as N
@@ -26,6 +27,16 @@ from ..security import current_user
 router = APIRouter(prefix="/api", tags=["habits"])
 
 _DNI_RE = r"^[1-7](,[1-7]){0,6}$"
+#: Najdawniejszy dopuszczalny start (ochrona przed liczeniem dziesiątek lat wstecz).
+START_MAX_DNI_WSTECZ = 365
+
+
+def _data(tekst: str, nazwa: str) -> date:
+    """`YYYY-MM-DD` → date; nieistniejąca data (2026-02-30) = 422, nie 500."""
+    try:
+        return parse_iso_date(tekst)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=f"{nazwa}: nieprawidłowa data.") from e
 
 
 class HabitIn(BaseModel):
@@ -41,8 +52,9 @@ class HabitPatch(BaseModel):
     days_of_week: str | None = Field(default=None, pattern=_DNI_RE)
     target_days: int | None = Field(default=None, ge=N.TERMIN_MIN, le=N.TERMIN_MAX)
     author_note: str | None = Field(default=None, max_length=500)
-    #: ARCHIVED = wymień/usuń; „ack” = przyjęcie absolutorium („Zostaw tak jak jest”).
-    status: str | None = Field(default=None, pattern="^(ARCHIVED)$")
+    #: ARCHIVED = wymień/usuń z listy; ACTIVE = przywróć zarchiwizowany (gdy jest miejsce);
+    #: „ack” = przyjęcie absolutorium („Zostaw tak jak jest”).
+    status: str | None = Field(default=None, pattern="^(ARCHIVED|ACTIVE)$")
     ack: bool | None = None
 
 
@@ -57,13 +69,21 @@ def _wykonane(db: Session, habit: Habit) -> set[date]:
 
 
 def odswiez(db: Session, habit: Habit, today: date) -> N.Postep:
-    """Postęp z bazy + utrwalenie absolutorium (bez crona: przy odczycie)."""
-    p = N.postep(parse_iso_date(habit.started_on), today, N.dni_tygodnia(habit.days_of_week),
-                 _wykonane(db, habit))
-    if habit.status == N.STATUS_ACTIVE and N.absolutorium(p.progress, habit.target_days):
+    """Postęp z bazy + utrwalenie absolutorium (bez crona: przy odczycie).
+    Po absolutorium postęp jest ZAMROŻONY na dniu absolutorium — kolejne dni
+    bez odhaczeń niczego nie cofają (nawyk utrwalony nie jest już pilnowany)."""
+    koniec = today
+    if habit.status == N.STATUS_GRADUATED and habit.graduated_on:
+        koniec = min(today, parse_iso_date(habit.graduated_on))
+    p = N.postep(parse_iso_date(habit.started_on), koniec, N.dni_tygodnia(habit.days_of_week),
+                 _wykonane(db, habit), habit.target_days)
+    if habit.status == N.STATUS_ACTIVE and p.graduated_on is not None:
         habit.status = N.STATUS_GRADUATED
-        habit.graduated_on = today.isoformat()
+        habit.graduated_on = p.graduated_on.isoformat()
         habit.updated_at = now_iso()
+        record_event(db, action="HABIT_GRADUATED", actor_id=habit.client_id, subject_ids=[habit.client_id],
+                     payload={"habit_id": habit.id, "target_days": habit.target_days},
+                     summary="Nawyk utrwalony (absolutorium)")
         db.flush()
     return p
 
@@ -123,8 +143,11 @@ def create_habit(client_id: str, body: HabitIn, user: User = Depends(current_use
         raise HTTPException(status_code=409, detail=f"Maksymalnie {N.LIMIT_AKTYWNYCH} aktywne nawyki naraz — "
                                                     "wymień albo zarchiwizuj któryś, zanim dodasz kolejny.")
     started = body.started_on or today.isoformat()
-    if parse_iso_date(started) > today:
+    start = _data(started, "started_on")
+    if start > today:
         raise HTTPException(status_code=422, detail="Data startu nie może być w przyszłości.")
+    if start < today - timedelta(days=START_MAX_DNI_WSTECZ):
+        raise HTTPException(status_code=422, detail=f"Data startu najwyżej {START_MAX_DNI_WSTECZ} dni wstecz.")
     habit = Habit(
         id=new_id("HAB"), client_id=client_id, name=body.name.strip(), days_of_week=body.days_of_week,
         target_days=body.target_days, author_id=user.id, author_note=body.author_note,
@@ -132,6 +155,10 @@ def create_habit(client_id: str, body: HabitIn, user: User = Depends(current_use
     )
     db.add(habit)
     db.flush()
+    # Limit sprawdzany PONOWNIE po zapisie: dwa równoległe POST nie dadzą czwartego.
+    if db.query(Habit).filter_by(client_id=client_id, status=N.STATUS_ACTIVE).count() > N.LIMIT_AKTYWNYCH:
+        db.rollback()
+        raise HTTPException(status_code=409, detail=f"Maksymalnie {N.LIMIT_AKTYWNYCH} aktywne nawyki naraz.")
     record_event(db, action="HABIT_CREATED", actor_id=user.id, subject_ids=[client_id],
                  payload={"habit_id": habit.id, "target_days": habit.target_days, "author_id": user.id},
                  summary="Dodano nawyk")
@@ -147,23 +174,43 @@ def patch_habit(client_id: str, habit_id: str, body: HabitPatch, user: User = De
     habit = _nawyk(db, user, client_id, habit_id)
     klient = db.get(User, client_id)
     today = local_today(klient)
-    if body.name is not None:
+    zmiany: list[str] = []
+    edycja = any(v is not None for v in (body.name, body.days_of_week, body.target_days, body.author_note))
+    if edycja and habit.status != N.STATUS_ACTIVE:
+        raise HTTPException(status_code=409, detail="Edytować można tylko aktywny nawyk.")
+    if body.author_note is not None and user.id != habit.author_id:
+        raise HTTPException(status_code=403, detail="Notatkę może zmienić tylko jej autor.")
+    if body.name is not None and body.name.strip() != habit.name:
         habit.name = body.name.strip()
-    if body.days_of_week is not None:
+        zmiany.append("name")
+    if body.days_of_week is not None and body.days_of_week != habit.days_of_week:
         habit.days_of_week = body.days_of_week
-    if body.target_days is not None:
+        zmiany.append("days_of_week")
+    if body.target_days is not None and body.target_days != habit.target_days:
         habit.target_days = body.target_days
-    if body.author_note is not None:
+        zmiany.append("target_days")
+    if body.author_note is not None and body.author_note != habit.author_note:
         habit.author_note = body.author_note
+        zmiany.append("author_note")
     if body.status == N.STATUS_ARCHIVED and habit.status != N.STATUS_ARCHIVED:
         habit.status = N.STATUS_ARCHIVED
         record_event(db, action="HABIT_ARCHIVED", actor_id=user.id, subject_ids=[client_id],
                      payload={"habit_id": habit.id}, summary="Zarchiwizowano nawyk")
-    if body.ack:
-        if habit.status != N.STATUS_GRADUATED:
-            odswiez(db, habit, today)
-        if habit.status == N.STATUS_GRADUATED and habit.ack_on is None:
-            habit.ack_on = today.isoformat()
+    elif body.status == N.STATUS_ACTIVE and habit.status == N.STATUS_ARCHIVED:
+        # Przywrócenie (pomyłkowe „Usuń z listy”) — tylko gdy jest wolne miejsce.
+        aktywne = db.query(Habit).filter_by(client_id=client_id, status=N.STATUS_ACTIVE).count()
+        if aktywne >= N.LIMIT_AKTYWNYCH:
+            raise HTTPException(status_code=409, detail=f"Maksymalnie {N.LIMIT_AKTYWNYCH} aktywne nawyki naraz.")
+        habit.status = N.STATUS_ACTIVE
+        habit.graduated_on = None
+        habit.ack_on = None
+        record_event(db, action="HABIT_RESTORED", actor_id=user.id, subject_ids=[client_id],
+                     payload={"habit_id": habit.id}, summary="Przywrócono nawyk")
+    if body.ack and habit.status == N.STATUS_GRADUATED and habit.ack_on is None:
+        habit.ack_on = today.isoformat()
+    if zmiany:
+        record_event(db, action="HABIT_UPDATED", actor_id=user.id, subject_ids=[client_id],
+                     payload={"habit_id": habit.id, "fields": zmiany}, summary="Zmieniono nawyk")
     habit.updated_at = now_iso()
     out = habit_out(db, habit, today)
     db.commit()
@@ -180,18 +227,21 @@ def complete_habit(client_id: str, habit_id: str, body: CompleteIn, user: User =
     klient = db.get(User, client_id)
     today = local_today(klient)
     if habit.status != N.STATUS_ACTIVE:
-        odswiez(db, habit, today)
         raise HTTPException(status_code=409, detail="Ten nawyk nie jest już odhaczany (utrwalony albo zarchiwizowany).")
-    dzien = parse_iso_date(body.completed_on) if body.completed_on else today
+    dzien = _data(body.completed_on, "completed_on") if body.completed_on else today
     if dzien > today:
         raise HTTPException(status_code=422, detail="Nie można odhaczyć dnia z przyszłości.")
     if dzien < parse_iso_date(habit.started_on):
         raise HTTPException(status_code=422, detail="Dzień sprzed startu nawyku.")
     existing = db.query(HabitCompletion).filter_by(habit_id=habit.id, completed_on=dzien.isoformat()).one_or_none()
     if body.done and existing is None:
-        db.add(HabitCompletion(id=new_id("HCP"), habit_id=habit.id, client_id=client_id,
-                               completed_on=dzien.isoformat(), status="DONE", created_by=user.id))
-        db.flush()
+        try:
+            with db.begin_nested():
+                db.add(HabitCompletion(id=new_id("HCP"), habit_id=habit.id, client_id=client_id,
+                                       completed_on=dzien.isoformat(), status="DONE", created_by=user.id))
+                db.flush()
+        except IntegrityError:
+            pass  # równoległe odhaczenie tego samego dnia — wpis już jest, stan poniżej aktualny
     elif not body.done and existing is not None:
         db.delete(existing)
         db.flush()
