@@ -644,6 +644,11 @@ def test_migracja_23_na_starej_bazie(tmp_path):
         conn.execute(text(
             "CREATE TABLE onboarding_sessions (id VARCHAR(40) PRIMARY KEY, "
             "client_id VARCHAR(40))"))
+        # Migracja nr 40 (motyw aplikacji, 0.74.0) dokłada kolumnę do
+        # `notification_settings` — stub z tego samego powodu.
+        conn.execute(text(
+            "CREATE TABLE notification_settings (id VARCHAR(40) PRIMARY KEY, "
+            "user_id VARCHAR(40))"))
 
     applied = run_migrations(eng)
     # Stara baza domyka CAŁY zaległy ogon migracji, nie tylko nr 23 —

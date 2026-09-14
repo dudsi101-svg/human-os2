@@ -158,6 +158,15 @@ jobs:
         env:
           NODE_PATH: ${{ github.workspace }}/apps/dzik-os/frontend/node_modules
         run: node e2e/test_a11y.mjs
+      # Drugi motyw (0.74.0): ten sam zestaw w jasnym czerwono-białym — motyw
+      # ustawiany jak w aplikacji (localStorage przed nawigacją). Kontrast par
+      # jest policzony w docs/DOSTEPNOSC.md; tu pilnujemy układu i semantyki.
+      - name: E2E dostępności — motyw jasny (czerwono-biały)
+        working-directory: apps/dzik-os
+        env:
+          NODE_PATH: ${{ github.workspace }}/apps/dzik-os/frontend/node_modules
+          DZIK_THEME: czerwony
+        run: node e2e/test_a11y.mjs
       # Ten sam problem: jedyna bramka sprawdzajaca service workera
       # (precache, "API nigdy w cache", flow aktualizacji bez auto-reloadu)
       # tez nie chodzila w CI. Bez niej zmiana listy precache — np. odsianie

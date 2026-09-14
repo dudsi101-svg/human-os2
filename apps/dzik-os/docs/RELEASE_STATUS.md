@@ -1,6 +1,6 @@
 # Stan wydania — Dzik OS
 
-**Wersja:** 0.75.0 (PR #77 — szablony rozwijane po nazwie i opisy ćwiczeń z Wiedzy; 0.74.0 = motyw czerwono-biały, PR #76; `main` 0.73.0 po scaleniu PR #75; na produkcji 0.73.0 po wdrożeniu) · **Data:** 2026-09-14 · **Środowisko:** produkcja
+**Wersja:** 0.75.0 (PR #77 — szablony rozwijane po nazwie i opisy ćwiczeń z Wiedzy; `main` 0.74.0 po scaleniu PR #76 motyw; na produkcji 0.74.0 po wdrożeniu) · **Data:** 2026-09-14 · **Środowisko:** produkcja
 (pilotaż) — https://dzik-os-panel.fly.dev
 
 Jedna strona prawdy o tym, co DZIAŁA na produkcji teraz. Aktualizowana
@@ -9,6 +9,14 @@ dokumentów" — nieaktualny numer wersji czerwieni bramkę). Historia
 zmian: `CHANGELOG.md`; stan prac między sesjami: `STAN_PRZEKAZANIA.md`;
 decyzja jakościowa: `BRAMKA_GO_NOGO.md` (warunkowe GO na pilotaż
 z jednym klientem, NO-GO na szerszą produkcję).
+
+## Motyw aplikacji (0.74.0)
+
+Dwa kompletne motywy do wyboru w „Więcej → Wygląd” (klient i trener):
+„Ciemny (czarno-zielony)” — domyślny, bez zmian względem poprzednich wydań —
+i „Jasny (czerwono-biały)”. Wybór na urządzeniu (`localStorage`) i na koncie
+(`notification_settings.theme`, migracja 40); po zalogowaniu konto wygrywa.
+Ikony PWA, `og.png` i manifest nadal limonkowe/ciemne — decyzja o znaku.
 
 ## Strona publiczna `/` (0.72.0)
 

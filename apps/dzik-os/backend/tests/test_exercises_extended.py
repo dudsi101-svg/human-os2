@@ -47,6 +47,8 @@ def test_migration_19_adds_nullable_columns_to_existing_database(tmp_path):
         conn.execute(text("CREATE TABLE users (id VARCHAR(40) PRIMARY KEY)"))
         # Stub dla migracji nr 39 (pola cardio w dzienniku: workout_entries).
         conn.execute(text("CREATE TABLE workout_entries (id VARCHAR(40) PRIMARY KEY)"))
+        # Stub dla migracji nr 40 (motyw aplikacji: notification_settings.theme).
+        conn.execute(text("CREATE TABLE notification_settings (id VARCHAR(40) PRIMARY KEY)"))
         conn.execute(text(
             "CREATE TABLE food_products (id VARCHAR(40) PRIMARY KEY, "
             "coach_id VARCHAR(40), name VARCHAR(300), kcal_100g FLOAT)"))

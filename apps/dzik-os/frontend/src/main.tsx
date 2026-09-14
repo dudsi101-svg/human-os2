@@ -29,7 +29,13 @@ import { reportFrontendError } from "./api";
 import App from "./App";
 import { ErrorBoundary, OfflineScreen, UpdateBanner } from "./components";
 import { registerServiceWorker } from "./pwa";
+import { odczytajMotyw, zastosujMotyw } from "./theme";
 import "./styles.css";
+
+// Motyw (0.74.0) PRZED pierwszym renderem: atrybut na <html> + meta theme-color.
+// Arkusz jest już w <head>, więc pierwsza farba React idzie we właściwym
+// motywie; CSP nie dopuszcza skryptu inline w index.html, stąd tutaj.
+zastosujMotyw(document, odczytajMotyw());
 
 // Nieprzechwycone błędy JS i odrzucone Promise — raportowane do backendu
 // w formie zredagowanej (typ + pliki własne, bez treści danych; limit

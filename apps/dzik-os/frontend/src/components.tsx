@@ -27,16 +27,16 @@ import {
   MUSCLE_LABELS, muscleLabels, PersonalRecordsData, SeriesPoint, StrengthSeriesRow,
 } from "./types";
 
-/** Głowa dzika — marka Dzik OS. */
+/** Głowa dzika — marka Dzik OS. Dwa znaki: limonkowy (motyw ciemny) i czerwony
+ * (motyw jasny, 0.74.0) — który widać, decyduje wyłącznie CSS po atrybucie
+ * html[data-theme] (.logo--ciemny / .logo--czerwony), bez JS i bez stanu. */
 export function Logo({ size = 38 }: { size?: number }) {
+  const style = { width: size, height: size, objectFit: "contain" as const };
   return (
-    <img
-      src="/icons/boar-mark.png"
-      alt=""
-      width={size}
-      height={size}
-      style={{ width: size, height: size, objectFit: "contain" }}
-    />
+    <>
+      <img className="logo--ciemny" src="/icons/boar-mark.png" alt="" width={size} height={size} style={style} />
+      <img className="logo--czerwony" src="/icons/boar-mark-red.png" alt="" width={size} height={size} style={style} />
+    </>
   );
 }
 
