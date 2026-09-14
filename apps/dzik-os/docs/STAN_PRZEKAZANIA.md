@@ -367,7 +367,8 @@ nie uruchamiano, ponieważ runda nie zmienia kodu ani zasobów frontendu.
 | `agent/biblioteka-diet` | 0.64.0 | 35 | **scalona** (PR #66, 14.09), deploy 0.64.0 po CI na `main` | — | — |
 | `agent/landing-czerwony` | 0.65.0 | — | gotowa, PR #67 „ready”, CI zielone po scaleniu `main` | **decyzja właściciela o scaleniu** (prompt: nie scalać samodzielnie); po scaleniu #61 numer 0.65.0 do zmiany na kolejny wolny | po decyzji |
 | `agent/monitoring-postepy` | 0.66.0 | 36 | **scalona** (PR #61, 14.09), deploy 0.66.0 po CI na `main`; flaga na produkcji wyłączona | włączenie flagi + backfill — decyzja właściciela | — |
-| `agent/ukryj-kreator` | 0.67.0 | — | zlecenie 0 (14.09): kreator diety za flagą `DZIK_DIET_WIZARD_ENABLED`, nic nie kasowane; `main` 0.66.0 scalony, PR #68 — CI po scaleniu | — | 1 |
+| `agent/ukryj-kreator` | 0.67.0 | — | **scalona** (PR #68, 14.09), deploy 0.67.0 po CI na `main`; kreator na produkcji ukryty (brak flagi w `fly.toml`) | — | — |
+| `agent/wymiany-produktow` | 0.69.0 (0.68.0 = dni treningowe) | — | zlecenie 2 (14.09): silnik wymian v2 (poziom 2, powody, NONE 1:1, bramka „nie pogarsza”), grupy pokrewne (45 par, RO), korelacja katalogu → CSV; przegląd 3 recenzentów naprawiony (P0/P1 ×5, P2 w PROGRESS); `main` 0.67.0 scalony, PR #69 — CI | przegląd CSV przez właściciela (TAK/NIE) → import osobnym PR-em; decyzja o luzie bramki | 1 |
 
 | Rzecz | Stan | Gdzie |
 |---|---|---|

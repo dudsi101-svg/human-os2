@@ -20,6 +20,7 @@ from ..models import (
     DietTemplateWeek,
     new_id,
 )
+from . import grupy
 from . import silnik as S
 
 MACRO_TOL_MANUAL = 0.03
@@ -250,14 +251,38 @@ def _klucz(day: int, meal_id: str, ingredient_id: str) -> str:
     return f"{day}:{meal_id}:{ingredient_id}"
 
 
-def plan_z_korektami(db: Session, a: DietAssigned) -> dict[str, Any]:
+def swappable_efektywne(plan: dict[str, Any], prods: S.Products) -> None:
+    """Wymiany v2 (§4 pkt 4): rola NONE dostaje przycisk, gdy grupa zamienników
+    produktu ma ≥ 2 produkty (klasa STAŁY nadal bez). Liczone przy odczycie tą
+    samą regułą co seed — migawki sprzed rundy nie są przepisywane. Dotyczy TYLKO
+    roli NONE: jawne `swappable: false` trenera dla P/C/F zostaje (przegląd 14.09).
+    Dla NONE jawne `false` w migawce jest nieodróżnialne od domyślnego `false`
+    sprzed 0.69.0 (kolumna nie jest nullable) — blokada per składnik NONE wymaga
+    migracji, do tego czasu trener blokuje posiłek albo całą dietę (PROGRESS)."""
+    liczność: dict[str, int] = {}
+    for q in prods.values():
+        if q.substitution_group:
+            liczność[q.substitution_group] = liczność.get(q.substitution_group, 0) + 1
+    for d in plan.get("days", []):
+        for m in d.get("meals", []):
+            for i in m.get("ingredients", []):
+                if (i.get("role") or "NONE") != "NONE" or i.get("swappable") or i.get("class") == "STAŁY":
+                    continue
+                q = prods.get(i.get("product"))
+                if q is not None and liczność.get(q.substitution_group, 0) >= 2:
+                    i["swappable"] = True
+
+
+def plan_z_korektami(db: Session, a: DietAssigned, prods: S.Products | None = None) -> dict[str, Any]:
     """Migawka z nałożonymi korektami/wymianami i przeliczonymi makro
     (gramatury z overrides, produkty z bazy — nic nie jest liczone w
-    przeglądarce)."""
+    przeglądarce). `prods` można podać, żeby nie czytać bazy produktów dwa razy."""
     plan = migawka(db, a)
     o = overrides(a)
-    prods, _rows = produkty(db)
+    if prods is None:
+        prods, _rows = produkty(db)
     zastosuj_korekty(plan, o, prods)
+    swappable_efektywne(plan, prods)
     plan["overrides"] = o
     return plan
 
@@ -288,8 +313,9 @@ def posilek_silnika(m_out: dict[str, Any]) -> dict[str, Any]:
 
 
 def kandydaci_wymiany(db: Session, a: DietAssigned, day: int, meal_id: str, ingredient_id: str,
-                      *, n: int = 3) -> tuple[list[dict[str, Any]], dict[str, Any], int]:
-    plan = plan_z_korektami(db, a)
+                      *, n: int = 3) -> tuple[list[dict[str, Any]], dict[str, Any], int, dict[str, Any]]:
+    prods, rows = produkty(db)
+    plan = plan_z_korektami(db, a, prods)
     d = next((x for x in plan["days"] if x["day"] == day), None)
     m = next((x for x in (d["meals"] if d else []) if x["meal_id"] == meal_id), None)
     if m is None:
@@ -297,15 +323,15 @@ def kandydaci_wymiany(db: Session, a: DietAssigned, day: int, meal_id: str, ingr
     idx = next((i for i, x in enumerate(m["ingredients"]) if x["ingredient_id"] == ingredient_id), None)
     if idx is None:
         raise KeyError("składnik")
-    prods, rows = produkty(db)
     excl = oczysc_wykluczenia(json.loads(a.exclusions_json or "[]"))
-    # Silnik filtruje alergeny/diety; „nielubiane” (wykluczenie po nazwie
-    # produktu) odsiewamy tu — przed cięciem do n, żeby nie tracić miejsc.
-    cands = [c for c in S.swap_candidates(posilek_silnika(m), idx, prods, exclusions=tuple(excl), n=len(prods))
-             if not _wykluczony(prods[c["product"]], excl)][:n]
+    # Jedna ścieżka dla GET i POST: silnik odsiewa alergeny, diety i „nie lubię”
+    # (wykluczenie po nazwie) PRZED poziomem 2 i liczy powody odrzuceń.
+    cands, meta = S.swap_candidates_z_powodami(posilek_silnika(m), idx, prods, exclusions=tuple(excl), n=n,
+                                               related=grupy.pokrewne())
     out = [{"product": c["product"], "product_id": rows[c["product"]].id, "grams": _r(c["grams"]),
-            "macros": {k: _r(v) for k, v in c["macros"].items()}} for c in cands]
-    return out, m, idx
+            "macros": {k: _r(v) for k, v in c["macros"].items()}, "tier": c["tier"],
+            "meal_delta": c["meal_delta"], "group": c["group"], "tier_reason": c["tier_reason"]} for c in cands]
+    return out, m, idx, meta
 
 
 # --- korekty w podglądzie, zamiana posiłku z biblioteki, przypisanie -------------------------

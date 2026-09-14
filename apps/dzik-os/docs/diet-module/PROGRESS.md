@@ -268,3 +268,76 @@ seed na dwóch maszynach Fly przy rolling deploy → `IntegrityError` i rollback
 szablonów diet (od 0.60.0) — do uzupełnienia przed włączeniem flagi na produkcji;
 `test_powtorny_seed_nie_dubluje` częściowo dubluje test główny; typografia cudzysłowu w
 `types.ts:1667`.
+
+## Wymiany produktów v2 (0.69.0, zlecenie 2 z 14.09) — pomiar, odstępstwa, pytania
+
+Pomiar `tools/pomiar_wymian.py` (Standard v1, bez wykluczeń, składniki P/C/F = 108):
+
+| stan | 1600 | 2000 | 2600 | NONE 2000 |
+|---|---|---|---|---|
+| `main` 0.64.0 (poziom 1, bramka absolutna) | 20 | 12 | 18 | brak przycisku |
+| poziom 1 + „nie pogarsza” + limity v1.1 | 14 | 12 | 16 | 3/124 |
+| **+ grupy pokrewne (0.69.0)** | **7** | **3** | **9** | **3/124** |
+
+Przy 2200 kcal (przeklik klienta B przez cały tydzień): 7/108 P/C/F i 5/124 NONE bez
+kandydata — wszystkie z powodem TOLERANCE (pomidory z puszki, passata, pieczarki: 1:1
+wagowo wyprowadza posiłek poza tolerancję).
+
+Rozpoznanie etapu 0: `wymiany_v2_rozpoznanie.md`. Strażnik: `tests/test_dieta_wymiany_pokrycie.py`.
+
+**Silnik przestaje być 1:1 z prototypem** `engine.py` w `swap_candidates`
+(nowa funkcja `swap_candidates_z_powodami`; skalowanie, `check`, `fit_*`, stałe bez zmian).
+
+**Odstępstwa od promptu (świadome):**
+1. Zakres `min_factor..max_factor` składnika nie jest przenoszony na kandydata
+   (§4 pkt 2 „klasa i limity porcji”) — gęstość produktów różni się kilkukrotnie
+   (50 g awokado ↔ 8 g oliwy); z tym zakresem pomiar dawał 6/108 (2000 kcal) i 51/124
+   dla NONE. Zostają twarde limity v1.1 (300 g mięsa/ryby, 4 jajka).
+2. Tabela grup pokrewnych w panelu bez nowej trasy — w odpowiedzi `GET /api/diet/products`.
+3. Poziom wymiany w historii liczony z grup produktów (bez kolumny, bez migracji) —
+   zmiana grupy produktu przez admina zmienia historię wstecz.
+4. Bramka „nie pogarsza” ma luz 5 kcal / 0,5 g na oś (poniżej rozdzielczości wyświetlania):
+   bez niego masło 6 g → oliwa 5 g odpadało za +0,05 g białka (przegląd 14.09). To
+   interpretacja zdania spec „wymiana neutralna lub poprawiająca jest dozwolona” — właściciel
+   może ją cofnąć (`EPS_NIE_POGARSZA` w `silnik.py`); różnica w pomiarze: 1600 kcal 9 → 7.
+
+**Po przeglądzie (3 recenzentów, 14.09) naprawione:** `swappable` efektywne tylko dla NONE
+(jawne `false` trenera dla P/C/F zostaje), gramatura z klienta w POST przechodzi limity porcji,
+CSV korelacji: białko serwatkowe/kazeinowe z alergenem `mleko`, odżywki węglowodanowe bez grupy;
+wykluczenia bez wrażliwości na wielkość liter; tagi z `strip()`; picker wykluczeń trenera
+z `sezam`, `skorupiaki`, `orzechy_ziemne`, `gorczyca`; „−0 g” w delcie; powód powiązania
+widoczny (nie tylko w dymku); docs „do 3 zamienników”.
+
+**P2 do kolejnej rundy (z przeglądu):**
+- blokada per składnik NONE przez trenera nie działa (kolumna `swappable` nie jest nullable —
+  jawne `false` nieodróżnialne od domyślnego sprzed 0.69.0; potrzebna migracja); do tego czasu
+  blokada posiłku / całej diety;
+- wymiana łańcuchowa: kandydaci liczeni względem produktu PO wymianie — klient krokami może
+  odejść dwie grupy od szablonu (awokado → orzechy → nasiona); alergeny filtrowane w każdym
+  kroku, historia pokazuje poziom każdego skoku; decyzja właściciela, czy `related` liczyć
+  względem produktu z szablonu;
+- kandydat-jajko dostaje gramy niewyrównane do sztuk (krok składnika, nie kandydata); limit
+  4 jajek liczony z jednostki 55 g;
+- NONE „1:1 wagowo” = 1:1 zaokrąglone do kroku składnika (37 g → 40 g);
+- `kandydaci_wymiany` czyta produkty raz, POST nadal dwa razy (bez N+1);
+- `grupy_pokrewne.json` walidowany przy pierwszym żądaniu (błąd → 422/500 u klienta) —
+  fail-fast przy starcie jako osobna zmiana;
+- `docs/PERMISSIONS.md` nie ma wierszy `/api/diet/*` od 0.60.0 (macierz w `tests/access_matrix.py`
+  kompletna) — dopisane w tej rundzie tylko wiersze wymian i produktów;
+- CSV korelacji, drobne: napoje roślinne dostają `mleko` (konserwatywnie), „Makaron jajeczny”
+  bez `jaja`, „Błonnik witalny (babka jajowata)” → `orzechy` — do poprawy ręcznej przy przeglądzie;
+- rozpoznanie: liczba pustych NONE wzrosła 2 → 3 (1:1 wagowo zamiast izokalorycznie) —
+  passata ×2 i pomidory krojone.
+
+**Pozostałe puste listy przy 2000 kcal (3):** tuńczyk z puszki (sałatka), szynka
+z indyka (kanapka), ciecierzyca z puszki (miska) — każdy kandydat pogarsza posiłek
+(`TOLERANCE`); do korekty posiłków w szablonie albo wzbogacenia grup przez import
+z katalogu.
+
+**Pytania do właściciela (odpowiedzi domyślne przyjęte):** kto przegląda CSV korelacji
+(właściciel wstępnie, trener potwierdza alergeny); pary „?” wyłączone; bramka „nie
+pogarsza”; NONE 1:1 wagowo. **Do zrobienia po przeglądzie CSV:** `produkty_z_katalogu.csv`
+(tylko TAK) + seed + test integralności — osobny mały PR.
+
+**Poza zakresem (v3):** re-fit pozostałych składników po wymianie, edycja powiązań w UI,
+przycisk wymiany w planie z kreatora, zmiana tolerancji.

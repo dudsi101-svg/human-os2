@@ -28,8 +28,8 @@ from sqlalchemy.orm import Session
 from ..authz import DOMAIN_NUTRITION, resolve_client_access
 from ..config import settings
 from ..db import get_db
+from ..dieta import grupy, serwis
 from ..dieta import seed as dieta_seed
-from ..dieta import serwis
 from ..dieta import silnik as S
 from ..hos_bridge import record_event
 from ..models import (
@@ -310,14 +310,23 @@ def client_current(client_id: str, user: User = Depends(current_user), db: Sessi
     historia = db.query(DietAssigned).filter_by(client_id=client_id).order_by(DietAssigned.version.desc()).all()
     swaps = (db.query(DietSwapEvent).filter(DietSwapEvent.assigned_diet_id.in_([h.id for h in historia] or ["-"]))
              .order_by(DietSwapEvent.created_at.desc()).all())
-    nazwy = {p.id: p.name_pl for p in db.query(DietProduct.id, DietProduct.name_pl).all()}
+    prod = {p.id: (p.name_pl, p.substitution_group or "") for p in db.query(DietProduct.id, DietProduct.name_pl, DietProduct.substitution_group).all()}
+    nazwy = {k: v[0] for k, v in prod.items()}
+
+    def _tier(s: DietSwapEvent) -> int | None:
+        a_, b_ = prod.get(s.from_product_id), prod.get(s.to_product_id)
+        if not a_ or not b_:
+            return None
+        return 1 if a_[1] == b_[1] else 2
+
     return {"assigned": serwis.dieta_out(db, a, dla_klienta=(user.id == client_id)) if a else None,
             "history": [{"id": h.id, "version": h.version, "status": h.status, "kcal": h.target_kcal,
                          "created_at": h.created_at, "week_id": h.week_id} for h in historia],
             "swap_events": [{"id": s.id, "assigned_diet_id": s.assigned_diet_id, "day": s.day_no, "meal_id": s.meal_id,
                              "from": nazwy.get(s.from_product_id, s.from_product_id),
                              "to": nazwy.get(s.to_product_id, s.to_product_id), "from_grams": s.from_grams,
-                             "to_grams": s.to_grams, "created_at": s.created_at, "actor_id": s.actor_id} for s in swaps]}
+                             "to_grams": s.to_grams, "created_at": s.created_at, "actor_id": s.actor_id,
+                             "tier": _tier(s)} for s in swaps]}
 
 
 # --- wymiany ----------------------------------------------------------------------------------
@@ -327,11 +336,12 @@ def client_current(client_id: str, user: User = Depends(current_user), db: Sessi
 def swap_candidates(diet_id: str, day: int = Query(ge=1, le=7), meal: str = Query(min_length=1),
                     ingredient: str = Query(min_length=1), user: User = Depends(current_user),
                     db: Session = Depends(get_db)):
-    """1–3 kandydatów z tej samej grupy zamienników; pusta lista = „Brak
-    bezpiecznego zamiennika, napisz do trenera”."""
+    """Kandydaci wymiany (v2): poziom 1 = ta sama grupa, poziom 2 = grupa pokrewna;
+    pusta lista niesie `reason` (SINGLETON/EXCLUDED/FUNCTION/PORTION/TOLERANCE)
+    i liczby odrzuconych per powód — interfejs mówi klientowi, dlaczego."""
     a = _dieta(db, user, diet_id)
     try:
-        cands, m, idx = serwis.kandydaci_wymiany(db, a, day, meal, ingredient)
+        cands, m, idx, meta = serwis.kandydaci_wymiany(db, a, day, meal, ingredient)
     except KeyError as e:
         raise HTTPException(status_code=404, detail=f"Nie znaleziono: {e}") from None
     except (ValueError, ZeroDivisionError) as e:
@@ -347,6 +357,7 @@ def swap_candidates(diet_id: str, day: int = Query(ge=1, le=7), meal: str = Quer
     elif not ing.get("swappable"):
         blokada = "Ten składnik nie podlega wymianie."
     return {"candidates": [] if blokada else cands, "blocked": blokada, "ingredient": ing,
+            "reason": None if blokada else meta.get("reason"), "rejected": meta.get("rejected", {}),
             "meal": {"meal_id": m["meal_id"], "name": m["name"], "target": m["target"]}}
 
 
@@ -358,7 +369,7 @@ def swap(diet_id: str, body: SwapIn, user: User = Depends(current_user), db: Ses
     if not a.swaps_enabled:
         raise HTTPException(status_code=409, detail="Trener wyłączył wymiany w tej diecie.")
     try:
-        cands, m, idx = serwis.kandydaci_wymiany(db, a, body.day, body.meal_id, body.ingredient_id)
+        cands, m, idx, _meta = serwis.kandydaci_wymiany(db, a, body.day, body.meal_id, body.ingredient_id)
     except KeyError as e:
         raise HTTPException(status_code=404, detail=f"Nie znaleziono: {e}") from None
     except (ValueError, ZeroDivisionError) as e:
@@ -373,17 +384,24 @@ def swap(diet_id: str, body: SwapIn, user: User = Depends(current_user), db: Ses
         raise HTTPException(status_code=422, detail="Ten produkt nie jest bezpiecznym zamiennikiem w tym posiłku.")
     grams = float(body.grams) if body.grams is not None else kand["grams"]
     prods, rows = serwis.produkty(db)
+    # Gramatura z klienta przechodzi te same limity porcji co gramatura silnika (przegląd 14.09).
+    if not S.limit_porcji(prods[kand["product"]], grams):
+        raise HTTPException(status_code=422, detail=f"Porcja {grams:.0f} g przekracza limit dla tego produktu "
+                                                    f"(≤ 300 g surowego mięsa/ryby, ≤ 4 jajka); dopuszczalna: {kand['grams']:.0f} g.")
     ings = [{"product": x["product"], "grams": x["grams"]} for x in m["ingredients"]]
+    przed = S.sum_macros(ings, prods)
+    dev_przed = S._odchylenia(przed, m["target"])
     ings[idx] = {"product": kand["product"], "grams": grams}
     cur = S.sum_macros(ings, prods)
-    ok, dev = S.check(cur, m["target"], S.TOL_MEAL)
-    if not ok:
+    # Ta sama bramka co przy doborze kandydatów: w tolerancji ALBO nie pogarsza.
+    if not S.nie_pogarsza(cur, m["target"], dev_przed):
+        _ok, dev = S.check(cur, m["target"], S.TOL_MEAL)
         raise HTTPException(status_code=422, detail=f"Gramatura {grams:.0f} g wyprowadza posiłek poza tolerancję "
                                                     f"(Δkcal {dev['kcal']:+.0f}); dopuszczalna: {kand['grams']:.0f} g.")
     o = serwis.overrides(a)
     o["ingredients"][serwis._klucz(body.day, body.meal_id, body.ingredient_id)] = {
         "product": kand["product"], "grams": grams, "by": user.id, "at": now_iso(),
-        "kind": "swap" if user.id == a.client_id else "coach"}
+        "kind": "swap" if user.id == a.client_id else "coach", "tier": kand["tier"]}
     a.overrides_json = json.dumps(o, ensure_ascii=False)
     a.updated_at = now_iso()
     from_id = rows[ing["product"]].id if ing["product"] in rows else ing["product"]
@@ -497,7 +515,8 @@ class IngredientIn(BaseModel):
     unit_g: float | None = Field(default=None, gt=0, le=1000)
     unit_step: float | None = Field(default=None, gt=0, le=10)
     group_name: str | None = Field(default=None, max_length=60)
-    # Brak = domyślnie wymienialne składniki z rolą P/C/F (§7.3), jak w seedzie.
+    # Brak = domyślnie wymienialne składniki z rolą P/C/F oraz NONE z grupą ≥ 2 produktów
+    # (§7.3, wymiany v2) — ta sama reguła co w seedzie.
     swappable: bool | None = None
 
 
@@ -514,7 +533,12 @@ def _skladnik_z_wejscia(db: Session, body: IngredientIn) -> dict[str, Any]:
         raise HTTPException(status_code=422, detail="min_factor nie może być większy niż max_factor.")
     dane = body.model_dump()
     if dane["swappable"] is None:
-        dane["swappable"] = body.macro_role in ("P", "C", "F")
+        if body.macro_role in ("P", "C", "F"):
+            dane["swappable"] = True
+        else:
+            licznosc = (db.query(DietProduct).filter(DietProduct.substitution_group == prod.substitution_group).count()
+                        if prod.substitution_group else 0)
+            dane["swappable"] = klasa != "STAŁY" and licznosc >= 2
     return dane
 
 
@@ -543,7 +567,9 @@ def products(user: User = Depends(_edytor), db: Session = Depends(get_db)):
                           "protein_100": p.protein_100, "fat_100": p.fat_100, "carbs_100": p.carbs_100,
                           "default_scaling": p.default_scaling, "cooking_tags": p.cooking_tags,
                           "allergens": p.allergens, "diet_exclusions": p.diet_exclusions, "source": p.source}
-                         for p in rows]}
+                         for p in rows],
+            # Wymiany v2: powiązania grup pokrewnych (propozycja do przeglądu, tylko odczyt w panelu).
+            "related_groups": grupy.wczytaj()}
 
 
 @router.post("/products", status_code=201, dependencies=[Depends(wymagaj_modulu)])

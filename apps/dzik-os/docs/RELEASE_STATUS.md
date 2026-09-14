@@ -1,6 +1,6 @@
 # Stan wydania — Dzik OS
 
-**Wersja:** 0.67.0 (po scaleniu PR #68; na produkcji 0.66.0 po wdrożeniu PR #61) · **Data:** 2026-09-14 · **Środowisko:** produkcja
+**Wersja:** 0.69.0 (po scaleniu PR #69; na produkcji 0.67.0 po wdrożeniu PR #68) · **Data:** 2026-09-14 · **Środowisko:** produkcja
 (pilotaż) — https://dzik-os-panel.fly.dev
 
 Jedna strona prawdy o tym, co DZIAŁA na produkcji teraz. Aktualizowana
@@ -82,6 +82,17 @@ z ostrzeżeniem, aplikacja wstaje. Diagnostyka z maszyny: workflow
 opcjonalny input `test_email` wysyła wiadomość testową tą samą ścieżką
 co endpoint). Endpoint testowy admina/trenera za flagą, domyślnie
 wyłączony na produkcji. Plan i odstępstwa: `docs/plan-sesji/poczta-brevo.md`.
+
+## Wymiany produktów v2 (0.69.0) — w module szablonów diet (za flagą `DZIK_DIET_TEMPLATES_ENABLED`)
+
+Przycisk „↔ wymień” w diecie klienta daje zamienniki z tej samej grupy i z grup
+pokrewnych (45 par, propozycja do przeglądu trenera), z bramką „nie pogarsza”
+i przyciskiem także dla warzyw/dodatków (rola NONE, 1:1 wagowo). Pomiar:
+składników bez zamiennika przy 2000 kcal 12/108 → 3/108. Pusta lista mówi
+dlaczego. Katalog trenera (2058 pozycji) skorelowany do CSV propozycji —
+**czeka na decyzje TAK/NIE właściciela**
+(`docs/diet-module/katalog_korelacja_propozycja.csv`), import zatwierdzonych
+osobnym PR-em.
 
 ## Kreator diety (0.44–0.48) — od 0.67.0 za flagą, na produkcji UKRYTY
 

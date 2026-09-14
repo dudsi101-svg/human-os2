@@ -148,6 +148,8 @@ domeny endpointu (`sensitive` wynika z katalogu kategorii).
 | POST/PUT/status /api/coach/knowledge, /exercises, /food-products | T·own | wyłącznie własne wpisy katalogów | — | — | W |
 | GET /api/coach/knowledge, /exercises, /food-products | T·own | własny katalog (izolacja między trenerami) | — | — | R |
 | GET /api/me/knowledge, /exercises, /food-products | klient | AKTYWNE wpisy trenerów z AKTYWNĄ relacją | tak | nie (broadcast) | R |
+| GET /api/diet/assigned/{id}/swaps; POST /api/diet/assigned/{id}/swaps | W (własna dieta), T (klient prowadzony) | przypisanie jednego klienta; kandydaci liczeni po stronie serwera (alergeny, wykluczenia, limity porcji, bramka posiłku), POST tylko dla kandydata z listy; blokady trenera → 409 | T: tak | T: tak | R / W |
+| GET /api/diet/products | COACH, ADMIN | katalog produktów diet + statyczne powiązania grup (`related_groups`, tylko do odczytu) | — | — | R |
 | POST /api/coach/diet-suggestion | T·own | wyłącznie własne produkty (422 dla cudzych); nic nie zapisuje; od 0.67.0 za flagą `DZIK_DIET_WIZARD_ENABLED` (bez niej 404) | — | — | R |
 | POST /api/coach/diet-wizard | T·own | propozycja diety z własnego katalogu (propose-only, nic nie zapisuje); od 0.67.0 za flagą `DZIK_DIET_WIZARD_ENABLED` (bez niej 404) | — | — | R |
 | GET /api/coach/food-products/export | T·own | eksport CSV wyłącznie własnego katalogu (prawo wyjścia) | — | — | R |
