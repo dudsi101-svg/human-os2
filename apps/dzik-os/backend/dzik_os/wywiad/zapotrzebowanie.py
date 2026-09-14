@@ -362,9 +362,9 @@ def liczba(tekst: str | None) -> float | None:
         return None
 
 
-def _fmt(x: float) -> str:
-    """Do 2 miejsc po przecinku, bez zer końcowych: 70 → „70”, 1,35 → „1,35”."""
-    s = f"{x:.2f}".rstrip("0").rstrip(".")
+def _fmt(x: float, miejsc: int = 2) -> str:
+    """Do `miejsc` po przecinku, bez zer końcowych: 70 → „70”, 1,35 → „1,35”."""
+    s = f"{x:.{miejsc}f}".rstrip("0").rstrip(".")
     return s.replace(".", ",")
 
 
@@ -539,16 +539,19 @@ def oblicz(w: Wejscie) -> Wynik:
     wynik = Wynik(
         formulas_version=FORMULAS_VERSION, wiek=wiek, bmi=round(bmi, 1),
         ppm_mifflin=round(ppm_m), ppm_katch=round(ppm_k) if ppm_k is not None else None,
-        ppm_used=round(ppm), ppm_source=zrodlo, neat_multiplier=round(neat, 3),
+        ppm_used=round(ppm), ppm_source=zrodlo,
+        # Dwa miejsca po przecinku: dokładnie tyle pokazujemy w karcie i w podstawieniu.
+        # Sam CPM liczony jest z wartości surowej, więc nic na tym nie tracimy.
+        neat_multiplier=round(neat, 2),
         training_kcal_day=round(trening), tef=round(cpm - baza), cpm=round(cpm),
         cpm_min=round(cpm * 0.93), cpm_max=round(cpm * 1.07), korekta_pct=round(korekta * 100),
         target_kcal=round(cel_kcal), makro=makro, tempo=tempo,
         flags=tuple(flagi), ostrzezenia=tuple(ostrzezenia),
     )
-    return replace(wynik, podstawienie=_podstawienie(w, wynik, neat=neat, ppm=ppm))
+    return replace(wynik, podstawienie=_podstawienie(w, wynik))
 
 
-def _podstawienie(w: Wejscie, y: Wynik, *, neat: float, ppm: float) -> tuple[str, ...]:
+def _podstawienie(w: Wejscie, y: Wynik) -> tuple[str, ...]:
     """Rozbicie z podstawionymi liczbami — spec §6.2 wymaga, żeby trener
     widział, skąd wzięła się każda składowa CPM."""
     plec_pl = "mężczyzna" if w.plec == "M" else "kobieta"
@@ -565,10 +568,12 @@ def _podstawienie(w: Wejscie, y: Wynik, *, neat: float, ppm: float) -> tuple[str
                                          else "Mifflin-St Jeor (różnica do 10 %)")
                        + f" → {y.ppm_used} kcal")
     if w.kroki:
-        wiersze.append(f"NEAT z kroków ({_fmt(w.kroki)} dziennie): 1,20 + 0,04 × ({_fmt(w.kroki / 1000)} − 4) "
-                       f"= {_fmt(neat)}")
+        # Kroki w tysiącach z trzema miejscami — inaczej podstawienie pokazywałoby
+        # zaokrągloną liczbę tysięcy i wynik działania by się z niej nie zgadzał.
+        wiersze.append(f"NEAT z kroków ({_fmt(w.kroki)} dziennie): "
+                       f"1,20 + 0,04 × ({_fmt(w.kroki / 1000, 3)} − 4) = {_fmt(y.neat_multiplier)}")
     else:
-        wiersze.append(f"NEAT (aktywność poza treningiem): {_fmt(neat)}")
+        wiersze.append(f"NEAT (aktywność poza treningiem): {_fmt(y.neat_multiplier)}")
     # Rozbicie liczone z wartości ZAOKRĄGLONYCH (tych, które widać w karcie),
     # nie z surowych — inaczej wiersz podstawienia i kafelek w interfejsie
     # potrafiłyby pokazać dwie różne liczby na ten sam składnik.
@@ -588,8 +593,8 @@ def _podstawienie(w: Wejscie, y: Wynik, *, neat: float, ppm: float) -> tuple[str
                    f"(zakres {y.cpm_min}–{y.cpm_max})")
     if round((po_neat + y.training_kcal_day) * 1.10) != y.cpm:
         # Uczciwiej powiedzieć to wprost, niż podać sumę, która nie wychodzi.
-        wiersze.append("składniki wyżej są zaokrąglone do pełnych kcal — suma z nich bywa o 1 kcal "
-                       "inna niż wynik liczony bez zaokrągleń")
+        wiersze.append("składniki wyżej są zaokrąglone (kcal do pełnych, mnożnik do dwóch miejsc) — "
+                       "suma z nich bywa o kilka kcal inna niż wynik liczony bez zaokrągleń")
     if y.korekta_pct == 0:
         wiersze.append(f"cel: {_nazwa_celu(w.cel)} → bez korekty = {y.target_kcal} kcal")
     else:

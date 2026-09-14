@@ -373,4 +373,4 @@ def test_rozbicie_w_podstawieniu_liczy_sie_z_liczb_widocznych_w_karcie():
     assert f"CPM = ({po_neat} + {w.training_kcal_day}) × 1,10 = {w.cpm} kcal" in " | ".join(w.podstawienie)
     # Gdy suma zaokrąglonych składników nie wychodzi na wynik, mówimy to wprost.
     if round((po_neat + w.training_kcal_day) * 1.10) != w.cpm:
-        assert any("zaokrąglone do pełnych kcal" in p for p in w.podstawienie)
+        assert any("są zaokrąglone" in p for p in w.podstawienie)
