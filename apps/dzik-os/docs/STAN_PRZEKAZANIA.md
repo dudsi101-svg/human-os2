@@ -45,8 +45,10 @@ tematyczny 3 recenzentów: P0 (opcja flagi z przecinkiem) i P1 naprawione
 przed scaleniem — `docs/wywiad-zapotrzebowanie/PROGRESS.md`. Hotfixy
 #62/#63: zakres `brevo` w „Sekretach produkcji” i krok diagnostyczny
 w „Sprawdzeniu SMTP”. **Kanał Brevo potwierdzony 14.09 01:37 UTC:**
-4/4 kroki OK z maszyny, testowa wysyłka przyjęta przez serwer (przyczyną
-wcześniejszego 525 była lista autoryzowanych IP w Brevo).
+4/4 kroki OK z maszyny, testowa wysyłka przyjęta przez serwer, **odbiór
+w skrzynce potwierdzony przez właściciela** (przyczyną wcześniejszego 525
+była lista autoryzowanych IP w Brevo — właściciel wyłączył blokadę dla
+kluczy SMTP).
 
 **Poprzednia runda (0.61.0, gałąź `agent/poczta-brevo`):** poczta Brevo SMTP
 — moduł właściciela `mailer.py` 1:1, inicjalizacja przy starcie
