@@ -165,3 +165,11 @@ wybór; status zapisu w `role=status`; próbki `aria-hidden`; blok logowania w j
 P1 naprawione w trakcie: `.postepy-slupki .slupek` (`--accent-ink` = biel na bieli →
 `--bar-muted`), `.landing-top` na `/prywatnosc`; E2E strict-mode „Wyloguj” u trenera
 (dwa przyciski z tym słowem) → `exact: true`. P2 wyżej.
+
+## CI po przeglądzie (2026-09-14)
+
+Jednorazowe czerwone e2e na `ed6fb01`: po wyborze „Ciemny” przez trenera atrybut,
+meta i localStorage były już ciemne, a jednorazowy odczyt `getComputedStyle(body)`
+tuż po odpowiedzi PUT zwrócił jeszcze biel. Lokalnie nie do odtworzenia (3 przebiegi).
+Test czeka teraz na status „Zapisano na koncie” i sprawdza tło asercją ponawianą
+`toHaveCSS` — tak samo jak przy motywie jasnym wyżej w tym samym teście.

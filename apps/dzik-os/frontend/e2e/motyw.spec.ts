@@ -103,11 +103,14 @@ test("wybór jasnego motywu: atrybut, meta, znak, urządzenie, konto; trener nie
   const zapisT = page.waitForResponse((r) => r.url().endsWith("/api/notifications/settings") && r.request().method() === "PUT" && r.ok());
   await grupaT.getByRole("radio", { name: /Ciemny/ }).click();
   await zapisT;
+  await expect(page.getByRole("status")).toContainText("Zapisano na koncie");
+  // Tło asercją ponawianą (jak przy jasnym wyżej): w CI jednorazowy odczyt
+  // getComputedStyle tuż po odpowiedzi PUT raz zwrócił jeszcze biel.
+  await expect(page.locator("body")).toHaveCSS("background-color", "rgb(11, 13, 15)");
   m = await motyw(page);
   expect(m.atrybut).toBeNull();
   expect(m.meta).toBe("#0b0d0f");
   expect(m.lokalny).toBe("ciemny");
-  expect(m.tlo).toBe("rgb(11, 13, 15)");
 
   // Klient B nadal ma jasny na koncie — wybór trenera go nie dotknął.
   // Dokładna nazwa: na „Więcej” trenera są też „Wyloguj …” w karcie sesji.
