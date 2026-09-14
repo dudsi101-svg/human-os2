@@ -369,6 +369,7 @@ nie uruchamiano, ponieważ runda nie zmienia kodu ani zasobów frontendu.
 | `agent/monitoring-postepy` | 0.66.0 | 36 | **scalona** (PR #61, 14.09), deploy 0.66.0 po CI na `main`; flaga na produkcji wyłączona | włączenie flagi + backfill — decyzja właściciela | — |
 | `agent/ukryj-kreator` | 0.67.0 | — | **scalona** (PR #68, 14.09), deploy 0.67.0 po CI na `main`; kreator na produkcji ukryty (brak flagi w `fly.toml`) | — | — |
 | `agent/wymiany-produktow` | 0.69.0 (0.68.0 = dni treningowe) | — | zlecenie 2 (14.09): silnik wymian v2 (poziom 2, powody, NONE 1:1, bramka „nie pogarsza”), grupy pokrewne (45 par, RO), korelacja katalogu → CSV; przegląd 3 recenzentów naprawiony (P0/P1 ×5, P2 w PROGRESS); `main` 0.67.0 scalony, PR #69 — CI | przegląd CSV przez właściciela (TAK/NIE) → import osobnym PR-em; decyzja o luzie bramki | 1 |
+| `agent/wywiad-kaloryczny-rozpoznanie` | — (docs) | — (przyszła: 38 lub 39) | etap 0 rundy „wyrównanie wywiadu kalorycznego do spec 1.0” — `docs/wywiad-zapotrzebowanie/01_rozpoznanie_spec_v1.md` (tabela luk, migracja, testy, ryzyka) | **7 decyzji właściciela** (§5 rozpoznania: nowe pytania zdrowotne i klasyfikacja, zakres flagowania, stare wywiady, wiek vs data urodzenia, flaga a Monitoring, kolejność migracji, minimalne kcal) | po decyzjach |
 
 | Rzecz | Stan | Gdzie |
 |---|---|---|
