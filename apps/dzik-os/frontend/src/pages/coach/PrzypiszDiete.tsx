@@ -4,9 +4,9 @@ import { plDateTime } from "../../dates";
 import { ErrorBox, Spinner } from "../../components";
 import {
   DietAssignedOut, DietDayOut, DietIngredientOut, DietLibraryMeal, DietMacroIn, DietMealOut, DietPlanOut, DietProfileRow,
-  DietTemplatePreview, DietWeekRow,
+  DietTemplatePreview, DietWeekRow, alergenLabel, slotLabel,
 } from "../../types";
-import { gramatura, KartaDnia, makro, odchylenie, StatusDiety, TagiPosilku } from "../dieta/wspolne";
+import { Alergeny, gramatura, KartaDnia, makro, NotatkiOdslony, odchylenie, StatusDiety, TagiPosilku } from "../dieta/wspolne";
 import { useZapotrzebowanie } from "../wywiad/Zapotrzebowanie";
 
 /**
@@ -176,12 +176,13 @@ export default function PrzypiszDiete({ clientId, onPrzypisano, onAnuluj }: {
               </button>
             ))}
           </div>
+          {szablon && szablon.week_id === week?.id && <NotatkiOdslony n={szablon} />}
           {szablon && szablon.week_id === week?.id && (
             <details style={{ marginTop: 8 }}>
               <summary>Posiłki tygodnia (podgląd bez gramatur)</summary>
               {szablon.days.map((d) => (
                 <div key={d.day} style={{ fontSize: "0.85rem", marginTop: 4 }}>
-                  <b>Dzień {d.day}:</b> {d.meals.map((m) => `${m.slot}: ${m.name}`).join(" · ")}
+                  <b>Dzień {d.day}:</b> {d.meals.map((m) => `${slotLabel(m.slot)}: ${m.name}${m.allergens && m.allergens.length > 0 ? ` (${m.allergens.map(alergenLabel).join(", ")})` : ""}`).join(" · ")}
                 </div>
               ))}
             </details>
@@ -262,7 +263,7 @@ export default function PrzypiszDiete({ clientId, onPrzypisano, onAnuluj }: {
           ))}
           {biblioteka && (
             <div className="card" role="dialog" aria-label="Zamień na inny posiłek">
-              <div className="row row--between"><h3 style={{ margin: 0 }}>Zamień na inny posiłek ({biblioteka.slot})</h3>
+              <div className="row row--between"><h3 style={{ margin: 0 }}>Zamień na inny posiłek ({slotLabel(biblioteka.slot)})</h3>
                 <button type="button" className="btn btn--ghost btn--small" onClick={() => setBiblioteka(null)}>Zamknij</button></div>
               {biblioteka.meals.length === 0 && <p className="dim">Brak innych posiłków w tym slocie w bibliotece tego profilu.</p>}
               <ul style={{ paddingLeft: 18 }}>
@@ -320,10 +321,11 @@ function PosilekEdycja({ d, m, overrides, zamiana, onGram, onBiblioteka, onCofni
   return (
     <div style={{ marginTop: 10, paddingTop: 8, borderTop: "1px solid var(--border)" }}>
       <div className="row row--between">
-        <div><b>{m.slot}: {m.name}</b> <TagiPosilku m={m} /> {zamiana && <span className="badge badge--accent">zamieniony</span>}</div>
+        <div><b>{slotLabel(m.slot)}: {m.name}</b> <TagiPosilku m={m} /> {zamiana && <span className="badge badge--accent">zamieniony</span>}</div>
         <StatusDiety s={m.status} />
       </div>
       <small className="dim">{makro(m.macros)} · cel {makro(m.target)}{m.status !== "OK" ? ` · ${odchylenie(m.deviation)}` : ""}</small>
+      <Alergeny a={m.allergens} />
       <div className="row" style={{ gap: 6, marginTop: 4 }}>
         <button type="button" className="btn btn--ghost btn--small" aria-expanded={otwarte} onClick={() => setOtwarte((o) => !o)}>{otwarte ? "Ukryj składniki" : "Składniki i gramatury"}</button>
         <button type="button" className="btn btn--ghost btn--small" onClick={onBiblioteka}>Zamień na inny posiłek</button>
@@ -396,7 +398,7 @@ export function PrzypisanaDietaTrenera({ clientId, onZmiana }: { clientId: strin
       <KartaDnia d={d}>
         {d.meals.map((m) => (
           <div key={m.meal_id} style={{ marginTop: 6, fontSize: "0.9rem" }}>
-            <b>{m.slot}: {m.name}</b> <StatusDiety s={m.status} /> <small className="dim">{makro(m.macros)}</small>
+            <b>{slotLabel(m.slot)}: {m.name}</b> <StatusDiety s={m.status} /> <small className="dim">{makro(m.macros)}</small>
             {m.swaps_locked && <span className="badge badge--warn" style={{ marginLeft: 4 }}>wymiany zablokowane</span>}{" "}
             <button type="button" className="btn btn--ghost btn--small" disabled={busy} aria-label={`${m.swaps_locked ? "Odblokuj" : "Zablokuj"} wymiany w posiłku ${m.name}`}
               onClick={() => void zapisz({ day: d.day, meal_id: m.meal_id, meal_swaps_enabled: !!m.swaps_locked })}>{m.swaps_locked ? "odblokuj wymiany" : "zablokuj wymiany"}</button>

@@ -141,3 +141,42 @@ P139,Wafle kukurydziane,pieczywo,pieczywo,368.5,370.0,7.5,2.5,79.0,3.0,na_zimno,
 P140,Kiełbasa drobiowa chuda,mięso,białko_tłuste,180.0,180.0,17.0,12.0,1.0,0.0,"smażenie,gotowanie",,meat,LINIOWY,"MANUAL_PL (tabele IŻŻ / etykiety, do weryfikacji)",,
 P141,Szynka z indyka (wędlina),mięso,wędlina,100.5,100.0,18.0,2.5,1.5,0.0,na_zimno,,meat,TŁUMIONY,"MANUAL_PL (tabele IŻŻ / etykiety, do weryfikacji)",,
 P142,Ryż paraboliczny / basmati (suchy),zboża,kasza_ryż,347.4,350.0,7.5,0.6,78.0,1.5,gotowanie,,,LINIOWY,"MANUAL_PL (tabele IŻŻ / etykiety, do weryfikacji)",,
+P143,Śledź (surowy),ryby,ryba_tłusta,153.2,158.0,17.96,9.04,0.0,0.0,"pieczenie,na_zimno",ryby,fish,LINIOWY,USDA SR Legacy,175116.0,"Fish, herring, Atlantic, raw"
+P144,Halibut (surowy),ryby,ryba_chuda,86.2,91.0,18.56,1.33,0.0,0.0,"pieczenie,smażenie",ryby,fish,LINIOWY,USDA SR Legacy,174200.0,"Fish, halibut, Atlantic and Pacific, raw"
+P145,Sardynki w oleju (odsączone),ryby,ryba_tłusta,201.5,208.0,24.62,11.45,0.0,0.0,na_zimno,ryby,fish,LINIOWY,USDA SR Legacy,175139.0,"Fish, sardine, Atlantic, canned in oil, drained solids with bone"
+P146,Łosoś wędzony,ryby,ryba_tłusta,178.0,180.0,22.0,10.0,0.0,0.0,na_zimno,ryby,fish,LINIOWY,"MANUAL_PL (tabele IŻŻ / etykiety, do weryfikacji)",,
+P147,Płatki kukurydziane,zboża,płatki,383.8,384.0,5.9,0.91,88.01,2.7,na_zimno,gluten?,,LINIOWY,USDA SR Legacy,174648.0,"Cereals ready-to-eat, RALSTON Corn Flakes"
+P148,Płatki ryżowe,zboża,płatki,388.9,402.0,6.3,0.5,89.8,1.7,"gotowanie,na_zimno",,,LINIOWY,USDA SR Legacy,173912.0,"Cereals ready-to-eat, rice, puffed, fortified"
+P149,Płatki jaglane,zboża,płatki,357.5,360.0,10.5,3.5,71.0,3.0,"gotowanie,na_zimno",,,LINIOWY,"MANUAL_PL (tabele IŻŻ / etykiety, do weryfikacji)",,
+P150,Rzodkiewka,warzywa,warzywa_surowe,17.2,16.0,0.68,0.1,3.4,1.6,na_zimno,,,TŁUMIONY,USDA SR Legacy,169276.0,"Radishes, raw"
+P151,Serek śmietankowy light,nabiał,pasta_smarowanie,208.4,208.0,7.85,16.67,6.73,0.0,na_zimno,mleko,"dairy,lactose",LINIOWY,USDA SR Legacy,169079.0,"Cheese, cream, low fat"
+P152,"Stek wołowy (top round, surowy)",mięso,białko_chude,157.8,164.0,22.18,7.68,0.0,0.0,"smażenie,pieczenie",,meat,LINIOWY,USDA SR Legacy,168712.0,"Beef, round, top round, steak, separable lean and fat, trimmed to 1/8"" fat, select, raw"
+P153,Wątróbka drobiowa (surowa),mięso,białko_chude,114.1,119.0,16.92,4.83,0.73,0.0,smażenie,,meat,LINIOWY,USDA SR Legacy,171060.0,"Chicken, liver, all classes, raw"
+P154,Ananas świeży,owoce,owoce,55.7,50.0,0.54,0.12,13.12,1.4,na_zimno,,,TŁUMIONY,USDA SR Legacy,169124.0,"Pineapple, raw, all varieties"
+P155,Szynka z piersi kurczaka (wędlina),mięso,wędlina,104.0,105.0,20.0,2.0,1.5,0.0,"na_zimno,pieczenie",,meat,TŁUMIONY,"MANUAL_PL (tabele IŻŻ / etykiety, do weryfikacji)",,
+P156,Ketchup mniej kalorii,dodatki,sos,57.8,60.0,1.0,0.2,13.0,1.0,na_zimno,,,STAŁY,"MANUAL_PL (tabele IŻŻ / etykiety, do weryfikacji)",,
+P157,Skwarki,tłuszcze,tłuszcz,652.0,650.0,10.0,68.0,0.0,0.0,gotowanie,,meat,LINIOWY,"MANUAL_PL (tabele IŻŻ / etykiety, do weryfikacji)",,
+P158,Słodzik (erytrol),dodatki,przyprawa,0.0,0.0,0.0,0.0,0.0,0.0,*,,,STAŁY,"MANUAL_PL (tabele IŻŻ / etykiety, do weryfikacji)",,
+P159,Mleko bez laktozy 2%,nabiał,mleko,50.2,50.0,3.3,1.98,4.8,0.0,"gotowanie,na_zimno",mleko,dairy,LINIOWY,"MANUAL_PL (makro jak odpowiednik, etykiety producentów - do weryfikacji)",,
+P160,Jogurt naturalny bez laktozy,nabiał,nabiał_chudy,63.1,63.0,5.25,1.55,7.04,0.0,na_zimno,mleko,dairy,LINIOWY,"MANUAL_PL (makro jak odpowiednik, etykiety producentów - do weryfikacji)",,
+P161,Jogurt grecki bez laktozy 0%,nabiał,nabiał_chudy,58.7,59.0,10.19,0.39,3.6,0.0,na_zimno,mleko,dairy,LINIOWY,"MANUAL_PL (makro jak odpowiednik, etykiety producentów - do weryfikacji)",,
+P162,Skyr bez laktozy,nabiał,nabiał_chudy,58.7,59.0,10.19,0.39,3.6,0.0,na_zimno,mleko,dairy,LINIOWY,"MANUAL_PL (makro jak odpowiednik, etykiety producentów - do weryfikacji)",,
+P163,Kefir bez laktozy,nabiał,nabiał_chudy,43.4,43.0,3.79,1.02,4.77,0.0,na_zimno,mleko,dairy,LINIOWY,"MANUAL_PL (makro jak odpowiednik, etykiety producentów - do weryfikacji)",,
+P164,Twaróg półtłusty bez laktozy,nabiał,nabiał_chudy,131.9,133.0,18.7,4.7,3.7,0.0,"na_zimno,pieczenie",mleko,dairy,LINIOWY,"MANUAL_PL (makro jak odpowiednik, etykiety producentów - do weryfikacji)",,
+P165,Twaróg chudy bez laktozy,nabiał,nabiał_chudy,97.7,99.0,19.8,0.5,3.5,0.0,"na_zimno,pieczenie",mleko,dairy,LINIOWY,"MANUAL_PL (makro jak odpowiednik, etykiety producentów - do weryfikacji)",,
+P166,Serek wiejski bez laktozy,nabiał,nabiał_chudy,81.3,81.0,10.45,2.27,4.76,0.0,na_zimno,mleko,dairy,LINIOWY,"MANUAL_PL (makro jak odpowiednik, etykiety producentów - do weryfikacji)",,
+P167,Mozzarella bez laktozy,nabiał,ser,251.4,254.0,24.26,15.92,2.77,0.0,"pieczenie,na_zimno",mleko,dairy,LINIOWY,"MANUAL_PL (makro jak odpowiednik, etykiety producentów - do weryfikacji)",,
+P168,Śmietanka bez laktozy 18%,nabiał,dodatek_tłuszczowy,202.4,198.0,2.44,19.35,4.63,0.0,"gotowanie,na_zimno",mleko,dairy,TŁUMIONY,"MANUAL_PL (makro jak odpowiednik, etykiety producentów - do weryfikacji)",,
+P169,Ser feta bez laktozy,nabiał,ser,265.8,265.0,14.21,21.49,3.88,0.0,"na_zimno,pieczenie",mleko,dairy,LINIOWY,"MANUAL_PL (makro jak odpowiednik, etykiety producentów - do weryfikacji)",,
+P170,Ser żółty bez laktozy,nabiał,ser,355.6,356.0,24.94,27.44,2.22,0.0,"pieczenie,na_zimno",mleko,dairy,LINIOWY,"MANUAL_PL (makro jak odpowiednik, etykiety producentów - do weryfikacji)",,
+P171,Makaron bezglutenowy kukurydziano-ryżowy (suchy),zboża,makaron,364.4,371.0,13.04,1.51,74.67,3.2,gotowanie,,,LINIOWY,"MANUAL_PL (makro jak odpowiednik, etykiety producentów - do weryfikacji)",,
+P172,Płatki owsiane bezglutenowe,zboża,płatki,382.1,379.0,13.15,6.52,67.7,10.1,"gotowanie,na_zimno",,,LINIOWY,"MANUAL_PL (makro jak odpowiednik, etykiety producentów - do weryfikacji)",,
+P173,Sos tamari (bezglutenowy),dodatki,sos,57.4,53.0,8.14,0.57,4.93,0.8,smażenie,soja,,STAŁY,"MANUAL_PL (makro jak odpowiednik, etykiety producentów - do weryfikacji)",,
+P174,Bulion warzywny bezglutenowy,dodatki,płyn,5.3,5.0,0.24,0.07,0.93,0.0,gotowanie,,,STAŁY,"MANUAL_PL (makro jak odpowiednik, etykiety producentów - do weryfikacji)",,
+P175,Tortilla kukurydziana,pieczywo,pieczywo,231.7,222.0,5.7,2.5,46.6,5.2,"na_zimno,smażenie",,,DYSKRETNY,USDA SR Legacy,173241.0,"Tortillas, ready-to-bake or -fry, corn, without added salt"
+P176,Mąka ryżowa,zboża,mąka,357.1,366.0,5.95,1.42,80.13,2.4,"pieczenie,smażenie",,,LINIOWY,USDA SR Legacy,169714.0,"Rice flour, white, unenriched"
+P177,Mąka gryczana,zboża,mąka,360.7,335.0,12.62,3.1,70.59,10.0,"pieczenie,smażenie",,,LINIOWY,USDA SR Legacy,170687.0,"Buckwheat flour, whole-groat"
+P178,Seitan,roślinne,białko_roślinne,174.0,170.0,25.0,2.0,14.0,1.0,"smażenie,pieczenie",gluten,gluten,LINIOWY,"MANUAL_PL (etykiety, do weryfikacji)",,
+P179,Odżywka białkowa roślinna (groch/ryż),suplementy,białko_proszek,374.0,370.0,70.0,6.0,10.0,3.0,na_zimno,,,LINIOWY,"MANUAL_PL (etykiety, do weryfikacji)",,
+P180,Płatki drożdżowe,dodatki,przyprawa,377.0,350.0,50.0,5.0,33.0,20.0,*,,,TŁUMIONY,"MANUAL_PL (etykiety, do weryfikacji)",,
+P181,Syrop klonowy,słodkie,słodzik,268.9,260.0,0.04,0.06,67.04,0.0,na_zimno,,,TŁUMIONY,USDA SR Legacy,169661,"Syrups, maple"

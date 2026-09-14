@@ -1,7 +1,8 @@
 # PROGRESS — moduł „Szablony diet ze skalowaniem”
 
-Stan po etapach (aktualizowany po każdym etapie). Wersja docelowa 0.60.0,
-gałąź `agent/szablony-diet`.
+Stan po etapach (aktualizowany po każdym etapie). Wersja 0.60.0 (gałąź
+`agent/szablony-diet`), rozszerzenie 0.64.0 (gałąź `agent/biblioteka-diet`) —
+sekcja na dole.
 
 ## Etap 0 — rozpoznanie: zrobione
 `00_rozpoznanie.md`. Decyzje: pakiet `dzik_os/dieta/`, migracja 32, flaga
@@ -26,7 +27,7 @@ gałąź `agent/szablony-diet`.
 * `dzik_os/dieta/silnik.py` = port 1:1 `engine.py` (te same stałe, kolejność kroków, przebiegi 6/3/12);
   różnice wyłącznie techniczne (produkty jako parametr, NaN → "", assert → ValueError).
 * **Golden**: cały tydzień Standard v1 przy 2000 kcal (7 dni, 28 posiłków, 161 składników, statusy,
-  sumy) identyczny z `szablon_standard_v1_2000kcal.md`; sweep 1400–3200: 131/133 dni OK,
+  sumy) identyczny z `szablon_standard_v1_2000kcal.md`; sweep zakresu odsłony (do 0.63: 1400–3200): 131/133 dni OK,
   77/532 posiłków z flagą — jak w raporcie prototypu. Wymiany: kurczak → indyk 155 g / schab 150 g /
   polędwiczka 170 g; skyr z `lactose` → pusta lista (jak golden).
 * **Reguła `group`** (kryterium akceptacji): referencja jej NIE wymusza (golden: racuchy jajko ×1,0
@@ -60,7 +61,7 @@ w `/api/health`; seed przy starcie aplikacji, gdy flaga włączona):
 | `PATCH /assigned/{id}` | trener (zgoda `write`) | tylko wersja ACTIVE (409); korekta gramatury (klucz musi istnieć w migawce → 404; dzień i podsumowanie przeliczone), zamiana posiłku z biblioteki (ten sam slot i profil, opublikowana odsłona; względem MIGAWKI, więc działa też dla slotu zamienionego po raz kolejny), `swaps_enabled`, `meal_swaps_enabled` (blokada wymian w jednym posiłku, §7.3) |
 | `GET /products`, `POST /products` (ADMIN) | | baza produktów; nowy produkt tylko admin z `source` (kcal z makro) |
 | `POST/PUT /profiles…`, `POST/PUT /weeks…`, `GET /weeks/{id}/full`, `POST /weeks/{id}/days/{n}/meals`, `PUT/DELETE /meals/{id}`, `POST /meals/{id}/ingredients`, `PUT/DELETE /ingredients/{id}` | trener/admin (klasa `COACH_OR_ADMIN` w macierzy) | panel szablonów (etap 6, backend); odsłona: `kcal_min ≤ base_kcal ≤ kcal_max`; składnik: DYSKRETNY (jawny albo domyślny produktu) wymaga `unit_g`, `swappable` domyślnie wg roli P/C/F (§7.3) |
-| `POST /weeks/{id}/sweep`, `/publish`, `/unpublish`, `POST /weeks/import` | trener/admin | sweep 1400–3200 (flagi per posiłek, brakujące dni), publikacja ≥ 95 % dni OK (409 `SWEEP_BELOW_THRESHOLD`), import JSON jako DRAFT — struktura walidowana (`seed.waliduj_szablon`: te same reguły co panel, unikalne dni 1–7, klasy, role, zakresy, limity rozmiaru) |
+| `POST /weeks/{id}/sweep`, `/publish`, `/unpublish`, `POST /weeks/import` | trener/admin | sweep zakresu odsłony (do 0.63: 1400–3200) (flagi per posiłek, brakujące dni), publikacja ≥ 95 % dni OK (409 `SWEEP_BELOW_THRESHOLD`), import JSON jako DRAFT — struktura walidowana (`seed.waliduj_szablon`: te same reguły co panel, unikalne dni 1–7, klasy, role, zakresy, limity rozmiaru) |
 
 Decyzje: `client_id` w ciele `assign` (jak w zadaniu) → klasa dostępu COACH_ONLY w macierzy, a
 własność klienta sprawdza `resolve_client_access` (test: obcy trener 404, klient 403). Panel
@@ -99,7 +100,7 @@ do wiadomości; blokada trenera pokazana jako komunikat. Trener widzi historię 
 ## Etap 6 — panel szablonów: zrobione (minimalny)
 `/trener/szablony-diet` (`SzablonyDiet.tsx`, link z ekranu Szablony → Dieta): profile (dodanie),
 odsłony (dodanie, edycja dni → posiłki → składniki z wyborem produktu z bazy i polami reguł:
-rola, klasa, g/szt, grupa; usuwanie), „Testuj skalowanie” (sweep 1400–3200, dni OK, flagi per
+rola, klasa, g/szt, grupa; usuwanie), „Testuj skalowanie” (sweep zakresu odsłony (do 0.63: 1400–3200), dni OK, flagi per
 posiłek, brakujące dni), publikacja tylko przy ≥ 95 % dni OK (serwer 409 poniżej progu),
 cofnięcie publikacji, import odsłony z JSON. Nie ma jeszcze: edycji istniejącego składnika /
 posiłku w miejscu (API `PUT` istnieje), edycji profilu, dodawania produktu (API admina istnieje).
@@ -193,3 +194,77 @@ Aplikacja z flagą (`.env`: `DZIK_DIET_TEMPLATES_ENABLED=true`) seeduje dane prz
 * Wpis w centrum powiadomień klienta „Trener przypisał dietę” przez outbox.
 * Lista zakupów z migawki (dane są w `computed_plan`).
 * Statystyki wymian (tabela `diet_swap_events` już je zbiera).
+
+
+---
+
+# Biblioteka po audycie 14.09 (0.64.0, gałąź `agent/biblioteka-diet`, migracja 35)
+
+Plan: `docs/plan-sesji/biblioteka-diet.md`; rozpoznanie paczki:
+`01_rozpoznanie_biblioteki.md`; raport źródłowy: `raport_audytu_biblioteki.md`.
+
+| Etap | Stan | Dowód |
+|---|---|---|
+| 0 rozpoznanie | ✅ | `01_rozpoznanie_biblioteki.md` |
+| 1 silnik v1.1 | ✅ | `silnik.fill_defaults` (3 reguły), `engine.py`/golden z paczki, `test_dieta_silnik` 15 |
+| 2 model + migracja 35 + dane + seed | ✅ | kolumny notatek/`source_hash`/`allergens`, 45 JSON + CSV 181 w `dieta/dane`, import zastępujący po skrócie, `test_dieta_seed` 7 (w tym podmiana bez ruszania migawek, sweep 45 odsłon) |
+| 3 API + UI | ✅ | `notatki_odslony`, `allergens` w posiłku (silnik → API), `slotLabel`, `NotatkiOdslony` (trener + klient), sweep zakresu odsłony, E2E „Sportowa 5 slotów” |
+| 4 zamknięcie | ✅ | CHANGELOG 0.64.0, RELEASE_STATUS, STAN_PRZEKAZANIA; przegląd 3 recenzentów (niżej); scalenie po #65 |
+
+## Decyzje i odstępstwa od planu
+* **Sweep w zakresie odsłony** (nie stałe 1400–3200): audyt sprawdzał każdy
+  szablon w jego `kcal_min`–`kcal_max` (Masa 2200–4000 nie da się policzyć przy
+  1400 kcal — cel posiłku ujemny). Stała była błędem 0.60.0 widocznym dopiero
+  przy profilach o innym zakresie.
+* **Testy odniesienia**: liczby w `test_dieta_api`/`test_dieta_poprawki` (kcal dnia
+  2027 → 2000,3; kurczak 160 → 165 g; 142 → 181 produktów; kandydaci + krewetki;
+  skyr bez laktozy ma zamienniki) to zmiana danych referencyjnych po audycie, nie
+  asercje dopasowane do wyniku — golden z paczki potwierdza silnik 1:1.
+* Fixture API testów wybiera jawnie „Standard zbilansowana / odsłona 1” (przy 9
+  profilach kolejność listy nie jest gwarancją).
+* Import testowy w panelu używa nowego profilu („Standard (import testowy)”),
+  bo odsłony 1–5 Standardu są już zajęte przez bibliotekę.
+* `_usun_tresc` kasuje jawnie składniki → posiłki → dni (brak relacji ORM;
+  unit-of-work kasował dni przed posiłkami → naruszenie klucza obcego).
+
+## Pytania otwarte (dla właściciela)
+1. Etykiety „obiad I / obiad II” dla profilu Sportowa — czy wolisz „obiad” i
+   „drugi obiad”?
+2. Notatki o suplementacji z biblioteki są pokazywane klientowi (jako treść
+   autora). Jeśli mają być tylko dla trenera — jedna linia w `DietaSzablon`.
+3. Poprzednie pytania 1–4 z 0.60.0 bez zmian; pytanie 5 (produkty bezlaktozowe)
+   zamknięte przez bazę 181.
+
+## Przegląd kodu 0.64.0 (3 recenzentów wsadowo, zasady v2 §3)
+
+**P1 naprawione:** (1) uwagi o suplementacji z dawkami trafiały do klienta jako treść
+systemowa bez autora-człowieka (R-10) → API klienta zwraca tylko uwagę o sodzie; trener
+widzi całość i przenosi świadomie; (2) seed podmieniał po cichu odsłony edytowane w panelu →
+znacznik `source_hash = "panel"` w 7 endpointach edycji, seed pomija i raportuje
+`szablony_pominiete`, odsłona sprzed 0.64.0 (bez skrótu) podmieniana z ostrzeżeniem w logu;
+(3) import bez limitów `audit`/`supplements_note`/`allergens` → limity + `kcal_min ≤ base ≤
+kcal_max`; (4) test podmiany nie tworzył przypisanej diety → test API z migawką, wymianą i
+zamianą posiłku; (5) brak testów jednostkowych reguł v1.1 → 3 testy + test alergenów;
+(6) alergeny obiecane trenerowi, a renderowane tylko u klienta → podgląd, przeliczony tydzień,
+panel; (7) `derived_from` jako slug pliku → „Standard zbilansowana, odsłona 1”; (8) „flag
+x/19” przy sweepie zakresu → `kcal_points` z serwera.
+**P2 naprawione:** alergeny statyczne po wymianie → liczone ze składników (silnik i korekty);
+sprawdzenie produktów przed `_usun_tresc`; odświeżenie `name` przy podmianie, rozjazd
+`macro_pct` pliku z profilem = błąd; brzeg zakresu sweepu domykany `kcal_max`; `<select>`
+slotu z etykietą; komunikat notatek jako `section` z tytułem i zastrzeżeniem na górze;
+odznaki alergenów zamiast wygaszonego tekstu; stała `KCAL_D1_2000` i komentarze przy
+zmianach referencyjnych; nazwa testu skyru; test 403 klienta na `/templates` i brak
+`audit_json`/`source_hash` w odpowiedziach.
+**Po CI (backend-postgres > 45 min):** każdy test startował aplikację na świeżej bazie
+i importował 45 odsłon (SQLite 1,5 s/test, PostgreSQL wielokrotnie więcej — job „wisiał”).
+Naprawa: `DZIK_DIET_SEED_ON_STARTUP=false` w conftest (testy diety seedują jawnie, ścieżkę
+startową sprawdza `test_start_aplikacji_seeduje_biblioteke` i E2E) oraz import wsadowy
+(4 flushe na odsłonę zamiast ~200). Wniosek do zasad: seed przy starcie liczyć „× liczba
+testów”, zanim trafi do `main.py`.
+**P2 odnotowane:** notatki nie są w migawce (klient z wcześniej przypisaną dietą po podmianie
+widzi nowe notatki przy starym planie) — do rozważenia kopiowanie do migawki; współbieżny
+seed na dwóch maszynach Fly przy rolling deploy → `IntegrityError` i rollback jednej
+(dane bezpieczne, jeden start zgłosi błąd); `INSTRUKCJA_TRENERA/KLIENTA` nie opisują modułu
+szablonów diet (od 0.60.0) — do uzupełnienia przed włączeniem flagi na produkcji;
+`test_powtorny_seed_nie_dubluje` częściowo dubluje test główny; typografia cudzysłowu w
+`types.ts:1667`.

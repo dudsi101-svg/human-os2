@@ -65,3 +65,26 @@ test("trener przypisuje dietę z szablonu, klient wymienia produkt", async ({ pa
   await klik(page.getByText(/Historia wymian klienta \(1\)/));
   await expect(page.getByText(/Pierś z kurczaka \(surowa\) \d+ g → Pierś z indyka/)).toBeVisible({ timeout: 15_000 });
 });
+
+/**
+ * Biblioteka 0.64.0: profil „Sportowa wysokobiałkowa” ma 5 slotów (dwa
+ * obiady — etykiety „obiad I” / „obiad II”), a odsłona niesie notatki autora
+ * biblioteki (suplementacja, sód) widoczne trenerowi przed przeliczeniem.
+ */
+test("trener widzi 5 slotów profilu Sportowa i notatki odsłony", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await zaloguj(page, KONTA.trener);
+  await page.goto("/trener");
+  await page.getByRole("link", { name: /Klient Testowy B/ }).first().click();
+  await page.getByRole("tab", { name: "Dieta" }).click();
+  await klik(page.getByRole("button", { name: "Przypisz dietę" }));
+  await page.getByRole("button", { name: /Sportowa wysokobiałkowa/ }).click();
+  await page.getByRole("button", { name: /Odsłona 1/ }).click();
+  await expect(page.getByText("Uwagi o suplementacji:")).toBeVisible({ timeout: 15_000 });
+  await page.getByLabel("kcal / dzień").fill("2600");
+  await klik(page.getByRole("button", { name: "Przelicz tydzień" }));
+  await expect(page.getByText(/Dni OK: \d\/7/)).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByText(/^obiad I: /).first()).toBeVisible();
+  await expect(page.getByText(/^obiad II: /).first()).toBeVisible();
+  await expect(page.getByText(/^obiad_1/)).toHaveCount(0);
+});

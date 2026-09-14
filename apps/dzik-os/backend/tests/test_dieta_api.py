@@ -12,9 +12,19 @@ from conftest import ADMIN, CLIENT_A, CLIENT_B, COACH, create_user_with_role, ge
 from dzik_os.config import settings
 from dzik_os.db import SessionLocal, db_session
 from dzik_os.dieta import seed
-from dzik_os.models import DietAssigned, DietSwapEvent, DietTemplateIngredient
+from dzik_os.models import (
+    DietAssigned,
+    DietSwapEvent,
+    DietTemplateDay,
+    DietTemplateIngredient,
+    DietTemplateMeal,
+)
 
 D = "/api/diet"
+# Dane referencyjne biblioteki po audycie 14.09 (Standard v1 przy 2000 kcal, dzień 1);
+# zmiana względem 0.60.0 (2027 kcal, kurczak 160 g) wynika z nowej treści szablonu,
+# potwierdzonej golden z paczki — nie z dopasowania asercji.
+KCAL_D1_2000 = 2000.3
 
 
 @pytest.fixture()
@@ -24,7 +34,9 @@ def dieta(seeded):
         seed.zaseeduj(db)
     hc = login(seeded, COACH)
     ha = login(seeded, CLIENT_A)
-    week = seeded.get(f"{D}/profiles", headers=hc).json()["profiles"][0]["weeks"][0]
+    # Biblioteka ma 9 profili — testy liczbowe odnoszą się do „Standard zbilansowana", odsłona 1.
+    std = next(p for p in seeded.get(f"{D}/profiles", headers=hc).json()["profiles"] if p["name"] == "Standard zbilansowana")
+    week = next(w for w in std["weeks"] if w["variant_no"] == 1)
     return {"c": seeded, "hc": hc, "ha": ha, "cid": get_user_id(seeded, ha), "week": week["id"]}
 
 
@@ -54,8 +66,10 @@ def test_flaga_wylaczona_daje_404_na_calym_module(dieta, monkeypatch):
 def test_profile_i_podglad_szablonu_bez_gramatur(dieta):
     c = dieta["c"]
     p = c.get(f"{D}/profiles", headers=dieta["hc"]).json()["profiles"]
-    assert len(p) == 1 and p[0]["name"] == "Standard zbilansowana" and p[0]["published_weeks"] == 1
-    assert p[0]["base_macro_pct"] == {"P": 0.25, "F": 0.3, "C": 0.45}
+    assert len(p) == 9 and {x["name"] for x in p} >= {"Standard zbilansowana", "Sportowa wysokobiałkowa", "Wegańska"}
+    assert all(x["published_weeks"] == 5 for x in p)
+    std = next(x for x in p if x["name"] == "Standard zbilansowana")
+    assert std["base_macro_pct"] == {"P": 0.25, "F": 0.3, "C": 0.45}
     t = c.get(f"{D}/templates/{dieta['week']}", headers=dieta["hc"]).json()
     assert len(t["days"]) == 7 and all(len(d["meals"]) == 4 for d in t["days"])
     assert "grams" not in json.dumps(t) and t["days"][0]["meals"][0]["ingredients"] == 6
@@ -70,9 +84,9 @@ def test_preview_zwraca_wynik_silnika_z_ostrzezeniem_poza_zakresem(dieta):
     plan = r.json()
     assert plan["summary"]["days"] == 7 and plan["summary"]["days_ok"] == 7
     d1 = plan["days"][0]
-    assert d1["macros"]["kcal"] == 2027 and d1["status"] == "OK"
+    assert d1["macros"]["kcal"] == KCAL_D1_2000 and d1["status"] == "OK"
     kur = next(i for i in d1["meals"][1]["ingredients"] if i["product"] == "Pierś z kurczaka (surowa)")
-    assert kur["grams"] == 160 and kur["swappable"] is True
+    assert kur["grams"] == 165 and kur["swappable"] is True  # szablon po audycie: 165 g (było 160)
     banan = next(i for i in d1["meals"][0]["ingredients"] if i["product"] == "Banan")
     assert banan["units"] == 1 and banan["unit_g"] == 120
     with SessionLocal() as db:
@@ -112,7 +126,7 @@ def test_preview_z_korektami_i_zamiana_posilku_z_biblioteki(dieta):
     assert d1["meals"][1]["status"] != "OK" and d1["status"] == "POZA_TOLERANCJĄ"
     # Biblioteka posiłków tego samego slotu i zamiana w podglądzie.
     lib = c.get(f"{D}/templates/{dieta['week']}/meals", headers=dieta["hc"], params={"slot": "obiad"}).json()["meals"]
-    assert len(lib) == 7 and all(x["slot"] == "obiad" for x in lib)
+    assert len(lib) == 35 and all(x["slot"] == "obiad" for x in lib)  # 5 odsłon × 7 dni tego profilu
     inny = next(x for x in lib if x["meal_id"] != m["meal_id"])
     r = c.post(url, headers=dieta["hc"], json={"kcal": 2000, "macro": {"mode": "profile"},
                                                "meal_replacements": {f"1:{m['meal_id']}": inny["meal_id"]}})
@@ -136,7 +150,7 @@ def test_assign_tylko_trener_i_tylko_wlasny_klient(dieta):
     r = _assign(dieta)
     assert r.status_code == 201, r.text
     a = r.json()
-    assert a["version"] == 1 and a["status"] == "ACTIVE" and a["plan"]["days"][0]["macros"]["kcal"] == 2027
+    assert a["version"] == 1 and a["status"] == "ACTIVE" and a["plan"]["days"][0]["macros"]["kcal"] == KCAL_D1_2000
     # Trener bez relacji nie widzi diety cudzego klienta; klient B nie widzi diety A.
     assert c.get(f"{D}/clients/{dieta['cid']}/current", headers=ho).status_code == 404
     hb = login(c, CLIENT_B)
@@ -158,7 +172,10 @@ def test_migawka_nie_zmienia_sie_po_edycji_szablonu(dieta):
     c = dieta["c"]
     a = _assign(dieta).json()
     with db_session() as db:
-        i = db.query(DietTemplateIngredient).filter_by(macro_role="P").first()
+        # Składnik białkowy z TEJ odsłony (w bibliotece jest 45 odsłon).
+        i = (db.query(DietTemplateIngredient).join(DietTemplateMeal, DietTemplateMeal.id == DietTemplateIngredient.meal_id)
+             .join(DietTemplateDay, DietTemplateDay.id == DietTemplateMeal.day_id)
+             .filter(DietTemplateDay.week_id == dieta["week"], DietTemplateIngredient.macro_role == "P").first())
         i.base_grams = i.base_grams * 3
     # Podgląd szablonu daje teraz inny wynik, migawka — ten sam.
     nowy = c.post(f"{D}/templates/{dieta['week']}/preview", headers=dieta["hc"], json={"kcal": 2000, "macro": {"mode": "profile"}}).json()
@@ -212,7 +229,7 @@ def test_wymiana_kandydaci_walidacja_gramatury_i_historia(dieta):
     # Poprawna wymiana: gramatura serwera, wpis historii, override widoczny u klienta i trenera.
     r = c.post(f"{D}/assigned/{a['id']}/swaps", headers=dieta["ha"], json=body)
     assert r.status_code == 201, r.text
-    assert r.json()["day"]["meals"][1]["ingredients"][m["ingredients"].index(kur)]["grams"] == indyk["grams"] == 155
+    assert r.json()["day"]["meals"][1]["ingredients"][m["ingredients"].index(kur)]["grams"] == indyk["grams"] == 160  # 165 g kurczaka → 160 g indyka (dane po audycie)
     cur = c.get(f"{D}/assigned/current", headers=dieta["ha"]).json()["assigned"]
     i2 = next(i for i in cur["plan"]["days"][0]["meals"][1]["ingredients"] if i["ingredient_id"] == kur["ingredient_id"])
     assert i2["product"] == "Pierś z indyka (surowa)" and i2["override"]["kind"] == "swap"
@@ -220,12 +237,13 @@ def test_wymiana_kandydaci_walidacja_gramatury_i_historia(dieta):
     assert len(hist) == 1 and hist[0]["from"] == "Pierś z kurczaka (surowa)" and hist[0]["to"] == "Pierś z indyka (surowa)"
     with SessionLocal() as db:
         assert db.query(DietSwapEvent).count() == 1
-    # Skyr bez laktozy → pusta lista (komunikat dla klienta), nie błąd.
+    # Skyr przy wykluczeniu laktozy → tylko kandydaci bez laktozy (baza po audycie ma nabiał bezlaktozowy), nie błąd.
     a2 = _assign(dieta, exclusions=["lactose"]).json()
     sn = a2["plan"]["days"][0]["meals"][0]
     skyr = next(i for i in sn["ingredients"] if i["product"] == "Skyr naturalny")
     r = c.get(f"{D}/assigned/{a2['id']}/swaps", headers=dieta["ha"], params={"day": 1, "meal": sn["meal_id"], "ingredient": skyr["ingredient_id"]})
-    assert r.status_code == 200 and r.json()["candidates"] == [] and r.json()["blocked"] is None
+    assert r.status_code == 200 and r.json()["blocked"] is None
+    assert r.json()["candidates"] and all("bez laktozy" in x["product"] for x in r.json()["candidates"])
 
 
 def test_trener_blokuje_wymiany_i_koryguje_gramature_oraz_zamienia_posilek(dieta):
@@ -246,7 +264,7 @@ def test_trener_blokuje_wymiany_i_koryguje_gramature_oraz_zamienia_posilek(dieta
     assert r.status_code == 200
     d = r.json()["day"]
     assert next(i for i in d["meals"][1]["ingredients"] if i["ingredient_id"] == kur["ingredient_id"])["grams"] == 200
-    assert d["macros"]["kcal"] > 2027 and d["meals"][1]["macros"]["P"] > 48
+    assert d["macros"]["kcal"] > KCAL_D1_2000 and d["meals"][1]["macros"]["P"] > 48
     # Zamiana posiłku na inny z biblioteki (ten sam slot) — przeskalowany do celu posiłku.
     lib = c.get(f"{D}/templates/{dieta['week']}/meals", headers=dieta["hc"], params={"slot": "obiad"}).json()["meals"]
     inny = next(x for x in lib if x["meal_id"] != m["meal_id"])
@@ -262,7 +280,7 @@ def test_trener_blokuje_wymiany_i_koryguje_gramature_oraz_zamienia_posilek(dieta
 def test_panel_szablonow_crud_sweep_publikacja_import(dieta):
     c, hc = dieta["c"], dieta["hc"]
     ha = login(c, ADMIN)
-    r = c.post(f"{D}/profiles", headers=hc, json={"name": "Redukcja wysokobiałkowa", "base_p_pct": 0.35, "base_f_pct": 0.25, "base_c_pct": 0.40})
+    r = c.post(f"{D}/profiles", headers=hc, json={"name": "Redukcja testowa", "base_p_pct": 0.35, "base_f_pct": 0.25, "base_c_pct": 0.40})
     assert r.status_code == 201, r.text
     pid = r.json()["id"]
     assert c.post(f"{D}/profiles", headers=hc, json={"name": "Zła", "base_p_pct": 0.5, "base_f_pct": 0.5, "base_c_pct": 0.5}).status_code == 422
@@ -279,7 +297,7 @@ def test_panel_szablonow_crud_sweep_publikacja_import(dieta):
     r = c.post(f"{D}/weeks/{wid}/days/1/meals", headers=hc, json={"slot": "obiad", "name": "Kurczak z ryżem", "kcal_share": 1.0, "recipe_steps": "Ugotuj."})
     mid = r.json()["meal_id"]
     prod = {p["name_pl"]: p for p in c.get(f"{D}/products", headers=hc).json()["products"]}
-    assert len(prod) == 142
+    assert len(prod) == 181
     assert c.post(f"{D}/meals/{mid}/ingredients", headers=hc, json={"product_id": "nie-ma", "base_grams": 100}).status_code == 404
     assert c.post(f"{D}/meals/{mid}/ingredients", headers=hc, json={"product_id": prod["Banan"]["id"], "base_grams": 120, "scaling_class": "DYSKRETNY"}).status_code == 422
     for name, g, role in (("Pierś z kurczaka (surowa)", 150, "P"), ("Ryż biały (suchy)", 75, "C"), ("Olej rzepakowy", 10, "F"), ("Brokuł", 120, "NONE")):
@@ -289,16 +307,17 @@ def test_panel_szablonow_crud_sweep_publikacja_import(dieta):
     assert r["meals"][0]["name"] == "Kurczak z ryżem"
     full = c.get(f"{D}/weeks/{wid}/full", headers=hc).json()
     assert len(full["days"][0]["meals"][0]["ingredients"]) == 4
-    # Import JSON (Standard v1 jako wariant 2) → DRAFT → sweep ≥ 95 % → publikacja.
-    dane = json.loads(seed._plik("szablon_standard_v1.json"))
-    dane["variant"] = 2
+    # Import JSON (treść Standard v1 pod nowym profilem — biblioteka ma już odsłony 1–5, więc ścieżka
+    # „nowa odsłona istniejącego profilu” jest pokryta seedem) → DRAFT → sweep ≥ 95 % → publikacja.
+    dane = json.loads(seed._szablon("template_standard_v1.json"))
+    dane["profile"] = "Standard (import testowy)"
     r = c.post(f"{D}/weeks/import", headers=hc, json=dane)
     assert r.status_code == 201 and r.json()["status"] == "DRAFT"
     wid2 = r.json()["week_id"]
     assert c.post(f"{D}/weeks/import", headers=hc, json=dane).status_code == 409
     r = c.post(f"{D}/weeks/{wid2}/publish", headers=hc)
     assert r.status_code == 200 and r.json()["status"] == "PUBLISHED" and r.json()["sweep"]["days_ok"] >= 131
-    assert next(p for p in c.get(f"{D}/profiles", headers=hc).json()["profiles"] if p["name"] == "Standard zbilansowana")["published_weeks"] == 2
+    assert next(p for p in c.get(f"{D}/profiles", headers=hc).json()["profiles"] if p["name"] == "Standard (import testowy)")["published_weeks"] == 1
     # Produkt dodaje wyłącznie admin, z jawnym źródłem; kcal z makro.
     body = {"name_pl": "Skyr bezlaktozowy", "category": "nabiał", "substitution_group": "nabiał_chudy",
             "protein_100": 11, "fat_100": 0.2, "carbs_100": 4, "cooking_tags": "*", "source": "etykieta producenta"}
@@ -310,3 +329,80 @@ def test_panel_szablonow_crud_sweep_publikacja_import(dieta):
     a = _assign(dieta).json()
     assert c.get(f"{D}/clients/{dieta['cid']}/current", headers=ha).status_code == 404
     assert c.get(f"{D}/assigned/{a['id']}/swaps", headers=ha, params={"day": 1, "meal": "m", "ingredient": "i"}).status_code == 404
+
+
+def test_podmiana_biblioteki_nie_rusza_przypisanej_diety_ani_wymian(dieta):
+    """Spec §8 / plan 0.64.0 decyzja 1: przypisana dieta = migawka. Po podmianie
+    treści odsłony (inny skrót pliku) plan klienta jest bajt w bajt ten sam, a
+    wymiana produktu i zamiana posiłku (nowe meal_id z podmienionej treści) działają."""
+    c = dieta["c"]
+    a = _assign(dieta).json()
+    przed = c.get(f"{D}/assigned/current", headers=dieta["ha"]).json()["assigned"]["plan"]
+    dane = json.loads(seed._szablon("template_standard_v1.json"))
+    dane["days"][0]["meals"][1]["name"] = "Obiad po podmianie"
+    with db_session() as db:
+        week, nowa = seed.zaimportuj_szablon(db, dane, replace=True)
+        assert nowa is False and week.id == dieta["week"]
+    po = c.get(f"{D}/assigned/current", headers=dieta["ha"]).json()["assigned"]["plan"]
+    assert json.dumps(po, sort_keys=True) == json.dumps(przed, sort_keys=True)
+    m = po["days"][0]["meals"][1]
+    kur = next(i for i in m["ingredients"] if i["product"] == "Pierś z kurczaka (surowa)")
+    r = c.get(f"{D}/assigned/{a['id']}/swaps", headers=dieta["ha"], params={"day": 1, "meal": m["meal_id"], "ingredient": kur["ingredient_id"]})
+    assert r.status_code == 200 and r.json()["candidates"]
+    r = c.post(f"{D}/assigned/{a['id']}/swaps", headers=dieta["ha"],
+               json={"day": 1, "meal_id": m["meal_id"], "ingredient_id": kur["ingredient_id"], "to_product_id": r.json()["candidates"][0]["product_id"]})
+    assert r.status_code == 201, r.text
+    lib = c.get(f"{D}/templates/{dieta['week']}/meals", headers=dieta["hc"], params={"slot": "obiad"}).json()["meals"]
+    nowy = next(x for x in lib if x["name"] == "Obiad po podmianie")
+    r = c.patch(f"{D}/assigned/{a['id']}", headers=dieta["hc"], json={"day": 1, "meal_id": m["meal_id"], "replace_with_meal_id": nowy["meal_id"]})
+    assert r.status_code == 200, r.text
+    assert r.json()["day"]["meals"][1]["name"] == "Obiad po podmianie"
+
+
+def test_notatki_i_alergeny_w_api_oraz_zakres_widocznosci_klienta(dieta):
+    c = dieta["c"]
+    t = c.get(f"{D}/templates/{dieta['week']}", headers=dieta["hc"]).json()
+    assert t["supplements_note"] and t["sodium_note"] and "audit_json" not in t and "source_hash" not in t
+    assert isinstance(t["days"][0]["meals"][0]["allergens"], list)
+    # Bezlaktozowa v1: pochodzenie po ludzku, nie slug pliku.
+    poch = next(p for p in c.get(f"{D}/profiles", headers=dieta["hc"]).json()["profiles"] if p["name"] == "Bezlaktozowa")
+    t2 = c.get(f"{D}/templates/{poch['weeks'][0]['id']}", headers=dieta["hc"]).json()
+    assert t2["derived_from"] and t2["derived_from"].startswith("Standard zbilansowana, odsłona")
+    # Klient: nie widzi biblioteki; w swojej diecie dostaje sód i alergeny, ale nie uwagi o suplementacji (R-10).
+    a = _assign(dieta).json()
+    assert a["supplements_note"]  # odpowiedź dla trenera
+    assert c.get(f"{D}/templates/{dieta['week']}", headers=dieta["ha"]).status_code == 403
+    cur = c.get(f"{D}/assigned/current", headers=dieta["ha"]).json()["assigned"]
+    assert cur["supplements_note"] == [] and cur["derived_from"] is None and cur["sodium_note"]
+    assert "audit_json" not in cur and "source_hash" not in cur
+    obiad = cur["plan"]["days"][0]["meals"][1]
+    assert isinstance(obiad["allergens"], list)
+    # Po korekcie trenera (kurczak → krewetki) alergeny posiłku liczą się z bieżących składników.
+    kur = next(i for i in obiad["ingredients"] if i["product"] == "Pierś z kurczaka (surowa)")
+    r = c.post(f"{D}/templates/{dieta['week']}/preview", headers=dieta["hc"],
+               json={"kcal": 2000, "macro": {"mode": "profile"},
+                     "overrides": {f"1:{obiad['meal_id']}:{kur['ingredient_id']}": {"grams": 165, "product": "Krewetki (surowe)"}}})
+    assert r.status_code == 200, r.text
+    assert "skorupiaki" in r.json()["days"][0]["meals"][1]["allergens"]
+
+
+def test_import_odrzuca_nadmiarowe_notatki_i_zly_zakres_kcal(dieta):
+    c, hc = dieta["c"], dieta["hc"]
+    baza = json.loads(seed._szablon("template_standard_v1.json"))
+    baza["profile"] = "Import limity"
+    for zmiana in ({"supplements_note": ["x"] * 21}, {"supplements_note": ["y" * 501]}, {"audit": {"k": "z" * 4001}},
+                   {"kcal_min": 3000, "kcal_max": 2500}, {"derived_from": "a" * 121}):
+        dane = {**baza, **zmiana}
+        assert c.post(f"{D}/weeks/import", headers=hc, json=dane).status_code == 422, zmiana
+    zle = json.loads(json.dumps(baza))
+    zle["days"][0]["meals"][0]["allergens"] = ["gluten"] * 21
+    assert c.post(f"{D}/weeks/import", headers=hc, json=zle).status_code == 422
+    # Edycja w panelu oznacza odsłonę: seed jej nie podmienia.
+    mid = c.get(f"{D}/templates/{dieta['week']}", headers=hc).json()["days"][0]["meals"][0]["meal_id"]
+    r = c.put(f"{D}/meals/{mid}", headers=hc,
+              json={"slot": "śniadanie", "name": "Owsianka trenera", "kcal_share": 0.25, "recipe_steps": "Ugotuj."})
+    assert r.status_code == 200, r.text
+    with db_session() as db:
+        raport = seed.zaseeduj(db)
+    assert raport["szablony_pominiete"] == 1
+    assert c.get(f"{D}/templates/{dieta['week']}", headers=hc).json()["days"][0]["meals"][0]["name"] == "Owsianka trenera"

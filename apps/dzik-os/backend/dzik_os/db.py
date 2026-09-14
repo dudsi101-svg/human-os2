@@ -1471,3 +1471,15 @@ MIGRATIONS.append(
         "CREATE INDEX IF NOT EXISTS ix_habit_completions_client_id ON habit_completions (client_id)",
     ])
 )
+
+MIGRATIONS.append(
+    (35, "biblioteka szablonów diet po audycie: notatki, alergeny posiłku, skrót źródła", [
+        # Addytywna (ALTER ADD COLUMN z DEFAULT — jak migracja 2).
+        "ALTER TABLE diet_template_weeks ADD COLUMN derived_from VARCHAR(120)",
+        "ALTER TABLE diet_template_weeks ADD COLUMN supplements_note TEXT NOT NULL DEFAULT ''",
+        "ALTER TABLE diet_template_weeks ADD COLUMN sodium_note TEXT NOT NULL DEFAULT ''",
+        "ALTER TABLE diet_template_weeks ADD COLUMN audit_json TEXT NOT NULL DEFAULT '{}'",
+        "ALTER TABLE diet_template_weeks ADD COLUMN source_hash VARCHAR(64)",
+        "ALTER TABLE diet_template_meals ADD COLUMN allergens VARCHAR(300) NOT NULL DEFAULT ''",
+    ])
+)

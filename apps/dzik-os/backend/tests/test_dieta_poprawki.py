@@ -169,8 +169,8 @@ def test_korekty_i_presety_z_bledami_daja_422(dieta):
     m, kur = _obiad(a)
     r = c.get(f"{D}/assigned/{a['id']}/swaps", headers=dieta["ha"], params={"day": 1, "meal": m["meal_id"], "ingredient": kur["ingredient_id"]})
     nazwy = [x["product"] for x in r.json()["candidates"]]
-    # Bez wykluczenia byłoby trzech kandydatów (indyk, schab, polędwiczka) — indyk odpada po nazwie.
-    assert nazwy == ["Schab bez kości (surowy)", "Polędwiczka wieprzowa (surowa)"]
+    # Bez wykluczenia byłoby czterech kandydatów (indyk, schab, polędwiczka, krewetki) — indyk odpada po nazwie.
+    assert nazwy == ["Schab bez kości (surowy)", "Polędwiczka wieprzowa (surowa)", "Krewetki (surowe)"]
     # PATCH gramatury pod nieistniejący składnik → 404, bez martwego wpisu.
     r = c.patch(f"{D}/assigned/{a['id']}", headers=hc, json={"day": 1, "meal_id": m["meal_id"], "ingredient_id": "NIE-MA", "grams": 100})
     assert r.status_code == 404
@@ -202,7 +202,7 @@ def test_panel_walidacja_odslony_skladnika_i_importu(dieta):
     assert c.get(f"{D}/weeks/{wid}/full", headers=ha).status_code == 200
     assert c.get(f"{D}/weeks/{wid}/full", headers=dieta["ha"]).status_code == 403
     # Import: duplikat dnia, złe macro_pct, nieznana klasa, round_step 0, nietekstowy profil → 422 (nie 500, nic nie zapisane).
-    dane = json.loads(seed._plik("szablon_standard_v1.json"))
+    dane = json.loads(seed._szablon("template_standard_v1.json"))
     dane["profile"] = "Import test"
     def wariant(zmien):
         d = json.loads(json.dumps(dane))
