@@ -103,6 +103,13 @@ test("nawigacja kotwic od 900 px; kotwica ląduje pod paskiem 76 px", async ({ p
     expect(box?.height ?? 0).toBeGreaterThanOrEqual(24);
   }
 
+  // Granica progu: 900 px widoczna, 899 px ukryta (zmiana breakpointu nie przejdzie po cichu).
+  await page.setViewportSize({ width: 900, height: 800 });
+  await page.goto("/");
+  await expect(nav).toBeVisible();
+  await page.setViewportSize({ width: 899, height: 800 });
+  await page.goto("/");
+  await expect(nav).toBeHidden();
   await page.setViewportSize({ width: 768, height: 1024 });
   await page.goto("/");
   await expect(nav).toBeHidden();
@@ -115,6 +122,7 @@ test("nawigacja kotwic od 900 px; kotwica ląduje pod paskiem 76 px", async ({ p
   await expect(page.getByRole("heading", { name: "Napisz do mnie", level: 2 })).toBeVisible();
   const gora = await page.evaluate(() => document.getElementById("kontakt")!.getBoundingClientRect().top);
   expect(gora).toBeGreaterThanOrEqual(75); // scroll-margin-top: 76px; pasek górny ma 76 px
+  expect(gora).toBeLessThanOrEqual(76 + 8); // …i sekcja faktycznie została przewinięta pod pasek
 });
 
 test("panel hero dekoracyjny, honeypot poza fokusem, konspekt nagłówków", async ({ page }) => {
