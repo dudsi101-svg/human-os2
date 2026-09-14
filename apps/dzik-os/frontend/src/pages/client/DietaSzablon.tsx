@@ -16,7 +16,8 @@ import { Alergeny, gramatura, KartaDnia, makro, NotatkiOdslony, StatusDiety } fr
 /** Zmiana makro posiłku po wymianie, po polsku („posiłek: −12 kcal, białko +1 g”). */
 function deltaTekst(d?: DietMacros): string {
   if (!d) return "Posiłek nadal mieści się w celu.";
-  const f = (v: number, u: string) => `${v > 0 ? "+" : v < 0 ? "−" : ""}${Math.abs(Math.round(v))} ${u}`;
+  // Znak po zaokrągleniu: −0,3 g to „0 g”, nie „−0 g”.
+  const f = (v: number, u: string) => { const r = Math.round(v); return `${r > 0 ? "+" : r < 0 ? "−" : ""}${Math.abs(r)} ${u}`; };
   return `posiłek: ${f(d.kcal, "kcal")}, białko ${f(d.P, "g")}, tłuszcz ${f(d.F, "g")}, węgle ${f(d.C, "g")}`;
 }
 export default function DietaSzablon({ onStan }: { onStan?: (jest: boolean) => void } = {}) {
