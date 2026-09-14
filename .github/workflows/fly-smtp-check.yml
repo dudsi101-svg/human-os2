@@ -38,6 +38,16 @@ jobs:
         run: |
           flyctl ssh console --app "$APP_NAME" -C "python smtp_check.py"
 
+      - name: Szczegóły odpowiedzi serwera SMTP (odcisk hasła, nie wartość)
+        # Gdy krok 4/4 odrzuca logowanie: pełna odpowiedź serwera (kod + tekst,
+        # np. „konto SMTP nieaktywowane” vs „złe dane”) oraz odcisk sha256[:8]
+        # i długość hasła — żeby sprawdzić, czy maszyna ma ten sekret, który
+        # ustawiono, bez wypisywania wartości. Skrypt w base64, bo `-C` nie
+        # przekazuje stdin ani wielowierszowych cudzysłowów.
+        if: always()
+        run: |
+          flyctl ssh console --app "$APP_NAME" -C "sh -c 'echo CmltcG9ydCBoYXNobGliLCBvcywgc210cGxpYiwgc3NsCnB3ID0gb3MuZW52aXJvbi5nZXQoIlNNVFBfUEFTU1dPUkQiLCAiIikKcHJpbnQoIlNNVFBfUEFTU1dPUkQ6IG9kY2lzayBzaGEyNTZbOjhdID0iLCBoYXNobGliLnNoYTI1Nihwdy5lbmNvZGUoKSkuaGV4ZGlnZXN0KClbOjhdLCAifCBkbHVnb3NjID0iLCBsZW4ocHcpLCAifCBwcmVmaWtzID0iLCAieHNtdHBzaWItIiBpZiBwdy5zdGFydHN3aXRoKCJ4c210cHNpYi0iKSBlbHNlICIoaW5ueSBuaXogeHNtdHBzaWItKSIpCmhvc3QgPSBvcy5lbnZpcm9uLmdldCgiU01UUF9IT1NUIiwgIiIpOyBwb3J0ID0gaW50KG9zLmVudmlyb24uZ2V0KCJTTVRQX1BPUlQiLCAiNTg3Iikgb3IgNTg3KQp1c2VyID0gb3MuZW52aXJvbi5nZXQoIlNNVFBfVVNFUiIsICIiKQpzID0gc210cGxpYi5TTVRQKGhvc3QsIHBvcnQsIHRpbWVvdXQ9MTUpOyBzLmVobG8oKTsgcy5zdGFydHRscyhjb250ZXh0PXNzbC5jcmVhdGVfZGVmYXVsdF9jb250ZXh0KCkpOyBzLmVobG8oKQp0cnk6CiAgICBzLmxvZ2luKHVzZXIsIHB3KTsgcHJpbnQoImxvZ2luOiBPSyIpCmV4Y2VwdCBzbXRwbGliLlNNVFBFeGNlcHRpb24gYXMgZToKICAgIGVyciA9IGdldGF0dHIoZSwgInNtdHBfZXJyb3IiLCBiIiIpCiAgICBwcmludCgibG9naW46IG9kcG93aWVkeiBzZXJ3ZXJhIiwgZ2V0YXR0cihlLCAic210cF9jb2RlIiwgTm9uZSksIGVyci5kZWNvZGUoInV0Zi04IiwgInJlcGxhY2UiKSBpZiBpc2luc3RhbmNlKGVyciwgYnl0ZXMpIGVsc2UgZXJyKQpzLnF1aXQoKQo= | base64 -d | python'"
+
       - name: Testowa wysyłka (ta sama ścieżka co POST /api/admin/mail/test)
         if: env.TEST_EMAIL != ''
         run: |
