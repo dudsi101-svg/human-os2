@@ -77,6 +77,13 @@ klientów wymagających uwagi.
   zostanie nadpisane**. Ćwiczenie spoza bazy nadal wpiszesz ręcznie —
   przycisk „+ ćwiczenie (wpisz ręcznie)". Pozycja dodana z bazy daje
   klientowi rozwijaną kartę techniki wprost w planie.
+  **Dzień tygodnia** przy jednostce to Twoja **propozycja** — klient może
+  w zakładce Plan wybrać własne dni („Twoje dni treningowe", od 0.71.0);
+  wtedy obowiązuje w całości jego układ, a w karcie klienta zobaczysz linię
+  „Klient wybrał dni tygodnia: …" i odznaki „pon (wg klienta)" (tylko
+  odczyt; wersje planu nie zmieniają się). Jeśli plan nie ma dni ani
+  u Ciebie, ani u klienta, „Dzisiaj" prowadzi go do ich ustawienia —
+  aplikacja nie zgaduje.
 * **Baza ćwiczeń** (zakładka „Baza wiedzy" → „Ćwiczenia") — Twoje
   know-how: kroki techniki, najczęstsze błędy, wskazówki, uwagi
   bezpieczeństwa, warianty łatwiejszy i trudniejszy, pracujące mięśnie,

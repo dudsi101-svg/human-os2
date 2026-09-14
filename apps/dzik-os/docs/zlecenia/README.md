@@ -25,7 +25,7 @@ wersje 0.64.0 i 0.65.0 są zajęte przez `agent/biblioteka-diet` i `agent/monito
 |---|---|---|---|
 | 1 | scalić `agent/biblioteka-diet` (gotowa, odblokowana) | 0.64.0 | 35 |
 | 2 | zlecenie 0 — ukryj kreator | 0.66.0 (0.65.0 zostaje dla monitoringu, jeśli wejdzie wcześniej — wtedy przesuń) | — |
-| 3 | zlecenie 1 — dni treningowe | kolejna wolna | 37 |
+| 3 | zlecenie 1 — dni treningowe | **0.71.0** (PR #72; 0.70.0 = powitanie, PR #70) | **38** (37 = `users.welcome_seen_at`, PR #70) |
 | 4 | zlecenie 2 — wymiany produktów v2 (+ korelacja katalogu) | kolejna wolna | — (przegląd CSV przez właściciela może iść równolegle) |
 
 Decyzje właściciela z drugiej tury (14.09): kreator diety odłożony i ukryty; klient na
