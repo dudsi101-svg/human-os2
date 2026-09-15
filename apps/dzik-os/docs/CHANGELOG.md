@@ -86,6 +86,30 @@ rozpoznanie luk z PR #71) jest w repozytorium: `docs/calorie-interview/`.
   dziedziczy się z poprzedniego wyniku, a zdejmuje je wyłącznie trener.
   Próg 1200/1500 kcal i granice mnożnika z kroków mają testy działania, nie
   tylko wartości stałej.
+## 0.76.1 — 2026-09-15
+
+**Zaproszenia i reset hasła znów wychodzą: obie drogi poczty czytają tę samą
+konfigurację (gałąź `agent/poczta-zaproszenia`, bez migracji).** Znalezione przy
+zadaniu o kontach testowych: diagnostyka produkcji pokazywała, że KAŻDE
+zaproszenie i każdy reset hasła od 13.09 kończy się powodem „brak dostawcy”,
+choć kontrola kanału SMTP z maszyny przechodziła wszystkie cztery kroki
+(DNS, TCP, TLS, uwierzytelnienie).
+
+* **Przyczyna:** dwie drogi wychodzącej poczty powstały osobno i czytały różne
+  zmienne. `notifications_provider` (zaproszenia, reset hasła, przypomnienia)
+  brał `DZIK_SMTP_HOST`/`DZIK_SMTP_USER`/`DZIK_SMTP_PASSWORD`/`DZIK_SMTP_FROM`,
+  a `mailer` (kontrola kanału, wysyłka testowa) bierze `SMTP_HOST`/`SMTP_PORT`/
+  `SMTP_USER`/`SMTP_PASSWORD`/`MAIL_FROM`. Na produkcji ustawiono te drugie,
+  więc testy poczty wychodziły, a zaproszenia nie — trener dostawał link do
+  ręcznego przekazania i nie wiedział dlaczego.
+* **Poprawka:** ustawienia poczty przyjmują obie nazwy. Pierwszeństwo ma nazwa
+  z prefiksem `DZIK_` (jawna konfiguracja tej aplikacji), wspólna jest zapasem;
+  pusta zmienna z prefiksem nie wygasza działającej konfiguracji wspólnej.
+  Brak obu = dostawca pusty, czyli zachowanie bez zmian: aplikacja nie wysyła nic.
+* **Testy:** pięć nowych (`test_poczta_jedna_konfiguracja.py`), w tym dowód, że
+  przy konfiguracji jak na produkcji dostawca powiadomień faktycznie wstaje.
+  Sprawdzone na mutancie: bez poprawki cztery z nich są czerwone.
+
 ## 0.76.0 — 2026-09-14
 
 **Bloki jak szablony: aeroby (cardio) jako trzeci rodzaj bloku i przypisanie

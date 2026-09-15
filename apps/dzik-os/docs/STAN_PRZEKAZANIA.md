@@ -1,6 +1,6 @@
 # Stan przekazania — przeczytaj przed rozpoczęciem rundy
 
-**Aktualizacja:** 2026-09-15 · **Wersja w `main`:** 0.76.0 (po scaleniu PR #79 bloki jak szablony, `a8962d9`; 0.75.1 nawigacja safe-area = PR #78) — **0.77.0 w PR #80** (`agent/wywiad-kaloryczny`: wywiad kaloryczny wg specyfikacji właściciela 1.0, migracja 42).
+**Aktualizacja:** 2026-09-15 · **Wersja w `main`:** 0.76.1 (poczta: zaproszenia i reset hasła czytają tę samą konfigurację co kontrola kanału, `233076f`; zweryfikowane na produkcji — dostawca poczty to `smtp`) — **0.76.2 w PR #82** (raport diagnostyczny zna obie nazwy ustawień), **0.77.0 w PR #80** (`agent/wywiad-kaloryczny`: wywiad kaloryczny wg specyfikacji właściciela 1.0, migracja 42, po przeglądzie i poprawkach P0/P1 bramki zgody zdrowotnej).
 **Tryb pracy:** jeden piszący i jeden PR `[WRITER]` naraz
 (`KOORDYNACJA.md`, zasada nadrzędna).
 
