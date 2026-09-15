@@ -4,7 +4,7 @@
 
 **Wywiad „Zapotrzebowanie kaloryczne” wyrównany do specyfikacji właściciela 1.0
 z 13.09 (gałąź `agent/wywiad-kaloryczny`, PR #80, migracja 42).** Numer 0.76.0 =
-bloki jak szablony (PR #79, runda równoległa scalana przed tą).
+bloki jak szablony (PR #79, scalony przed tą rundą).
 
 Do 0.76.0 wywiad liczył `PPM × PAL` z sześciu odpowiedzi. Specyfikacja żąda
 pięciu ekranów, CPM rozbitego na składniki, drugiego wzoru na PPM przy znanym
@@ -77,6 +77,74 @@ rozpoznanie luk z PR #71) jest w repozytorium: `docs/calorie-interview/`.
   szkic sprzed zmiany pytań, eksport), E2E przepisany na pięć ekranów.
   Plan i odstępstwa: `docs/plan-sesji/wywiad-kaloryczny.md`; rozbieżności
   specyfikacja kontra referencja i lista P2: `docs/calorie-interview/PROGRESS.md`.
+## 0.76.0 — 2026-09-14
+
+**Bloki jak szablony: aeroby (cardio) jako trzeci rodzaj bloku i przypisanie
+klientowi szablonu treningowego razem z blokami (polecenie właściciela z 14.09;
+gałąź `agent/bloki-jak-szablony`, PR #79, migracja 41).** Numer 0.75.1 = dolna
+nawigacja na iPhonie (PR #78).
+
+* **Blok `CARDIO`** obok rozgrzewki i rozciągania (`ExerciseBlock.kind`): poziom
+  jak rozgrzewka, zamiast wariantu **cel dominujący** (redukcja / wydolność /
+  regeneracja — te same klucze co suwaki), a treścią jest **preset cardio**
+  (`cardio_json`, migracja 41 — kolumna NULL dla pozostałych rodzajów) policzony
+  silnikiem `cardio_model_v1` **bez danych klienta** (kotwice RPE + % HRmax +
+  test mowy, bez ud./min; `trace.source = "blok"`). Urządzenia domyślne: rowerek,
+  bieżnia, wioślarz. Pozycje opisowe (urządzenia · czas, intensywność, struktura)
+  generowane z presetu. `variant` dla CARDIO nie dotyczy: w API `null`, w bazie
+  pusty napis (kolumna `NOT NULL` z migracji 39 — bez przebudowy tabeli).
+* **9 wbudowanych bloków cardio** (3 cele × 3 poziomy) — razem 21 wbudowanych
+  (9 rozgrzewek + 9 aerobów + 3 rozciągania); ładowanie idempotentne po kluczu
+  `(rodzaj, poziom, cel)` dla CARDIO. Regeneracja: ciągła ~60 % HRmax, 25 min
+  (początkujący 20); wydolność: interwały wg poziomu 8×1 / 6×2 / 4×4; redukcja:
+  ciągła ~69 % HRmax, 40 min (początkujący 30). Liczby wyłącznie z silnika.
+  Szablony → Bloki: „+ Nowy blok” z rodzajem „Aeroby (cardio)” — trener podaje cel,
+  poziom i urządzenia, resztę liczy serwer.
+* **Pozycja planu z bloku CARDIO** = `kind: "cardio"` z kopią presetu (`cardio`)
+  + `block_id` + migawka `block` (kind `CARDIO`, `variant` null). W edytorze planu
+  **„+ Cardio z bloku”** obok „+ Cardio” — działa także w edytorze szablonu (bez
+  klienta), gdzie panel suwaków nadal odmawia. Kolejność w dniu: rozgrzewka na
+  początek, cardio po siłowych (przed rozciąganiem), rozciąganie na koniec.
+  Klient widzi pozycję jak cardio (paski celów, zakresy, timer, dziennik) z odznaką
+  „z bloku”, nagłówkiem rodzaju/poziomu/≈min i pozycjami opisowymi.
+* **`POST /api/plans/{template_id}/copy-to/{client_id}` z opcjonalnym ciałem
+  `{"blocks": [...]}`** (0–3, maks. jeden na rodzaj; cudzy/nieistniejący blok 404,
+  zarchiwizowany i duplikat rodzaju 422 po polsku): każdy dzień kopii dostaje
+  migawki bloków; dzień, który ma już blok danego rodzaju z szablonu, nie jest
+  dublowany. Odpowiedź dokłada `blocks_applied: {added: {warmup, cardio, stretch},
+  skipped_days: [...]}`. Bez ciała — zachowanie i odpowiedź jak dotąd. **Luka
+  z 0.73.0 zamknięta:** kopia szablonu sprawdza, czy `exercise_id` należy do tego
+  trenera (cudzy albo nieistniejący → 422; własny zarchiwizowany przechodzi —
+  odniesienie jest miękkie, nazwa jest w treści planu) i zapisuje ślad `H_CARDIO`
+  dla każdej pozycji cardio w tej samej transakcji.
+* **`POST /api/clients/{client_id}/plans/from-blocks`** — plan klienta z samych
+  bloków (1–7 dni z nazwami, 1–3 bloki po jednym na rodzaj), CLIENT_SCOPED
+  (klient 403, trener bez relacji 404).
+* **Karta „Przypisz plan”** w karcie klienta → Plan (zastępuje „Z szablonu… /
+  Kopiuj do klienta”): szablon treningowy albo „bez szablonu — tylko bloki”; trzy
+  wybory Rozgrzewka / Aeroby (cardio) / Rozciąganie z etykietą „poziom · wariant/cel
+  · ≈min” i opcją „bez”; brak bloków rodzaju → link do Szablony → Bloki; dla „tylko
+  bloki” tytuł + liczba dni (1–7, „Dzień 1…”); podsumowanie przed wysłaniem
+  („Szablon X + rozgrzewka Y + … → 3 dni”), `role="status"` po sukcesie („Dodano
+  rozgrzewkę do 3 dni, cardio do 3 dni”). `fieldset`/`legend`, cele dotyku ≥ 44 px,
+  320 px bez poziomego scrolla, tokeny motywu.
+* **Testy:** backend 12 nowych (`test_bloki_jak_szablony.py`: preset, CRUD CARDIO,
+  klucz, ślad, `copy-to` 1/2/3 bloki + odmowy + brak dublowania + walidacja id,
+  `from-blocks`, czysta logika składania, migracja 41 na starej bazie),
+  `test_exercise_blocks.py` 12 → 21; helper `src/bloki.ts` + `scripts/test-bloki.mjs`
+  (5); E2E `bloki-jak-szablony.spec.ts` (2, projekt „telefon”), `rozgrzewka.spec.ts`
+  12 → 21; a11y krok 8a (karta „Przypisz plan” @320, oba motywy).
+* **Bez zmian:** `export_version` 2.1 (pozycja cardio z bloku ma kształt pozycji
+  cardio z 0.73.0; bloki to katalog trenera poza eksportem), silnik cardio,
+  `CardioPanel`, wbudowane schematy treningowe (bloki dokłada się przy przypisaniu).
+  Plan sesji i odstępstwa: `docs/plan-sesji/bloki-jak-szablony.md`; postęp i P2:
+  `docs/bloki-jak-szablony/PROGRESS.md`.
+
+* **Po niezależnym przeglądzie:** edycja bloku aerobowego czyści czas i pozycje
+  opisowe przy zmianie celu, poziomu, urządzeń albo rodzaju — inaczej blok
+  reklamował się sprzecznie z własnym presetem, a migawka niosła to do planu
+  klienta (E2E sprawdzony na mutancie). Etykieta rodzaju bloku w karcie
+  „Przypisz plan” nie wskazuje już na akapit bez kontrolki, gdy katalog jest pusty.
 
 ## 0.75.1 — 2026-09-14
 

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Response, UploadFile
+from fastapi import APIRouter, Body, Depends, HTTPException, Query, Response, UploadFile
 from sqlalchemy.orm import Session
 
 from .. import aggregates, notifications, plan_templates, sheet_import
@@ -15,11 +15,13 @@ from ..authz import (
     require_owned_resource,
     resolve_client_access,
 )
+from ..cardio import bloki as cardio_bloki
 from ..config import settings
 from ..db import get_db
 from ..hos_bridge import record_event
 from ..models import (
     Exercise,
+    ExerciseBlock,
     TrainingPlan,
     TrainingPlanVersion,
     User,
@@ -30,7 +32,15 @@ from ..models import (
 )
 from ..postepy import rekordy as R
 from ..postepy import serwis as postepy_serwis
-from ..schemas import PlanCreateIn, PlanDayIn, PlanVersionIn, WorkoutSessionIn, dni_do_zapisu
+from ..schemas import (
+    CopyToClientIn,
+    PlanCreateIn,
+    PlanDayIn,
+    PlanFromBlocksIn,
+    PlanVersionIn,
+    WorkoutSessionIn,
+    dni_do_zapisu,
+)
 from ..security import current_user, require_role
 from ..storage import _read_limited
 from ..wiedza import slad as wiedza_slad
@@ -43,29 +53,49 @@ def _validate_exercise_refs(db: Session, coach: User, days: list[PlanDayIn]) -> 
     bazy TEGO trenera — cudzy ani nieistniejący identyfikator nie da się
     wstawić (422). Odniesienie pozostaje miękkie: nazwa jest zapisana w
     planie, więc późniejsza archiwizacja ćwiczenia niczego nie psuje."""
-    wanted = {
+    _validate_exercise_ids(db, coach, {
         ex.exercise_id
         for day in days
         for ex in day.exercises
         if ex.exercise_id
-    }
+    })
+
+
+def _validate_exercise_ids_in_content(db: Session, coach: User, content: dict) -> None:
+    """Kopia szablonu (0.76.0): pilnujemy, żeby do planu klienta nie weszło
+    CUDZE ani nieistniejące `exercise_id` — bez przepisywania treści przez
+    `PlanDayIn`, żeby kopia była bajt w bajt.
+
+    Świadomie NIE wymagamy statusu ACTIVE (inaczej niż przy zapisie nowej
+    wersji): szablon zapisany wcześniej mógł wymieniać ćwiczenie, które trener
+    później zarchiwizował, a archiwizacja ma niczego nie psuć — nazwa jest
+    w treści planu, a odniesienie jest miękkie. Blokowanie kopii zmuszałoby
+    trenera do przepisywania szablonu (przegląd PR #79, P1)."""
+    _validate_exercise_ids(db, coach, {
+        ex.get("exercise_id")
+        for day in (content or {}).get("days") or []
+        for ex in (day or {}).get("exercises") or []
+        if isinstance(ex, dict) and ex.get("exercise_id")
+    }, wymagaj_aktywnego=False)
+
+
+def _validate_exercise_ids(
+    db: Session, coach: User, wanted: set[str], *, wymagaj_aktywnego: bool = True
+) -> None:
     if not wanted:
         return
-    known = {
-        row.id
-        for row in db.query(Exercise)
-        .filter(
-            Exercise.id.in_(wanted),
-            Exercise.coach_id == coach.id,
-            Exercise.status == "ACTIVE",
-        )
-        .all()
-    }
+    filtry = [Exercise.id.in_(wanted), Exercise.coach_id == coach.id]
+    if wymagaj_aktywnego:
+        filtry.append(Exercise.status == "ACTIVE")
+    known = {row.id for row in db.query(Exercise).filter(*filtry).all()}
     missing = sorted(wanted - known)
     if missing:
         raise HTTPException(
             status_code=422,
-            detail="Ćwiczenie spoza Twojej aktywnej bazy: " + ", ".join(missing),
+            detail=(
+                "Ćwiczenie spoza Twojej aktywnej bazy: " if wymagaj_aktywnego
+                else "Ćwiczenie spoza Twojej bazy: "
+            ) + ", ".join(missing),
         )
 
 
@@ -210,16 +240,49 @@ def create_plan_version(
     return {"version_id": version.id, "version_no": next_no}
 
 
+def _wczytaj_bloki(db: Session, coach: User, ids: list[str]) -> list[ExerciseBlock]:
+    """Bloki do przypisania (0.76.0): każdy musi istnieć i należeć do TEGO
+    trenera (cudzy = 404 z audytem, jak w katalogu bloków); zestaw sprawdza
+    `cardio.bloki.waliduj_zestaw` (ACTIVE, maks. jeden na rodzaj → 422)."""
+    if len(set(ids)) != len(ids):
+        raise HTTPException(status_code=422, detail="Ten sam blok podany dwa razy.")
+    bloki: list[ExerciseBlock] = []
+    for bid in ids:
+        row = db.get(ExerciseBlock, bid)
+        require_owned_resource(row, actor=coach, resource=f"exercise_block:{bid}")
+        bloki.append(row)
+    try:
+        cardio_bloki.waliduj_zestaw(bloki)
+    except cardio_bloki.BladZestawu as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return bloki
+
+
+def _zloz_bloki(days: list[dict], bloki: list[ExerciseBlock]) -> tuple[list[dict], dict]:
+    try:
+        return cardio_bloki.zloz_bloki_do_dni(days, bloki)
+    except cardio_bloki.BladZestawu as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
 @router.post("/plans/{template_id}/copy-to/{client_id}", status_code=201)
 def copy_template_to_client(
     template_id: str,
     client_id: str,
+    body: CopyToClientIn | None = Body(default=None),
     coach: User = Depends(require_role("COACH")),
     db: Session = Depends(get_db),
 ):
     """Kopiuje bieżącą wersję szablonu jako NOWY plan klienta (v1).
     Kopia jest niezależna — późniejsza edycja szablonu nie zmienia planów
-    klientów (pełna proweniencja zamiast współdzielenia obiektu)."""
+    klientów (pełna proweniencja zamiast współdzielenia obiektu).
+
+    0.76.0 („bloki jak szablony”): opcjonalne ciało `{"blocks": [...]}` —
+    każdy dzień kopii dostaje migawki bloków (rozgrzewka na początek, aeroby
+    po siłowych, rozciąganie na koniec; dzień, który już ma blok danego
+    rodzaju z szablonu, nie jest dublowany). Bez ciała zachowanie i odpowiedź
+    jak dotąd. Zawsze: walidacja `exercise_id` i ślad H_CARDIO jak przy
+    `POST /plans` (luka z 0.73.0)."""
     template = db.get(TrainingPlan, template_id)
     if template is None or not template.is_template:
         raise HTTPException(status_code=404, detail="Nie znaleziono szablonu")
@@ -234,6 +297,14 @@ def copy_template_to_client(
     )
     if source_version is None:
         raise HTTPException(status_code=422, detail="Szablon nie ma żadnej wersji")
+    bloki = _wczytaj_bloki(db, coach, body.blocks) if body and body.blocks else []
+    content = json.loads(source_version.content_json)
+    _validate_exercise_ids_in_content(db, coach, content)
+    reason = f"Skopiowano z szablonu „{template.title}”"
+    raport: dict | None = None
+    if bloki:
+        content["days"], raport = _zloz_bloki(content.get("days") or [], bloki)
+        reason += " + bloki: " + ", ".join(b.name for b in bloki)
     plan = TrainingPlan(
         id=new_id("PLN"),
         client_id=client_id,
@@ -246,25 +317,82 @@ def copy_template_to_client(
         id=new_id("PLV"),
         plan_id=plan.id,
         version_no=1,
-        reason=f"Skopiowano z szablonu „{template.title}”",
-        content_json=source_version.content_json,
+        reason=reason,
+        # Bez bloków treść jest bajt w bajt kopią szablonu.
+        content_json=source_version.content_json if not bloki else json.dumps(content, ensure_ascii=False),
         created_by=coach.id,
         # Pochodzenie (0.58.0): kopia jest niezależna, ale wiadomo skąd jest.
         source_template_id=template.id,
         source_template_version_no=template.current_version_no,
     )
     db.add(version)
+    # Ślad H_CARDIO dla pozycji cardio kopii (także z bloku) — w tej samej transakcji.
+    wiedza_slad.slady_cardio(db, owner_id=client_id, plan_id=plan.id, plan_revision=1, content=content)
+    payload = {"plan_id": plan.id, "title": plan.title, "version_no": 1,
+               "copied_from_template_id": template.id}
+    if raport:
+        payload["blocks_applied"] = raport
     record_event(
         db,
         action="PLAN_CREATED",
         actor_id=coach.id,
         subject_ids=[client_id],
-        payload={"plan_id": plan.id, "title": plan.title, "version_no": 1,
-                 "copied_from_template_id": template.id},
-        summary=f"Plan „{plan.title}” skopiowany z szablonu dla klienta",
+        payload=payload,
+        summary=f"Plan „{plan.title}” skopiowany z szablonu dla klienta"
+        + (f" (+ {len(bloki)} bloki)" if bloki else ""),
     )
     db.commit()
-    return {"id": plan.id, "version_id": version.id, "version_no": 1}
+    out = {"id": plan.id, "version_id": version.id, "version_no": 1}
+    if raport:
+        out["blocks_applied"] = raport
+    return out
+
+
+@router.post("/clients/{client_id}/plans/from-blocks", status_code=201)
+def create_plan_from_blocks(
+    client_id: str,
+    body: PlanFromBlocksIn,
+    coach: User = Depends(require_role("COACH")),
+    db: Session = Depends(get_db),
+):
+    """Plan klienta z samych bloków (0.76.0, „bloki jak szablony”): 1–7 dni,
+    każdy dzień = wybrane bloki (maks. 3, po jednym na rodzaj), bez szablonu
+    treningowego. Własny klient z relacją i zgodą na dane treningowe; cudzy
+    blok = 404; ślad H_CARDIO dla każdej pozycji cardio w tej samej transakcji."""
+    resolve_client_access(db, coach, client_id, action="write", domain=DOMAIN_TRAINING)
+    bloki = _wczytaj_bloki(db, coach, body.blocks)
+    dni = [{"name": d.name, "weekday": d.weekday, "exercises": []} for d in body.days]
+    days, raport = _zloz_bloki(dni, bloki)
+    content = {"days": days}
+    reason = body.reason or ("Plan z bloków: " + ", ".join(b.name for b in bloki))
+    plan = TrainingPlan(
+        id=new_id("PLN"),
+        client_id=client_id,
+        coach_id=coach.id,
+        title=body.title,
+        current_version_no=1,
+    )
+    db.add(plan)
+    version = TrainingPlanVersion(
+        id=new_id("PLV"),
+        plan_id=plan.id,
+        version_no=1,
+        reason=reason,
+        content_json=json.dumps(content, ensure_ascii=False),
+        created_by=coach.id,
+    )
+    db.add(version)
+    wiedza_slad.slady_cardio(db, owner_id=client_id, plan_id=plan.id, plan_revision=1, content=content)
+    record_event(
+        db,
+        action="PLAN_CREATED",
+        actor_id=coach.id,
+        subject_ids=[client_id],
+        payload={"plan_id": plan.id, "title": plan.title, "version_no": 1, "from_blocks": raport},
+        summary=f"Plan „{plan.title}” z bloków ({len(bloki)}) dla klienta, {len(days)} dni",
+    )
+    db.commit()
+    return {"id": plan.id, "version_id": version.id, "version_no": 1, "blocks_applied": raport}
 
 
 @router.get("/coach/plan-templates")

@@ -1591,12 +1591,21 @@ MIGRATIONS.append(
 )
 
 MIGRATIONS.append(
+    (41, "bloki jak szablony: exercise_blocks.cardio_json (preset cardio dla bloków CARDIO)", [
+        # Addytywna (ALTER ADD COLUMN bez DEFAULT — jak migracja 40); NULL dla
+        # rozgrzewki/rozciągania. Wycofanie = ignorowanie kolumny. Numer 40 =
+        # motyw (PR #76, scalony przed tą rundą).
+        "ALTER TABLE exercise_blocks ADD COLUMN cardio_json TEXT",
+    ])
+)
+
+MIGRATIONS.append(
     (42, "bilans kaloryczny wg specyfikacji 1.0: rozbicie CPM, makro i flagi w calorie_estimates", [
         # Addytywna; wycofanie = ignorowanie kolumn. Stare kolumny (ppm, pal,
         # cpm, korekta_pct, kcal) ZOSTAJĄ — wyniki sprzed wyrównania nie są
         # przeliczane (brak danych wejściowych) i żyją dalej jako historia
         # z `formulas_version = "0.62.0-pal"`. Numer 41 = bloki jak szablony
-        # (runda równoległa, scalana przed tą).
+        # (PR #79, scalony przed tą rundą).
         # ALTER ADD COLUMN bez DEFAULT (jak migracja 39) — poza
         # `formulas_version`, gdzie domyślna wartość JEST treścią migracji:
         # to ona oznacza istniejące wiersze jako policzone starym silnikiem.

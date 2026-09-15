@@ -1,6 +1,6 @@
 # Stan wydania — Dzik OS
 
-**Wersja:** 0.75.1 (PR #78 — dolna nawigacja na iPhonie; `main` 0.75.0 po scaleniu PR #77 szablony i opisy; na produkcji 0.75.0 po wdrożeniu) · **Data:** 2026-09-14 · **Środowisko:** produkcja
+**Wersja:** 0.76.0 (PR #79 — bloki jak szablony: aeroby jako trzeci rodzaj bloku, przypisanie szablonu + bloków, migracja 41; `main` 0.75.1 po scaleniu PR #78; na produkcji 0.75.1 po wdrożeniu) · **Data:** 2026-09-14 · **Środowisko:** produkcja
 (pilotaż) — https://dzik-os-panel.fly.dev
 
 Jedna strona prawdy o tym, co DZIAŁA na produkcji teraz. Aktualizowana
@@ -145,6 +145,20 @@ historii sesji i pomiarów; idempotentny, wypisuje bliźniaki nazw
 zapisie sesji. Szczegóły i sprawy otwarte: `docs/CHANGELOG.md` 0.66.0,
 `docs/plan-sesji/monitoring-postepy.md`, `docs/monitoring-tab/PROGRESS.md`.
 
+## Bloki jak szablony: aeroby jako trzeci rodzaj bloku (0.76.0) — bez flagi, migracja 41, treści do przeglądu trenera
+
+Katalog bloków ma trzeci rodzaj — aeroby (cardio): 9 wbudowanych (3 cele ×
+3 poziomy; razem 21 z rozgrzewkami i rozciąganiem) z presetem liczonym
+silnikiem `cardio_model_v1` bez danych klienta (RPE + % HRmax + test mowy,
+bez ud./min). W karcie klienta → Plan karta „Przypisz plan”: szablon
+treningowy i/lub do trzech bloków (rozgrzewka na początek, aeroby po siłowych,
+rozciąganie na koniec każdego dnia) albo plan z samych bloków
+(`copy-to` z opcjonalnym `{blocks}`, `POST /api/clients/{id}/plans/from-blocks`).
+Edytor planu i szablonu: „+ Cardio z bloku”. Migracja 41 (addytywna:
+`exercise_blocks.cardio_json`). **Do przeglądu trenera:** 9 presetów aerobów
+(mieszanki celów w `cardio/presety.py`) — `docs/bloki-jak-szablony/PROGRESS.md`.
+Szczegóły: `docs/CHANGELOG.md` 0.76.0, `docs/plan-sesji/bloki-jak-szablony.md`.
+
 ## Szablony rozwijane po nazwie i opisy ćwiczeń z Wiedzy (0.75.0) — bez flagi, bez migracji
 
 Lista szablonów treningowych pokazuje nazwy z meta „dni · pozycje · data”;
@@ -168,7 +182,7 @@ bramce zdrowotnej (propose-only; leki wpływające na tętno → tylko RPE).
 Klient widzi pozycje na „Dzisiaj” i w Planie, wybiera urządzenie z listy
 trenera, zapisuje czas/RPE/tętno/dystans; „Dlaczego takie cardio?” czyta ślad
 `H_CARDIO`. Migracja 39 (addytywna). **Do przeglądu trenera przed użyciem u
-prawdziwych klientów:** treść 12 bloków, 9 nowych wpisów katalogu, tabela
+prawdziwych klientów:** treść 12 bloków (od 0.76.0 — 21, z 9 blokami aerobów), 9 nowych wpisów katalogu, tabela
 urządzeń i kotwice [C] — lista w `docs/cardio/PROGRESS.md`. Szczegóły:
 `docs/CHANGELOG.md` 0.73.0, `docs/plan-sesji/cardio-i-rozgrzewka.md`.
 

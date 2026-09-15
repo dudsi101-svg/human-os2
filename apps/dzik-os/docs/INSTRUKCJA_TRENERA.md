@@ -234,10 +234,40 @@ takie wpisy scalasz ręcznie, poprawiając nazwę w treningu.
   (`docs/cardio/PROGRESS.md`). Nic nie progresuje automatycznie tydzień do
   tygodnia — kolejny tydzień układasz Ty.
 
+## Przypisz plan: szablon + bloki (od 0.76.0)
+
+W karcie klienta → Plan przycisk **„Przypisz plan (szablon i bloki)”** otwiera
+kartę „Przypisz plan” (zastępuje dawne „Z szablonu… / Kopiuj do klienta”):
+
+* **Podstawa planu:** „Szablon treningowy” (wybierasz z listy swoich szablonów —
+  bez bloków to dokładnie dawne kopiowanie) albo **„Bez szablonu — tylko bloki”**
+  (podajesz nazwę planu i liczbę dni 1–7; dni nazywają się „Dzień 1…”, dzień
+  tygodnia ustawisz później w edytorze albo klient wybierze w „Twoich dniach”).
+* **Trzy wybory bloków** z Twojego katalogu (Szablony → Bloki): **Rozgrzewka**
+  (na początek każdego dnia), **Aeroby (cardio)** (po ćwiczeniach siłowych) i
+  **Rozciąganie** (na koniec każdego dnia) — po jednym na rodzaj, każdy z opcją
+  „bez”; etykieta „poziom · wariant/cel · ≈min”. Brak bloków danego rodzaju =
+  link do Szablony → Bloki → „Dodaj wbudowane”.
+* **Podsumowanie** przed wysłaniem („Szablon X + rozgrzewka Y + aeroby Z →
+  3 dni”) i przycisk **„Przypisz klientowi”**. Po sukcesie komunikat mówi, co
+  dokładnie się stało („Dodano rozgrzewkę do 3 dni, cardio do 3 dni”); dzień,
+  który w szablonie miał już blok tego rodzaju, nie dostaje drugiego.
+* Plan klienta jest **kopią z migawkami** — późniejsza edycja szablonu ani
+  bloku nic w nim nie zmienia; pochodzenie z szablonu zostaje w historii.
+
+**Aeroby (cardio) jako blok** (od 0.76.0): 9 wbudowanych (3 cele × 3 poziomy —
+regeneracja ciągła 20–25 min, wydolność interwały 8×1 / 6×2 / 4×4, redukcja
+ciągła 30–40 min) i własne („+ Nowy blok” → rodzaj „Aeroby (cardio)”: cel,
+poziom, urządzenia — zakresy liczy silnik). Preset jest liczony **bez danych
+klienta**: klient dostaje RPE, % tętna maksymalnego i test mowy, bez ud./min.
+W edytorze planu wstawisz go przyciskiem **„+ Cardio z bloku”** (także w
+szablonie, gdzie „+ Cardio” z suwakami wymaga klienta); po przypisaniu możesz
+policzyć wersję pod klienta w „+ Cardio” i zastąpić pozycję.
+
 ## Szablony
 
 Zakładka „Szablony": twórz plany bez przypisanego klienta i odtwarzaj je
-przy zakładaniu planu klientowi.
+przy zakładaniu planu klientowi (od 0.76.0 razem z blokami — sekcja wyżej).
 
 * **Lista po nazwach** (od 0.75.0) — każdy szablon to nazwa z meta „dni ·
   pozycje · data”; kliknięcie w nazwę rozwija dni, ćwiczenia, panel publikacji
@@ -256,7 +286,7 @@ przy zakładaniu planu klientowi.
   do bazy pod tą nazwą.
 
 * **Bloki** (od 0.73.0) — trzecia zakładka Szablonów: „Dodaj wbudowane” ładuje
-  9 rozgrzewek i 3 bloki rozciągania (drugie kliknięcie niczego nie dubluje),
+  9 rozgrzewek, 9 bloków aerobów (od 0.76.0) i 3 bloki rozciągania (drugie kliknięcie niczego nie dubluje),
   „+ Nowy blok” i „Edytuj” (pozycje: jedna linia = „nazwa | dawka | notatka”),
   „Archiwizuj” zamiast kasowania. Zarchiwizowany blok znika z wyboru w edytorze,
   ale plany z jego migawką działają dalej.

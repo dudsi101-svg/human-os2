@@ -628,6 +628,41 @@ try {
   check("chipy filtrów mają aria-pressed", chips.length > 0 && chips.every((c) => c !== null),
     JSON.stringify(chips));
 
+  // ————— 8a. Trener 320 px: karta „Przypisz plan” (0.76.0, bloki jak szablony) —————
+  console.log("8a. Trener — karta „Przypisz plan” (320 px)");
+  await coach.click("a[href^='/trener/klient/']");
+  await coach.waitForSelector("[role='tab']");
+  await coach.click("[role='tab']:has-text('Plan')");
+  await coach.click("button:has-text('Przypisz plan (szablon i bloki)')");
+  await coach.waitForSelector("[data-testid='przypisz-plan'] #pp-blok-WARMUP, [data-testid='przypisz-plan'] #pp-blok-CARDIO");
+  const przypisz = await coach.evaluate(() => {
+    const karta = document.querySelector("[data-testid='przypisz-plan']");
+    const legend = karta?.querySelector("fieldset > legend");
+    const status = karta?.querySelector("[role='status']");
+    const cele = [...karta.querySelectorAll("button, input[type='radio'], select")].map((el) => {
+      const r = (el.tagName === "INPUT" ? el.closest("label") ?? el : el).getBoundingClientRect();
+      return { tag: el.tagName, h: Math.round(r.height) };
+    });
+    return { legend: legend?.textContent?.trim() ?? null, status: !!status, cele };
+  });
+  check("przypisz plan: fieldset z legend „Przypisz plan” i role=status",
+    przypisz.legend === "Przypisz plan" && przypisz.status, JSON.stringify(przypisz));
+  check("przypisz plan: przyciski, radia (z etykietą) i selecty ≥ 44 px",
+    przypisz.cele.length > 0 && przypisz.cele.every((c) => c.h >= 44), JSON.stringify(przypisz.cele));
+  const unlabeledPrzypisz = await coach.evaluate(UNLABELED_JS);
+  check("przypisz plan: wszystkie pola mają etykiety", unlabeledPrzypisz.length === 0,
+    JSON.stringify(unlabeledPrzypisz));
+  await coach.click("label:has-text('Bez szablonu — tylko bloki')");
+  await coach.waitForSelector("#pp-title");
+  const unlabeledBloki = await coach.evaluate(UNLABELED_JS);
+  check("przypisz plan (tylko bloki): pola tytułu i liczby dni mają etykiety", unlabeledBloki.length === 0,
+    JSON.stringify(unlabeledBloki));
+  await assertNoHorizontalScroll(coach, "karta klienta z „Przypisz plan” @320");
+  const hPrzypisz = await coach.evaluate(HEADINGS_JS);
+  check("karta klienta z „Przypisz plan”: jeden h1, bez przeskoków nagłówków",
+    hPrzypisz.h1 === 1 && hPrzypisz.skip === null, JSON.stringify(hPrzypisz));
+  await runAxe(coach, "karta klienta — Przypisz plan @320");
+
   exitCode = failures.length === 0 ? 0 : 1;
 } catch (err) {
   console.error("Nieoczekiwany błąd testu:", err);

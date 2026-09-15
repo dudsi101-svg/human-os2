@@ -2200,14 +2200,19 @@ class PlanWeekdayChoice(Base):
 
 
 class ExerciseBlock(Base):
-    """Blok rozgrzewki albo rozciągania (0.73.0) — byt katalogowy trenera,
-    broadcast jak `Exercise` (nie dane klienta). `kind` WARMUP/STRETCH,
-    `level` (POCZATKUJACY/SREDNIOZAAWANSOWANY/ZAAWANSOWANY; NULL dla
-    rozciągania — bez poziomów), `variant` G/D/C (góra/dół/całe ciało),
-    `items_json` = lista `{exercise_id|null, name, dose, note}`. Pozycja
-    planu niesie migawkę treści bloku, więc archiwizacja (`status`
-    ARCHIVED, nigdy kasowanie) nie psuje planów. `source` mówi, skąd
-    treść: „wbudowany — do przeglądu trenera” albo „trener”."""
+    """Blok rozgrzewki, aerobów (cardio) albo rozciągania (0.73.0, CARDIO od
+    0.76.0) — byt katalogowy trenera, broadcast jak `Exercise` (nie dane
+    klienta). `kind` WARMUP/CARDIO/STRETCH, `level` (POCZATKUJACY/
+    SREDNIOZAAWANSOWANY/ZAAWANSOWANY; NULL dla rozciągania — bez poziomów),
+    `variant` G/D/C (góra/dół/całe ciało; dla CARDIO nie dotyczy — kolumna
+    jest NOT NULL od migracji 39, więc blok CARDIO ma pusty napis, a API
+    zwraca `null`), `items_json` = lista `{exercise_id|null, name, dose,
+    note}` (dla CARDIO pozycje opisowe bez karty), `cardio_json` (migracja
+    41) = preset `CardioIn` policzony silnikiem bez danych klienta — tylko
+    dla CARDIO, cel dominujący w `goal_mix`. Pozycja planu niesie migawkę
+    treści bloku, więc archiwizacja (`status` ARCHIVED, nigdy kasowanie) nie
+    psuje planów. `source` mówi, skąd treść: „wbudowany — do przeglądu
+    trenera” albo „trener”."""
 
     __tablename__ = "exercise_blocks"
 
@@ -2219,6 +2224,7 @@ class ExerciseBlock(Base):
     name: Mapped[str] = mapped_column(String(300))
     duration_min: Mapped[int | None] = mapped_column(Integer, nullable=True)
     items_json: Mapped[str] = mapped_column(Text, default="[]")
+    cardio_json: Mapped[str | None] = mapped_column(Text, nullable=True)
     source: Mapped[str] = mapped_column(String(120), default="trener")
     status: Mapped[str] = mapped_column(String(20), default="ACTIVE")  # ACTIVE/ARCHIVED
     created_by: Mapped[str] = mapped_column(String(40))

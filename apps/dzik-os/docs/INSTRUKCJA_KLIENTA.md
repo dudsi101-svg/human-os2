@@ -177,6 +177,13 @@ jeszcze raz, żeby dostać rozbicie i makro; nic nie musisz robić od razu.
   średnie tętno i dystans — bez serii i kilogramów. „Dlaczego takie cardio?”
   pokazuje, skąd wzięły się liczby. To propozycja trenera, nie porada medyczna;
   jeśli przyjmujesz leki wpływające na tętno, trener ustawi tryb bez tętna.
+* **Aeroby z bloku** (od 0.76.0) — trener może dołożyć do każdego dnia planu
+  gotowy blok aerobów (odznaka „cardio” + „z bloku”, nagłówek „Aeroby (cardio) ·
+  poziom · ≈min” i krótki opis: urządzenia, intensywność, struktura). Działa jak
+  cardio z suwakami — paski celów, wybór urządzenia, timer, dziennik czasu/RPE —
+  ale bez tętna w ud./min: prowadź według RPE i testu mowy, dopóki trener nie
+  policzy wersji pod Ciebie. Rozgrzewka jest zawsze na górze dnia, aeroby po
+  ćwiczeniach siłowych, rozciąganie na dole.
 * **Tętno spoczynkowe** (od 0.73.0) — w zakładce Postępy → „Dodaj pomiar” możesz
   wpisać tętno spoczynkowe (ud./min); trener użyje go do dokładniejszego
   zakresu (rezerwa tętna). To dana zdrowotna — objęta Twoją zgodą.

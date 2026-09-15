@@ -35,22 +35,30 @@ export interface BlockItem {
   exercise_id?: string | null;
 }
 
-/** Migawka treści bloku zapisana w wersji planu — archiwizacja bloku nie psuje planu. */
+/** Rodzaje bloków (0.73.0; CARDIO = aeroby od 0.76.0). */
+export type BlockKind = "WARMUP" | "CARDIO" | "STRETCH";
+
+/** Migawka treści bloku zapisana w wersji planu — archiwizacja bloku nie psuje planu.
+ * Blok CARDIO nie ma wariantu (`variant` = null). */
 export interface BlockSnapshot {
   name: string;
-  kind: "WARMUP" | "STRETCH";
+  kind: BlockKind;
   level: string | null;
-  variant: "G" | "D" | "C";
+  variant: "G" | "D" | "C" | null;
   duration_min: number | null;
   items: BlockItem[];
 }
 
-/** Blok w katalogu trenera (`/api/coach/exercise-blocks`). */
+/** Blok w katalogu trenera (`/api/coach/exercise-blocks`). Dla CARDIO: `goal`
+ * (cel dominujący z `cardio.goal_mix`), `goal_label` i preset `cardio`. */
 export interface ExerciseBlockRow extends BlockSnapshot {
   id: string;
   coach_id: string;
   kind_label: string;
-  variant_label: string;
+  variant_label: string | null;
+  goal?: string | null;
+  goal_label?: string | null;
+  cardio?: CardioItem | null;
   source: string;
   status: string;
   created_at: string;
@@ -58,7 +66,9 @@ export interface ExerciseBlockRow extends BlockSnapshot {
 }
 
 export const BLOCK_VARIANT_LABELS: Record<string, string> = { G: "góra ciała", D: "dół ciała", C: "całe ciało" };
-export const BLOCK_KIND_LABELS: Record<string, string> = { WARMUP: "Rozgrzewka", STRETCH: "Rozciąganie" };
+export const BLOCK_KIND_LABELS: Record<string, string> = { WARMUP: "Rozgrzewka", CARDIO: "Aeroby (cardio)", STRETCH: "Rozciąganie" };
+/** Kolejność rodzajów w karcie „Przypisz plan” (0.76.0) i w dniu planu. */
+export const BLOCK_KINDS: BlockKind[] = ["WARMUP", "CARDIO", "STRETCH"];
 
 /** Urządzenia cardio (kontrakt z `cardio/urzadzenia.py`). */
 export const MACHINE_LABELS: Record<string, string> = {

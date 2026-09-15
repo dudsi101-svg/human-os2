@@ -1,5 +1,5 @@
-"""Bloki rozgrzewki/rozciągania (0.73.0): CRUD trenera, `load-builtin`
-idempotentny (seed już załadował 12 bloków → 0 nowych), cudzy blok = 404,
+"""Bloki rozgrzewki/cardio/rozciągania (0.73.0, CARDIO od 0.76.0): CRUD trenera,
+`load-builtin` idempotentny (seed już załadował 21 bloków → 0 nowych), cudzy blok = 404,
 klient → 403, archiwizacja nie psuje planu (migawka w wersji), `exercise_id`
 spoza bazy → 422."""
 
@@ -10,15 +10,17 @@ from conftest import CLIENT_A, COACH, create_user_with_role, get_user_id, login
 BLOKI = "/api/coach/exercise-blocks"
 
 
-def test_seed_ma_12_wbudowanych_i_load_builtin_jest_idempotentny(seeded):
+def test_seed_ma_21_wbudowanych_i_load_builtin_jest_idempotentny(seeded):
     hc = login(seeded, COACH)
     lista = seeded.get(BLOKI, headers=hc).json()
-    assert len(lista["items"]) == 12
+    assert len(lista["items"]) == 21
     assert sum(1 for b in lista["items"] if b["kind"] == "WARMUP") == 9
+    assert sum(1 for b in lista["items"] if b["kind"] == "CARDIO") == 9
+    assert sum(1 for b in lista["items"] if b["kind"] == "STRETCH") == 3
     assert all(b["source"].startswith("wbudowany") for b in lista["items"])
     r = seeded.post(f"{BLOKI}/load-builtin", headers=hc)
-    assert r.status_code == 200 and r.json()["created"] == 0 and r.json()["skipped"] == 12
-    assert len(seeded.get(BLOKI, headers=hc).json()["items"]) == 12
+    assert r.status_code == 200 and r.json()["created"] == 0 and r.json()["skipped"] == 21
+    assert len(seeded.get(BLOKI, headers=hc).json()["items"]) == 21
     # Pozycje z katalogu mają link do karty; „seria wprowadzająca” nie.
     blok = next(b for b in lista["items"] if b["kind"] == "WARMUP" and b["variant"] == "C" and b["level"] == "POCZATKUJACY")
     assert blok["items"][0]["exercise_id"] and blok["items"][-1]["exercise_id"] is None
@@ -29,9 +31,9 @@ def test_load_builtin_u_nowego_trenera_bez_bazy_cwiczen(client):
     create_user_with_role("nowy.trener@example.com", "NowyTrener#2026", "Nowy", "COACH")
     h = login(client, {"email": "nowy.trener@example.com", "password": "NowyTrener#2026"})
     r = client.post(f"{BLOKI}/load-builtin", headers=h)
-    assert r.status_code == 200 and r.json()["created"] == 12 and r.json()["items_without_card"] > 0
+    assert r.status_code == 200 and r.json()["created"] == 21 and r.json()["items_without_card"] > 0
     r = client.post(f"{BLOKI}/load-builtin", headers=h)
-    assert r.json()["created"] == 0 and r.json()["skipped"] == 12
+    assert r.json()["created"] == 0 and r.json()["skipped"] == 21
 
 
 def test_crud_wlasnosc_i_archiwizacja(seeded):
