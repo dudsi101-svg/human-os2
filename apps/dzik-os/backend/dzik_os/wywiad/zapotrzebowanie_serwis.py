@@ -83,6 +83,31 @@ def _wejscie_bez_zdrowia(w: Z.Wejscie) -> dict[str, Any]:
     return d
 
 
+#: Pytanie, z którego bierze się ukrycie wyniku (odwracalne przez trenera).
+PYTANIE_ZABURZENIA = "zk_zaburzenia"
+
+
+def _ukrycie_odziedziczone(db: Session, submission: InterviewSubmission,
+                           answers: dict[str, dict]) -> bool:
+    """Czy przenieść ukrycie z poprzedniej wersji wyniku.
+
+    Pytania zdrowotne padają tylko przy zgodzie na dane zdrowotne. Gdy klient
+    tę zgodę cofnie albo skończy współpracę, pytanie o zaburzenia odżywiania
+    nie pada — a wtedy nowy wynik powstawał bez ukrycia i kalorie same wracały
+    klientowi na ekran, choć nikt o tym nie zdecydował (przegląd PR #80, P1).
+    Ochrona nie obniża się milcząco: zdejmuje ją wyłącznie trener, świadomie,
+    trasą „odsłoń wynik”."""
+    if PYTANIE_ZABURZENIA in (answers or {}):
+        return False  # pytanie padło — decyduje bieżąca odpowiedź
+    poprzedni = (
+        db.query(CalorieEstimate)
+        .filter_by(client_id=submission.client_id)
+        .order_by(CalorieEstimate.version_no.desc(), CalorieEstimate.created_at.desc())
+        .first()
+    )
+    return bool(poprzedni and poprzedni.hidden_for_client)
+
+
 def przelicz_po_przeslaniu(db: Session, *, submission: InterviewSubmission,
                            answers: dict[str, dict]) -> CalorieEstimate | None:
     """Nowa wersja bilansu dla przesłania typu `zapotrzebowanie`. Brak danych
@@ -101,7 +126,10 @@ def przelicz_po_przeslaniu(db: Session, *, submission: InterviewSubmission,
         # `safety_flag` przesłania = odpowiedź „Tak / Nie wiem / Wolę omówić”
         # na pytanie o zaburzenia odżywiania (szersza reguła niż specyfikacja —
         # decyzja właściciela nr 2, patrz `docs/WYWIAD.md`).
-        hidden_for_client=bool(submission.safety_flag),
+        hidden_for_client=(
+            bool(submission.safety_flag)
+            or _ukrycie_odziedziczone(db, submission, answers)
+        ),
     )
     _zapisz_wynik(est, wejscie, wynik)
     db.add(est)
@@ -189,18 +217,48 @@ def _flagi_out(est: CalorieEstimate, *, zdrowie: bool, dla: str) -> list[dict[st
     return out
 
 
+#: Zamiast wiersza o celu, gdy korekta jest zasłonięta (patrz `_pelny`).
+WIERSZ_KOREKTA_ZASLONIETA = (
+    "korekta celu: zmieniona ze względu na odpowiedzi, których nie widzisz "
+    "(brak zgody na dane zdrowotne)"
+)
+
+
+def _podstawienie_out(est: CalorieEstimate, *, zaslon_korekte: bool) -> list[str]:
+    wiersze = _json(est.podstawienie_json, [])
+    if not zaslon_korekte:
+        return wiersze
+    return [
+        WIERSZ_KOREKTA_ZASLONIETA if isinstance(w, str) and w.startswith("cel:") else w
+        for w in wiersze
+    ]
+
+
 def _pelny(est: CalorieEstimate, *, dla: str, zdrowie: bool) -> dict[str, Any]:
     dane = wejscia(est)
     legacy = stary_wzor(est)
+    ukryty, powod = ukryty_dla_klienta(est)
+    # Wyłączony deficyt zdarza się WYŁĄCZNIE przy ciąży, karmieniu albo braku
+    # miesiączki, więc „cel: redukcja → bez korekty” zawężałoby ukryte flagi do
+    # dwóch konkretnych odpowiedzi (przegląd PR #80, P1). Bez zgody zdrowotnej
+    # zastępujemy wiersz i sam procent neutralnym komunikatem.
+    deficyt_wylaczony = Z.FLAGA_DEFICYT_WYLACZONY in flagi(est)
+    zaslon_korekte = deficyt_wylaczony and not zdrowie and dla != "client"
     out: dict[str, Any] = {
         "id": est.id, "submission_id": est.submission_id, "version_no": est.version_no,
         "created_at": est.created_at, "formulas_version": est.formulas_version or Z.FORMULAS_VERSION_PAL,
         "legacy": legacy, "inputs": dane,
-        "ppm": est.ppm, "pal": est.pal, "cpm": est.cpm, "korekta_pct": est.korekta_pct,
+        "ppm": est.ppm, "pal": est.pal, "cpm": est.cpm,
+        "korekta_pct": None if zaslon_korekte else est.korekta_pct,
         "kcal": est.kcal, "kcal_effective": kcal_obowiazujace(est),
-        "podstawienie": _json(est.podstawienie_json, []),
+        "podstawienie": _podstawienie_out(est, zaslon_korekte=zaslon_korekte),
         "ostrzezenia": _json(est.ostrzezenia_json, []),
-        "hidden_for_client": est.hidden_for_client,
+        # Trener bez zgody zdrowotnej widzi SAM FAKT ukrycia (musi wiedzieć, że
+        # klient nie zna liczb, i móc je odsłonić po rozmowie), ale nigdy POWODU:
+        # powód wynika wprost z odpowiedzi na pytanie o zaburzenia odżywiania
+        # (przegląd PR #80, P0). Klient zawsze zna powód ukrycia własnego wyniku.
+        "hidden_for_client": ukryty,
+        "hidden_reason": powod if (zdrowie or dla == "client") else None,
         "unhidden_by": est.unhidden_by, "unhidden_at": est.unhidden_at,
         "override": {"kcal": est.override_kcal, "by": est.override_by, "at": est.override_at,
                      "reason": est.override_reason} if est.override_kcal is not None else None,

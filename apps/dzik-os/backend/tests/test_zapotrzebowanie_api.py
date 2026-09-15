@@ -16,6 +16,7 @@ from dzik_os.dates import local_today
 from dzik_os.db import SessionLocal
 from dzik_os.models import CalorieEstimate
 from dzik_os.wywiad import zapotrzebowanie as Z
+from dzik_os.wywiad.zapotrzebowanie import ODP_ZAB_TAK
 
 W = "/api/clients/{}/wywiady"
 TYP = "zapotrzebowanie"
@@ -294,6 +295,57 @@ def test_bez_zgody_zdrowotnej_pytania_znikaja_a_wynik_jest_jawny(seeded):
     _patch(seeded, ha, cid, KOMPLET)
     assert _przeslij(seeded, ha, cid)["safety_flag"] is False
     assert seeded.get(f"/api/clients/{cid}/zapotrzebowanie", headers=ha).json()["status"] == "ok"
+
+
+def test_cofniecie_zgody_nie_odslania_ukrytych_liczb(seeded):
+    """Przegląd PR #80, P1: pytanie o zaburzenia odżywiania pada tylko przy
+    zgodzie zdrowotnej. Po jej cofnięciu pytanie nie pada, więc nowy wynik
+    powstawał bez ukrycia i kalorie same wracały klientce na ekran. Ochrona
+    ma się nie obniżać milcząco — zdejmuje ją wyłącznie trener."""
+    ha = login(seeded, CLIENT_A)
+    cid = get_user_id(seeded, ha)
+    _patch(seeded, ha, cid, {**KOMPLET, "zk_zaburzenia": ODP_ZAB_TAK})
+    assert _przeslij(seeded, ha, cid)["safety_flag"] is True
+    assert seeded.get(f"/api/clients/{cid}/zapotrzebowanie", headers=ha).json()["status"] == "hidden"
+
+    consents = seeded.get("/api/me/consents", headers=ha).json()["consents"]
+    health = next(x for x in consents if x["revoked_at"] is None and x["category"] == "dane_zdrowotne")
+    assert seeded.post(f"/api/me/consents/{health['id']}/revoke", headers=ha).status_code == 200
+
+    _patch(seeded, ha, cid, KOMPLET)
+    assert _przeslij(seeded, ha, cid)["safety_flag"] is False
+    r = seeded.get(f"/api/clients/{cid}/zapotrzebowanie", headers=ha).json()
+    assert r["status"] == "hidden", "cofnięcie zgody nie może odsłonić liczb"
+
+
+def test_trener_bez_zgody_nie_pozna_powodu_ukrycia_ani_wylaczonego_deficytu(seeded):
+    """Przegląd PR #80, P0 i P1: sam fakt ukrycia trener widzi (musi móc
+    odsłonić wynik po rozmowie), ale powód — nie, bo wynika wprost z odpowiedzi
+    zdrowotnej. Tak samo „cel: redukcja → bez korekty”, które zdarza się tylko
+    przy ciąży, karmieniu albo braku miesiączki."""
+    ha, hc = login(seeded, CLIENT_A), login(seeded, COACH)
+    cid = get_user_id(seeded, ha)
+    _patch(seeded, ha, cid, {**KOMPLET, "zk_cel": "Redukcja tkanki tłuszczowej",
+                             "zk_tempo": "Szybkie", "zk_zaburzenia": ODP_ZAB_TAK,
+                             "zk_ciaza": "Tak"})
+    assert _przeslij(seeded, ha, cid)["safety_flag"] is True
+
+    ze_zgoda = seeded.get(f"/api/clients/{cid}/zapotrzebowanie", headers=hc).json()["estimate"]
+    assert ze_zgoda["hidden_for_client"] is True and ze_zgoda["hidden_reason"] == "zaburzenia"
+
+    consents = seeded.get("/api/me/consents", headers=ha).json()["consents"]
+    health = next(x for x in consents if x["revoked_at"] is None and x["category"] == "dane_zdrowotne")
+    assert seeded.post(f"/api/me/consents/{health['id']}/revoke", headers=ha).status_code == 200
+
+    bez_zgody = seeded.get(f"/api/clients/{cid}/zapotrzebowanie", headers=hc).json()["estimate"]
+    assert bez_zgody["hidden_for_client"] is True, "trener musi wiedzieć, że klient nie widzi liczb"
+    assert bez_zgody["hidden_reason"] is None, "powód ukrycia to dana zdrowotna"
+    assert bez_zgody["korekta_pct"] is None, "zerowa korekta przy redukcji zdradza wyłączony deficyt"
+    assert not any(str(w).startswith("cel: redukcja") for w in bez_zgody["podstawienie"])
+    assert any("których nie widzisz" in str(w) for w in bez_zgody["podstawienie"])
+    # Klient widzi u siebie pełny powód.
+    swoj = seeded.get(f"/api/clients/{cid}/zapotrzebowanie", headers=ha).json()
+    assert swoj["status"] == "hidden"
 
 
 def test_stary_wynik_zostaje_w_historii_i_ma_wlasna_wersje_wzorow(seeded):

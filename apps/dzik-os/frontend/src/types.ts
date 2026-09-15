@@ -1981,6 +1981,8 @@ export interface ZapotrzebowanieSzacunek {
   /** Trener bez zgody zdrowotnej: flagi z ekranu zdrowia są wycięte. */
   flags_hidden: boolean;
   hidden_for_client: boolean;
+  /** „zaburzenia” | „maloletni”; null, gdy trener nie ma zgody na dane zdrowotne. */
+  hidden_reason: string | null;
   unhidden_by: string | null;
   unhidden_at: string | null;
   override: { kcal: number; by: string; at: string; reason: string } | null;

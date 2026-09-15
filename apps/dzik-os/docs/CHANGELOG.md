@@ -77,6 +77,15 @@ rozpoznanie luk z PR #71) jest w repozytorium: `docs/calorie-interview/`.
   szkic sprzed zmiany pytań, eksport), E2E przepisany na pięć ekranów.
   Plan i odstępstwa: `docs/plan-sesji/wywiad-kaloryczny.md`; rozbieżności
   specyfikacja kontra referencja i lista P2: `docs/calorie-interview/PROGRESS.md`.
+* **Po niezależnym przeglądzie:** trener bez zgody na dane zdrowotne nie pozna
+  powodu ukrycia wyniku (karta mówi neutralnie, że klient nie widzi liczb) ani
+  wyłączonego deficytu (wiersz „cel: redukcja → bez korekty” i zerowy procent
+  zdarzają się wyłącznie przy ciąży, karmieniu albo braku miesiączki, więc bez
+  zgody są zastąpione komunikatem o odpowiedziach, których trener nie widzi).
+  Ukrycie wyniku nie zdejmuje się już samo po cofnięciu zgody zdrowotnej —
+  dziedziczy się z poprzedniego wyniku, a zdejmuje je wyłącznie trener.
+  Próg 1200/1500 kcal i granice mnożnika z kroków mają testy działania, nie
+  tylko wartości stałej.
 ## 0.76.0 — 2026-09-14
 
 **Bloki jak szablony: aeroby (cardio) jako trzeci rodzaj bloku i przypisanie

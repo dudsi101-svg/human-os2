@@ -242,8 +242,14 @@ export default function ZapotrzebowanieKarta({ clientId, tryb, linkDoWywiadu, on
           {tryb === "trener" && !kompakt && !e.legacy && <RozbicieCPM e={e} />}
           {tryb === "trener" && e.hidden_for_client && (
             <div className="alert alert--warn">
-              <span role="status">Na pytanie o zaburzenia odżywiania klient odpowiedział „Tak”, „Nie wiem” albo „Wolę omówić z trenerem” —
-                liczby są przed nim ukryte do rozmowy.</span>
+              {/* Powód ukrycia wynika z odpowiedzi zdrowotnej, więc bez zgody na
+                  dane zdrowotne serwer go nie podaje i piszemy neutralnie
+                  (przegląd PR #80, P0). Sam fakt ukrycia trener widzieć musi. */}
+              <span role="status">{e.hidden_reason === "zaburzenia"
+                ? "Na pytanie o zaburzenia odżywiania klient odpowiedział „Tak”, „Nie wiem” albo „Wolę omówić z trenerem” — liczby są przed nim ukryte do rozmowy."
+                : e.hidden_reason === "maloletni"
+                  ? "Klient jest niepełnoletni — liczby są przed nim ukryte do czasu rozmowy z opiekunem."
+                  : "Klient nie widzi liczb do czasu rozmowy z Tobą."}</span>
               {" "}<button type="button" className="btn btn--small" disabled={zapis} onClick={() => void odblokuj()}>Odsłoń wynik klientowi</button>
             </div>
           )}

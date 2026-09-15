@@ -383,3 +383,24 @@ def test_wiek_liczony_w_pelnych_latach():
     assert a.wiek == b.wiek == 30
     assert a.ppm_mifflin == b.ppm_mifflin
     assert "− 5 × 30 lat" in a.podstawienie[0]
+
+def test_podloga_kcal_wiaze_w_dzialaniu_a_nie_tylko_jako_stala():
+    """Przegląd PR #80, P2: dotąd sprawdzaliśmy samą wartość `MIN_KCAL`,
+    więc wyzerowanie progu przechodziło cały zestaw. Tu próg musi zadziałać:
+    drobny mężczyzna przy szybkiej redukcji schodzi wzorem poniżej 1500 kcal,
+    a wynik ma się o próg oprzeć i zapalić flagę."""
+    w = Z.Wejscie(plec="M", wiek=90, wzrost_cm=150, masa_kg=45.0,
+                  neat="neat_1", cel="cut", tempo="fast")
+    y = Z.oblicz(w)
+    assert y.target_kcal == Z.MIN_KCAL["M"] == 1500
+    assert Z.FLAGA_DEFICYT_OGRANICZONY in y.flags
+    # Bez progu wzór dałby wyraźnie mniej — to jest dowód, że próg wiąże.
+    bez_progu = round(y.cpm * (1 + y.korekta_pct / 100))
+    assert bez_progu < 1500
+
+
+def test_granice_mnoznika_z_krokow_to_konkretne_liczby():
+    """Przegląd PR #80, P2: asercja przez stałą przechodziła nawet po zmianie
+    granicy na 2,5. Tu porównujemy z liczbami wprost."""
+    assert Z.neat_z_krokow(0) == 1.15
+    assert Z.neat_z_krokow(30000) == 1.85

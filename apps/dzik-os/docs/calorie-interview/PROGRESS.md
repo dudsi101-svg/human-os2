@@ -152,3 +152,33 @@ model i migracja, dwa routery, karta wyniku i typy frontu, `PrzypiszDiete`,
 arkusz stylów, trzy pliki testów, spec E2E oraz dziesięć dokumentów.
 65 testów backendu dla samego wywiadu (45 silnika + 20 API) plus E2E
 i sekcja 4c bramki dostępności.
+
+## 6. Po niezależnym przeglądzie (PR #80)
+
+Recenzent potwierdził liczby (4000 losowych wejść przeciw referencji właściciela — zero
+rozbieżności), migrację 42 na starej bazie i szczelność bramki zgody na treść odpowiedzi.
+Znalazł natomiast trzy miejsca, w których bramka przeciekała **pośrednio**. Wszystkie trzy
+naprawione w tej rundzie:
+
+1. **Powód ukrycia wyniku (P0).** Karta trenera pisała wprost: „Na pytanie o zaburzenia
+   odżywiania klient odpowiedział…”, niezależnie od zgody na dane zdrowotne. Teraz serwer
+   podaje `hidden_reason` wyłącznie trenerowi ze zgodą (i zawsze klientowi o jego własnym
+   wyniku); bez zgody karta mówi neutralnie „Klient nie widzi liczb do czasu rozmowy z Tobą”.
+   Sam fakt ukrycia zostaje — trener musi wiedzieć, że klient nie zna liczb, i móc je odsłonić.
+2. **Wyłączony deficyt (P1).** Wiersz „cel: redukcja → bez korekty” i `korekta_pct = 0`
+   zdarzają się wyłącznie przy ciąży, karmieniu albo braku miesiączki, więc zawężały ukryte
+   flagi do dwóch konkretnych odpowiedzi. Bez zgody zdrowotnej wiersz i procent są zastąpione
+   komunikatem „korekta zmieniona ze względu na odpowiedzi, których nie widzisz”.
+3. **Ochrona zdejmowała się sama (P1).** Pytanie o zaburzenia odżywiania pada tylko przy
+   zgodzie zdrowotnej. Po jej cofnięciu (albo po zakończeniu współpracy) pytanie nie padało,
+   nowy wynik powstawał bez ukrycia i kalorie wracały klientce na ekran bez niczyjej decyzji.
+   Teraz ukrycie dziedziczy się z poprzedniego wyniku, gdy pytanie nie było zadane; zdejmuje
+   je wyłącznie trener trasą „odsłoń wynik”.
+
+Dodatkowo z listy P2 recenzenta: próg 1200/1500 kcal i granice mnożnika z kroków mają teraz
+testy sprawdzające **działanie**, nie samą wartość stałej (mutacja zerująca próg przechodziła
+cały zestaw; teraz jest łapana).
+
+Pozostałe uwagi P2 recenzenta (martwa stała `FLAGI_UKRYWAJACE_WYNIK`, `KeyError` w nieosiągalnej
+dziś ścieżce NEAT, brak odpowiedzi wywiadu w eksporcie RODO, `definition_version` starych
+szkiców) zostają do następnej rundy — żadna nie zmienia liczb ani nie otwiera dostępu.
