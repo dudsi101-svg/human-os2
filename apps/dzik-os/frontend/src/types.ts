@@ -1933,15 +1933,42 @@ export interface DietWeekFull {
       min_factor?: number; max_factor?: number; round_step?: number; unit_g?: number; unit_step?: number; group?: string }[] }[] }[];
 }
 
-// --- Zapotrzebowanie kaloryczne (0.62.0) --------------------------------------
+// --- Bilans kaloryczny (wywiad „Zapotrzebowanie kaloryczne”, spec 1.0) --------
+
+export interface ZapotrzebowanieMakro {
+  bialko_g: number; tluszcz_g: number; wegle_g: number;
+  bialko_pct: number; tluszcz_pct: number; wegle_pct: number;
+  bialko_z_masy_kg: number;
+}
+
+export interface ZapotrzebowanieTempo {
+  kg_tydzien: number;
+  kg_tydzien_od: number | null;
+  kg_tydzien_do: number | null;
+  przyrost_mies_od: number | null;
+  przyrost_mies_do: number | null;
+  tygodni_do_celu: number | null;
+}
+
+export interface ZapotrzebowanieFlaga {
+  code: string; etykieta: string; opis: string; poziom: "warn" | "info";
+}
 
 export interface ZapotrzebowanieSzacunek {
   id: string;
   submission_id: string;
   version_no: number;
   created_at: string;
-  inputs: { plec: string; wiek: number; wzrost_cm: number; masa_kg: number; praca: string; treningi: string;
-    kroki: string | null; cel: string; tempo: string | null };
+  formulas_version: string;
+  /** Wiersz policzony silnikiem sprzed wyrównania do specyfikacji 1.0. */
+  legacy: boolean;
+  legacy_message?: string;
+  inputs: { plec?: string; wiek?: number; wzrost_cm?: number; masa_kg?: number; neat?: string;
+    kroki?: number | null; procent_tluszczu?: number | null; sila_tydz?: number; sila_minuty?: number;
+    cardio_tydz?: number; cardio_minuty?: number; cardio_intensywnosc?: string | null;
+    staz?: string | null; cel?: string; tempo?: string | null; masa_docelowa_kg?: number | null;
+    bialko?: string | null };
+  /** Zgodność wstecz: ppm = użyte PPM, cpm = CPM, kcal = cel kaloryczny. */
   ppm: number;
   pal: number;
   cpm: number;
@@ -1950,10 +1977,30 @@ export interface ZapotrzebowanieSzacunek {
   kcal_effective: number;
   podstawienie: string[];
   ostrzezenia: string[];
+  flags: ZapotrzebowanieFlaga[];
+  /** Trener bez zgody zdrowotnej: flagi z ekranu zdrowia są wycięte. */
+  flags_hidden: boolean;
   hidden_for_client: boolean;
+  /** „zaburzenia” | „maloletni”; null, gdy trener nie ma zgody na dane zdrowotne. */
+  hidden_reason: string | null;
   unhidden_by: string | null;
   unhidden_at: string | null;
   override: { kcal: number; by: string; at: string; reason: string } | null;
+  // Pola bilansu 1.0 (brak dla wierszy `legacy`).
+  bmi?: number | null;
+  ppm_mifflin?: number | null;
+  ppm_katch?: number | null;
+  ppm_used?: number | null;
+  ppm_source?: "mifflin_st_jeor" | "katch_mcardle" | null;
+  neat_multiplier?: number | null;
+  training_kcal_day?: number | null;
+  tef?: number | null;
+  cpm_min?: number | null;
+  cpm_max?: number | null;
+  target_kcal?: number | null;
+  macro?: ZapotrzebowanieMakro | null;
+  tempo?: ZapotrzebowanieTempo | null;
+  expected_weekly_change_kg?: number | null;
 }
 
 export interface ZapotrzebowanieOut {
@@ -1963,9 +2010,15 @@ export interface ZapotrzebowanieOut {
   access: { ok: boolean; reason: string | null; viewer: "client" | "coach" };
   status: "none" | "ok" | "hidden" | "no_access";
   estimate: ZapotrzebowanieSzacunek | null;
-  message?: string;
+  message?: string | null;
+  /** Dlaczego klient nie widzi liczb: „zaburzenia” (odwracalne) / „maloletni”. */
+  hidden_reason?: "zaburzenia" | "maloletni";
+  /** Informacja dla trenera bez zgody na dane zdrowotne. */
+  coach_note?: string | null;
   version_no?: number;
-  history?: { version_no: number; kcal: number; kcal_effective: number; override_kcal: number | null; created_at: string }[];
+  history?: { version_no: number; kcal: number; kcal_effective: number; override_kcal: number | null;
+    created_at: string; formulas_version: string; legacy: boolean; cpm: number;
+    masa_kg: number | null }[];
 }
 
 

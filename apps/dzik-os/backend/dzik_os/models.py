@@ -2026,11 +2026,28 @@ class DietSwapEvent(Base):
 
 
 class CalorieEstimate(Base):
-    """Szacunek dziennego zapotrzebowania kalorycznego (0.62.0) — jedna
-    wersja na przesłanie wywiadu „zapotrzebowanie”. Wejścia i podstawienie
-    zapisane w chwili liczenia (zmiana wzoru nie zmienia historii).
-    `hidden_for_client`: flaga zdrowotna z wywiadu — liczby widzi tylko trener,
-    dopóki nie odblokuje. Nadpisanie trenera trzyma kto/kiedy/dlaczego."""
+    """Bilans kaloryczny — jedna wersja na przesłanie wywiadu
+    „zapotrzebowanie”. Wejścia i wynik zapisane w chwili liczenia: zmiana
+    wzorów NIE zmienia historii (`formulas_version`, specyfikacja §6.3).
+
+    Dwa pokolenia wierszy żyją obok siebie:
+
+    * `formulas_version = "0.62.0-pal"` — wyniki sprzed wyrównania do
+      specyfikacji 1.0 (PPM × PAL). Kolumny `ppm`/`pal`/`cpm`/`korekta_pct`/
+      `kcal` mają wartości, kolumny 1.0 są puste. Nie są przeliczane (brak
+      danych wejściowych) — decyzja właściciela z 14.09.
+    * `formulas_version = "2026-09-13.1"` — bilans wg specyfikacji 1.0:
+      oba PPM, rozbicie CPM (NEAT, trening, TEF), zakres, cel, makro, flagi.
+      Dla zgodności wstecz `ppm` = użyte PPM, `cpm` = CPM, `kcal` = cel
+      kaloryczny, a `pal` = CPM/PPM (efektywny współczynnik aktywności —
+      silnik 1.0 nie używa jednego mnożnika PAL; mnożnik NEAT jest
+      w `neat_multiplier`).
+
+    `hidden_for_client`: flaga zaburzeń odżywiania z wywiadu — liczby widzi
+    tylko trener, dopóki nie odblokuje po rozmowie. Ukrycie wyniku przed
+    osobą niepełnoletnią wynika z `flags_json` i NIE jest odwracalne tą
+    drogą (wymaga zgody opiekuna, nie rozmowy). Nadpisanie trenera trzyma
+    kto/kiedy/dlaczego."""
 
     __tablename__ = "calorie_estimates"
 
@@ -2046,6 +2063,23 @@ class CalorieEstimate(Base):
     kcal: Mapped[int] = mapped_column(Integer)
     podstawienie_json: Mapped[str] = mapped_column(Text, default="[]")
     ostrzezenia_json: Mapped[str] = mapped_column(Text, default="[]")
+    # --- bilans wg specyfikacji 1.0 (migracja 42; puste dla wierszy 0.62.0-pal) ---
+    formulas_version: Mapped[str] = mapped_column(String(30), default="0.62.0-pal")
+    ppm_mifflin: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    ppm_katch: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    ppm_used: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    ppm_source: Mapped[str | None] = mapped_column(String(30), nullable=True)
+    neat_multiplier: Mapped[float | None] = mapped_column(Float, nullable=True)
+    training_kcal_day: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    tef: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    cpm_min: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    cpm_max: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    target_kcal: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    macro_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    tempo_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    flags_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    expected_weekly_change_kg: Mapped[float | None] = mapped_column(Float, nullable=True)
+    bmi: Mapped[float | None] = mapped_column(Float, nullable=True)
     hidden_for_client: Mapped[bool] = mapped_column(Boolean, default=False)
     unhidden_by: Mapped[str | None] = mapped_column(String(40), nullable=True)
     unhidden_at: Mapped[str | None] = mapped_column(String(40), nullable=True)

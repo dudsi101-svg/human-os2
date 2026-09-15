@@ -204,14 +204,27 @@ R-20) i absolutorium. Nawyki to zwykły tekst + odhaczenia (domena danych
 treningowych, bez nowej bramki zgód). Szczegóły: `docs/CHANGELOG.md`
 0.63.0, `docs/plan-sesji/nawyki-dzisiaj.md`, `docs/nawyki/PROGRESS.md`.
 
-## Wywiad „Zapotrzebowanie kaloryczne” (0.62.0) — za flagą, na produkcji WŁĄCZONY (do potwierdzenia)
+## Wywiad „Zapotrzebowanie kaloryczne” (0.62.0, wyrównany do specyfikacji 1.0 w 0.77.0) — za flagą, na produkcji WŁĄCZONY (do potwierdzenia)
 
 `DZIK_CALORIE_INTERVIEW_ENABLED="true"` w `fly.toml` (runda 0.62.0, zgodnie
 z prośbą właściciela z 14.09, żeby funkcje były widoczne w aplikacji;
 wyłączenie = jedna linia). Trzeci typ wywiadu w zakładce „Wywiad”, wynik
-w Dieta (klient) i karcie klienta (trener), „Zaproponuj kcal” w „Przypisz
-dietę”. Filtr flagi zdrowotnej po stronie serwera. Szczegóły:
-`docs/WYWIAD.md` §8, `docs/plan-sesji/wywiad-zapotrzebowanie.md`.
+w Dieta (klient) i karcie klienta (trener), „Użyj w przypisaniu diety”
+w „Przypisz dietę”. Filtry po stronie serwera.
+
+**0.77.0 (migracja 42, PR #80):** pięć ekranów wg specyfikacji właściciela
+1.0, CPM rozbity na składniki (aktywność poza treningiem, trening z wartości
+MET, termiczny efekt pożywienia), Katch-McArdle przy znanym procencie tkanki
+tłuszczowej, makro startowe, dziewięć flag. Ekran zdrowotny za istniejącą
+zgodą na dane zdrowotne; wszystkie pytania dobrowolne. **Wyniki sprzed
+wyrównania nie są przeliczane** — zostają jako historia z
+`formulas_version = "0.62.0-pal"`, nowy wynik dopiero przy nowym przesłaniu.
+Po wdrożeniu warto sprawdzić na produkcji: (1) klient z wynikiem 0.62.0
+widzi zachętę do ponownego wypełnienia i stary wynik, (2) trener bez zgody
+zdrowotnej nie widzi flag zdrowotnych, (3) migracja 42 przeszła
+(`calorie_estimates.formulas_version` istnieje i stare wiersze mają
+„0.62.0-pal”). Szczegóły: `docs/WYWIAD.md` §8,
+`docs/plan-sesji/wywiad-kaloryczny.md`, `docs/calorie-interview/PROGRESS.md`.
 
 ## Biblioteka szablonów diet (0.64.0) — za tą samą flagą co 0.60.0
 

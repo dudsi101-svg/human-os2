@@ -19,7 +19,8 @@ export const SEKCJA_LABEL: Record<string, string> = {
   motywacja: "Motywacja", historia_treningowa: "Historia treningowa", ograniczenia: "Pogłębienie ograniczeń",
   regeneracja: "Regeneracja", historia_odzywiania: "Historia odżywiania", organizacja: "Organizacja",
   preferencje: "Preferencje szczegółowe", pytania_trenera: "Pytania trenera",
-  zk_dane: "Dane podstawowe", zk_aktywnosc: "Aktywność", zk_cel: "Cel", zk_bezpieczenstwo: "Bezpieczeństwo",
+  zk_dane: "Dane podstawowe", zk_neat: "Aktywność poza treningiem", zk_trening: "Trening",
+  zk_cel: "Cel", zk_zdrowie: "Zdrowie i kontekst",
 };
 
 export const SUBMISSION_LABEL: Record<SubmissionStatus, string> = {

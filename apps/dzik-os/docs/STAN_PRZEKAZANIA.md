@@ -1,6 +1,6 @@
 # Stan przekazania — przeczytaj przed rozpoczęciem rundy
 
-**Aktualizacja:** 2026-09-15 · **Wersja w `main`:** 0.76.1 (poczta: zaproszenia i reset hasła czytają tę samą konfigurację co kontrola kanału, `233076f`; **zweryfikowane na produkcji** — diagnostyka pokazuje `dostawca_poczty: \"smtp\"`) — **0.76.2 w gałęzi `agent/diagnostyka-poczta`** (raport zna obie nazwy ustawień); 0.77.0 w PR #80 (`agent/wywiad-kaloryczny`, wywiad kaloryczny wg specyfikacji właściciela, migracja 42, po przeglądzie).
+**Aktualizacja:** 2026-09-15 · **Wersja w `main`:** 0.76.2 (raport diagnostyczny zna obie nazwy ustawień poczty, `49704c1`; 0.76.1 = zaproszenia i reset hasła znów wychodzą, zweryfikowane na produkcji) — **0.77.0 w PR #80** (`agent/wywiad-kaloryczny`: wywiad kaloryczny wg specyfikacji właściciela 1.0, migracja 42, po przeglądzie i poprawkach P0/P1 bramki zgody zdrowotnej).
 **Tryb pracy:** jeden piszący i jeden PR `[WRITER]` naraz
 (`KOORDYNACJA.md`, zasada nadrzędna).
 
@@ -32,6 +32,38 @@ pierwszy commit, draft PR `[WRITER]`, reszta agentów read-only.
 **Stan jakości** (`docs/BRAMKA_GO_NOGO.md`): warunkowe GO na pilotaż z
 jednym prawdziwym klientem, **NO-GO na szerszą produkcję** — siedem
 blokerów wypisanych w §5 tamtego dokumentu.
+
+**Runda 0.77.0 (gałąź `agent/wywiad-kaloryczny`, PR #80, migracja 42, polecenie
+właściciela z 14.09):** wywiad „Zapotrzebowanie kaloryczne” wyrównany do
+specyfikacji właściciela 1.0 z 13.09 (`docs/calorie-interview/`). Pięć ekranów
+(23 pytania zamiast 11), silnik przepisany 1:1 z referencyjnej implementacji
+właściciela: PPM Mifflin-St Jeor + Katch-McArdle przy znanym procencie tkanki
+tłuszczowej (użyty przy różnicy ponad 10 %), CPM addytywnie (aktywność poza
+treningiem × PPM + kcal treningu z wartości MET + termiczny efekt pożywienia)
+z zakresem ±7 %, cel z podłogą `max(1,1 × PPM; 1200 K / 1500 M)`, makro
+startowe w gramach, oczekiwane tempo, dziewięć flag. Kryteria akceptacji
+ze specyfikacji §7 przechodzą co do jednej kalorii. Ekran zdrowotny w pełnym
+kształcie ze specyfikacji, ale w całości dobrowolny i za istniejącą zgodą na
+dane zdrowotne (bez zgody pytanie nie pada; trener bez zgody nie widzi ani
+odpowiedzi, ani flag z nich wynikających). Reguła ukrywania liczb przy
+zaburzeniach odżywiania zostaje szersza niż specyfikacja („Nie wiem”, „Wolę
+omówić”); nowość: wynik ukryty także przed osobą niepełnoletnią, czego
+„odsłoń” nie zdejmuje. Migracja 42 addytywna (16 kolumn); **wyniki 0.62.0 nie
+są przeliczane** — zostają jako historia z `formulas_version = "0.62.0-pal"`.
+Widok klienta (cztery kafelki z wyjaśnieniami) i trenera (rozbicie CPM,
+oba PPM z różnicą, BMI, flagi, historia jako tabela); „Użyj w przypisaniu
+diety” przenosi też makro w gramach. `export_version` zostaje „2.1”.
+Naprawione przy okazji: martwy sygnał monitoringu „cel redukcja, a trend
+w górę” oraz bramka dostępności, która startowała serwer z katalogu
+tymczasowego i przez to testowała **zainstalowany pakiet zamiast drzewa
+roboczego** — dotyczyło każdej rundy pracującej w osobnym `git worktree`.
+45 testów silnika + 20 API + E2E (49/49 telefon, 11/11 desktop) + sekcja 4c
+bramki dostępności w obu motywach. **Po dociągnięciu `main` z rundą bloków
+(PR #79) cały zestaw backendu jest zielony: 1987 przeszło, 1 pominięty,
+0 czerwonych.** Jedna zmiana w cudzym teście, jawna: `test_migracja_41…`
+asercjował „moja migracja jest ostatnia w repozytorium” — teraz sprawdza,
+że 41 istnieje i zostaje zastosowana.
+Otwarte i P2: `docs/calorie-interview/PROGRESS.md`.
 
 **Runda 0.76.0 (gałąź `agent/bloki-jak-szablony`, PR #79, migracja 41, polecenie
 właściciela z 14.09 „z bloków korzystać jak z szablonów; dodać jednocześnie szablon
@@ -466,7 +498,8 @@ nie uruchamiano, ponieważ runda nie zmienia kodu ani zasobów frontendu.
 | `agent/wymiany-produktow` | 0.69.0 (0.68.0 = dni treningowe) | — | zlecenie 2 (14.09): silnik wymian v2 (poziom 2, powody, NONE 1:1, bramka „nie pogarsza”), grupy pokrewne (45 par, RO), korelacja katalogu → CSV; przegląd 3 recenzentów naprawiony (P0/P1 ×5, P2 w PROGRESS); `main` 0.67.0 scalony, PR #69 — CI | przegląd CSV przez właściciela (TAK/NIE) → import osobnym PR-em; decyzja o luzie bramki | 1 |
 | `agent/dni-treningowe` | 0.71.0 | 38 (37 = PR #70) | zlecenie 1 (14.09): nakładka klienta na dni tygodnia planu, „Dzisiaj” z układem klienta, karta „ustaw dni”, odczyt u trenera; 13 testów API/silnika, E2E, przeklik; **PR #72 gotowy do przeglądu** | scalenie #70 (migracja 37 — bez niej `test_migracje_przenosnosc` czerwony); odpowiedzi właściciela na 3 pytania (domyślne przyjęte) | po #70 |
 | `agent/wywiad-kaloryczny-rozpoznanie` | — (docs) | — (przyszła: 38 lub 39) | etap 0 rundy „wyrównanie wywiadu kalorycznego do spec 1.0” — `docs/wywiad-zapotrzebowanie/01_rozpoznanie_spec_v1.md` (tabela luk, migracja, testy, ryzyka) | **7 decyzji właściciela** (§5 rozpoznania: nowe pytania zdrowotne i klasyfikacja, zakres flagowania, stare wywiady, wiek vs data urodzenia, flaga a Monitoring, kolejność migracji, minimalne kcal) | po decyzjach |
-| `agent/bloki-jak-szablony` | **0.76.0** | **41** (`exercise_blocks.cardio_json`) | polecenie właściciela 14.09: aeroby jako trzeci rodzaj bloku (9 presetów z silnika, 21 wbudowanych), „+ Cardio z bloku” (także w szablonie), `copy-to` z blokami + `from-blocks`, karta „Przypisz plan”; testy backend +12, helper +5, E2E +2, a11y 8a; **PR #79 — draft, bramki w raporcie sesji** | decyzja właściciela: mieszanki celów presetów (`presety.py`) i `variant=""` dla CARDIO w bazie (patrz plan sesji, odstępstwa) | po #78 (scalony) |
+| `agent/wywiad-kaloryczny` | **0.77.0** | **42** | polecenie właściciela 14.09: wywiad kaloryczny wg specyfikacji 1.0 — silnik (PPM Mifflin + Katch, CPM addytywny, makro, 9 flag), pięć ekranów, migracja 42, widoki klienta i trenera, 65 testów + E2E + a11y; **PR #80 gotowy do przeglądu, `main` 0.76.0 dociągnięty, cały zestaw zielony (1987/0)** | — (`main` 0.76.0 dociągnięty, migracja 41 na miejscu) | po #79 (scalony) |
+| `agent/bloki-jak-szablony` | **0.76.0** | **41** (`exercise_blocks.cardio_json`) | polecenie właściciela 14.09: aeroby jako trzeci rodzaj bloku (9 presetów z silnika, 21 wbudowanych), „+ Cardio z bloku” (także w szablonie), `copy-to` z blokami + `from-blocks`, karta „Przypisz plan”; testy backend +12, helper +5, E2E +2, a11y 8a; **scalona (PR #79, `a8962d9`)** | decyzja właściciela: mieszanki celów presetów (`presety.py`) i `variant=""` dla CARDIO w bazie (patrz plan sesji, odstępstwa) | po #78 (scalony) |
 | `agent/szablony-i-opisy` | 0.75.0 | — | polecenie właściciela 14.09: szablony rozwijane po nazwie, „Opis ćwiczenia” + „Pełny opis w Wiedzy” w planie klienta (po id i po nazwie), trasy `by-name`, karta ćwiczenia w Wiedzy (klient v2/legacy, trener); testy API 5 + helper 6 + E2E +4 + a11y + PWA; **PR #77 po przeglądzie (brak P0/P1, P2 poprawione), `main` 0.74.0 dociągnięty** | pytanie: utrwalać dopasowanie po nazwie w planie? (domyślnie nie) | po CI |
 | `agent/motyw-czerwony` | 0.74.0 | 40 | **scalona** (PR #76, `26a03af`, 14.09) | ikony PWA/og w czerwieni, `color-scheme: dark`, „jak w systemie”, jasne zrzuty galerii (`docs/motyw/PROGRESS.md`) | — |
 | `agent/cardio-i-rozgrzewka` | 0.73.0 | 39 | **scalona** (PR #75, `8a71116`, 14.09) | przegląd treści i kotwic [C] przez trenera (`docs/cardio/PROGRESS.md`); odpowiedzi właściciela na 7 pytań §8 (domyślne przyjęte) | — |

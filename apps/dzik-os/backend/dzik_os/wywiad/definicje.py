@@ -28,6 +28,7 @@ from ..onboarding_flow import (
     KIND_BOOL,
     KIND_CHOICE,
     KIND_INFO,
+    KIND_LONGTEXT,
     KIND_MULTI,
     KIND_SCALE,
     STEPS,
@@ -46,9 +47,10 @@ TYPY = (WSTEPNY, GLEBOKI, ZAPOTRZEBOWANIE)
 #: Rodzaj pytania liczbowego (tylko w wywiadzie zapotrzebowania): odpowiedź
 #: tekstowa walidowana serwerowo jako liczba z zakresu `Pytanie.zakres`.
 KIND_NUMBER = "NUMBER"
-#: Dopuszczalny zapis liczby w NUMBER: do 3 cyfr, opcjonalnie 1–2 po
-#: przecinku lub kropce (bez notacji 1e2, 1_0, cyfr spoza ASCII).
-_LICZBA_RE = re.compile(r"[0-9]{1,3}(?:[.,][0-9]{1,2})?")
+#: Dopuszczalny zapis liczby w NUMBER: do 5 cyfr (kroki dziennie), opcjonalnie
+#: 1–2 po przecinku lub kropce (bez notacji 1e2, 1_0, cyfr spoza ASCII).
+#: Zakres liczbowy pilnuje `Pytanie.zakres`, nie ta regułka.
+_LICZBA_RE = re.compile(r"[0-9]{1,5}(?:[.,][0-9]{1,2})?")
 
 #: Wersja definicji obu formularzy. Podbicie = nowa wersja pytań; stare
 #: przesłania trzymają swoją.
@@ -332,20 +334,31 @@ def _zbuduj_gleboki() -> Definicja:
 
 
 # ---------------------------------------------------------------------------
-# Wywiad „Zapotrzebowanie kaloryczne” (0.62.0)
+# Wywiad „Zapotrzebowanie kaloryczne” (1.0 — specyfikacja właściciela z 13.09.2026)
 # ---------------------------------------------------------------------------
 
+#: Wersja definicji TEGO wywiadu. Osobna od wspólnej `WERSJA`, bo wyrównanie
+#: do specyfikacji 1.0 zmienia wyłącznie pytania `zk_*` — wywiad wstępny
+#: i głęboki zostają przy swojej wersji (stare przesłania nie stają się
+#: „starszej wersji” bez powodu).
+WERSJA_ZAPOTRZEBOWANIE = 2
+
 SEKCJE_ZAPOTRZEBOWANIE: tuple[Sekcja, ...] = (
-    Sekcja("zk_dane", "Dane podstawowe", "Płeć, wiek, wzrost i masa — wejścia wzoru na PPM."),
-    Sekcja("zk_aktywnosc", "Aktywność", "Praca, treningi i kroki — z nich wynika współczynnik PAL."),
-    Sekcja("zk_cel", "Cel", "Kierunek i tempo zmian — korekta wyniku."),
-    Sekcja("zk_bezpieczenstwo", "Bezpieczeństwo",
-           "Jedno pytanie zdrowotne. Decyduje, czy liczby pokażą się od razu, czy najpierw omówi je trener."),
+    Sekcja("zk_dane", "Dane podstawowe",
+           "Płeć, wiek, wzrost i masa — wejścia wzoru na przemianę podstawową. "
+           "Procent tkanki tłuszczowej jest opcjonalny i poprawia dokładność."),
+    Sekcja("zk_neat", "Aktywność poza treningiem",
+           "To zwykle większa część wydatku energii niż sam trening. Jeśli liczysz kroki, "
+           "podaj je — wtedy liczymy z nich, a nie z opisu."),
+    Sekcja("zk_trening", "Trening",
+           "Rodzaj, liczba i czas sesji. Każdy rodzaj ma inny koszt energetyczny na minutę."),
+    Sekcja("zk_cel", "Cel", "Kierunek i tempo zmian — z nich wynika korekta od zapotrzebowania."),
+    Sekcja("zk_zdrowie", "Zdrowie i kontekst",
+           "Wszystkie pytania są dobrowolne i każde ma odpowiedź „wolę nie odpowiadać”. "
+           "Część z nich zmienia to, co aplikacja proponuje — dlatego pytamy."),
 )
 
 _WSZYSTKIE_USLUGI = frozenset(USLUGI)
-ODP_ZABURZENIA_TAK = "Tak, obecnie lub w przeszłości"
-OPCJE_ZABURZEN = (ODP_NIE_ZGLASZAM, ODP_ZABURZENIA_TAK, ODP_NIE_WIEM, ODP_OMOWIC)
 
 
 def _zk(question_id: str, typ: str, label: str, why: str, section: str, *, options: tuple[str, ...] = (),
@@ -353,69 +366,150 @@ def _zk(question_id: str, typ: str, label: str, why: str, section: str, *, optio
         zakres: tuple[float, float] | None = None, consent_domain: str | None = None,
         sensitive: bool = False, access_class: str = DOSTEP_PODSTAWOWY, max_len: int = 80,
         flag_options: tuple[str, ...] = (), visibility_rule: str = "zawsze") -> Pytanie:
+    # Odpowiedź wyboru nie może być dłuższa niż najdłuższa opcja (opisy NEAT
+    # ze specyfikacji mają ponad 80 znaków).
+    if options:
+        max_len = max(max_len, max(len(o) for o in options))
     return Pytanie(
-        question_id=question_id, version=WERSJA, type=typ, label=label, why=why, section=section,
-        options=options, required_for=_WSZYSTKIE_USLUGI if required else frozenset(),
+        question_id=question_id, version=WERSJA_ZAPOTRZEBOWANIE, type=typ, label=label, why=why,
+        section=section, options=options,
+        required_for=_WSZYSTKIE_USLUGI if required else frozenset(),
         visibility_rule=visibility_rule, consent_domain=consent_domain, sensitive=sensitive,
         access_class=access_class, fact_key=None, max_len=max_len, conditional=conditional,
         placeholder=placeholder, scan_safety=False, flag_options=flag_options, zakres=zakres,
     )
 
 
+def _zk_zdrowie(question_id: str, label: str, why: str, *, options: tuple[str, ...] = Z.OPCJE_ZDROWIE,
+                conditional: bool = False, visibility_rule: str = "aktywna zgoda: dane zdrowotne",
+                flag_options: tuple[str, ...] = (), typ: str = KIND_CHOICE,
+                placeholder: str = "", max_len: int = 80) -> Pytanie:
+    """Ekran 5: pytania zdrowotne. Zawsze opcjonalne (decyzja właściciela
+    z 14.09), zawsze za zgodą `DOMAIN_HEALTH` — bez zgody pytanie nie jest
+    zadawane, a trener nie widzi odpowiedzi (`serwis.odpowiedzi_out`)."""
+    return _zk(question_id, typ, label, why, "zk_zdrowie", options=options, required=False,
+               conditional=conditional, consent_domain=DOMAIN_HEALTH, sensitive=True,
+               access_class=DOSTEP_ZDROWIE, flag_options=flag_options,
+               visibility_rule=visibility_rule, placeholder=placeholder, max_len=max_len)
+
+
 _PYTANIA_ZAPOTRZEBOWANIE: tuple[Pytanie, ...] = (
-    _zk("zk_plec", KIND_CHOICE, "Płeć", "Wzór na przemianę materii ma inną stałą dla kobiet i mężczyzn.",
+    # --- ekran 1: dane podstawowe ---
+    _zk("zk_plec", KIND_CHOICE, "Płeć biologiczna",
+        "Wzór na przemianę podstawową ma inną stałą dla kobiet i mężczyzn.",
         "zk_dane", options=Z.PLCI),
-    _zk("zk_wiek", KIND_NUMBER, "Wiek (lata)", "Z wiekiem podstawowa przemiana materii maleje — wzór to uwzględnia.",
+    _zk("zk_wiek", KIND_NUMBER, "Wiek (lata)",
+        "Z wiekiem przemiana podstawowa maleje — wzór to uwzględnia. Pytamy o wiek, nie o datę "
+        "urodzenia: do wzoru wystarcza, a to mniej danych o Tobie.",
         "zk_dane", placeholder="np. 32", zakres=Z.ZAKRES_WIEK, max_len=5),
-    _zk("zk_wzrost", KIND_NUMBER, "Wzrost (cm)", "Wzrost wchodzi do wzoru na podstawową przemianę materii (PPM) — im wyższa osoba, tym więcej spala w spoczynku.",
+    _zk("zk_wzrost", KIND_NUMBER, "Wzrost (cm)",
+        "Wzrost wchodzi do wzoru na przemianę podstawową — im wyższa osoba, tym więcej spala "
+        "w spoczynku.",
         "zk_dane", placeholder="np. 176", zakres=Z.ZAKRES_WZROST, max_len=6),
     _zk("zk_masa", KIND_NUMBER, "Aktualna masa ciała (kg)",
-        "Masa ma największy wpływ na wynik. Podaj poranną, po toalecie, przed jedzeniem.",
+        "Masa ma największy wpływ na wynik. Waż się rano, po toalecie, przed jedzeniem.",
         "zk_dane", placeholder="np. 72,5", zakres=Z.ZAKRES_MASA, max_len=7),
-    _zk("zk_praca", KIND_CHOICE, "Jaki masz charakter pracy / dnia?",
-        "Aktywność poza treningiem to zwykle większa część wydatku energii niż sam trening.",
-        "zk_aktywnosc", options=tuple(Z.PRACA)),
-    _zk("zk_treningi", KIND_CHOICE, "Ile treningów robisz w tygodniu (realnie, nie planowo)?",
-        "Treningi dokładają się do współczynnika aktywności. Liczy się to, co się dzieje, nie plan.",
-        "zk_aktywnosc", options=tuple(Z.TRENINGI)),
-    _zk("zk_kroki", KIND_CHOICE, "Ile kroków dziennie robisz przeciętnie?",
-        "Kroki doprecyzowują aktywność poza treningiem. Jeśli nie mierzysz — wybierz „Nie wiem”.",
-        "zk_aktywnosc", options=tuple(Z.KROKI), required=False),
+    _zk("zk_tluszcz", KIND_NUMBER, "Tkanka tłuszczowa (%) — jeśli znasz",
+        "Przy znanym składzie ciała liczymy drugim wzorem (Katch-McArdle) i wybieramy dokładniejszy. "
+        "Nie zgaduj — puste pole jest lepsze niż zmyślona liczba.",
+        "zk_dane", placeholder="np. 22", zakres=Z.ZAKRES_TLUSZCZ, max_len=5, required=False),
+    # --- ekran 2: aktywność poza treningiem (NEAT) ---
+    _zk("zk_neat", KIND_CHOICE, "Jak wygląda Twój dzień poza treningiem?",
+        "Ruch poza treningiem (praca, chodzenie, obowiązki) to zwykle większa część wydatku energii "
+        "niż sam trening — i największe źródło pomyłek w takich wyliczeniach.",
+        "zk_neat", options=Z.NEAT_OPCJE),
+    _zk("zk_kroki", KIND_NUMBER, "Średnia liczba kroków dziennie — jeśli mierzysz",
+        "Jeśli masz zegarek albo krokomierz, liczba kroków jest dokładniejsza niż opis powyżej "
+        "i go zastąpi.",
+        "zk_neat", placeholder="np. 8500", zakres=Z.ZAKRES_KROKI, max_len=6, required=False),
+    # --- ekran 3: trening ---
+    _zk("zk_sila_tydz", KIND_NUMBER, "Treningi siłowe w tygodniu",
+        "Realnie, nie planowo. Wpisz 0, jeśli nie trenujesz siłowo.",
+        "zk_trening", placeholder="np. 3", zakres=Z.ZAKRES_SESJE, max_len=2),
+    _zk("zk_sila_minuty", KIND_CHOICE, "Średni czas treningu siłowego",
+        "Z czasu i rodzaju treningu liczymy koszt energetyczny sesji.",
+        "zk_trening", options=Z.MINUTY_OPCJE, conditional=True,
+        visibility_rule="przynajmniej jeden trening siłowy w tygodniu"),
+    _zk("zk_cardio_tydz", KIND_NUMBER, "Treningi cardio lub sport w tygodniu",
+        "Bieganie, rower, pływanie, gry zespołowe. Wpisz 0, jeśli nie robisz cardio.",
+        "zk_trening", placeholder="np. 2", zakres=Z.ZAKRES_SESJE, max_len=2),
+    _zk("zk_cardio_minuty", KIND_CHOICE, "Średni czas cardio",
+        "Czas jednej sesji, nie suma tygodniowa.",
+        "zk_trening", options=Z.MINUTY_OPCJE, conditional=True,
+        visibility_rule="przynajmniej jedno cardio w tygodniu"),
+    _zk("zk_cardio_intensywnosc", KIND_CHOICE, "Intensywność cardio",
+        "Najprostsza miara to rozmowa: czy da się swobodnie mówić w trakcie. Intensywność zmienia "
+        "koszt energetyczny minuty ponad dwukrotnie.",
+        "zk_trening", options=Z.INT_OPCJE, conditional=True,
+        visibility_rule="przynajmniej jedno cardio w tygodniu"),
+    _zk("zk_staz", KIND_CHOICE, "Staż treningowy",
+        "Staż nie zmienia zapotrzebowania, ale zmienia realistyczne tempo przyrostu mięśni — "
+        "żebyś nie oczekiwał cudów.",
+        "zk_trening", options=Z.STAZ_OPCJE, required=False),
+    # --- ekran 4: cel ---
     _zk("zk_cel", KIND_CHOICE, "Jaki jest cel na najbliższe tygodnie?",
         "Cel decyduje, czy wynik ma być poniżej, na poziomie, czy powyżej zapotrzebowania.",
         "zk_cel", options=Z.CELE),
-    _zk("zk_tempo_redukcja", KIND_CHOICE, "Jakie tempo redukcji?",
-        "Łagodniejsze tempo jest łatwiejsze do utrzymania i chroni masę mięśniową. Trener może je zmienić.",
-        "zk_cel", options=tuple(Z.TEMPO_REDUKCJA), conditional=True,
-        visibility_rule="cel: redukcja masy ciała"),
-    _zk("zk_tempo_masa", KIND_CHOICE, "Jakie tempo budowy masy?",
-        "Większa nadwyżka to szybszy przyrost masy, ale też więcej tkanki tłuszczowej.",
-        "zk_cel", options=tuple(Z.TEMPO_MASA), conditional=True,
-        visibility_rule="cel: budowa masy mięśniowej"),
-    _zk("zk_zaburzenia", KIND_CHOICE,
-        "Czy zdiagnozowano u Ciebie zaburzenia odżywiania albo masz z nimi doświadczenie?",
-        "Liczenie kalorii może szkodzić osobom z takim doświadczeniem. Przy „Tak”, „Nie wiem” lub „Wolę "
-        "omówić” wynik nie pokaże się automatycznie — najpierw przejrzy go trener i porozmawiacie.",
-        "zk_bezpieczenstwo", options=OPCJE_ZABURZEN, consent_domain=DOMAIN_HEALTH, sensitive=True,
-        access_class=DOSTEP_ZDROWIE, flag_options=(ODP_ZABURZENIA_TAK, ODP_NIE_WIEM, ODP_OMOWIC),
-        visibility_rule="aktywna zgoda: dane zdrowotne", max_len=60),
+    _zk("zk_tempo", KIND_CHOICE, "Jakie tempo?",
+        "Redukcja: łagodne −10 %, umiarkowane −20 %, szybkie −25 %. Budowa masy: +5 %, +10 %, +15 %. "
+        "Łagodniejsze tempo jest łatwiejsze do utrzymania; trener może je zmienić.",
+        "zk_cel", options=Z.TEMPO_OPCJE, conditional=True,
+        visibility_rule="cel: redukcja tkanki tłuszczowej albo budowa masy mięśniowej"),
+    _zk("zk_masa_docelowa", KIND_NUMBER, "Masa docelowa (kg) — jeśli masz taką",
+        "Służy wyłącznie do orientacyjnego czasu. W praktyce trwa dłużej — tempo zwalnia.",
+        "zk_cel", placeholder="np. 68", zakres=Z.ZAKRES_MASA_DOCELOWA, max_len=7, required=False),
+    _zk("zk_bialko", KIND_CHOICE, "Preferencja białka",
+        "Wyższe białko chroni masę mięśniową przy redukcji i syci. Domyślnie dobieramy je z celu.",
+        "zk_cel", options=Z.BIALKO_OPCJE, required=False),
+    # --- ekran 5: zdrowie i kontekst (wszystkie pytania dobrowolne) ---
+    _zk_zdrowie("zk_ciaza", "Czy jesteś w ciąży albo karmisz piersią?",
+                "W ciąży i przy karmieniu nie proponujemy deficytu — zapotrzebowanie ustala się "
+                "z lekarzem albo dietetykiem prowadzącym."),
+    _zk_zdrowie("zk_choroba",
+                "Czy masz zdiagnozowaną chorobę tarczycy, cukrzycę, chorobę nerek lub wątroby?",
+                "Te choroby zmieniają zarówno zapotrzebowanie, jak i to, co wolno w diecie. Wynik "
+                "policzymy normalnie, ale trener zobaczy, że plan wymaga konsultacji z lekarzem."),
+    _zk_zdrowie("zk_zaburzenia",
+                "Czy zdiagnozowano u Ciebie zaburzenia odżywiania albo masz z nimi doświadczenie?",
+                "Liczenie kalorii może szkodzić osobom z takim doświadczeniem. Przy „Tak”, „Nie wiem” "
+                "lub „Wolę omówić” liczby nie pokażą się automatycznie — najpierw przejrzy je trener "
+                "i porozmawiacie.",
+                options=Z.OPCJE_ZABURZENIA, flag_options=Z.ODP_ZABURZENIA_FLAGA),
+    _zk_zdrowie("zk_leki",
+                "Czy bierzesz leki wpływające na masę ciała (np. sterydy, leki psychotropowe, insulina)?",
+                "Leki mogą zmieniać apetyt, gospodarkę wodną i tempo zmian — trener powinien o tym "
+                "wiedzieć, zanim oceni efekty."),
+    _zk_zdrowie("zk_miesiaczka", "Czy nie miesiączkujesz dłużej niż 3 miesiące?",
+                "Brak miesiączki bywa sygnałem zbyt małej podaży energii. Domyślnie nie proponujemy "
+                "wtedy deficytu i sugerujemy konsultację lekarską.",
+                conditional=True,
+                visibility_rule="płeć biologiczna: kobieta; aktywna zgoda: dane zdrowotne"),
+    _zk_zdrowie("zk_uwagi", "Coś, co trener powinien wiedzieć",
+                "Miejsce na wszystko, czego nie objęły pytania wyżej. Możesz zostawić puste.",
+                options=(), typ=KIND_LONGTEXT, placeholder="np. praca zmianowa, niedawna operacja…",
+                max_len=600, visibility_rule="aktywna zgoda: dane zdrowotne"),
 )
 
 
 def _zapotrzebowanie_triggered(question_id: str, wartosci_: dict[str, str | None]) -> bool:
-    if question_id == "zk_tempo_redukcja":
-        return wartosci_.get("zk_cel") == Z.CEL_REDUKCJA
-    if question_id == "zk_tempo_masa":
-        return wartosci_.get("zk_cel") == Z.CEL_MASA
+    if question_id == "zk_sila_minuty":
+        return (Z.liczba(wartosci_.get("zk_sila_tydz")) or 0) > 0
+    if question_id in ("zk_cardio_minuty", "zk_cardio_intensywnosc"):
+        return (Z.liczba(wartosci_.get("zk_cardio_tydz")) or 0) > 0
+    if question_id == "zk_tempo":
+        return Z.KOD_CELU.get(wartosci_.get("zk_cel") or "") in Z.CELE_Z_TEMPEM
+    if question_id == "zk_miesiaczka":
+        return wartosci_.get("zk_plec") == Z.PLEC_K
     return False
 
 
 def _zbuduj_zapotrzebowanie() -> Definicja:
     return Definicja(
-        typ=ZAPOTRZEBOWANIE, version=WERSJA, title="Zapotrzebowanie kaloryczne",
-        opis="Kilka pytań o ciało, aktywność i cel. Z nich wzór (Mifflin-St Jeor × współczynnik "
-        "aktywności, korekta pod cel) szacuje dzienne zapotrzebowanie. To szacunek — zalecenie "
-        "ustala trener, który widzi całe podstawienie i może wynik nadpisać.",
+        typ=ZAPOTRZEBOWANIE, version=WERSJA_ZAPOTRZEBOWANIE, title="Zapotrzebowanie kaloryczne",
+        opis="Pięć krótkich ekranów: ciało, ruch poza treningiem, trening, cel i zdrowie. "
+        "Z nich wzory (Mifflin-St Jeor albo Katch-McArdle, aktywność, koszt treningu, termiczny "
+        "efekt pożywienia) liczą Twój bilans kaloryczny: spoczynek, cały dzień, cel i makro. "
+        "To punkt wyjścia, nie zalecenie — zalecenie ustala trener, który widzi całe podstawienie.",
         sections=SEKCJE_ZAPOTRZEBOWANIE, questions=_PYTANIA_ZAPOTRZEBOWANIE,
         triggered=_zapotrzebowanie_triggered,
     )
@@ -536,6 +630,34 @@ def waliduj(q: Pytanie, value: str) -> str:
             raise ValueError("Zaznaczono odpowiedź spoza listy.")
         return ", ".join(o for o in q.options if o in parts)
     return cleaned
+
+
+def odfiltruj_nieaktualne(typ: str, answers: dict[str, dict]) -> dict[str, dict]:
+    """Odpowiedzi, których NIE DA SIĘ już przesłać, pomijane przy odczycie
+    szkicu: pytanie zniknęło z definicji albo wartość jest spoza dzisiejszej
+    listy (np. szkic wywiadu zapotrzebowania sprzed wyrównania do
+    specyfikacji 1.0 — `zk_praca`, „Redukcja masy ciała”, kroki jako przedział).
+    Bez tego postęp liczyłby odpowiedź, której formularz nie umie pokazać,
+    a przesłanie wpisałoby ją do niezmiennej wersji. Przesłane wersje
+    zostają nietknięte — filtr dotyczy wyłącznie szkicu."""
+    defn = _DEFINICJE.get(typ)
+    if defn is None:
+        return answers
+    znane = defn.by_id
+    out: dict[str, dict] = {}
+    for qid, a in answers.items():
+        q = znane.get(qid)
+        if q is None:
+            continue
+        if isinstance(a, dict) and not a.get("skipped"):
+            v = a.get("value")
+            if isinstance(v, str) and v.strip():
+                try:
+                    waliduj(q, v)
+                except ValueError:
+                    continue
+        out[qid] = a
+    return out
 
 
 def pytanie_out(q: Pytanie, *, active: bool, required: bool) -> dict:

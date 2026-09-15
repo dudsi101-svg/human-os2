@@ -396,6 +396,49 @@ użytkownika): bez zgody, bez śladu audytu (sam motyw nie emituje
 `notification_settings`. Trener i klient wybierają niezależnie (osobne konta
 = osobne wiersze).
 
+## Bilans kaloryczny i ekran zdrowotny wywiadu (od 0.77.0)
+
+Wywiad „Zapotrzebowanie kaloryczne” ma piąty ekran z pytaniami o zdrowie
+(ciąża/karmienie, choroby metaboliczne, zaburzenia odżywiania, leki, brak
+miesiączki, wolne pole). Wszystkie są **dobrowolne** i każde ma odpowiedź
+„wolę nie odpowiadać” albo „wolę omówić z trenerem”. Trzy poziomy dostępu,
+wszystkie egzekwowane w backendzie:
+
+1. **Pytanie nie pada bez zgody.** Każde pytanie ekranu 5 ma
+   `consent_domain = health_data`. Bez aktywnej zgody klienta dla jego
+   trenera pytanie nie jest nawet zadawane (`definicje.aktywne`) —
+   minimalizacja, nie ukrywanie w interfejsie.
+2. **Odpowiedzi widzi trener tylko ze zgodą.** `serwis.odpowiedzi_out`
+   zwraca `hidden: true` bez wartości dla pytań domeny, której trener nie
+   widzi. Klient widzi zawsze wszystko, co sam powiedział.
+3. **Flagi z tych odpowiedzi też są za zgodą.** `CIAZA_KARMIENIE`,
+   `CHOROBA_METABOLICZNA`, `LEKI`, `ZABURZENIA_ODZYWIANIA`,
+   `BRAK_MIESIACZKI` i `DEFICYT_WYLACZONY` (wynika wyłącznie z dwóch
+   pierwszych) są wycinane z odpowiedzi `GET /api/clients/{id}/zapotrzebowanie`
+   dla trenera bez zgody `health_data`; zamiast nich wraca `flags_hidden: true`
+   i zdanie, że wywiad zawiera odpowiedzi zdrowotne, których trener nie widzi.
+   Flagi `MALOLETNI`, `BMI_SKRAJNE` i `DEFICYT_OGRANICZONY` wynikają z wieku,
+   wzrostu i masy (dane podstawowe wywiadu) — zostają.
+
+**Odpowiedzi zdrowotne nie są kopiowane do `calorie_estimates`.**
+`inputs_json` trzyma wyłącznie wejścia wzoru bez pól zdrowotnych; skutek
+odpowiedzi widać w `flags_json`. Jedno źródło, jedna bramka.
+
+**Ukrycie wyniku przed klientem** ma dwa niezależne powody:
+`hidden_for_client` (odpowiedź „Tak”, „Nie wiem” albo „Wolę omówić” na
+pytanie o zaburzenia odżywiania — trener odsłania po rozmowie,
+`POST …/odblokuj`, audyt `CALORIE_ESTIMATE_UNHIDDEN`) oraz flaga
+`MALOLETNI`, której „odsłoń” **nie zdejmuje** — to kwestia zgody opiekuna,
+nie rozmowy. Klient dostaje wtedy z trasy wyłącznie status i komunikat,
+bez jednej liczby wyniku i bez wejść wzoru (masa ciała też jest liczbą).
+Eksport danych (RODO) zawiera pełne wiersze także przy ukryciu — prawo
+dostępu ma pierwszeństwo przed prezentacją w interfejsie.
+
+**Klasyfikacja liczby kcal** (decyzja właściciela z 14.09, bez zmian):
+sam wynik i jego rozbicie są **pochodną** odpowiedzi klienta, nie daną
+zdrowotną — trener widzi je przy zgodzie na współpracę, także po cofnięciu
+zgody zdrowotnej. Nową rzeczą w 0.77.0 jest wyłącznie bramka na flagi.
+
 ## Testy uprawnień
 
 `tests/test_isolation.py`, `tests/test_consents.py`,

@@ -25,6 +25,7 @@ każdym pushu niż duży, który nie chodzi.
 | `wiadomosci.spec.ts` | Klient pisze, **trener czyta** — dwie sesje, dwa konta |
 | `szablony.spec.ts` | Katalog gotowych schematów → import; zakładka Dieta; grupy zamienników RO; **0.75.0:** rozwinięcie i zwinięcie szablonu kliknięciem w nazwę (oba projekty) |
 | `bloki-jak-szablony.spec.ts` | 0.76.0: trener przypisuje klientowi szablon + rozgrzewkę + aeroby + rozciąganie („Przypisz plan”, komunikat z `blocks_applied`), klient widzi w dniu 1 rozgrzewkę na górze, cardio „z bloku” i rozciąganie na dole; drugi test: „tylko bloki” na 2 dni (projekt „telefon”, konto Piotra Zająca) |
+| `zapotrzebowanie.spec.ts` | 0.77.0: klient wypełnia pięć ekranów wywiadu kalorycznego (pytania warunkowe: czas treningu po liczbie sesji, tempo po celu, cardio nie istnieje przy zerze) i widzi bilans — spoczynek, cały dzień z zakresem, cel, makro; trener widzi rozbicie CPM na składniki, nadpisuje wynik z powodem i przenosi kcal, masę oraz makro do „Przypisz dietę” |
 | `plan-opis.spec.ts` | 0.75.0: klient rozwija „Opis ćwiczenia” (po id i po nazwie), przechodzi do pełnej karty w Wiedzy i wraca do planu; karta spoza bazy mówi wprost, że jej nie ma |
 
 Cały pakiet trwa kilka minut; pojedynczy plik uruchamia się w kilkanaście sekund.

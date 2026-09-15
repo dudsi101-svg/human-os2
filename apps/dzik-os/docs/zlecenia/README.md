@@ -34,6 +34,7 @@ wersje 0.64.0 i 0.65.0 są zajęte przez `agent/biblioteka-diet` i `agent/monito
 | 8 | polecenie właściciela 14.09: szablony rozwijane po nazwie + opisy ćwiczeń z Wiedzy w planie klienta | **0.75.0** (PR #77, `agent/szablony-i-opisy`) | — (dopasowanie po nazwie odczytowe; utrwalenie = pytanie do właściciela) |
 | 9 | zgłoszenie właściciela 14.09: dolna nawigacja na iPhonie (ikony ściskane przez wcięcie systemowe) | **0.75.1** (PR #78, `agent/nawigacja-safe-area`) | — |
 | 10 | polecenie właściciela 14.09: bloki jak szablony — aeroby jako trzeci rodzaj bloku, przypisanie klientowi szablonu + bloków (do trzech, po jednym na rodzaj) | **0.76.0** (PR #79, `agent/bloki-jak-szablony`) | **41** (`exercise_blocks.cardio_json`) |
+| 11 | polecenie właściciela 14.09: wyrównanie wywiadu „Zapotrzebowanie kaloryczne” do specyfikacji właściciela 1.0 z 13.09 (pięć ekranów, rozbicie CPM, Katch-McArdle, makro, flagi zdrowotne) | **0.77.0** (PR #80, `agent/wywiad-kaloryczny`) | **42** (41 = bloki, scalone przed) |
 
 Decyzje właściciela z drugiej tury (14.09): kreator diety odłożony i ukryty; klient na
 diecie z szablonu; katalog pojedynczych produktów (2058 pozycji) ma zasilić zamienniki
