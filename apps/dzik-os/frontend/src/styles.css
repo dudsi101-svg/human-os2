@@ -163,6 +163,10 @@ body {
 img, video { max-width: 100%; height: auto; }
 
 a { color: var(--accent); text-decoration: none; }
+/* WCAG 1.4.1: link wewnątrz bloku tekstu nie może różnić się od reszty
+   wyłącznie kolorem. Przyciski (`.btn`) są osobnym kształtem, więc ich to nie
+   dotyczy; podkreślamy linki w komunikatach i akapitach kart (0.77.0). */
+.alert a:not(.btn), .card p a:not(.btn), .card li a:not(.btn) { text-decoration: underline; }
 h1 {
   font-family: var(--font-display); font-weight: 700;
   font-size: 1.3rem; margin: 0 0 4px; letter-spacing: 0.1px;
