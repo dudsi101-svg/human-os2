@@ -1,6 +1,6 @@
 # Stan wydania — Dzik OS
 
-**Wersja:** 0.76.0 (PR #79 — bloki jak szablony: aeroby jako trzeci rodzaj bloku, przypisanie szablonu + bloków, migracja 41; `main` 0.75.1 po scaleniu PR #78; na produkcji 0.75.1 po wdrożeniu) · **Data:** 2026-09-14 · **Środowisko:** produkcja
+**Wersja:** 0.76.1 (poprawka: zaproszenia i reset hasła czytają tę samą konfigurację poczty co kontrola kanału; 0.76.0 = bloki jak szablony) · **Data:** 2026-09-15 · **Środowisko:** produkcja
 (pilotaż) — https://dzik-os-panel.fly.dev
 
 Jedna strona prawdy o tym, co DZIAŁA na produkcji teraz. Aktualizowana

@@ -1,6 +1,6 @@
 # Stan przekazania — przeczytaj przed rozpoczęciem rundy
 
-**Aktualizacja:** 2026-09-14 · **Wersja w `main`:** 0.75.1 (po scaleniu PR #78 nawigacja safe-area, `4e516e1`; 0.75.0 szablony i opisy = PR #77) — **0.76.0 w PR #79** (`agent/bloki-jak-szablony`: aeroby jako trzeci rodzaj bloku, przypisanie klientowi szablonu + bloków, migracja 41).
+**Aktualizacja:** 2026-09-15 · **Wersja w `main`:** 0.76.0 (bloki jak szablony, `a8962d9`) — **0.76.1 w gałęzi `agent/poczta-zaproszenia`**: zaproszenia i reset hasła czytają tę samą konfigurację poczty co kontrola kanału (diagnostyka produkcji 15.09 pokazała „brak dostawcy” mimo sprawnego SMTP); 0.77.0 w toku (`agent/wywiad-kaloryczny`, wywiad kaloryczny wg specyfikacji właściciela, migracja 42).
 **Tryb pracy:** jeden piszący i jeden PR `[WRITER]` naraz
 (`KOORDYNACJA.md`, zasada nadrzędna).
 
