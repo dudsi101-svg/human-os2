@@ -265,6 +265,24 @@ def _zloz_bloki(days: list[dict], bloki: list[ExerciseBlock]) -> tuple[list[dict
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
+def _zarchiwizuj_poprzednie(db: Session, client_id: str) -> list[str]:
+    """Poprzednie aktywne plany klienta → ARCHIVED (0.78.0, decyzja właściciela
+    z 15.09). Dotąd klient mógł mieć kilka planów ACTIVE naraz, a widoki brały
+    najnowszy — stary zostawał aktywny i niewidoczny. Dieta zachowuje się tak
+    od 0.60.0 (`dieta/serwis.py::przypisz`); plan wyrównany do niej.
+
+    Archiwizacja niczego nie kasuje: plan zostaje z całą historią wersji i
+    trener może go przywrócić."""
+    poprzednie = (
+        db.query(TrainingPlan)
+        .filter_by(client_id=client_id, status="ACTIVE")
+        .all()
+    )
+    for p in poprzednie:
+        p.status = "ARCHIVED"
+    return [p.id for p in poprzednie]
+
+
 @router.post("/plans/{template_id}/copy-to/{client_id}", status_code=201)
 def copy_template_to_client(
     template_id: str,
@@ -305,6 +323,7 @@ def copy_template_to_client(
     if bloki:
         content["days"], raport = _zloz_bloki(content.get("days") or [], bloki)
         reason += " + bloki: " + ", ".join(b.name for b in bloki)
+    zarchiwizowane = _zarchiwizuj_poprzednie(db, client_id)
     plan = TrainingPlan(
         id=new_id("PLN"),
         client_id=client_id,
@@ -329,7 +348,8 @@ def copy_template_to_client(
     # Ślad H_CARDIO dla pozycji cardio kopii (także z bloku) — w tej samej transakcji.
     wiedza_slad.slady_cardio(db, owner_id=client_id, plan_id=plan.id, plan_revision=1, content=content)
     payload = {"plan_id": plan.id, "title": plan.title, "version_no": 1,
-               "copied_from_template_id": template.id}
+               "copied_from_template_id": template.id,
+               "archived_plan_ids": zarchiwizowane}
     if raport:
         payload["blocks_applied"] = raport
     record_event(
@@ -342,7 +362,8 @@ def copy_template_to_client(
         + (f" (+ {len(bloki)} bloki)" if bloki else ""),
     )
     db.commit()
-    out = {"id": plan.id, "version_id": version.id, "version_no": 1}
+    out = {"id": plan.id, "version_id": version.id, "version_no": 1,
+           "archived_plans": len(zarchiwizowane)}
     if raport:
         out["blocks_applied"] = raport
     return out
@@ -365,6 +386,7 @@ def create_plan_from_blocks(
     days, raport = _zloz_bloki(dni, bloki)
     content = {"days": days}
     reason = body.reason or ("Plan z bloków: " + ", ".join(b.name for b in bloki))
+    zarchiwizowane = _zarchiwizuj_poprzednie(db, client_id)
     plan = TrainingPlan(
         id=new_id("PLN"),
         client_id=client_id,
@@ -392,7 +414,8 @@ def create_plan_from_blocks(
         summary=f"Plan „{plan.title}” z bloków ({len(bloki)}) dla klienta, {len(days)} dni",
     )
     db.commit()
-    return {"id": plan.id, "version_id": version.id, "version_no": 1, "blocks_applied": raport}
+    return {"id": plan.id, "version_id": version.id, "version_no": 1,
+            "blocks_applied": raport, "archived_plans": len(zarchiwizowane)}
 
 
 @router.get("/coach/plan-templates")

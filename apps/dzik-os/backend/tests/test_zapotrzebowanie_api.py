@@ -15,6 +15,7 @@ from dzik_os.config import settings
 from dzik_os.dates import local_today
 from dzik_os.db import SessionLocal
 from dzik_os.models import CalorieEstimate
+from dzik_os.wywiad import definicje as D
 from dzik_os.wywiad import zapotrzebowanie as Z
 from dzik_os.wywiad.zapotrzebowanie import ODP_ZAB_TAK
 
@@ -85,7 +86,8 @@ def test_definicja_piec_ekranow_i_walidacja_liczb(seeded):
     ha = login(seeded, CLIENT_A)
     cid = get_user_id(seeded, ha)
     d = _def(seeded, ha, cid)
-    assert d["typ"] == TYP and d["version"] == 2
+    # 0.78.0: wersja 3 — doszło pytanie doprecyzowujące ciążę/karmienie.
+    assert d["typ"] == TYP and d["version"] == D.WERSJA_ZAPOTRZEBOWANIE
     assert [s["key"] for s in d["sections"]] == ["zk_dane", "zk_neat", "zk_trening", "zk_cel", "zk_zdrowie"]
     masa = next(q for q in d["questions"] if q["question_id"] == "zk_masa")
     assert masa["type"] == "NUMBER" and masa["range"] == [35, 250]

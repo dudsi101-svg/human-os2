@@ -341,7 +341,7 @@ def _zbuduj_gleboki() -> Definicja:
 #: do specyfikacji 1.0 zmienia wyłącznie pytania `zk_*` — wywiad wstępny
 #: i głęboki zostają przy swojej wersji (stare przesłania nie stają się
 #: „starszej wersji” bez powodu).
-WERSJA_ZAPOTRZEBOWANIE = 2
+WERSJA_ZAPOTRZEBOWANIE = 3
 
 SEKCJE_ZAPOTRZEBOWANIE: tuple[Sekcja, ...] = (
     Sekcja("zk_dane", "Dane podstawowe",
@@ -465,6 +465,12 @@ _PYTANIA_ZAPOTRZEBOWANIE: tuple[Pytanie, ...] = (
     _zk_zdrowie("zk_ciaza", "Czy jesteś w ciąży albo karmisz piersią?",
                 "W ciąży i przy karmieniu nie proponujemy deficytu — zapotrzebowanie ustala się "
                 "z lekarzem albo dietetykiem prowadzącym."),
+    _zk_zdrowie("zk_ciaza_rodzaj", "Ciąża czy karmienie?",
+                "Zapotrzebowanie rośnie inaczej w ciąży, a inaczej przy karmieniu, więc pytamy "
+                "wprost. Doliczoną wartość i tak trzeba omówić z lekarzem albo dietetykiem "
+                "prowadzącym — aplikacja podaje punkt wyjścia, nie zalecenie.",
+                options=Z.OPCJE_CIAZA_KARMIENIE, conditional=True,
+                visibility_rule="odpowiedź „tak” na pytanie o ciążę albo karmienie"),
     _zk_zdrowie("zk_choroba",
                 "Czy masz zdiagnozowaną chorobę tarczycy, cukrzycę, chorobę nerek lub wątroby?",
                 "Te choroby zmieniają zarówno zapotrzebowanie, jak i to, co wolno w diecie. Wynik "
@@ -500,6 +506,11 @@ def _zapotrzebowanie_triggered(question_id: str, wartosci_: dict[str, str | None
         return Z.KOD_CELU.get(wartosci_.get("zk_cel") or "") in Z.CELE_Z_TEMPEM
     if question_id == "zk_miesiaczka":
         return wartosci_.get("zk_plec") == Z.PLEC_K
+    if question_id == "zk_ciaza_rodzaj":
+        # Doprecyzowanie pada wyłącznie po odpowiedzi „tak” (0.78.0). „Wolę nie
+        # odpowiadać” nie odsłania pytania — brak dopytywania o dane, których
+        # ktoś świadomie nie podał.
+        return wartosci_.get("zk_ciaza") == Z.ODP_ZDR_TAK
     return False
 
 

@@ -158,6 +158,24 @@ ODP_ZDR_TAK = "Tak"
 ODP_ZDR_WOLE_NIE = "Wolę nie odpowiadać"
 OPCJE_ZDROWIE = (ODP_ZDR_NIE, ODP_ZDR_TAK, ODP_ZDR_WOLE_NIE)
 
+#: Doprecyzowanie ciąży i karmienia (0.78.0, decyzja właściciela z 15.09).
+#: Specyfikacja §6.4 dopuszcza cel = CPM albo CPM + 300/500 kcal; właściciel
+#: wybrał dodatek, a ten wymaga rozróżnienia, bo wartości są różne. Pytanie
+#: pada wyłącznie po odpowiedzi „tak” i wyłącznie za zgodą na dane zdrowotne.
+ODP_CK_CIAZA = "W ciąży"
+ODP_CK_KARMIENIE = "Karmię piersią"
+ODP_CK_OBA = "W ciąży i karmię"
+OPCJE_CIAZA_KARMIENIE = (ODP_CK_CIAZA, ODP_CK_KARMIENIE, ODP_CK_OBA, ODP_ZDR_WOLE_NIE)
+
+#: Dodatek do zapotrzebowania (kcal/dobę) — wartości ze specyfikacji §6.4.
+#: To PUNKT STARTOWY do rozmowy z lekarzem albo dietetykiem prowadzącym,
+#: nigdy zalecenie aplikacji: przy braku doprecyzowania dodatku nie ma.
+DODATEK_CIAZA_KARMIENIE = {
+    ODP_CK_CIAZA: 300,
+    ODP_CK_KARMIENIE: 500,
+    ODP_CK_OBA: 500,
+}
+
 #: Pytanie o zaburzenia odżywiania zostaje przy czterech odpowiedziach z 0.62.0:
 #: „Wolę omówić z trenerem” pełni tu rolę „wolę nie odpowiadać”, ale — decyzja
 #: właściciela nr 2 — RAZEM z „Nie wiem” dalej ukrywa liczby przed klientem.
@@ -248,6 +266,11 @@ OSTRZEZENIE_MIN_KCAL = ("Cel zszedł do minimum bezpieczeństwa ({minimum} kcal)
                         "proponujemy — taki plan wymaga konsultacji dietetycznej albo lekarskiej.")
 OSTRZEZENIE_PPM = ("Cel został podniesiony do granicy {granica} kcal — deficyt nie schodzi poniżej "
                    "1,1 × przemiany podstawowej bez decyzji specjalisty.")
+OSTRZEZENIE_CIAZA_DODATEK = (
+    "Do zapotrzebowania doliczono {dodatek} kcal na dobę (ciąża albo karmienie). "
+    "To punkt wyjścia do rozmowy, nie zalecenie — wartość i skład diety ustala "
+    "lekarz albo dietetyk prowadzący ciążę."
+)
 OSTRZEZENIE_SZYBKA_MASA = ("Tempo „szybkie” przy budowie masy oznacza więcej tkanki tłuszczowej na "
                            "każdy kilogram mięśni. Rozważcie tempo umiarkowane.")
 OSTRZEZENIE_ROZJAZD_PPM = ("Mifflin i Katch-McArdle różnią się o {roznica} % — przy nietypowym składzie "
@@ -285,6 +308,8 @@ class Wejscie:
     bialko: str | None = None                # "standard" | "high"
     # Zdrowie (ekran 5) — None = brak odpowiedzi albo „wolę nie odpowiadać”.
     ciaza: bool | None = None
+    #: Doprecyzowanie z pytania warunkowego; None = nie podano (bez dodatku).
+    ciaza_rodzaj: str | None = None
     choroba_metaboliczna: bool | None = None
     leki: bool | None = None
     zaburzenia_odzywiania: bool | None = None
@@ -527,6 +552,13 @@ def oblicz(w: Wejscie) -> Wynik:
             flagi.append(FLAGA_DEFICYT_WYLACZONY)
         korekta = max(korekta, 0.0)
     cel_kcal = cpm * (1 + korekta)
+    # Ciąża i karmienie: do zapotrzebowania dochodzi stały dodatek ze
+    # specyfikacji §6.4 (decyzja właściciela z 15.09). Dodatek wchodzi PO
+    # korekcie celu i przed podłogą — deficyt jest już wyłączony wyżej.
+    dodatek = DODATEK_CIAZA_KARMIENIE.get(w.ciaza_rodzaj or "", 0) if FLAGA_CIAZA in flagi else 0
+    if dodatek:
+        cel_kcal += dodatek
+        ostrzezenia.append(OSTRZEZENIE_CIAZA_DODATEK.format(dodatek=dodatek))
     minimum = MIN_KCAL[w.plec]
     podloga = max(ppm * PPM_MNOZNIK_PODLOGI, minimum)
     if w.cel in ("cut", "recomp") and cel_kcal < podloga:
@@ -661,6 +693,7 @@ def z_odpowiedzi(wartosci: dict[str, str | None]) -> Wejscie:
         masa_docelowa_kg=liczba(wartosci.get("zk_masa_docelowa")),
         bialko=KOD_BIALKA.get(wartosci.get("zk_bialko") or ""),
         ciaza=_bool_zdrowie(wartosci.get("zk_ciaza")),
+        ciaza_rodzaj=(wartosci.get("zk_ciaza_rodzaj") or None),
         choroba_metaboliczna=_bool_zdrowie(wartosci.get("zk_choroba")),
         leki=_bool_zdrowie(wartosci.get("zk_leki")),
         zaburzenia_odzywiania=_bool_zdrowie(wartosci.get("zk_zaburzenia"), tak=ODP_ZABURZENIA_FLAGA),

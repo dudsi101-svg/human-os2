@@ -1,5 +1,27 @@
 # Changelog — Dzik OS
 
+## 0.78.0 — 2026-09-15
+
+**Dwie decyzje właściciela z 15.09 (gałąź `agent/ciaza-i-archiwizacja`, bez migracji).**
+
+* **Ciąża i karmienie: zapotrzebowanie rośnie o stałą wartość ze specyfikacji
+  §6.4.** Dotąd cel równał się całodziennemu zapotrzebowaniu (deficyt wyłączony);
+  teraz dochodzi **+300 kcal w ciąży** i **+500 kcal przy karmieniu** (przy obu —
+  500). Wartości są różne, a dotychczasowe pytanie łączyło oba stany w jedno,
+  więc po odpowiedzi twierdzącej pada jedno pytanie doprecyzowujące („Ciąża czy
+  karmienie?”, wersja definicji wywiadu 3). Bez doprecyzowania albo przy „wolę
+  nie odpowiadać” **dodatku nie ma** — aplikacja nie domyśla się wartości.
+  Każdy wynik z dodatkiem niesie ostrzeżenie, że to punkt wyjścia do rozmowy,
+  a wartość i skład diety ustala lekarz albo dietetyk prowadzący ciążę.
+  Pytanie jest opcjonalne i pada wyłącznie za zgodą na dane zdrowotne,
+  jak reszta ekranu 5.
+* **Przypisanie planu archiwizuje poprzedni.** Klient ma teraz jeden aktywny
+  plan, tak jak jedną aktywną dietę (`dieta/serwis.py::przypisz` od 0.60.0).
+  Dotąd `copy-to` i `from-blocks` zostawiały stary plan w stanie ACTIVE, a widoki
+  brały najnowszy — poprzedni zostawał aktywny i niewidoczny. Archiwizacja
+  niczego nie kasuje: plan zostaje z całą historią wersji, a odpowiedź obu tras
+  podaje `archived_plans`.
+
 ## 0.77.0 — 2026-09-14
 
 **Wywiad „Zapotrzebowanie kaloryczne” wyrównany do specyfikacji właściciela 1.0

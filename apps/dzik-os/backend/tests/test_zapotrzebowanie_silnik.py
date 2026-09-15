@@ -404,3 +404,41 @@ def test_granice_mnoznika_z_krokow_to_konkretne_liczby():
     granicy na 2,5. Tu porównujemy z liczbami wprost."""
     assert Z.neat_z_krokow(0) == 1.15
     assert Z.neat_z_krokow(30000) == 1.85
+
+
+# --- ciąża i karmienie: dodatek ze specyfikacji §6.4 (0.78.0) ----------------
+
+def _kobieta(**nad):
+    baza = {"plec": "F", "wiek": 30, "wzrost_cm": 170, "masa_kg": 70.0, "neat": "neat_2", "cel": "maintain"}
+    return Z.Wejscie(**{**baza, **nad})
+
+
+def test_ciaza_dodaje_300_a_karmienie_500():
+    """Decyzja właściciela z 15.09: specyfikacja §6.4 dopuszcza cel = CPM albo
+    CPM + 300/500; wybrany został dodatek, więc pytamy wprost, co zachodzi."""
+    bez = Z.oblicz(_kobieta(ciaza=True)).target_kcal
+    ciaza = Z.oblicz(_kobieta(ciaza=True, ciaza_rodzaj=Z.ODP_CK_CIAZA)).target_kcal
+    karmienie = Z.oblicz(_kobieta(ciaza=True, ciaza_rodzaj=Z.ODP_CK_KARMIENIE)).target_kcal
+    oba = Z.oblicz(_kobieta(ciaza=True, ciaza_rodzaj=Z.ODP_CK_OBA)).target_kcal
+    assert ciaza - bez == 300
+    assert karmienie - bez == 500
+    assert oba - bez == 500
+
+
+def test_bez_doprecyzowania_i_bez_ciazy_dodatku_nie_ma():
+    """Brak odpowiedzi (albo „wolę nie odpowiadać”) nie domyśla się wartości."""
+    bez_flagi = Z.oblicz(_kobieta()).target_kcal
+    assert Z.oblicz(_kobieta(ciaza_rodzaj=Z.ODP_CK_KARMIENIE)).target_kcal == bez_flagi
+    z_flaga = Z.oblicz(_kobieta(ciaza=True)).target_kcal
+    assert Z.oblicz(_kobieta(ciaza=True, ciaza_rodzaj=Z.ODP_ZDR_WOLE_NIE)).target_kcal == z_flaga
+
+
+def test_dodatek_wchodzi_po_wylaczeniu_deficytu_i_z_ostrzezeniem():
+    """Przy redukcji deficyt jest wyłączany (flaga), a dodatek liczy się od CPM,
+    nie od obniżonego celu. Ostrzeżenie o konsultacji jest obowiązkowe."""
+    w = _kobieta(ciaza=True, ciaza_rodzaj=Z.ODP_CK_CIAZA, cel="cut", tempo="moderate")
+    y = Z.oblicz(w)
+    assert Z.FLAGA_DEFICYT_WYLACZONY in y.flags
+    assert y.target_kcal == y.cpm + 300
+    assert any("punkt wyjścia" in o for o in y.ostrzezenia)
+    assert any("lekarz albo dietetyk" in o for o in y.ostrzezenia)

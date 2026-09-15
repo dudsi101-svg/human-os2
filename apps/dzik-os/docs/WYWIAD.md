@@ -347,3 +347,22 @@ z wywiadu nie dublowała zakładki Pomiary); P1 ze specyfikacji
 (przypomnienie po zmianie masy > 3 kg lub po 8 tygodniach, wykres masy
 i CPM) i P2 (kroki z zegarka jako integracja, adaptacja kalorii z ważeń).
 
+## Ciąża i karmienie — dodatek kaloryczny (0.78.0)
+
+Decyzja właściciela z 15.09: specyfikacja §6.4 dopuszczała dwa zachowania
+(cel = całodzienne zapotrzebowanie albo zapotrzebowanie + 300/500 kcal) —
+wybrany został dodatek.
+
+* **W ciąży +300 kcal, przy karmieniu +500 kcal**, przy obu naraz +500.
+* Wartości są różne, a pytanie „Czy jesteś w ciąży albo karmisz piersią?”
+  łączy oba stany, więc po odpowiedzi twierdzącej pada jedno pytanie
+  doprecyzowujące. Pada **wyłącznie** po „tak” — po „wolę nie odpowiadać”
+  nie dopytujemy o to, czego ktoś świadomie nie podał.
+* **Bez doprecyzowania dodatku nie ma.** Aplikacja nie zgaduje, który stan
+  zachodzi, bo pomyłka w tę stronę zmienia wynik o 200 kcal dziennie.
+* Każdy wynik z dodatkiem niesie ostrzeżenie: to punkt wyjścia do rozmowy,
+  a wartość i skład diety ustala lekarz albo dietetyk prowadzący ciążę.
+  Deficyt pozostaje wyłączony niezależnie od celu i tempa.
+* Pytanie jest opcjonalne i należy do ekranu zdrowotnego, więc obowiązuje je
+  ta sama zgoda na dane zdrowotne co resztę: bez zgody nie pada, a trener nie
+  widzi ani odpowiedzi, ani flagi z niej wynikającej.
