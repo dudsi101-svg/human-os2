@@ -11,7 +11,8 @@ from dzik_os.models import User
 
 
 def test_raport_ma_sekcje_i_zero_sekretow(seeded, monkeypatch):
-    monkeypatch.delenv("DZIK_SMTP_HOST", raising=False)
+    for nazwa in ("DZIK_SMTP_HOST", "SMTP_HOST"):
+        monkeypatch.delenv(nazwa, raising=False)
     r = diagnostyka.raport()
     assert set(r) >= {"srodowisko", "konta", "relacje", "zaproszenia", "plany",
                       "zdarzenia_doreczen_30_dni"}
@@ -55,3 +56,33 @@ def test_main_wypisuje_json(seeded, capsys):
     assert diagnostyka.main([]) == 0
     dane = json.loads(capsys.readouterr().out)
     assert dane["srodowisko"]["wersja"]
+
+
+def test_raport_uznaje_wspolne_nazwy_smtp(seeded, monkeypatch):
+    """Raport pokazuje faktycznie ustawioną nazwę i nie wypisuje „brakuje”
+    przy działającej poczcie (0.76.1: każde ustawienie ma dwie nazwy).
+    Wcześniej diagnostyka znała tylko nazwy z prefiksem, więc przy konfiguracji
+    produkcyjnej twierdziła, że brakuje wszystkiego."""
+    for wlasna, wspolna in diagnostyka.PARY_SMTP:
+        for nazwa in (wlasna, wspolna):
+            if nazwa:
+                monkeypatch.delenv(nazwa, raising=False)
+    for nazwa, wartosc in (
+        ("SMTP_HOST", "smtp-relay.brevo.com"), ("SMTP_PORT", "587"),
+        ("SMTP_USER", "konto@smtp-brevo.com"), ("SMTP_PASSWORD", "tajne"),
+        ("MAIL_FROM", "Mateusz <mateusz@mail.dzik-os.com>"),
+    ):
+        monkeypatch.setenv(nazwa, wartosc)
+    srodowisko = diagnostyka.raport()["srodowisko"]
+    assert srodowisko["smtp_ustawione"] == [
+        "SMTP_HOST", "SMTP_PORT", "SMTP_USER", "SMTP_PASSWORD", "MAIL_FROM",
+    ]
+    assert srodowisko["smtp_brakuje"] == ["DZIK_SMTP_SECURITY"]
+    # Hasło nie może wyciec do raportu — nazwa tak, wartość nigdy.
+    assert "tajne" not in json.dumps(srodowisko, ensure_ascii=False)
+
+
+def test_raport_wola_nazwe_z_prefiksem_gdy_obie_sa(seeded, monkeypatch):
+    monkeypatch.setenv("SMTP_HOST", "wspolny.serwer.pl")
+    monkeypatch.setenv("DZIK_SMTP_HOST", "wlasny.serwer.pl")
+    assert "DZIK_SMTP_HOST" in diagnostyka.raport()["srodowisko"]["smtp_ustawione"]
