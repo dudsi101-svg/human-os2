@@ -11,12 +11,27 @@ import { KONTA, zaloguj } from "./helpers";
  * wybiera. Projekt „telefon” (zapisuje: klient B — bez kolizji z raportem).
  */
 
+/**
+ * Snapshot stanu motywu. TŁA TU NIE MA ŚWIADOMIE — sprawdzamy je wyłącznie
+ * ponawianym `toHaveCSS`, nigdy jednorazowym odczytem.
+ *
+ * Powód, zmierzony (Chromium, `setContent` z tym samym wzorcem zmiennych):
+ * przy `prefers-reduced-motion: reduce` arkusz ustawia `* { transition-duration:
+ * 0.01ms !important }`, a `transition-property` domyślnie to `all` — więc tłem
+ * też rządzi (mikro)przejście. `getComputedStyle` w tym samym kroku zwraca
+ * wartość POCZĄTKOWĄ przejścia:
+ *   no-preference -> rgb(255, 255, 255)
+ *   reduce        -> rgb(11, 13, 15)
+ * Atrybut, meta i localStorage są już zmienione, więc odczyt kłamie tylko na
+ * kolorze — i tylko czasem, zależnie od tego, czy trafi w tę samą klatkę. Tak
+ * wywrócił się przebieg na `main` po scaleniu 0.78.0 (run 34983224967), mimo
+ * zielonego CI na gałęzi. `toHaveCSS` ponawia i czeka, aż wartość się ustali.
+ */
 async function motyw(page: Page) {
   return page.evaluate(() => ({
     atrybut: document.documentElement.getAttribute("data-theme"),
     meta: document.querySelector('meta[name="theme-color"]')?.getAttribute("content"),
     lokalny: localStorage.getItem("dzik_theme"),
-    tlo: getComputedStyle(document.body).backgroundColor,
     znakCzerwony: [...document.querySelectorAll<HTMLImageElement>("img.logo--czerwony")]
       .some((i) => i.offsetParent !== null),
   }));
@@ -31,7 +46,7 @@ test("wybór jasnego motywu: atrybut, meta, znak, urządzenie, konto; trener nie
   let m = await motyw(page);
   expect(m.atrybut).toBeNull();
   expect(m.meta).toBe("#0b0d0f");
-  expect(m.tlo).toBe("rgb(11, 13, 15)");
+  await expect(page.locator("body")).toHaveCSS("background-color", "rgb(11, 13, 15)");
   expect(m.znakCzerwony).toBe(false);
 
   await page.goto("/wiecej");
@@ -59,7 +74,7 @@ test("wybór jasnego motywu: atrybut, meta, znak, urządzenie, konto; trener nie
   expect(m.atrybut).toBe("czerwony");
   expect(m.meta).toBe("#FFFFFF");
   expect(m.lokalny).toBe("czerwony");
-  expect(m.tlo).toBe("rgb(255, 255, 255)");
+  await expect(page.locator("body")).toHaveCSS("background-color", "rgb(255, 255, 255)");
   expect(m.znakCzerwony).toBe(true);
 
   // Odświeżenie: motyw z urządzenia, zanim serwer cokolwiek powie.
@@ -67,7 +82,7 @@ test("wybór jasnego motywu: atrybut, meta, znak, urządzenie, konto; trener nie
   await expect(page.getByRole("heading", { level: 1, name: "Więcej" })).toBeVisible({ timeout: 15_000 });
   m = await motyw(page);
   expect(m.atrybut).toBe("czerwony");
-  expect(m.tlo).toBe("rgb(255, 255, 255)");
+  await expect(page.locator("body")).toHaveCSS("background-color", "rgb(255, 255, 255)");
 
   // Wylogowanie NIE czyści motywu: ekran logowania zostaje jasny, bez pełnego
   // logo (limonkowego) — znak + nazwa tekstem.
@@ -104,8 +119,7 @@ test("wybór jasnego motywu: atrybut, meta, znak, urządzenie, konto; trener nie
   await grupaT.getByRole("radio", { name: /Ciemny/ }).click();
   await zapisT;
   await expect(page.getByRole("status")).toContainText("Zapisano na koncie");
-  // Tło asercją ponawianą (jak przy jasnym wyżej): w CI jednorazowy odczyt
-  // getComputedStyle tuż po odpowiedzi PUT raz zwrócił jeszcze biel.
+  // Tło asercją ponawianą — patrz komentarz przy `motyw()`.
   await expect(page.locator("body")).toHaveCSS("background-color", "rgb(11, 13, 15)");
   m = await motyw(page);
   expect(m.atrybut).toBeNull();

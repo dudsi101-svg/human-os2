@@ -65,6 +65,16 @@ od kolejności uruchomienia.
 **Logowanie idzie przez formularz**, nie przez wstrzyknięcie tokenu. Skrót po
 API testowałby API, które ma już własne pokrycie.
 
+**Koloru nigdy nie czytamy jednorazowo.** Wartość wyliczoną z CSS sprawdza
+wyłącznie ponawiane `toHaveCSS`, nigdy `getComputedStyle` w `page.evaluate`.
+Przy `prefers-reduced-motion: reduce` arkusz ustawia `* { transition-duration:
+0.01ms !important }`, a `transition-property` domyślnie to `all` — więc nawet tło
+przechodzi przez (mikro)przejście, a odczyt w tej samej klatce zwraca kolor
+SPRZED zmiany. Zmierzone wprost na czystej stronie z tym samym wzorcem zmiennych:
+bez preferencji `rgb(255, 255, 255)`, z `reduce` `rgb(11, 13, 15)`. Test motywu
+przeszedł tak na gałęzi i wywrócił się na `main` (run 34983224967) — atrybut,
+meta i `localStorage` były już zmienione, kłamał tylko kolor.
+
 ## Świadome odstępstwa od produkcji
 
 `e2e/serve.sh` ustawia `DZIK_MFA_REQUIRED_ROLES=""`. Produkcja trzyma domyślne
