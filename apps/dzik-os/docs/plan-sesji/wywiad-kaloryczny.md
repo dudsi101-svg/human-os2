@@ -184,6 +184,21 @@ mutują pliki; po nich drzewo ma być czyste poza moimi zmianami.
    „przeszły”. Przeszły — ale na kodzie sprzed zmian, z powodu z punktu 4.
    Dopiero przebiegi po tej poprawce coś znaczą.
 
+7. **Scalenie `main` w trakcie rundy.** Runda bloków (PR #79, 0.76.0,
+   migracja 41) weszła do `main`, zanim domknąłem tę gałąź. Zgodnie
+   z KOORDYNACJA §0.3 dociągnąłem `main`: sześć kolizji na zasobach
+   współdzielonych (wersje w czterech plikach, CHANGELOG, STAN, E2E.md,
+   rejestr zleceń, `db.py`), wszystkie przewidziane w rezerwacjach, żadnej
+   sprzeczności znaczeniowej w kodzie. W rejestrze zleceń wziąłem ICH opis
+   zlecenia 10 — jest dokładniejszy niż mój (Karta §III).
+8. **Jedna zmiana w cudzym teście, jawna** (Karta §II).
+   `test_migracja_41_dodaje_cardio_json_na_starej_bazie` asercjował
+   `MIGRATIONS[-1][0] == 41`, czyli „moja migracja jest ostatnia
+   w repozytorium”. Trzyma się to tylko do chwili, gdy ktokolwiek doda
+   następną — a migracja 42 była zarezerwowana i zapisana w planie, zanim
+   runda bloków się scaliła. Test sprawdza teraz to, co naprawdę miał
+   pilnować: że 41 istnieje i zostaje zastosowana na świeżej bazie.
+
 ## Plan kontra rzeczywistość
 
 Pełna wersja z liczbami: `docs/calorie-interview/PROGRESS.md` §6. W skrócie:
