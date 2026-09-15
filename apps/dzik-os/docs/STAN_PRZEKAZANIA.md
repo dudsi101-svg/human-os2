@@ -1,6 +1,6 @@
 # Stan przekazania — przeczytaj przed rozpoczęciem rundy
 
-**Aktualizacja:** 2026-09-15 · **Wersja w `main`:** 0.76.0 (bloki jak szablony, `a8962d9`) — **0.76.1 w gałęzi `agent/poczta-zaproszenia`**: zaproszenia i reset hasła czytają tę samą konfigurację poczty co kontrola kanału (diagnostyka produkcji 15.09 pokazała „brak dostawcy” mimo sprawnego SMTP); 0.77.0 w toku (`agent/wywiad-kaloryczny`, wywiad kaloryczny wg specyfikacji właściciela, migracja 42).
+**Aktualizacja:** 2026-09-15 · **Wersja w `main`:** 0.76.1 (poczta: zaproszenia i reset hasła czytają tę samą konfigurację co kontrola kanału, `233076f`; **zweryfikowane na produkcji** — diagnostyka pokazuje `dostawca_poczty: \"smtp\"`) — **0.76.2 w gałęzi `agent/diagnostyka-poczta`** (raport zna obie nazwy ustawień); 0.77.0 w PR #80 (`agent/wywiad-kaloryczny`, wywiad kaloryczny wg specyfikacji właściciela, migracja 42, po przeglądzie).
 **Tryb pracy:** jeden piszący i jeden PR `[WRITER]` naraz
 (`KOORDYNACJA.md`, zasada nadrzędna).
 

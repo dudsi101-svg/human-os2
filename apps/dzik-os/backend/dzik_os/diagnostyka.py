@@ -39,9 +39,17 @@ from .models import (
 )
 from .notifications_provider import provider
 
-ZMIENNE_SMTP = (
-    "DZIK_SMTP_HOST", "DZIK_SMTP_PORT", "DZIK_SMTP_USER",
-    "DZIK_SMTP_PASSWORD", "DZIK_SMTP_FROM", "DZIK_SMTP_SECURITY",
+# Każde ustawienie poczty ma dwie dopuszczalne nazwy (0.76.1): własną
+# z prefiksem i wspólną z modułem `mailer`. Raport pokazuje, KTÓRA nazwa jest
+# ustawiona, i uznaje ustawienie za obecne, gdy jest którakolwiek — inaczej
+# wypisywał „brakuje” przy działającej poczcie i mylił czytającego.
+PARY_SMTP = (
+    ("DZIK_SMTP_HOST", "SMTP_HOST"),
+    ("DZIK_SMTP_PORT", "SMTP_PORT"),
+    ("DZIK_SMTP_USER", "SMTP_USER"),
+    ("DZIK_SMTP_PASSWORD", "SMTP_PASSWORD"),
+    ("DZIK_SMTP_FROM", "MAIL_FROM"),
+    ("DZIK_SMTP_SECURITY", None),
 )
 ZDARZENIA_DORECZEN = (
     "CLIENT_INVITED", "CLIENT_INVITATION_RESENT", "CLIENT_INVITATION_CANCELLED",
@@ -58,14 +66,19 @@ def _srodowisko(db) -> dict:
         ).scalar()
     except Exception:  # noqa: BLE001 — raport ma powstać nawet bez tabeli
         migracja = None
-    ustawione = [n for n in ZMIENNE_SMTP if os.environ.get(n)]
+    ustawione, brakuje = [], []
+    for wlasna, wspolna in PARY_SMTP:
+        nazwa = next(
+            (n for n in (wlasna, wspolna) if n and os.environ.get(n)), None
+        )
+        (ustawione if nazwa else brakuje).append(nazwa or wlasna)
     return {
         "wersja": __version__,
         "migracja": migracja,
         "public_base_url": settings.public_base_url or None,
         "dostawca_poczty": provider.name,
         "smtp_ustawione": ustawione,
-        "smtp_brakuje": [n for n in ZMIENNE_SMTP if n not in ustawione],
+        "smtp_brakuje": brakuje,
         "smtp_security": settings.smtp_security if settings.smtp_host else None,
         "mfa_wymagane_dla": sorted(
             r.strip() for r in str(settings.mfa_required_roles).split(",") if r.strip()
