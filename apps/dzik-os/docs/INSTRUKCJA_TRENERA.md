@@ -330,3 +330,12 @@ gdy operator włączy `DZIK_DIET_WIZARD_ENABLED`. Twoje ręczne plany
   historii (audyt) — to chroni także Ciebie.
 * Wiadomości: zakładka „Wiadomości" — wątek per klient, załączniki
   (zdjęcia, PDF, MP4 do 20 MB).
+
+## Jeden aktywny plan na klienta (0.78.0)
+
+Przypisanie planu — z szablonu, z bloków albo obu naraz — **archiwizuje
+poprzedni plan klienta**. Tak samo zachowuje się dieta od 0.60.0. Dotąd stary
+plan zostawał aktywny i niewidoczny, bo ekran klienta pokazuje najnowszy.
+
+Archiwizacja niczego nie kasuje: plan zostaje z całą historią wersji i widać go
+po włączeniu archiwum. Komunikat po przypisaniu mówi, ile planów zarchiwizowano.

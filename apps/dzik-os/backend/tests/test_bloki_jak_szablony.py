@@ -157,7 +157,9 @@ def test_copy_to_bez_ciala_bez_zmian_a_z_blokami_dodaje_do_kazdego_dnia(seeded):
     hc, ha = login(seeded, COACH), login(seeded, CLIENT_A)
     cid, tid = _client_id(seeded, hc), _template_id(seeded, hc)
     r = seeded.post(f"/api/plans/{tid}/copy-to/{cid}", headers=hc)
-    assert r.status_code == 201 and set(r.json()) == {"id", "version_id", "version_no"}
+    # 0.78.0: odpowiedź dokłada `archived_plans` (przypisanie archiwizuje
+    # poprzedni plan klienta — decyzja właściciela z 15.09). Reszta bez zmian.
+    assert r.status_code == 201 and set(r.json()) == {"id", "version_id", "version_no", "archived_plans"}
     bloki = _bloki(seeded, hc)
     w = _po_rodzaju(bloki, "WARMUP", level="POCZATKUJACY", variant="C")
     c = _po_rodzaju(bloki, "CARDIO", level="POCZATKUJACY", goal="regeneracja")
@@ -372,3 +374,43 @@ def test_migracja_41_dodaje_cardio_json_na_starej_bazie(tmp_path):
         cols = [r[1] for r in conn.exec_driver_sql("PRAGMA table_info(exercise_blocks)")]
         assert "cardio_json" in cols
         assert conn.exec_driver_sql("SELECT cardio_json FROM exercise_blocks WHERE id='B1'").scalar() is None
+
+
+# --- archiwizacja poprzedniego planu (0.78.0) --------------------------------
+
+def test_przypisanie_archiwizuje_poprzedni_plan_klienta(seeded):
+    """Decyzja właściciela z 15.09: klient ma mieć jeden aktywny plan, tak jak
+    jedną aktywną dietę. Dotąd stary plan zostawał ACTIVE i niewidoczny, bo
+    widoki biorą najnowszy."""
+    hc = login(seeded, COACH)
+    cid = _client_id(seeded, hc)
+    tid = _template_id(seeded, hc)
+
+    pierwszy = seeded.post(f"/api/plans/{tid}/copy-to/{cid}", headers=hc)
+    assert pierwszy.status_code == 201, pierwszy.text
+    assert pierwszy.json()["archived_plans"] >= 0
+    id_pierwszego = pierwszy.json()["id"]
+
+    drugi = seeded.post(f"/api/plans/{tid}/copy-to/{cid}", headers=hc)
+    assert drugi.status_code == 201, drugi.text
+    assert drugi.json()["archived_plans"] >= 1
+
+    from dzik_os.db import db_session
+    from dzik_os.models import TrainingPlan
+    with db_session() as db:
+        aktywne = db.query(TrainingPlan).filter_by(client_id=cid, status="ACTIVE").all()
+        assert len(aktywne) == 1 and aktywne[0].id == drugi.json()["id"]
+        stary = db.get(TrainingPlan, id_pierwszego)
+        # Archiwizacja niczego nie kasuje — plan zostaje z historią.
+        assert stary is not None and stary.status == "ARCHIVED"
+
+
+def test_plan_z_blokow_tez_archiwizuje_poprzedni(seeded):
+    hc = login(seeded, COACH)
+    cid = _client_id(seeded, hc)
+    bloki = _bloki(seeded, hc)
+    c = _po_rodzaju(bloki, "CARDIO", level="POCZATKUJACY", goal="regeneracja")
+    ciało = {"title": "Tylko aeroby", "days": [{"name": "Dzień 1"}], "blocks": [c["id"]]}
+    assert seeded.post(f"/api/clients/{cid}/plans/from-blocks", headers=hc, json=ciało).status_code == 201
+    drugi = seeded.post(f"/api/clients/{cid}/plans/from-blocks", headers=hc, json=ciało)
+    assert drugi.status_code == 201 and drugi.json()["archived_plans"] >= 1
