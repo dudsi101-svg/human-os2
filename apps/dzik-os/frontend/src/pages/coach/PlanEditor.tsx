@@ -21,8 +21,10 @@ import { appendDays, snapshot } from "../../assistantUtils";
 import { linesToExerciseNames } from "../../ocrUtils";
 import { KIND_BADGE, opisPozycji, rodzajPozycji } from "../../pozycje";
 import { LinkKartyTrenera } from "../../opisCwiczenia";
+import { etykietaBloku, pozycjaZBloku, wstawDoDnia } from "../../bloki";
 import {
-  BLOCK_VARIANT_LABELS,
+  BLOCK_KIND_LABELS,
+  BlockKind,
   EXERCISE_LEVEL_LABELS,
   Exercise,
   ExerciseBlockRow,
@@ -36,17 +38,24 @@ import {
 // Cardio z suwakami (0.73.0) — panel doładowywany dopiero po kliknięciu (budżet bundla).
 const CardioPanel = lazy(() => import("./CardioPanel"));
 
-/** Wybór bloku rozgrzewki/rozciągania z katalogu trenera → pozycja z migawką treści. */
+/** Wybór bloku rozgrzewki / aerobów (cardio, 0.76.0) / rozciągania z katalogu
+ * trenera → pozycja z migawką treści (CARDIO: plus kopia presetu). */
 function WyborBloku({ kind, bloki, onPick, onClose }: {
-  kind: "WARMUP" | "STRETCH"; bloki: ExerciseBlockRow[]; onPick: (b: ExerciseBlockRow) => void; onClose: () => void;
+  kind: BlockKind; bloki: ExerciseBlockRow[]; onPick: (b: ExerciseBlockRow) => void; onClose: () => void;
 }) {
   const lista = bloki.filter((b) => b.kind === kind && b.status === "ACTIVE");
   return (
     <div className="card" style={{ marginTop: 8 }} data-testid={`wybor-bloku-${kind}`}>
       <div className="row row--between">
-        <b>{kind === "WARMUP" ? "Rozgrzewka" : "Rozciąganie"} — wybierz blok</b>
+        <b>{BLOCK_KIND_LABELS[kind]} — wybierz blok</b>
         <button type="button" className="btn btn--ghost btn--small" onClick={onClose}>Zamknij</button>
       </div>
+      {kind === "CARDIO" && (
+        <p className="dim" style={{ fontSize: "0.85rem" }}>
+          Preset z silnika bez danych klienta (RPE, % tętna maks., test mowy — bez ud./min). Po wstawieniu możesz
+          policzyć wersję pod klienta w „+ Cardio” i zastąpić pozycję.
+        </p>
+      )}
       {lista.length === 0 && (
         <p className="dim" style={{ fontSize: "0.85rem" }}>Brak bloków w katalogu — Szablony → Bloki → „Dodaj wbudowane”.</p>
       )}
@@ -54,8 +63,7 @@ function WyborBloku({ kind, bloki, onPick, onClose }: {
         <div className="exercise" key={b.id}>
           <div>
             <b>{b.name}</b>
-            <div className="meta">{[BLOCK_VARIANT_LABELS[b.variant], b.level ? EXERCISE_LEVEL_LABELS[b.level] ?? b.level : null,
-              b.duration_min ? `≈${b.duration_min} min` : null, `${b.items.length} pozycji`].filter(Boolean).join(" · ")}</div>
+            <div className="meta">{[etykietaBloku(b), `${b.items.length} pozycji`].filter(Boolean).join(" · ")}</div>
           </div>
           <button type="button" className="btn btn--small" onClick={() => onPick(b)}>Wstaw</button>
         </div>
@@ -249,7 +257,7 @@ export default function PlanEditor({
   const [busy, setBusy] = useState(false);
   const [pickerDay, setPickerDay] = useState<number | null>(null);
   // Rozgrzewka / rozciąganie / cardio (0.73.0): który dzień ma otwarty wybór bloku albo panel cardio.
-  const [blokDay, setBlokDay] = useState<{ di: number; kind: "WARMUP" | "STRETCH" } | null>(null);
+  const [blokDay, setBlokDay] = useState<{ di: number; kind: BlockKind } | null>(null);
   const [cardioDay, setCardioDay] = useState<number | null>(null);
   const [bloki, setBloki] = useState<ExerciseBlockRow[]>([]);
   useEffect(() => {
@@ -303,18 +311,15 @@ export default function PlanEditor({
     setDay(dayIndex, { ...day, exercises });
   }
 
-  /** Blok rozgrzewki (na początek dnia) albo rozciągania (na koniec) z migawką treści. */
+  /** Blok rozgrzewki (na początek dnia), aerobów (po siłowych, przed rozciąganiem —
+   * 0.76.0, także w szablonie bez klienta) albo rozciągania (na koniec) z migawką treści. */
   function wstawBlok(dayIndex: number, b: ExerciseBlockRow) {
     const day = days[dayIndex];
-    const poz: Exercise = {
-      name: b.name, kind: b.kind === "WARMUP" ? "warmup_block" : "stretch_block", block_id: b.id,
-      block: { name: b.name, kind: b.kind, level: b.level, variant: b.variant, duration_min: b.duration_min, items: b.items },
-      sets: "", reps: "", weight: "", rest: "",
-    };
+    const poz = pozycjaZBloku(b);
     const bez = day.exercises.filter((ex) => ex.name?.trim() || ex.sets || ex.reps || ex.weight);
-    const exercises = b.kind === "WARMUP" ? [poz, ...bez] : [...bez, poz];
-    setDay(dayIndex, { ...day, exercises });
+    setDay(dayIndex, { ...day, exercises: wstawDoDnia(bez, poz) });
     setBlokDay(null);
+    setAssistantNote(`Wstawiono ${poz.name}. Nic nie zostało jeszcze zapisane.`);
   }
 
   /** Pozycja cardio z panelu suwaków — na koniec dnia (przed blokiem rozciągania, jeśli jest). */
@@ -584,6 +589,10 @@ export default function PlanEditor({
             <button type="button" className="btn btn--ghost btn--small" aria-expanded={cardioDay === di}
               onClick={() => setCardioDay(cardioDay === di ? null : di)}>
               + Cardio
+            </button>
+            <button type="button" className="btn btn--ghost btn--small" aria-expanded={blokDay?.di === di && blokDay.kind === "CARDIO"}
+              onClick={() => setBlokDay(blokDay?.di === di && blokDay.kind === "CARDIO" ? null : { di, kind: "CARDIO" })}>
+              + Cardio z bloku
             </button>
             <button type="button" className="btn btn--danger btn--small"
               onClick={() => setDays(days.filter((_, j) => j !== di))}>

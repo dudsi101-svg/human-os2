@@ -1,6 +1,6 @@
 # Stan przekazania — przeczytaj przed rozpoczęciem rundy
 
-**Aktualizacja:** 2026-09-14 · **Wersja w `main`:** 0.75.0 (po scaleniu PR #77 szablony i opisy, `3ca4a51`; 0.74.0 motyw = PR #76, `26a03af`) — **0.75.1 w PR #78** (`agent/nawigacja-safe-area`: dolna nawigacja na iPhonie — ikony ściskane przez wcięcie systemowe; poprawka CSS + test E2E).
+**Aktualizacja:** 2026-09-14 · **Wersja w `main`:** 0.75.1 (po scaleniu PR #78 nawigacja safe-area, `4e516e1`; 0.75.0 szablony i opisy = PR #77) — **0.76.0 w PR #79** (`agent/bloki-jak-szablony`: aeroby jako trzeci rodzaj bloku, przypisanie klientowi szablonu + bloków, migracja 41).
 **Tryb pracy:** jeden piszący i jeden PR `[WRITER]` naraz
 (`KOORDYNACJA.md`, zasada nadrzędna).
 
@@ -32,6 +32,24 @@ pierwszy commit, draft PR `[WRITER]`, reszta agentów read-only.
 **Stan jakości** (`docs/BRAMKA_GO_NOGO.md`): warunkowe GO na pilotaż z
 jednym prawdziwym klientem, **NO-GO na szerszą produkcję** — siedem
 blokerów wypisanych w §5 tamtego dokumentu.
+
+**Runda 0.76.0 (gałąź `agent/bloki-jak-szablony`, PR #79, migracja 41, polecenie
+właściciela z 14.09 „z bloków korzystać jak z szablonów; dodać jednocześnie szablon
+treningowy i blok, a nawet dwa”):** blok `CARDIO` jako trzeci rodzaj (cel dominujący
+zamiast wariantu, preset `cardio_json` liczony silnikiem bez danych klienta —
+RPE + % HRmax + test mowy, bez ud./min; 9 wbudowanych = 3 cele × 3 poziomy, razem
+21; klucz idempotencji `(rodzaj, poziom, cel)`; własne bloki cardio z formularza —
+cel/poziom/urządzenia, resztę liczy serwer), pozycja planu z bloku CARDIO
+(`kind: "cardio"` + kopia presetu + `block_id` + migawka; „+ Cardio z bloku” także w
+szablonie), `copy-to` z opcjonalnym `{blocks}` (maks. 3, po jednym na rodzaj, bez
+dublowania dnia, `blocks_applied` w odpowiedzi; luka 5 zamknięta — walidacja
+`exercise_id` + ślad H_CARDIO w kopii), `POST /clients/{id}/plans/from-blocks`
+(plan z samych bloków), karta „Przypisz plan” w karcie klienta → Plan (szablon
+albo tylko bloki, trzy wybory, podsumowanie, `role="status"`), klient widzi cardio
+z bloku jak cardio z odznaką „z bloku”. Testy: backend +12 (+`test_exercise_blocks`
+12 → 21), helper `bloki.ts` (5), E2E +2, `rozgrzewka.spec` 12 → 21, a11y krok 8a.
+Przyjęte domyślne i odstępstwa: `docs/plan-sesji/bloki-jak-szablony.md`; P2 i
+pytania: `docs/bloki-jak-szablony/PROGRESS.md`.
 
 **Runda 0.75.0 (gałąź `agent/szablony-i-opisy`, PR #77, polecenie właściciela z 14.09):**
 szablony treningowe rozwijane po kliknięciu w nazwę (lista = nazwy + „dni ·
@@ -448,6 +466,7 @@ nie uruchamiano, ponieważ runda nie zmienia kodu ani zasobów frontendu.
 | `agent/wymiany-produktow` | 0.69.0 (0.68.0 = dni treningowe) | — | zlecenie 2 (14.09): silnik wymian v2 (poziom 2, powody, NONE 1:1, bramka „nie pogarsza”), grupy pokrewne (45 par, RO), korelacja katalogu → CSV; przegląd 3 recenzentów naprawiony (P0/P1 ×5, P2 w PROGRESS); `main` 0.67.0 scalony, PR #69 — CI | przegląd CSV przez właściciela (TAK/NIE) → import osobnym PR-em; decyzja o luzie bramki | 1 |
 | `agent/dni-treningowe` | 0.71.0 | 38 (37 = PR #70) | zlecenie 1 (14.09): nakładka klienta na dni tygodnia planu, „Dzisiaj” z układem klienta, karta „ustaw dni”, odczyt u trenera; 13 testów API/silnika, E2E, przeklik; **PR #72 gotowy do przeglądu** | scalenie #70 (migracja 37 — bez niej `test_migracje_przenosnosc` czerwony); odpowiedzi właściciela na 3 pytania (domyślne przyjęte) | po #70 |
 | `agent/wywiad-kaloryczny-rozpoznanie` | — (docs) | — (przyszła: 38 lub 39) | etap 0 rundy „wyrównanie wywiadu kalorycznego do spec 1.0” — `docs/wywiad-zapotrzebowanie/01_rozpoznanie_spec_v1.md` (tabela luk, migracja, testy, ryzyka) | **7 decyzji właściciela** (§5 rozpoznania: nowe pytania zdrowotne i klasyfikacja, zakres flagowania, stare wywiady, wiek vs data urodzenia, flaga a Monitoring, kolejność migracji, minimalne kcal) | po decyzjach |
+| `agent/bloki-jak-szablony` | **0.76.0** | **41** (`exercise_blocks.cardio_json`) | polecenie właściciela 14.09: aeroby jako trzeci rodzaj bloku (9 presetów z silnika, 21 wbudowanych), „+ Cardio z bloku” (także w szablonie), `copy-to` z blokami + `from-blocks`, karta „Przypisz plan”; testy backend +12, helper +5, E2E +2, a11y 8a; **PR #79 — draft, bramki w raporcie sesji** | decyzja właściciela: mieszanki celów presetów (`presety.py`) i `variant=""` dla CARDIO w bazie (patrz plan sesji, odstępstwa) | po #78 (scalony) |
 | `agent/szablony-i-opisy` | 0.75.0 | — | polecenie właściciela 14.09: szablony rozwijane po nazwie, „Opis ćwiczenia” + „Pełny opis w Wiedzy” w planie klienta (po id i po nazwie), trasy `by-name`, karta ćwiczenia w Wiedzy (klient v2/legacy, trener); testy API 5 + helper 6 + E2E +4 + a11y + PWA; **PR #77 po przeglądzie (brak P0/P1, P2 poprawione), `main` 0.74.0 dociągnięty** | pytanie: utrwalać dopasowanie po nazwie w planie? (domyślnie nie) | po CI |
 | `agent/motyw-czerwony` | 0.74.0 | 40 | **scalona** (PR #76, `26a03af`, 14.09) | ikony PWA/og w czerwieni, `color-scheme: dark`, „jak w systemie”, jasne zrzuty galerii (`docs/motyw/PROGRESS.md`) | — |
 | `agent/cardio-i-rozgrzewka` | 0.73.0 | 39 | **scalona** (PR #75, `8a71116`, 14.09) | przegląd treści i kotwic [C] przez trenera (`docs/cardio/PROGRESS.md`); odpowiedzi właściciela na 7 pytań §8 (domyślne przyjęte) | — |

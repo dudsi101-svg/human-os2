@@ -99,7 +99,8 @@ domeny endpointu (`sensitive` wynika z katalogu kategorii).
 | GET/POST /api/clients/{id}/goals; POST /goals/{goal_id}/status | W, T | cele jednego klienta; `goal_id` musi należeć do `client_id` | T: tak | T: tak | R/W |
 | POST /api/plans | COACH (klientowi: T) | plan klienta lub szablon własny | tak* | tak* | W |
 | POST /api/plans/{plan_id}/versions | T·own + T | wyłącznie własny plan (i zgoda klienta, jeśli przypisany) | tak* | tak* | W |
-| POST /api/plans/{template_id}/copy-to/{client_id} | T·own + T | własny szablon → własny klient | tak | tak | W |
+| POST /api/plans/{template_id}/copy-to/{client_id} | T·own + T | własny szablon → własny klient; **0.76.0:** opcjonalne ciało `{blocks}` (maks. 3, po jednym na rodzaj) — bloki muszą należeć do trenera (cudzy = 404 z audytem, zarchiwizowany/duplikat rodzaju = 422); kopia waliduje `exercise_id` jak `POST /plans` i zapisuje ślad `H_CARDIO` | tak | tak | W |
+| POST /api/clients/{id}/plans/from-blocks (0.76.0) | T | plan klienta z samych bloków (1–7 dni, 1–3 bloki) — własny klient z relacją i zgodą na dane treningowe (klient = 403, trener bez relacji = 404), bloki własne (cudzy = 404); ślad `H_CARDIO` per pozycja cardio w tej samej transakcji | tak | tak | W |
 | GET /api/plans/templates | T·own | własne szablony | — | — | R |
 | GET /api/clients/{id}/plans; GET /api/plans/{plan_id}/versions | W, T (szablon: tylko autor) | plany jednego klienta | T: tak | T: tak | R |
 | POST/GET /api/clients/{id}/workouts | W, T | treningi klienta; `plan_version_id` musi wskazywać plan TEGO klienta | T: tak | T: tak | R/W |
@@ -113,7 +114,7 @@ domeny endpointu (`sensitive` wynika z katalogu kategorii).
 | GET /api/me/exercises/by-name?name= (0.75.0) | zalogowany | karta ćwiczenia po znormalizowanej nazwie — ten sam zbiór co `GET /api/me/exercises` (baza trenerów z aktywną relacją, wpisy ACTIVE); brak dopasowania, brak relacji i wpis zarchiwizowany = jedno 404 (bez rozróżniania); pusta nazwa = 422; przy duplikacie nazwy zawsze najstarszy wpis; nic nie zapisuje | tak | — | R |
 | GET /api/coach/exercises/by-name?name= (0.75.0) | COACH | wyłącznie własne ćwiczenia ACTIVE (cudze = 404, klient = 403); pusta nazwa = 422 | — | — | R |
 | GET /api/cardio/katalog (0.73.0) | wszyscy zalogowani | słowniki silnika (cele, urządzenia, kotwice, pytania bramki) — bez danych klienta | — | — | R |
-| GET/POST /api/coach/exercise-blocks; POST …/load-builtin; GET/PUT …/{block_id}; POST …/{block_id}/status (0.73.0) | T | bloki rozgrzewki/rozciągania — katalog trenera, broadcast jak ćwiczenia (klient dostaje treść wyłącznie jako migawkę w opublikowanej wersji planu); cudzy blok = 404; archiwizacja ≠ kasowanie | — | — | R/W |
+| GET/POST /api/coach/exercise-blocks; POST …/load-builtin; GET/PUT …/{block_id}; POST …/{block_id}/status (0.73.0; CARDIO od 0.76.0) | T | bloki rozgrzewki/aerobów/rozciągania — katalog trenera, broadcast jak ćwiczenia (klient dostaje treść wyłącznie jako migawkę w opublikowanej wersji planu); blok CARDIO niesie preset cardio liczony **bez danych klienta** (bez wieku, tętna, masy — nic zdrowotnego nie trafia do katalogu); cudzy blok = 404; archiwizacja ≠ kasowanie | — | — | R/W |
 | POST /api/reminders | T | przypomnienie dla własnego klienta | tak | tak | W |
 | POST /api/checkins | CLIENT (self) | wyłącznie własny raport | — | — | W |
 | GET /api/clients/{id}/checkins; GET /api/checkins/{checkin_id}/revisions | W, T | raporty jednego klienta (`checkin.client_id`) | T: tak | T: tak | R |

@@ -1589,3 +1589,12 @@ MIGRATIONS.append(
         "ALTER TABLE notification_settings ADD COLUMN theme VARCHAR(20)",
     ])
 )
+
+MIGRATIONS.append(
+    (41, "bloki jak szablony: exercise_blocks.cardio_json (preset cardio dla bloków CARDIO)", [
+        # Addytywna (ALTER ADD COLUMN bez DEFAULT — jak migracja 40); NULL dla
+        # rozgrzewki/rozciągania. Wycofanie = ignorowanie kolumny. Numer 40 =
+        # motyw (PR #76, scalony przed tą rundą).
+        "ALTER TABLE exercise_blocks ADD COLUMN cardio_json TEXT",
+    ])
+)

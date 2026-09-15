@@ -79,14 +79,23 @@ class BlockItemIn(BaseModel):
 
 class BlockSnapshotIn(BaseModel):
     """Migawka treści bloku zapisywana w wersji planu (0.73.0) — archiwizacja
-    bloku w katalogu nie zmienia opublikowanego planu."""
+    bloku w katalogu nie zmienia opublikowanego planu. Blok CARDIO (0.76.0)
+    nie ma wariantu (`variant` = None); rozgrzewka/rozciąganie muszą go mieć."""
 
     name: str = Field(min_length=1, max_length=300)
-    kind: str = Field(pattern="^(WARMUP|STRETCH)$")
+    kind: str = Field(pattern="^(WARMUP|STRETCH|CARDIO)$")
     level: str | None = Field(default=None, pattern="^(POCZATKUJACY|SREDNIOZAAWANSOWANY|ZAAWANSOWANY)$")
-    variant: str = Field(pattern="^(G|D|C)$")
+    variant: str | None = Field(default=None, pattern="^(G|D|C)$")
     duration_min: int | None = Field(default=None, ge=1, le=60)
     items: list[BlockItemIn] = Field(default=[], max_length=20)
+
+    @model_validator(mode="after")
+    def _wariant_wg_rodzaju(self) -> BlockSnapshotIn:
+        if self.kind == "CARDIO":
+            self.variant = None
+        elif self.variant is None:
+            raise ValueError("migawka bloku rozgrzewki/rozciągania wymaga wariantu (G/D/C)")
+        return self
 
 
 def _zakres(lo_min: int, hi_max: int, *, nazwa: str):
@@ -246,6 +255,14 @@ class ExerciseIn(BaseModel):
             raise ValueError("pozycja bloku wymaga migawki treści bloku (block)")
         if self.kind == "cardio" and self.cardio is None:
             raise ValueError("pozycja cardio wymaga obiektu cardio")
+        # Pozycja cardio z bloku (0.76.0): obok `cardio` może nieść `block_id` + migawkę,
+        # ale wyłącznie bloku CARDIO — migawka rozgrzewki przy cardio to pomyłka.
+        if self.kind == "cardio" and self.block is not None and self.block.kind != "CARDIO":
+            raise ValueError("pozycja cardio może nieść migawkę tylko bloku CARDIO")
+        if self.kind == "warmup_block" and self.block is not None and self.block.kind != "WARMUP":
+            raise ValueError("pozycja rozgrzewki wymaga migawki bloku WARMUP")
+        if self.kind == "stretch_block" and self.block is not None and self.block.kind != "STRETCH":
+            raise ValueError("pozycja rozciągania wymaga migawki bloku STRETCH")
         return self
 
 
@@ -284,6 +301,30 @@ class PlanCreateIn(BaseModel):
     client_id: str | None = None  # None => szablon
     title: str = Field(min_length=1, max_length=300)
     version: PlanVersionIn
+
+
+class CopyToClientIn(BaseModel):
+    """Opcjonalne ciało `copy-to` (0.76.0): bloki dokładane do KAŻDEGO dnia
+    kopii szablonu (maks. 3, po jednym na rodzaj — sprawdza `cardio.bloki`)."""
+
+    blocks: list[str] = Field(default=[], max_length=3)
+
+
+class PlanDayStubIn(BaseModel):
+    """Dzień planu „z samych bloków”: nazwa + opcjonalny dzień tygodnia."""
+
+    name: str = Field(min_length=1, max_length=200)
+    weekday: int | None = Field(default=None, ge=1, le=7)
+
+
+class PlanFromBlocksIn(BaseModel):
+    """Plan klienta zbudowany z bloków bez szablonu (0.76.0): 1–7 dni, 1–3
+    bloki (po jednym na rodzaj); każdy dzień = wybrane bloki."""
+
+    title: str = Field(min_length=1, max_length=300)
+    days: list[PlanDayStubIn] = Field(min_length=1, max_length=7)
+    blocks: list[str] = Field(min_length=1, max_length=3)
+    reason: str | None = Field(default=None, max_length=2000)
 
 
 class WorkoutSetIn(BaseModel):

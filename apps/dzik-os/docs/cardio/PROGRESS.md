@@ -22,6 +22,16 @@ w danych (`source`, `review`) i wymaga potwierdzenia albo poprawki:
 | Treść zastrzeżeń w UI (bilans energii, zakres ±10 ud./min, RPE przy lekach) | `stale.py::ZASTRZEZENIA`, `pozycje.tsx` | — |
 | Nazwy celów w UI: „Redukcja (wydatek energii)”, „Wydolność (VO2max)”, „Regeneracja (baza tlenowa)” | `stale.py`, `types.ts` | domyślne z §8 promptu |
 
+## 1a. Bloki cardio (0.76.0, „bloki jak szablony”) — co jest presetem, co liczy silnik, co nadpisuje trener
+
+| Warstwa | Co | Gdzie |
+|---|---|---|
+| **Preset (dane bloku)** | cel dominujący → mieszanka wag (`MIESZANKI_CELOW`: regeneracja `0/0/1`, wydolność `0/1/0`, redukcja `0,6/0,1/0,3` [C]), poziom, urządzenia domyślne (rowerek, bieżnia, wioślarz) | `backend/dzik_os/cardio/presety.py`; 9 wbudowanych w `bloki_wbudowane.py` (`source = "wbudowany — do przeglądu trenera"`) |
+| **Silnik (liczone, nie wpisane)** | `propozycja(mix, poziom, urządzenia)` **bez** wieku, tętna spoczynkowego i masy → % HRmax ±5, RPE, test mowy, czas, struktura (interwały wg poziomu), „zacznij od…” per urządzenie; `hr_bpm_range = null`, `hrmax_source = "none"`, zastrzeżenie „prowadź według RPE i testu mowy”; `trace.source = "blok"`, `trace.goal` | `cardio/model.py` (bez zmian w 0.76.0) |
+| **Pozycje opisowe** | 1–3 pozycje bez karty: urządzenia · czas, intensywność (RPE · % HRmax · test mowy), struktura | `presety.pozycje_opisowe`; trener może wpisać własne w formularzu bloku |
+| **Trener nadpisuje** | po przypisaniu planu: „+ Cardio” (panel suwaków z bramką zdrowotną i wiekiem) → nowa pozycja z `overridden_by_coach`, stara do usunięcia w edytorze; albo edycja bloku w Szablonach → Bloki (zmienia przyszłe wstawienia, nie opublikowane plany — migawka) | `CardioPanel.tsx`, `BlokiTab.tsx` |
+| **Do przeglądu trenera** | mieszanka redukcji `0,6/0,1/0,3` (czysta redukcja = 50 min wg kotwicy — za długo na blok po siłowym); czasy 20–40 min; urządzenia domyślne 3 z 5 | `presety.py` (komentarz [C]) |
+
 ## 2. Pytania do właściciela (przyjęte domyślne z §8 promptu — do potwierdzenia)
 
 1. Trzeci cel: Regeneracja (baza tlenowa). Alternatywy: Wytrzymałość, Moc/szybkość.

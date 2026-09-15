@@ -55,6 +55,7 @@ import {
   summaryModeNote,
 } from "../../onboardingUtils";
 import PlanEditor from "./PlanEditor";
+import PrzypiszPlan from "./PrzypiszPlan";
 import { KIND_BADGE, PozycjaBloku, opisPozycji, rodzajPozycji } from "../../pozycje";
 import { OpisCwiczenia } from "../../opisCwiczenia";
 import PublikacjaPanel from "./PublikacjaPanel";
@@ -523,8 +524,8 @@ function PlanTab({ clientId }: { clientId: string }) {
   const [versions, setVersions] = useState<PlanVersion[] | null>(null);
   const [workouts, setWorkouts] = useState<WorkoutRow[]>([]);
   const [templates, setTemplates] = useState<TrainingPlan[]>([]);
-  const [templateId, setTemplateId] = useState("");
-  const [copying, setCopying] = useState(false);
+  // 0.76.0: karta „Przypisz plan” (szablon i/lub bloki) zamiast selecta „Z szablonu…”.
+  const [przypisz, setPrzypisz] = useState(false);
   const [editing, setEditing] = useState<"new" | "version" | null>(null);
   const [error, setError] = useState<string | null>(null);
   // 0.58.0: szkice i publikacja zmian; gdy serwer je wyłączy, wraca „Nowa wersja”.
@@ -547,21 +548,6 @@ function PlanTab({ clientId }: { clientId: string }) {
       .catch((e) => setError(`Nie udało się wczytać szablonów. ${e.message}`));
   }, [clientId]);
   useEffect(load, [load]);
-
-  async function copyTemplate() {
-    if (!templateId) return;
-    setCopying(true);
-    setError(null);
-    try {
-      await api.post(`/api/plans/${templateId}/copy-to/${clientId}`);
-      setTemplateId("");
-      load();
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setCopying(false);
-    }
-  }
 
   useEffect(() => {
     if (plan && !versions) {
@@ -594,22 +580,13 @@ function PlanTab({ clientId }: { clientId: string }) {
               Nowa wersja aktualnego planu
             </button>
           )}
-          {templates.length > 0 && (
-            <>
-              <select value={templateId} style={{ width: "auto" }}
-                aria-label="Wybierz szablon planu"
-                onChange={(e) => setTemplateId(e.target.value)}>
-                <option value="">Z szablonu…</option>
-                {templates.map((t) => <option key={t.id} value={t.id}>{t.title}</option>)}
-              </select>
-              {templateId && (
-                <button className="btn btn--small" disabled={copying} onClick={copyTemplate}>
-                  {copying ? "Kopiowanie…" : "Kopiuj do klienta"}
-                </button>
-              )}
-            </>
-          )}
+          <button className="btn btn--ghost btn--small" aria-expanded={przypisz} onClick={() => setPrzypisz(!przypisz)}>
+            {przypisz ? "Zamknij „Przypisz plan”" : "Przypisz plan (szablon i bloki)"}
+          </button>
         </div>
+      )}
+      {!editing && przypisz && (
+        <PrzypiszPlan clientId={clientId} templates={templates} onDone={load} />
       )}
       {plan && !editing && (
         <PublikacjaPanel key={plan.id} planKind="training" planId={plan.id} clientId={clientId}
