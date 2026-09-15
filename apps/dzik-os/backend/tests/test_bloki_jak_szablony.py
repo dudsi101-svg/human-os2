@@ -354,7 +354,11 @@ def test_migracja_41_dodaje_cardio_json_na_starej_bazie(tmp_path):
     from dzik_os.db import MIGRATIONS, run_migrations
 
     eng = create_engine(f"sqlite:///{tmp_path}/stara.db")
-    assert run_migrations(eng)[-1] == 41 and MIGRATIONS[-1][0] == 41
+    # Test nie zakłada, że 41 jest OSTATNIĄ migracją — kolejne rundy dokładają
+    # swoje (42: bilans kaloryczny). Sprawdzamy, że 41 istnieje i że świeża
+    # baza ją stempluje; sama treść migracji jest niżej.
+    zastosowane = run_migrations(eng)
+    assert 41 in zastosowane and 41 in [wersja for wersja, _, _ in MIGRATIONS]
     with eng.begin() as conn:
         # Cofnięcie do stanu sprzed 41: kolumna zdjęta, stempel usunięty, jeden wiersz zostaje.
         conn.execute(text("ALTER TABLE exercise_blocks DROP COLUMN cardio_json"))
