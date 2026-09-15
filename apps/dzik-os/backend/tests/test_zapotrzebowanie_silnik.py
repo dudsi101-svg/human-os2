@@ -409,7 +409,7 @@ def test_granice_mnoznika_z_krokow_to_konkretne_liczby():
 # --- ciąża i karmienie: dodatek ze specyfikacji §6.4 (0.78.0) ----------------
 
 def _kobieta(**nad):
-    baza = dict(plec="F", wiek=30, wzrost_cm=170, masa_kg=70.0, neat="neat_2", cel="maintain")
+    baza = {"plec": "F", "wiek": 30, "wzrost_cm": 170, "masa_kg": 70.0, "neat": "neat_2", "cel": "maintain"}
     return Z.Wejscie(**{**baza, **nad})
 
 
