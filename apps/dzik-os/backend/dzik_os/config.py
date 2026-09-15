@@ -10,6 +10,25 @@ def _env(name: str, default: str) -> str:
     return os.environ.get(name, default)
 
 
+def _env_poczty(nazwa_dzik: str, nazwa_wspolna: str, default: str) -> str:
+    """Zmienna poczty pod jedną z dwóch nazw (0.76.1).
+
+    Aplikacja ma dwie drogi wychodzącej poczty, które powstały osobno:
+    `notifications_provider` (zaproszenia, reset hasła, powiadomienia) czyta
+    `DZIK_SMTP_*`, a `mailer` (kontrola kanału, wysyłka testowa) czyta
+    `SMTP_*` / `MAIL_FROM`. Na produkcji ustawiono te drugie, więc kontrola
+    kanału przechodziła, a zaproszenia i resety haseł nadal kończyły się
+    powodem „brak dostawcy” i trzeba było przekazywać link ręcznie.
+
+    Pierwszeństwo ma nazwa z prefiksem (jawna konfiguracja tej aplikacji);
+    wspólna jest zapasem. Gdy nie ma żadnej, zachowanie się nie zmienia:
+    dostawca `null`, aplikacja nie wysyła nic."""
+    wartosc = os.environ.get(nazwa_dzik)
+    if wartosc:
+        return wartosc
+    return os.environ.get(nazwa_wspolna) or default
+
+
 @dataclass
 class Settings:
     """Konfiguracja aplikacji. Wszystkie wartości pochodzą ze zmiennych
@@ -38,11 +57,11 @@ class Settings:
     max_clients: int = field(
         default_factory=lambda: int(_env("DZIK_MAX_CLIENTS", "10"))
     )
-    smtp_host: str = field(default_factory=lambda: _env("DZIK_SMTP_HOST", ""))
-    smtp_port: int = field(default_factory=lambda: int(_env("DZIK_SMTP_PORT", "587")))
-    smtp_user: str = field(default_factory=lambda: _env("DZIK_SMTP_USER", ""))
-    smtp_password: str = field(default_factory=lambda: _env("DZIK_SMTP_PASSWORD", ""))
-    smtp_from: str = field(default_factory=lambda: _env("DZIK_SMTP_FROM", ""))
+    smtp_host: str = field(default_factory=lambda: _env_poczty("DZIK_SMTP_HOST", "SMTP_HOST", ""))
+    smtp_port: int = field(default_factory=lambda: int(_env_poczty("DZIK_SMTP_PORT", "SMTP_PORT", "587")))
+    smtp_user: str = field(default_factory=lambda: _env_poczty("DZIK_SMTP_USER", "SMTP_USER", ""))
+    smtp_password: str = field(default_factory=lambda: _env_poczty("DZIK_SMTP_PASSWORD", "SMTP_PASSWORD", ""))
+    smtp_from: str = field(default_factory=lambda: _env_poczty("DZIK_SMTP_FROM", "MAIL_FROM", ""))
     #: "starttls" (domyślnie, port 587), "ssl" (port 465) albo "none" (test).
     smtp_security: str = field(default_factory=lambda: _env("DZIK_SMTP_SECURITY", "starttls"))
     #: Sekundy. Bez limitu zawieszony serwer poczty zablokowałby cały
