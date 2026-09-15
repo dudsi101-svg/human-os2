@@ -86,6 +86,16 @@ rozpoznanie luk z PR #71) jest w repozytorium: `docs/calorie-interview/`.
   dziedziczy się z poprzedniego wyniku, a zdejmuje je wyłącznie trener.
   Próg 1200/1500 kcal i granice mnożnika z kroków mają testy działania, nie
   tylko wartości stałej.
+## 0.76.2 — 2026-09-15
+
+**Raport diagnostyczny nie wypisuje już „brakuje” przy działającej poczcie
+(gałąź `agent/diagnostyka-poczta`, bez migracji).** Po 0.76.1 każde ustawienie
+poczty ma dwie dopuszczalne nazwy, ale diagnostyka znała tylko te z prefiksem —
+na produkcji pokazywała `dostawca_poczty: "smtp"` (poczta działa) i jednocześnie
+listę sześciu „brakujących” zmiennych. Raport podaje teraz nazwę, która jest
+faktycznie ustawiona, i uznaje ustawienie za obecne, gdy jest którakolwiek
+z pary. Wartości nadal nie są pokazywane — wyłącznie nazwy.
+
 ## 0.76.1 — 2026-09-15
 
 **Zaproszenia i reset hasła znów wychodzą: obie drogi poczty czytają tę samą
