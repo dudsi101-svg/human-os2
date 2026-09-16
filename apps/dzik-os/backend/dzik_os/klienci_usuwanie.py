@@ -86,9 +86,9 @@ def _kolumny_uzytkownika(tabela) -> list:
     `users.id`, a gdy klucza nie ma — po nazwie ze znanego zbioru."""
     wynik = []
     for kolumna in tabela.columns:
-        if any(fk.column.table.name == "users" for fk in kolumna.foreign_keys):
-            wynik.append(kolumna)
-        elif kolumna.name in KOLUMNY_BEZ_KLUCZA and isinstance(kolumna.type, String):
+        po_kluczu = any(fk.column.table.name == "users" for fk in kolumna.foreign_keys)
+        po_nazwie = kolumna.name in KOLUMNY_BEZ_KLUCZA and isinstance(kolumna.type, String)
+        if po_kluczu or po_nazwie:
             wynik.append(kolumna)
     return wynik
 
