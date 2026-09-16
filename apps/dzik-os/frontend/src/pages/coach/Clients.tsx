@@ -325,6 +325,10 @@ export default function Clients() {
                 {c.last_checkin_week ? plDate(c.last_checkin_week) : "brak"}
               </small>
               <button className="btn btn--danger btn--small"
+                // 44 px celu dotykowego: `btn--small` daje 38 i kontrola
+                // dostępności to wyłapała. Przy operacji nieodwracalnej
+                // pomyłka kciuka kosztuje najwięcej.
+                style={{ minHeight: 44 }}
                 aria-label={`Usuń klienta ${c.display_name}`}
                 onClick={(e) => { e.preventDefault(); deleteClient(c); }}>
                 Usuń
