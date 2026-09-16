@@ -17,6 +17,7 @@ from ..consent_catalog import ONBOARDING_CATEGORIES
 from ..dates import local_now_minute, local_today
 from ..db import get_db
 from ..hos_bridge import ConsentService, record_event
+from ..klienci_usuwanie import USUN_KONTO, tryb_usuniecia, usun_konto_trwale
 from ..links import activation_link
 from ..models import (
     ClientInvitation,
@@ -32,20 +33,28 @@ from ..models import (
     now_iso,
 )
 from ..notifications_provider import provider as notifications
-from ..schemas import RelationshipIn
+from ..schemas import InvitationDeliveryIn, RelationshipIn
 from ..security import _token_hash, active_roles, require_role
 
 router = APIRouter(prefix="/api/coach", tags=["coach"])
 
 
 def _issue_invitation(
-    db: Session, request: Request, coach: User, client: User
+    db: Session, request: Request, coach: User, client: User,
+    sposob: str = "email",
 ) -> dict:
     """Wystawia jednorazowe zaproszenie aktywacyjne dla konta PENDING.
     Nowy token unieważnia wszystkie poprzednie aktywne (bez mnożenia
     tokenów). W bazie ląduje wyłącznie hash SHA-256; link z tokenem jest
     wysyłany e-mailem, a przy NullNotificationProvider zwracany trenerowi
-    do ręcznego przekazania (świadomy kompromis — docs/PERMISSIONS.md)."""
+    do ręcznego przekazania (świadomy kompromis — docs/PERMISSIONS.md).
+
+    `sposob="link"` (0.79.0) to JAWNY wybór trenera: e-mail nie wychodzi
+    w ogóle, a link wraca do przekazania własną drogą. Wcześniej link
+    wracał wyłącznie awaryjnie, gdy wysyłka zawiodła — trener nie miał jak
+    poprosić o niego z góry, choć bywa, że zna klienta osobiście, a podany
+    adres jest tylko loginem. Token po staremu nie trafia do audytu ani
+    do logów."""
     now = now_iso()
     for old in (
         db.query(ClientInvitation)
@@ -70,6 +79,17 @@ def _issue_invitation(
     )
     db.add(invitation)
     link = activation_link(request, token)
+    if sposob == "link":
+        # Trener poprosił o link zamiast wiadomości: nie wysyłamy NICZEGO.
+        # Zaproszenie jest ważne tak samo jak wysłane pocztą — różni się
+        # wyłącznie kanałem doręczenia i tak to trafia do audytu.
+        return {
+            "id": invitation.id,
+            "expires_at": invitation.expires_at,
+            "delivery": "link",
+            "reason": None,
+            "activation_link": link,
+        }
     # Treść e-maila celowo bez JAKICHKOLWIEK danych zdrowotnych — tylko
     # zaproszenie i link (imię i nazwa trenera nie są danymi zdrowotnymi).
     sent = notifications.send_email(
@@ -243,7 +263,7 @@ def create_client(
     )
     invitation = None
     if new_account:
-        invitation = _issue_invitation(db, request, coach, client)
+        invitation = _issue_invitation(db, request, coach, client, body.delivery)
         record_event(
             db,
             action="CLIENT_INVITED",
@@ -282,14 +302,19 @@ def _own_pending_client(db: Session, coach: User, client_id: str) -> User:
 def resend_invitation(
     client_id: str,
     request: Request,
+    body: InvitationDeliveryIn | None = None,
     coach: User = Depends(require_role("COACH")),
     db: Session = Depends(get_db),
 ):
     """Ponowne wysłanie zaproszenia (np. link wygasł albo zaginął).
     Nowy token unieważnia wszystkie poprzednie — zawsze co najwyżej jedno
-    aktywne zaproszenie na konto."""
+    aktywne zaproszenie na konto.
+
+    Ciało jest OPCJONALNE: jego brak znaczy "email", czyli zachowanie
+    sprzed 0.79.0 — trasa bywała wołana bez ciała i ma taka zostać."""
     client = _own_pending_client(db, coach, client_id)
-    invitation = _issue_invitation(db, request, coach, client)
+    sposob = body.delivery if body is not None else "email"
+    invitation = _issue_invitation(db, request, coach, client, sposob)
     record_event(
         db,
         action="CLIENT_INVITATION_RESENT",
@@ -402,6 +427,10 @@ def list_clients(
                 # zaproszenia — bez tokenu (serwer zna tylko hash).
                 "account_pending": client.status == "PENDING",
                 "invitation_expires_at": invitations.get(client.id),
+                # Co zrobi „Usuń" dla TEGO klienta (0.79.0). Liczone tą samą
+                # funkcją, która potem wykona operację, więc panel nie zgaduje
+                # i nie może obiecać czegoś innego, niż serwer zrobi.
+                "usuniecie": tryb_usuniecia(db, coach, client),
                 "consent_scopes": consent_scopes,
                 "flags": {
                     "checkin_overdue": flags["checkin_overdue"],
@@ -626,6 +655,70 @@ def set_relationship_status(
     )
     db.commit()
     return {"ok": True, "status": status}
+
+
+@router.delete("/clients/{client_id}")
+def delete_client(
+    client_id: str,
+    coach: User = Depends(require_role("COACH")),
+    db: Session = Depends(get_db),
+):
+    """Usuwa klienta z panelu trenera. Serwer sam rozstrzyga, co to znaczy.
+
+    Trener nie jest właścicielem konta klienta — to osobny człowiek
+    z własnym logowaniem. Dlatego trwałe skasowanie jest możliwe WYŁĄCZNIE
+    dla konta, które nigdy nie zostało aktywowane i które ten trener sam
+    założył (`klienci_usuwanie.tryb_usuniecia` — cztery warunki naraz).
+    W każdym innym przypadku kończy się współpraca: klient zachowuje konto,
+    dane i dostęp, trener traci go z listy i zwalnia miejsce w limicie.
+
+    UI nie wybiera trybu i nie może go wymusić parametrem: gdyby mógł,
+    pomyłka albo złośliwy klient API kasowałby cudze dane. Odpowiedź podaje
+    `tryb`, żeby panel mógł pokazać, co się właśnie stało.
+    """
+    rel = (
+        db.query(CoachClientRelationship)
+        .filter_by(coach_id=coach.id, client_id=client_id)
+        .one_or_none()
+    )
+    client = db.get(User, client_id) if rel is not None else None
+    if client is None:
+        raise HTTPException(status_code=404, detail="Nie znaleziono")
+
+    tryb = tryb_usuniecia(db, coach, client)
+    nazwa = client.display_name
+
+    if tryb == USUN_KONTO:
+        # Zdarzenie PRZED kasowaniem: po usunięciu wierszy nie ma już czego
+        # wskazywać, a pokwitowanie i tak zostaje w łańcuchu audytu (jego
+        # `subject_id` to zwykły String, nie klucz obcy).
+        record_event(
+            db,
+            action="CLIENT_ACCOUNT_DELETED",
+            actor_id=coach.id,
+            subject_ids=[client_id],
+            payload={"relationship_id": rel.id, "email_domain": client.email.split("@")[-1]},
+            summary=f"Usunięcie nieaktywowanego konta klienta {nazwa}",
+        )
+        db.flush()
+        usuniete = usun_konto_trwale(db, client_id)
+        db.commit()
+        return {"ok": True, "tryb": tryb, "usuniete_wiersze": usuniete}
+
+    poprzedni = rel.status
+    if rel.status != "ENDED":
+        rel.status = "ENDED"
+        rel.ended_at = now_iso()
+    record_event(
+        db,
+        action="RELATIONSHIP_STATUS_CHANGED",
+        actor_id=coach.id,
+        subject_ids=[client_id],
+        payload={"relationship_id": rel.id, "from": poprzedni, "to": "ENDED"},
+        summary=f"Zakończenie współpracy z {nazwa} (usunięcie z listy trenera)",
+    )
+    db.commit()
+    return {"ok": True, "tryb": tryb}
 
 
 @router.get("/clients/{client_id}/history")

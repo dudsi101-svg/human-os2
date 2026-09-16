@@ -203,6 +203,7 @@ MATRIX: dict[tuple[str, str], Access] = {
     ("POST", "/api/coach/challenges"): Access.COACH_ONLY,
     ("GET", "/api/coach/clients"): Access.COACH_ONLY,
     ("POST", "/api/coach/clients"): Access.COACH_ONLY,
+    ("DELETE", "/api/coach/clients/{client_id}"): Access.CLIENT_SCOPED,
     ("GET", "/api/coach/clients/{client_id}/history"): Access.CLIENT_SCOPED,
     ("GET", "/api/diet/profiles"): Access.COACH_OR_ADMIN,
     ("POST", "/api/diet/profiles"): Access.COACH_OR_ADMIN,
