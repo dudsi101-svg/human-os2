@@ -1,5 +1,36 @@
 # Changelog — Dzik OS
 
+## 0.80.0 — 2026-09-16
+
+**Polecenie właściciela z 16.09 (gałąź `agent/wiele-blokow`, bez migracji).**
+
+* **Do szablonu treningowego można dołożyć kilka bloków tego samego rodzaju.**
+  Przypisywanie szablonu z rozgrzewką, aerobami i rozciąganiem działa od 0.76.0,
+  ale pozwalało wziąć **po jednym** bloku każdego rodzaju. Teraz jeden rodzaj może
+  wystąpić wiele razy — dwie różne rozgrzewki, kilka bloków aerobowych — do
+  **sześciu bloków łącznie**. Limit jest łączny, nie „po dwa na rodzaj”, więc układ
+  3 × aeroby + rozgrzewka + rozciąganie jest dozwolony. Ten sam blok dwa razy
+  nadal odrzucamy: to pomyłka, nie zamiar.
+
+  W karcie „Przypisz plan” każdy rodzaj ma teraz **listę wybranych bloków**
+  z przyciskiem dodania kolejnego i usunięcia pojedynczego. **Kolejność na ekranie
+  jest kolejnością w dniu** — trener widzi dokładnie to, co dostanie klient.
+
+* **Poprawka kolejności (cicha, ale znacząca).** Rozgrzewka trafiała na sam początek
+  listy pozycji, więc przy dwóch rozgrzewkach druga wylądowałaby PRZED pierwszą.
+  Teraz każda kolejna idzie za już obecnymi. Ta sama reguła obowiązuje w podglądzie
+  w panelu i przy zapisie na serwerze — oba miejsca układają dzień identycznie.
+
+* **Komunikat po przypisaniu przestał mylić bloki z dniami.** „Dodano rozgrzewkę do
+  2 dni” przy planie **jednodniowym** z dwiema rozgrzewkami brało się stąd, że raport
+  podawał tylko liczbę wstawionych pozycji. Teraz raport ma osobno liczbę dni
+  i liczbę bloków: „Dodano rozgrzewkę do 1 dnia (2 bloki)”.
+
+* **Ekran Szablony przestał wysyłać pod nieistniejącą nazwę.** Wskazówka mówiła
+  „karta klienta → Plan → »Z szablonu…«”, a przycisk nazywa się od 0.76.0
+  „Przypisz plan (szablon i bloki)”. To prawdopodobny powód, dla którego funkcja
+  wyglądała na nieistniejącą.
+
 ## 0.79.0 — 2026-09-16
 
 **Dwa polecenia właściciela z 16.09 (gałąź `agent/usuwanie-klientow`, bez migracji).**

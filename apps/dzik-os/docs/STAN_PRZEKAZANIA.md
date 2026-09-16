@@ -1,6 +1,6 @@
 # Stan przekazania — przeczytaj przed rozpoczęciem rundy
 
-**Aktualizacja:** 2026-09-16 · **Wersja w `main`:** 0.78.0 (dodatek kcal przy ciąży i karmieniu, archiwizacja poprzedniego planu, `3e75bd4`; wdrożone po naprawie flakującego testu motywu `568b5d4`) — **0.79.0 w gałęzi `agent/usuwanie-klientow`**: usuwanie klientów w dwóch trybach (trwale tylko konto nigdy nieaktywowane, założone przez tego trenera; inaczej zakończenie współpracy) oraz wybór doręczenia zaproszenia (e-mail albo link do przekazania) — polecenia właściciela z 16.09.
+**Aktualizacja:** 2026-09-16 · **Wersja w `main`:** 0.79.0 (usuwanie klientów w dwóch trybach, wybór doręczenia zaproszenia, `224f37c`; wdrożone i zweryfikowane na produkcji) — **0.80.0 w gałęzi `agent/wiele-blokow`**: do szablonu można dołożyć kilka bloków tego samego rodzaju (dwie rozgrzewki, kilka aerobów; limit łączny 6), kolejność wyboru trafia do planu klienta, raport rozróżnia liczbę dni od liczby bloków — polecenie właściciela z 16.09.
 **Tryb pracy:** jeden piszący i jeden PR `[WRITER]` naraz
 (`KOORDYNACJA.md`, zasada nadrzędna).
 

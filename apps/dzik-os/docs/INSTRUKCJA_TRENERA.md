@@ -236,6 +236,18 @@ takie wpisy scalasz ręcznie, poprawiając nazwę w treningu.
 
 ## Przypisz plan: szablon + bloki (od 0.76.0)
 
+**Od 0.80.0 możesz dołożyć kilka bloków tego samego rodzaju** — np. dwie różne
+rozgrzewki albo kilka bloków aerobowych. Przy każdym rodzaju jest lista wybranych
+bloków; wybierasz kolejny z rozwijanego pola, a niepotrzebny usuwasz przyciskiem
+obok. Łącznie do sześciu bloków.
+
+**Kolejność na liście to kolejność w dniu.** Pierwsza rozgrzewka z listy będzie
+pierwsza u klienta. Tego samego bloku nie dodasz dwa razy.
+
+Reguła „dzień, który już ma blok danego rodzaju z szablonu, zostaje bez zmian”
+działa jak dotąd i obejmuje wszystkie dokładane bloki tego rodzaju: jeśli szablon
+ma własną rozgrzewkę, to w tym dniu nie wejdzie żadna z Twoich.
+
 W karcie klienta → Plan przycisk **„Przypisz plan (szablon i bloki)”** otwiera
 kartę „Przypisz plan” (zastępuje dawne „Z szablonu… / Kopiuj do klienta”):
 

@@ -129,8 +129,10 @@ export default function Templates() {
                   zostają nietknięte (pochodzenie zapisane na ich wersji v1). */}
               <PublikacjaPanel planKind="training" planId={t.id} clientId={null} onZmiana={load} />
               <small className="dim">
-                Kopiowanie do klienta: karta klienta → Plan → „Z szablonu…”. Kopia jest
-                niezależna: zmiany szablonu nie zmieniają planów klientów.
+                Przypisanie klientowi: karta klienta → Plan → „Przypisz plan (szablon i bloki)”.
+                Do szablonu możesz tam dołożyć rozgrzewki, aeroby i rozciąganie — także po kilka
+                tego samego rodzaju. Kopia jest niezależna: zmiany szablonu nie zmieniają planów
+                klientów.
               </small>
             </div>
           )}

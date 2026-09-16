@@ -176,3 +176,35 @@ test("zmiana celu bloku aerobowego przelicza czas i pozycje opisowe", async ({ p
     }
   }
 });
+
+test("trener dokłada DWIE rozgrzewki; kolejność wyboru trafia do planu klienta", async ({ page }) => {
+  // Sedno 0.80.0. Kolejność jest treścią: do 0.79.0 rozgrzewka szła na sam
+  // początek listy, więc druga wylądowałaby PRZED pierwszą — plan wychodziłby
+  // odwrotnie, niż trener widzi na ekranie.
+  test.skip(test.info().project.name !== "telefon", "zapisuje plan — jeden projekt wystarczy");
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await zaloguj(page, KONTA.trener);
+  const karta = await kartaPiotra(page);
+
+  await karta.getByRole("radio", { name: /Bez szablonu — tylko bloki/ }).check();
+  await karta.locator("#pp-title").fill("Dwie rozgrzewki E2E");
+  await karta.locator("#pp-dni").fill("1");
+
+  await wybierz(karta.locator("#pp-blok-WARMUP"), "Rozgrzewka — całe ciało (początkujący)");
+  // Po pierwszym wyborze select zostaje i podaje „+ dodaj kolejny…”.
+  await wybierz(karta.locator("#pp-blok-WARMUP"), "Rozgrzewka — góra ciała");
+
+  const podsumowanie = karta.getByTestId("pp-podsumowanie");
+  await expect(podsumowanie).toContainText("rozgrzewka „Rozgrzewka — całe ciało (początkujący)”");
+  await expect(podsumowanie).toContainText("rozgrzewka „Rozgrzewka — góra ciała");
+
+  await klik(karta.getByRole("button", { name: "Przypisz klientowi" }));
+  await expect(karta.getByTestId("pp-status")).toContainText("Dodano rozgrzewkę do 1 dnia", { timeout: 15_000 });
+
+  // Plan klienta: obie rozgrzewki, w kolejności wyboru.
+  await expect(page.getByRole("heading", { name: "Dwie rozgrzewki E2E" })).toBeVisible({ timeout: 15_000 });
+  const pierwsza = page.getByTestId("tr-blok-0-0");
+  const druga = page.getByTestId("tr-blok-0-1");
+  await expect(pierwsza).toContainText("całe ciało");
+  await expect(druga).toContainText("góra ciała");
+});

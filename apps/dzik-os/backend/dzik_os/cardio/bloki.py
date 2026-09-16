@@ -169,7 +169,13 @@ def zloz_bloki_do_dni(days: list[dict], bloki: list[ExerciseBlock]) -> tuple[lis
     (szablon go zawierał), nie jest dublowany — trafia do `skipped_days`.
     Nie modyfikuje wejścia. Zwraca (dni, raport `blocks_applied`)."""
     wg_rodzaju = waliduj_zestaw(bloki)
+    #: `added` = liczba WSTAWIONYCH POZYCJI, `days` = liczba DNI, które dostały
+    #: dany rodzaj. Do 0.79.0 te liczby były równe (jeden blok na rodzaj), więc
+    #: komunikat „dodano rozgrzewkę do N dni” czytał `added` jako dni. Przy dwóch
+    #: rozgrzewkach w jednym dniu mówiłby „do 2 dni” przy planie jednodniowym —
+    #: wyłapał to test E2E.
     added = {KLUCZ_RAPORTU[k]: 0 for k in KOLEJNOSC_RODZAJOW}
+    days_count = {KLUCZ_RAPORTU[k]: 0 for k in KOLEJNOSC_RODZAJOW}
     skipped: list[dict] = []
     out_days: list[dict] = []
     for di, day in enumerate(days):
@@ -192,7 +198,8 @@ def zloz_bloki_do_dni(days: list[dict], bloki: list[ExerciseBlock]) -> tuple[lis
             for b in wybrane:
                 exercises = wstaw_do_dnia(exercises, pozycja_z_bloku(b))
                 added[KLUCZ_RAPORTU[kind]] += 1
+            days_count[KLUCZ_RAPORTU[kind]] += 1
         d["exercises"] = exercises
         out_days.append(d)
-    return out_days, {"added": added, "skipped_days": skipped,
+    return out_days, {"added": added, "days": days_count, "skipped_days": skipped,
                       "blocks": [{"id": b.id, "kind": b.kind, "name": b.name} for b in bloki]}
