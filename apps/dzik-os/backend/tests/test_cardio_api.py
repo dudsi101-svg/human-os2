@@ -223,18 +223,41 @@ def test_szkic_publikacja_zachowuje_goal_mix_i_slad(seeded):
 
 # --- dziennik ----------------------------------------------------------------
 
+#: Data zapisywanych tu treningów. Musi być JAWNIE STARSZA niż cokolwiek
+#: z seeda (seed liczy treningi względem „dzisiaj”), żeby nie zderzać się
+#: z danymi demo — dlatego wpisów NIE wolno czytać przez `workouts[0]`.
+DATA_TESTU = "2026-09-14"
+
+
+def _wpis(client, headers, cid, sesja_id):
+    """Trening po IDENTYFIKATORZE zwróconym przy zapisie — nie `workouts[0]`.
+
+    `workouts[0]` to najnowszy trening, a seed generuje swoje względem
+    bieżącej daty (offsety 16/9/2 dni). Gdy „dzisiaj” doszło do 16.09.2026,
+    seedowy trening wypadł dokładnie na DATA_TESTU i trzy testy zaczęły
+    czytać CUDZY wpis — nie dlatego, że coś się zepsuło w kodzie, tylko
+    dlatego, że minął dzień. Wybór po dacie też by nie wystarczył (kolizja
+    jest właśnie na dacie); identyfikator z odpowiedzi POST jest jedyną
+    wartością, której nic z zewnątrz nie podrobi.
+    """
+    workouts = client.get(f"/api/clients/{cid}/workouts", headers=headers).json()["workouts"]
+    pasujace = [w for w in workouts if w["id"] == sesja_id]
+    assert pasujace, f"brak treningu {sesja_id} (są: {[w['id'] for w in workouts]})"
+    return pasujace[0]
+
+
 def test_dziennik_cardio_bez_serii_eksport_i_usuniecie(seeded):
     ha = login(seeded, CLIENT_A)
     cid = get_user_id(seeded, ha)
     plan = _plan_a(seeded, ha, cid)
     r = seeded.post(f"/api/clients/{cid}/workouts", headers=ha, json={
-        "plan_version_id": plan["current_version"]["id"], "day_index": 2, "performed_on": "2026-09-14",
+        "plan_version_id": plan["current_version"]["id"], "day_index": 2, "performed_on": DATA_TESTU,
         "status": "DONE", "entries": [
             {"exercise_index": 3, "exercise_name": "Cardio — rowerek", "duration_min": 25, "avg_hr": 138,
              "rpe": 6, "distance_km": 9.5, "machine": "wioslarz"}]})
     assert r.status_code == 201, r.text
     assert r.json()["new_records"] == 0  # cardio nie tworzy rekordów kg
-    w = seeded.get(f"/api/clients/{cid}/workouts", headers=ha).json()["workouts"][0]
+    w = _wpis(seeded, ha, cid, r.json()["id"])
     e = w["entries"][0]
     assert e["duration_min"] == 25 and e["avg_hr"] == 138 and e["rpe"] == 6 and e["machine"] == "wioslarz"
     assert e["sets"] == [] and e["distance_km"] == 9.5
@@ -260,7 +283,7 @@ def test_dziennik_cudzego_klienta_404(seeded):
     cid_a = get_user_id(seeded, ha)
     plan = _plan_a(seeded, ha, cid_a)
     r = seeded.post(f"/api/clients/{cid_a}/workouts", headers=hb, json={
-        "plan_version_id": plan["current_version"]["id"], "day_index": 2, "performed_on": "2026-09-14",
+        "plan_version_id": plan["current_version"]["id"], "day_index": 2, "performed_on": DATA_TESTU,
         "entries": [{"exercise_index": 3, "exercise_name": "Cardio", "duration_min": 20, "rpe": 5}]})
     assert r.status_code == 404
 
@@ -272,20 +295,21 @@ def test_tetno_srednie_maskowane_dla_trenera_bez_zgody_zdrowotnej(seeded):
     cid = get_user_id(seeded, ha)
     plan = _plan_a(seeded, ha, cid)
     r = seeded.post(f"/api/clients/{cid}/workouts", headers=ha, json={
-        "plan_version_id": plan["current_version"]["id"], "day_index": 2, "performed_on": "2026-09-14",
+        "plan_version_id": plan["current_version"]["id"], "day_index": 2, "performed_on": DATA_TESTU,
         "entries": [{"exercise_index": 3, "exercise_name": "Cardio", "duration_min": 20, "avg_hr": 140, "rpe": 5,
                      "machine": "rowerek"}]})
     assert r.status_code == 201
-    wpis = seeded.get(f"/api/clients/{cid}/workouts", headers=hc).json()["workouts"][0]["entries"][0]
+    sesja = r.json()["id"]
+    wpis = _wpis(seeded, hc, cid, sesja)["entries"][0]
     assert wpis["avg_hr"] == 140  # zgoda zdrowotna z seedu
     zgody = seeded.get("/api/me/consents", headers=ha).json()["consents"]
     zdrowie = next(c for c in zgody if c["category"] == "dane_zdrowotne" and c["revoked_at"] is None
                    and c["denied_at"] is None)
     assert seeded.post(f"/api/me/consents/{zdrowie['id']}/revoke", headers=ha).status_code == 200
-    wpis = seeded.get(f"/api/clients/{cid}/workouts", headers=hc).json()["workouts"][0]["entries"][0]
+    wpis = _wpis(seeded, hc, cid, sesja)["entries"][0]
     assert wpis["avg_hr"] is None and wpis["duration_min"] == 20 and wpis["machine"] == "rowerek"
     # Klient nadal widzi swoje tętno.
-    assert seeded.get(f"/api/clients/{cid}/workouts", headers=ha).json()["workouts"][0]["entries"][0]["avg_hr"] == 140
+    assert _wpis(seeded, ha, cid, sesja)["entries"][0]["avg_hr"] == 140
 
 
 def test_plan_i_slad_nie_zdradzaja_odpowiedzi_o_lekach(seeded):
@@ -360,8 +384,8 @@ def test_trener_bez_zgody_zdrowotnej_nie_dopisuje_tetna(seeded):
     zdrowie = next(c for c in zgody if c["category"] == "dane_zdrowotne" and c["revoked_at"] is None and c["denied_at"] is None)
     assert seeded.post(f"/api/me/consents/{zdrowie['id']}/revoke", headers=ha).status_code == 200
     r = seeded.post(f"/api/clients/{cid}/workouts", headers=hc, json={
-        "plan_version_id": plan["current_version"]["id"], "day_index": 2, "performed_on": "2026-09-14",
+        "plan_version_id": plan["current_version"]["id"], "day_index": 2, "performed_on": DATA_TESTU,
         "entries": [{"exercise_index": 3, "exercise_name": "Cardio", "duration_min": 20, "avg_hr": 140, "rpe": 5, "machine": "rowerek"}]})
     assert r.status_code == 201, r.text
-    wpis = seeded.get(f"/api/clients/{cid}/workouts", headers=ha).json()["workouts"][0]["entries"][0]
+    wpis = _wpis(seeded, ha, cid, r.json()["id"])["entries"][0]
     assert wpis["avg_hr"] is None and wpis["duration_min"] == 20
