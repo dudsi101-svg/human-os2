@@ -98,7 +98,11 @@ test("trener rozwija i zwija szablon kliknięciem w nazwę", async ({ page }) =>
   await expect(karta).toContainText(/4×8/);
   // Pozycja z bazy prowadzi do własnej karty ćwiczenia w Wiedzy.
   await expect(karta.getByRole("link", { name: "Karta w Wiedzy" }).first()).toHaveAttribute("href", /\/trener\/wiedza\?cwiczenie=/);
-  await expect(karta).toContainText("Kopiowanie do klienta");
+  // Wskazówka musi podawać nazwę przycisku, który NAPRAWDĘ istnieje w karcie
+  // klienta. Do 0.79.0 mówiła „Z szablonu…” — nazwy zmienionej w 0.76.0 —
+  // i przez to funkcja przypisywania z blokami wyglądała na nieistniejącą.
+  await expect(karta).toContainText("Przypisanie klientowi");
+  await expect(karta).toContainText("Przypisz plan (szablon i bloki)");
 
   // Klawiatura: Enter na przycisku zwija.
   await nazwa.focus();

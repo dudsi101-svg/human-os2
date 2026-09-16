@@ -13,13 +13,19 @@ import { BLOCK_KIND_LABELS, BLOCK_KINDS, BlockKind, ExerciseBlockRow, TrainingPl
 
 /**
  * Karta „Przypisz plan” (0.76.0, „bloki jak szablony”) w karcie klienta → Plan:
- * szablon treningowy ALBO „bez szablonu — tylko bloki”, plus do trzech bloków
- * (rozgrzewka / aeroby / rozciąganie — po jednym na rodzaj) dokładanych do
- * każdego dnia. Szablon bez bloków = dokładnie dotychczasowe „Kopiuj do klienta”
- * (`copy-to` bez ciała). Nic nie jest zapisywane przed „Przypisz klientowi”.
+ * szablon treningowy ALBO „bez szablonu — tylko bloki”, plus bloki (rozgrzewka /
+ * aeroby / rozciąganie) dokładane do każdego dnia. Szablon bez bloków = dokładnie
+ * dotychczasowe „Kopiuj do klienta” (`copy-to` bez ciała). Nic nie jest zapisywane
+ * przed „Przypisz klientowi”.
+ *
+ * Od 0.80.0 jeden rodzaj może wystąpić WIELE razy (dwie różne rozgrzewki, kilka
+ * bloków aerobowych) — do sześciu bloków łącznie. Kolejność na ekranie jest
+ * kolejnością w dniu, więc trener widzi dokładnie to, co dostanie klient.
  */
 
 const BLOKI_API = "/api/coach/exercise-blocks";
+/** Ten sam limit łączny co w backendzie (`cardio.bloki.MAKS_BLOKOW`). */
+const MAKS_BLOKOW = 6;
 const OPIS_RODZAJU: Record<BlockKind, string> = {
   WARMUP: "na początek każdego dnia",
   CARDIO: "po ćwiczeniach siłowych",
@@ -32,7 +38,8 @@ export default function PrzypiszPlan({ clientId, templates, onDone }: {
   const [zrodlo, setZrodlo] = useState<"szablon" | "bloki">(templates.length ? "szablon" : "bloki");
   const [templateId, setTemplateId] = useState("");
   const [bloki, setBloki] = useState<ExerciseBlockRow[] | null>(null);
-  const [wybor, setWybor] = useState<Record<BlockKind, string>>({ WARMUP: "", CARDIO: "", STRETCH: "" });
+  // Listy, nie pojedyncze wartości: jeden rodzaj może wystąpić wiele razy.
+  const [wybor, setWybor] = useState<Record<BlockKind, string[]>>({ WARMUP: [], CARDIO: [], STRETCH: [] });
   const [title, setTitle] = useState("");
   const [dni, setDni] = useState("3");
   const [busy, setBusy] = useState(false);
@@ -44,9 +51,18 @@ export default function PrzypiszPlan({ clientId, templates, onDone }: {
   }, []);
 
   const aktywne = (kind: BlockKind) => (bloki ?? []).filter((b) => b.kind === kind && b.status === "ACTIVE");
-  const wybrane = (kind: BlockKind) => (bloki ?? []).find((b) => b.id === wybor[kind]) ?? null;
+  const wybrane = (kind: BlockKind) =>
+    wybor[kind].map((id) => (bloki ?? []).find((b) => b.id === id)).filter((b): b is ExerciseBlockRow => !!b);
   const szablon = templates.find((t) => t.id === templateId) ?? null;
-  const idBlokow = BLOCK_KINDS.map((k) => wybor[k]).filter(Boolean);
+  const idBlokow = BLOCK_KINDS.flatMap((k) => wybor[k]).filter(Boolean);
+  const pelno = idBlokow.length >= MAKS_BLOKOW;
+
+  const dodajBlok = (kind: BlockKind, id: string) =>
+    setWybor((p) => ({ ...p, [kind]: [...p[kind], id] }));
+  const usunBlok = (kind: BlockKind, i: number) =>
+    setWybor((p) => ({ ...p, [kind]: p[kind].filter((_, j) => j !== i) }));
+  /** Bloki jeszcze niewybrane w tym rodzaju — ten sam blok dwa razy odrzuca serwer. */
+  const wolne = (kind: BlockKind) => aktywne(kind).filter((b) => !wybor[kind].includes(b.id));
   const liczbaDni = Math.max(1, Math.min(7, Number(dni) || 1));
   const gotowe = zrodlo === "szablon" ? !!szablon : idBlokow.length > 0 && title.trim().length > 0;
   const podsumowanie = gotowe ? podsumowaniePrzypisania({
@@ -73,7 +89,7 @@ export default function PrzypiszPlan({ clientId, templates, onDone }: {
         });
         setNote(`Utworzono plan „${title.trim()}” z bloków. ` + komunikatPoPrzypisaniu(r.blocks_applied, liczbaDni));
       }
-      setTemplateId(""); setWybor({ WARMUP: "", CARDIO: "", STRETCH: "" }); setTitle("");
+      setTemplateId(""); setWybor({ WARMUP: [], CARDIO: [], STRETCH: [] }); setTitle("");
       onDone();
     } catch (err) {
       setError((err as Error).message);
@@ -125,22 +141,48 @@ export default function PrzypiszPlan({ clientId, templates, onDone }: {
         )}
         {BLOCK_KINDS.map((kind) => {
           const lista = aktywne(kind);
+          const dostepne = wolne(kind);
+          const pusty = bloki !== null && lista.length === 0;
           return (
             <div key={kind} style={{ marginTop: 6 }}>
               {/* Etykieta wskazuje na pole tylko wtedy, gdy pole istnieje — przy pustym
                   katalogu jest zwykłym tekstem nad komunikatem (przegląd PR #79, P2). */}
-              {bloki !== null && lista.length === 0
+              {pusty || dostepne.length === 0
                 ? <b style={{ display: "block" }}>{BLOCK_KIND_LABELS[kind]} <span className="dim">({OPIS_RODZAJU[kind]})</span></b>
                 : <label htmlFor={`pp-blok-${kind}`}>{BLOCK_KIND_LABELS[kind]} <span className="dim">({OPIS_RODZAJU[kind]})</span></label>}
-              {bloki !== null && lista.length === 0 ? (
+              {pusty ? (
                 <p className="dim" style={{ fontSize: "0.85rem", margin: "2px 0 0" }}>
                   Brak bloków tego rodzaju w katalogu — <Link to="/trener/szablony">Szablony → Bloki → „Dodaj wbudowane”</Link>.
                 </p>
               ) : (
-                <select id={`pp-blok-${kind}`} value={wybor[kind]} onChange={(e) => setWybor({ ...wybor, [kind]: e.target.value })}>
-                  <option value="">bez</option>
-                  {lista.map((b) => <option key={b.id} value={b.id}>{b.name} — {etykietaBloku(b)}</option>)}
-                </select>
+                <>
+                  {/* Wybrane bloki w KOLEJNOŚCI, w jakiej trafią do dnia. */}
+                  {wybrane(kind).map((b, i) => (
+                    <div key={`${b.id}-${i}`} className="row row--between"
+                      style={{ alignItems: "center", gap: 8, minHeight: 44 }}>
+                      <span>{i + 1}. {b.name} <span className="dim">— {etykietaBloku(b)}</span></span>
+                      <button type="button" className="btn btn--ghost btn--small"
+                        style={{ minHeight: 44 }}
+                        aria-label={`Usuń z planu: ${b.name}`}
+                        onClick={() => usunBlok(kind, i)}>Usuń</button>
+                    </div>
+                  ))}
+                  {dostepne.length > 0 && !pelno && (
+                    <select id={`pp-blok-${kind}`} value=""
+                      aria-label={`Dodaj blok: ${BLOCK_KIND_LABELS[kind].toLowerCase()}`}
+                      onChange={(e) => { if (e.target.value) dodajBlok(kind, e.target.value); }}>
+                      <option value="">
+                        {wybor[kind].length ? "+ dodaj kolejny…" : "bez"}
+                      </option>
+                      {dostepne.map((b) => <option key={b.id} value={b.id}>{b.name} — {etykietaBloku(b)}</option>)}
+                    </select>
+                  )}
+                  {pelno && wybor[kind].length === 0 && (
+                    <p className="dim" style={{ fontSize: "0.85rem", margin: "2px 0 0" }}>
+                      Limit {MAKS_BLOKOW} bloków wyczerpany — usuń któryś, żeby dodać inny.
+                    </p>
+                  )}
+                </>
               )}
             </div>
           );

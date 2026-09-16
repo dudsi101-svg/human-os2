@@ -1,6 +1,6 @@
 # Stan wydania — Dzik OS
 
-**Wersja:** 0.79.0 (usuwanie klientów w dwóch trybach; wybór doręczenia zaproszenia) · **Data:** 2026-09-16 · **Środowisko:** produkcja
+**Wersja:** 0.80.0 (kilka bloków tego samego rodzaju w jednym planie) · **Data:** 2026-09-16 · **Środowisko:** produkcja
 (pilotaż) — https://dzik-os-panel.fly.dev
 
 Jedna strona prawdy o tym, co DZIAŁA na produkcji teraz. Aktualizowana

@@ -198,9 +198,11 @@ def test_copy_to_odmowy_duplikat_cudzy_zarchiwizowany_i_brak_dublowania(seeded):
     w1 = _po_rodzaju(bloki, "WARMUP", level="POCZATKUJACY", variant="C")
     w2 = _po_rodzaju(bloki, "WARMUP", level="POCZATKUJACY", variant="G")
     c = _po_rodzaju(bloki, "CARDIO", level="ZAAWANSOWANY", goal="wydolnosc")
-    # Duplikat rodzaju → 422 po polsku.
+    # Dwa bloki TEGO SAMEGO rodzaju są dozwolone od 0.80.0 (dwie różne rozgrzewki
+    # to sensowny układ treningowy). Do 0.79.0 leciało tu 422 — zmiana kontraktu
+    # na wyraźne polecenie właściciela z 16.09.
     r = seeded.post(f"/api/plans/{tid}/copy-to/{cid}", headers=hc, json={"blocks": [w1["id"], w2["id"]]})
-    assert r.status_code == 422 and "tego samego rodzaju" in r.json()["detail"]
+    assert r.status_code == 201, r.text
     # Ten sam blok dwa razy → 422; cztery bloki → 422 (schemat).
     assert seeded.post(f"/api/plans/{tid}/copy-to/{cid}", headers=hc, json={"blocks": [w1["id"], w1["id"]]}).status_code == 422
     assert seeded.post(f"/api/plans/{tid}/copy-to/{cid}", headers=hc,
@@ -297,15 +299,16 @@ def test_from_blocks_tworzy_plan_z_samych_blokow(seeded):
     assert all(_rodzaje(d) == ["cardio", "stretch_block"] for d in days)
     with SessionLocal() as db:
         assert db.query(WiedzaSlad).filter_by(plan_id=plan["id"], target_type="cardio_prescription").count() == 2
-    # Walidacje: 0 bloków, 8 dni, 4 bloki, duplikat rodzaju.
+    # Walidacje: 0 bloków, 8 dni.
     assert seeded.post(f"/api/clients/{cid}/plans/from-blocks", headers=hc,
                        json={"title": "x", "days": [{"name": "D"}], "blocks": []}).status_code == 422
     assert seeded.post(f"/api/clients/{cid}/plans/from-blocks", headers=hc,
                        json={"title": "x", "days": [{"name": f"D{i}"} for i in range(8)], "blocks": [c["id"]]}).status_code == 422
+    # Dwa rozciągania naraz: dozwolone od 0.80.0 (było 422 do 0.79.0).
     s2 = _po_rodzaju(bloki, "STRETCH", variant="G")
     r = seeded.post(f"/api/clients/{cid}/plans/from-blocks", headers=hc,
                     json={"title": "x", "days": [{"name": "D"}], "blocks": [s["id"], s2["id"]]})
-    assert r.status_code == 422 and "tego samego rodzaju" in r.json()["detail"]
+    assert r.status_code == 201, r.text
 
 
 def test_from_blocks_klient_403_a_obcy_trener_404(seeded):
@@ -414,3 +417,120 @@ def test_plan_z_blokow_tez_archiwizuje_poprzedni(seeded):
     assert seeded.post(f"/api/clients/{cid}/plans/from-blocks", headers=hc, json=ciało).status_code == 201
     drugi = seeded.post(f"/api/clients/{cid}/plans/from-blocks", headers=hc, json=ciało)
     assert drugi.status_code == 201 and drugi.json()["archived_plans"] >= 1
+
+
+# --- Wiele bloków tego samego rodzaju (0.80.0) --------------------------------
+
+def _nazwy(day: dict) -> list[str]:
+    return [ex["name"] for ex in day["exercises"]]
+
+
+def test_dwie_rozgrzewki_trafiaja_w_kolejnosci_wyboru(seeded):
+    """Sedno rundy: dwie RÓŻNE rozgrzewki w jednym planie, w kolejności, którą
+    wybrał trener.
+
+    Kolejność jest treścią, nie kosmetyką: `wstaw_do_dnia` wstawiała rozgrzewkę
+    przez `[poz, *exercises]`, więc druga lądowała PRZED pierwszą i klient
+    dostawał plan odwrotny do tego, co trener widział na ekranie. Mutant
+    przywracający tamto zachowanie musi dać czerwony test.
+    """
+    hc = login(seeded, COACH)
+    cid, bloki = _client_id(seeded, hc), _bloki(seeded, hc)
+    w1 = _po_rodzaju(bloki, "WARMUP", level="POCZATKUJACY", variant="C")
+    w2 = _po_rodzaju(bloki, "WARMUP", level="POCZATKUJACY", variant="G")
+
+    r = seeded.post(f"/api/clients/{cid}/plans/from-blocks", headers=hc,
+                    json={"title": "Dwie rozgrzewki", "days": [{"name": "D"}],
+                          "blocks": [w1["id"], w2["id"]]})
+    assert r.status_code == 201, r.text
+    assert r.json()["blocks_applied"]["added"]["warmup"] == 2
+
+    dzien = _plan(seeded, hc, cid, r.json()["id"])["current_version"]["content"]["days"][0]
+    assert _rodzaje(dzien) == ["warmup_block", "warmup_block"]
+    assert _nazwy(dzien) == [w1["name"], w2["name"]], "kolejność wyboru trenera musi zostać zachowana"
+
+
+def test_trzy_bloki_aerobowe_w_jednym_dniu(seeded):
+    """Limit jest ŁĄCZNY, nie „po dwa na rodzaj” — trzy aeroby to poprawny zestaw."""
+    hc = login(seeded, COACH)
+    cid, bloki = _client_id(seeded, hc), _bloki(seeded, hc)
+    cardio = [b for b in bloki if b["kind"] == "CARDIO" and b["status"] == "ACTIVE"][:3]
+    assert len(cardio) == 3
+
+    r = seeded.post(f"/api/clients/{cid}/plans/from-blocks", headers=hc,
+                    json={"title": "Trzy aeroby", "days": [{"name": "D"}],
+                          "blocks": [b["id"] for b in cardio]})
+    assert r.status_code == 201, r.text
+    assert r.json()["blocks_applied"]["added"]["cardio"] == 3
+    dzien = _plan(seeded, hc, cid, r.json()["id"])["current_version"]["content"]["days"][0]
+    assert _nazwy(dzien) == [b["name"] for b in cardio]
+
+
+def test_szablon_z_wlasna_rozgrzewka_pomija_OBIE_dokladane(seeded):
+    """Reguła „nie dublujemy tego, co szablon już ma” liczona jest RAZ, przed
+    wstawianiem — inaczej pierwsza rozgrzewka byłaby pomijana, a druga wstawiana.
+    Dzień melduje się w `skipped_days` raz na rodzaj, nie raz na blok."""
+    hc = login(seeded, COACH)
+    cid, tid, bloki = _client_id(seeded, hc), _template_id(seeded, hc), _bloki(seeded, hc)
+    w1 = _po_rodzaju(bloki, "WARMUP", level="POCZATKUJACY", variant="C")
+    w2 = _po_rodzaju(bloki, "WARMUP", level="POCZATKUJACY", variant="G")
+
+    # Szablon dostaje własną rozgrzewkę w pierwszym dniu (lista szablonów niesie
+    # `current_version` — trasa pojedynczego planu zwraca sam nagłówek i wersje).
+    szablon = next(t for t in seeded.get("/api/plans/templates", headers=hc).json()["templates"]
+                   if t["id"] == tid)
+    dni = szablon["current_version"]["content"]["days"]
+    # Pozycja bloku wymaga migawki treści (`block`) — bierzemy ją z trzeciej,
+    # NIEUŻYWANEJ w tym teście rozgrzewki, żeby nie mylić jej z dokładanymi.
+    w3 = _po_rodzaju(bloki, "WARMUP", level="SREDNIOZAAWANSOWANY", variant="G")
+    dni[0]["exercises"].insert(0, {
+        "name": "Rozgrzewka z szablonu", "kind": "warmup_block",
+        "block": {"name": w3["name"], "kind": "WARMUP", "level": w3["level"],
+                  "variant": w3["variant"], "items": []},
+    })
+    assert seeded.post(f"/api/plans/{tid}/versions", headers=hc,
+                       json={"reason": "własna rozgrzewka", "days": dni}).status_code == 201
+
+    r = seeded.post(f"/api/plans/{tid}/copy-to/{cid}", headers=hc,
+                    json={"blocks": [w1["id"], w2["id"]]})
+    assert r.status_code == 201, r.text
+    raport = r.json()["blocks_applied"]
+    pominiete_dnia_0 = [s for s in raport["skipped_days"] if s["day_index"] == 0 and s["kind"] == "warmup"]
+    assert len(pominiete_dnia_0) == 1, "dzień melduje się raz na rodzaj, nie raz na blok"
+
+    dni = _plan(seeded, hc, cid, r.json()["id"])["current_version"]["content"]["days"]
+    assert _nazwy(dni[0]).count(w1["name"]) == 0 and _nazwy(dni[0]).count(w2["name"]) == 0
+    # Dni bez własnej rozgrzewki dostają OBIE, w kolejności wyboru.
+    assert _nazwy(dni[1])[:2] == [w1["name"], w2["name"]]
+
+
+def test_ten_sam_blok_dwa_razy_nadal_odrzucony(seeded):
+    """Dwie RÓŻNE rozgrzewki to zamiar; ta sama dwa razy to pomyłka."""
+    hc = login(seeded, COACH)
+    cid, bloki = _client_id(seeded, hc), _bloki(seeded, hc)
+    w = _po_rodzaju(bloki, "WARMUP", level="POCZATKUJACY", variant="C")
+    r = seeded.post(f"/api/clients/{cid}/plans/from-blocks", headers=hc,
+                    json={"title": "x", "days": [{"name": "D"}], "blocks": [w["id"], w["id"]]})
+    assert r.status_code == 422 and "dwa razy" in r.json()["detail"]
+
+
+def test_limit_szesciu_blokow_przechodzi_a_siedem_nie(seeded):
+    """Limit jest ŁĄCZNY i wynosi 6.
+
+    Sześć bloków sprawdzamy WPROST, bo bez tego przypadku obniżenie
+    `MAKS_BLOKOW` z powrotem do 3 przeszłoby niezauważone: samo 7 odrzuca
+    Pydantic (`max_length`) jeszcze przed walidatorem zestawu. Wyszło
+    z mutanta — pierwsza wersja tego testu sprawdzała tylko siedem.
+    """
+    hc = login(seeded, COACH)
+    cid, bloki = _client_id(seeded, hc), _bloki(seeded, hc)
+    aktywne = [b["id"] for b in bloki if b["status"] == "ACTIVE"]
+    assert len(aktywne) >= 7
+
+    r = seeded.post(f"/api/clients/{cid}/plans/from-blocks", headers=hc,
+                    json={"title": "Sześć bloków", "days": [{"name": "D"}], "blocks": aktywne[:6]})
+    assert r.status_code == 201, r.text
+
+    r = seeded.post(f"/api/clients/{cid}/plans/from-blocks", headers=hc,
+                    json={"title": "x", "days": [{"name": "D"}], "blocks": aktywne[:7]})
+    assert r.status_code == 422

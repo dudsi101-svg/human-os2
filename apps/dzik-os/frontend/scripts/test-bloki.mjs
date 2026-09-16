@@ -78,3 +78,59 @@ test("domyślne dni 1–7 z nazwami „Dzień n”", () => {
   assert.equal(domyslneDni(9).length, 7);
   assert.equal(domyslneDni(0).length, 1);
 });
+
+// --- Wiele bloków tego samego rodzaju (0.80.0) -------------------------------
+
+test("dwie rozgrzewki zachowują kolejność wyboru (nie odwracają się)", () => {
+  // Reguła musi być IDENTYCZNA z backendem (`cardio/bloki.py::wstaw_do_dnia`),
+  // bo podgląd w panelu i zapis po stronie serwera mają układać dzień tak samo.
+  // Poprzednia wersja robiła `[poz, ...exercises]`, więc druga rozgrzewka
+  // lądowała PRZED pierwszą.
+  const w1 = { name: "Rozgrzewka A", kind: "warmup_block" };
+  const w2 = { name: "Rozgrzewka B", kind: "warmup_block" };
+  const silowe = { name: "Przysiad", kind: "strength" };
+
+  let dzien = [silowe];
+  dzien = wstawDoDnia(dzien, w1);
+  dzien = wstawDoDnia(dzien, w2);
+  assert.deepEqual(dzien.map((e) => e.name), ["Rozgrzewka A", "Rozgrzewka B", "Przysiad"]);
+});
+
+test("kilka bloków aerobowych idzie po sile, przed rozciąganiem", () => {
+  const c1 = { name: "Cardio A", kind: "cardio" };
+  const c2 = { name: "Cardio B", kind: "cardio" };
+  const s = { name: "Rozciąganie", kind: "stretch_block" };
+
+  let dzien = [{ name: "Przysiad", kind: "strength" }, s];
+  dzien = wstawDoDnia(dzien, c1);
+  dzien = wstawDoDnia(dzien, c2);
+  assert.deepEqual(dzien.map((e) => e.name), ["Przysiad", "Cardio A", "Cardio B", "Rozciąganie"]);
+});
+
+test("podsumowanie wymienia każdy blok osobno", () => {
+  const w1 = blok("WARMUP", { name: "Rozgrzewka A" });
+  const w2 = blok("WARMUP", { name: "Rozgrzewka B" });
+  assert.equal(
+    podsumowaniePrzypisania({ szablon: "PPL", bloki: { WARMUP: [w1, w2] }, dni: 3 }),
+    "Szablon „PPL” + rozgrzewka „Rozgrzewka A” + rozgrzewka „Rozgrzewka B” → 3 dni",
+  );
+  // Pojedynczy blok (bez listy) nadal działa — stare wywołania się nie psują.
+  assert.equal(
+    podsumowaniePrzypisania({ szablon: null, bloki: { WARMUP: w1 }, dni: 1 }),
+    "Bez szablonu + rozgrzewka „Rozgrzewka A” → 1 dzień",
+  );
+});
+
+test("komunikat rozróżnia liczbę dni od liczby bloków", () => {
+  // Regresja wyłapana przez E2E: przy dwóch rozgrzewkach w jednodniowym planie
+  // komunikat mówił „do 2 dni”, bo czytał `added` (pozycje) jako dni.
+  assert.equal(
+    komunikatPoPrzypisaniu(
+      { added: { warmup: 2, cardio: 0, stretch: 0 }, days: { warmup: 1, cardio: 0, stretch: 0 }, skipped_days: [] },
+      1),
+    "Dodano rozgrzewkę do 1 dnia (2 bloki).");
+  // Odpowiedź sprzed 0.80.0 (bez `days`) czytana po staremu.
+  assert.equal(
+    komunikatPoPrzypisaniu({ added: { warmup: 3, cardio: 0, stretch: 0 }, skipped_days: [] }, 3),
+    "Dodano rozgrzewkę do 3 dni.");
+});

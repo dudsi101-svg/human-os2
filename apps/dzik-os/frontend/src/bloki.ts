@@ -48,7 +48,15 @@ export function pozycjaZBloku(b: ExerciseBlockRow): Exercise {
 /** Wstawienie pozycji do dnia zgodnie z kolejnością rodzaju (nie modyfikuje wejścia). */
 export function wstawDoDnia(exercises: Exercise[], poz: Exercise): Exercise[] {
   const kind = rodzaj(poz);
-  if (kind === "warmup_block") return [poz, ...exercises];
+  if (kind === "warmup_block") {
+    // Za już obecnymi rozgrzewkami, nie na sam początek (0.80.0) — przy kilku
+    // blokach tego samego rodzaju `[poz, ...exercises]` odwracało kolejność
+    // wyboru trenera. Ta sama reguła co w backendzie (`cardio/bloki.py`),
+    // bo oba miejsca muszą układać dzień identycznie.
+    let n = 0;
+    while (n < exercises.length && rodzaj(exercises[n]) === "warmup_block") n += 1;
+    return [...exercises.slice(0, n), poz, ...exercises.slice(n)];
+  }
   if (kind === "cardio") {
     const ostatni = exercises[exercises.length - 1];
     if (ostatni && rodzaj(ostatni) === "stretch_block") return [...exercises.slice(0, -1), poz, ostatni];
@@ -68,7 +76,9 @@ export function etykietaBloku(b: ExerciseBlockRow): string {
 export interface WyborPrzypisania {
   /** Tytuł szablonu treningowego albo null = „bez szablonu — tylko bloki”. */
   szablon: string | null;
-  bloki: Partial<Record<BlockKind, ExerciseBlockRow | null>>;
+  /** Bloki per rodzaj — LISTA od 0.80.0 (jeden rodzaj może wystąpić wiele razy).
+   * Pojedynczy blok albo `null` przyjmowane dalej dla zgodności wywołań. */
+  bloki: Partial<Record<BlockKind, ExerciseBlockRow | ExerciseBlockRow[] | null>>;
   /** Liczba dni (dla „tylko bloki”; dla szablonu — liczba dni szablonu, gdy znana). */
   dni: number | null;
 }
@@ -77,15 +87,19 @@ export interface WyborPrzypisania {
 export function podsumowaniePrzypisania(w: WyborPrzypisania): string {
   const czesci: string[] = [w.szablon ? `Szablon „${w.szablon}”` : "Bez szablonu"];
   for (const k of BLOCK_KINDS) {
-    const b = w.bloki[k];
-    if (b) czesci.push(`${BLOCK_KIND_LABELS[k].toLowerCase()} „${b.name}”`);
+    const wpis = w.bloki[k];
+    const lista = wpis ? (Array.isArray(wpis) ? wpis : [wpis]) : [];
+    for (const b of lista) czesci.push(`${BLOCK_KIND_LABELS[k].toLowerCase()} „${b.name}”`);
   }
   const dni = w.dni ? ` → ${w.dni} ${w.dni === 1 ? "dzień" : "dni"}` : "";
   return czesci.join(" + ") + dni;
 }
 
 export interface BlocksApplied {
+  /** Liczba wstawionych POZYCJI per rodzaj (przy dwóch rozgrzewkach w jednym dniu: 2). */
   added: { warmup: number; cardio: number; stretch: number };
+  /** Liczba DNI, które dostały dany rodzaj (0.80.0). Starsze odpowiedzi jej nie mają. */
+  days?: { warmup: number; cardio: number; stretch: number };
   skipped_days: { day_index: number; day_name: string | null; kind: string }[];
 }
 
@@ -95,7 +109,14 @@ export function komunikatPoPrzypisaniu(r: BlocksApplied | null | undefined, dni:
   const nazwy: Record<keyof BlocksApplied["added"], string> = { warmup: "rozgrzewkę", cardio: "cardio", stretch: "rozciąganie" };
   const dodane = (Object.keys(nazwy) as (keyof BlocksApplied["added"])[])
     .filter((k) => r.added[k] > 0)
-    .map((k) => `${nazwy[k]} do ${r.added[k]} ${r.added[k] === 1 ? "dnia" : "dni"}`);
+    .map((k) => {
+      // Liczba dni to `days`; `added` to liczba POZYCJI i przy kilku blokach
+      // jednego rodzaju jest większa. Brak `days` = odpowiedź sprzed 0.80.0,
+      // gdzie obie liczby były równe.
+      const dni = r.days?.[k] ?? r.added[k];
+      const ile = `${nazwy[k]} do ${dni} ${dni === 1 ? "dnia" : "dni"}`;
+      return r.added[k] > dni ? `${ile} (${r.added[k]} bloki)` : ile;
+    });
   let tekst = dodane.length ? `Dodano ${dodane.join(", ")}.` : "Nie dodano żadnego bloku.";
   if (r.skipped_days.length) {
     tekst += ` Pominięto ${r.skipped_days.length} ${r.skipped_days.length === 1 ? "pozycję" : "pozycje"} — dzień miał już blok tego rodzaju z szablonu.`;
