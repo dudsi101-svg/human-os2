@@ -308,7 +308,7 @@ class CopyToClientIn(BaseModel):
     """Opcjonalne ciało `copy-to` (0.76.0): bloki dokładane do KAŻDEGO dnia
     kopii szablonu (maks. 3, po jednym na rodzaj — sprawdza `cardio.bloki`)."""
 
-    blocks: list[str] = Field(default=[], max_length=3)
+    blocks: list[str] = Field(default=[], max_length=6)
 
 
 class PlanDayStubIn(BaseModel):
@@ -324,7 +324,7 @@ class PlanFromBlocksIn(BaseModel):
 
     title: str = Field(min_length=1, max_length=300)
     days: list[PlanDayStubIn] = Field(min_length=1, max_length=7)
-    blocks: list[str] = Field(min_length=1, max_length=3)
+    blocks: list[str] = Field(min_length=1, max_length=6)
     reason: str | None = Field(default=None, max_length=2000)
 
 

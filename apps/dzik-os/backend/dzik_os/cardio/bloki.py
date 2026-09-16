@@ -15,7 +15,7 @@ import json
 from sqlalchemy.orm import Session
 
 from ..models import Exercise, ExerciseBlock, new_id
-from .bloki_wbudowane import BLOKI, ETYKIETY_RODZAJOW, ZRODLO_WBUDOWANE, klucz
+from .bloki_wbudowane import BLOKI, ZRODLO_WBUDOWANE, klucz
 from .presety import cel_dominujacy
 
 #: Rodzaj bloku → `kind` pozycji planu (kontrakt z `schemas.ExerciseIn`).
@@ -23,7 +23,13 @@ RODZAJ_POZYCJI: dict[str, str] = {"WARMUP": "warmup_block", "CARDIO": "cardio", 
 #: Klucze raportu `blocks_applied.added` w kolejności wstawiania do dnia.
 KOLEJNOSC_RODZAJOW: tuple[str, ...] = ("WARMUP", "CARDIO", "STRETCH")
 KLUCZ_RAPORTU: dict[str, str] = {"WARMUP": "warmup", "CARDIO": "cardio", "STRETCH": "stretch"}
-MAKS_BLOKOW = 3
+#: Limit ŁĄCZNY, bez limitu na rodzaj (0.80.0). Do 0.79.0 było 3 „po jednym na
+#: rodzaj”, ale dwie różne rozgrzewki albo trzy bloki aerobowe to sensowny układ
+#: treningowy, a nie pomyłka — pomyłką jest ten SAM blok dwa razy i to nadal
+#: odrzucamy (`plans._wczytaj_bloki`). Limit istnieje wyłącznie po to, żeby dzień
+#: nie puchł bez końca; gdyby ograniczać „po dwa na rodzaj”, byłoby to równie
+#: arbitralne jak „po jednym” i z góry zamykało układ 3 × aeroby.
+MAKS_BLOKOW = 6
 
 
 class BladZestawu(ValueError):
@@ -107,18 +113,21 @@ def pozycja_z_bloku(row: ExerciseBlock) -> dict:
     return poz
 
 
-def waliduj_zestaw(bloki: list[ExerciseBlock]) -> dict[str, ExerciseBlock]:
-    """Maks. 3 bloki, maks. jeden na rodzaj, wszystkie ACTIVE. Zwraca rodzaj → blok."""
+def waliduj_zestaw(bloki: list[ExerciseBlock]) -> dict[str, list[ExerciseBlock]]:
+    """Do `MAKS_BLOKOW` bloków łącznie, wszystkie ACTIVE. Zwraca rodzaj → LISTA
+    bloków W KOLEJNOŚCI WYBORU trenera.
+
+    Od 0.80.0 jeden rodzaj może wystąpić wiele razy (dwie różne rozgrzewki, kilka
+    bloków aerobowych). Kolejność wewnątrz rodzaju jest znacząca — to ona decyduje
+    o układzie dnia, więc lista, nie zbiór.
+    """
     if len(bloki) > MAKS_BLOKOW:
-        raise BladZestawu(f"Maksymalnie {MAKS_BLOKOW} bloki naraz (po jednym: rozgrzewka, aeroby, rozciąganie).")
-    wg_rodzaju: dict[str, ExerciseBlock] = {}
+        raise BladZestawu(f"Maksymalnie {MAKS_BLOKOW} bloków naraz — wybrano {len(bloki)}.")
+    wg_rodzaju: dict[str, list[ExerciseBlock]] = {}
     for b in bloki:
         if b.status != "ACTIVE":
             raise BladZestawu(f"Blok „{b.name}” jest zarchiwizowany — przywróć go w Szablonach → Bloki albo wybierz inny.")
-        if b.kind in wg_rodzaju:
-            raise BladZestawu(f"Dwa bloki tego samego rodzaju ({ETYKIETY_RODZAJOW.get(b.kind, b.kind)}) — "
-                              "wybierz po jednym na rodzaj.")
-        wg_rodzaju[b.kind] = b
+        wg_rodzaju.setdefault(b.kind, []).append(b)
     return wg_rodzaju
 
 
@@ -131,10 +140,22 @@ def _rodzaj_pozycji(ex: object) -> str:
 
 def wstaw_do_dnia(exercises: list[dict], poz: dict) -> list[dict]:
     """Kolejność w dniu: rozgrzewka na początek, rozciąganie na koniec, cardio
-    po pozycjach siłowych (przed rozciąganiem, jeśli jest) — jak `PlanEditor`."""
+    po pozycjach siłowych (przed rozciąganiem, jeśli jest) — jak `PlanEditor`.
+
+    Przy KILKU blokach tego samego rodzaju (0.80.0) kolejność wyboru trenera musi
+    zostać zachowana. Dla rozgrzewki znaczy to „za ostatnią już obecną rozgrzewką”,
+    a nie „na sam początek”: przy `[poz, *exercises]` druga rozgrzewka lądowała
+    PRZED pierwszą, czyli plan wychodził odwrotnie, niż trener widział na ekranie.
+    Cardio i rozciąganie dopisują się na koniec swojej strefy same z siebie.
+    """
     kind = poz.get("kind")
     if kind == "warmup_block":
-        return [poz, *exercises]
+        po_rozgrzewkach = 0
+        for ex in exercises:
+            if _rodzaj_pozycji(ex) != "warmup_block":
+                break
+            po_rozgrzewkach += 1
+        return [*exercises[:po_rozgrzewkach], poz, *exercises[po_rozgrzewkach:]]
     if kind == "cardio":
         ostatni = exercises[-1] if exercises else None
         if ostatni is not None and _rodzaj_pozycji(ostatni) == "stretch_block":
@@ -154,16 +175,23 @@ def zloz_bloki_do_dni(days: list[dict], bloki: list[ExerciseBlock]) -> tuple[lis
     for di, day in enumerate(days):
         d = json.loads(json.dumps(day))
         exercises = list(d.get("exercises") or [])
+        # Stan dnia liczony RAZ, PRZED wstawianiem: „nie dublujemy tego, co
+        # szablon już ma” ma dotyczyć zawartości szablonu, nie bloków, które
+        # sami właśnie dokładamy. Inaczej przy dwóch rozgrzewkach pierwsza
+        # byłaby pomijana, a druga wstawiana — reguła nie do przewidzenia.
         obecne = {_rodzaj_pozycji(ex) for ex in exercises}
         for kind in KOLEJNOSC_RODZAJOW:
-            b = wg_rodzaju.get(kind)
-            if b is None:
+            wybrane = wg_rodzaju.get(kind) or []
+            if not wybrane:
                 continue
             if RODZAJ_POZYCJI[kind] in obecne:
+                # Szablon ma już ten rodzaj → pomijamy WSZYSTKIE dokładane bloki
+                # tego rodzaju w tym dniu i meldujemy dzień RAZ, nie raz na blok.
                 skipped.append({"day_index": di, "day_name": d.get("name"), "kind": KLUCZ_RAPORTU[kind]})
                 continue
-            exercises = wstaw_do_dnia(exercises, pozycja_z_bloku(b))
-            added[KLUCZ_RAPORTU[kind]] += 1
+            for b in wybrane:
+                exercises = wstaw_do_dnia(exercises, pozycja_z_bloku(b))
+                added[KLUCZ_RAPORTU[kind]] += 1
         d["exercises"] = exercises
         out_days.append(d)
     return out_days, {"added": added, "skipped_days": skipped,
