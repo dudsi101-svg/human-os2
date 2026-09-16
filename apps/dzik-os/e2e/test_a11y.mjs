@@ -628,6 +628,41 @@ try {
   check("chipy filtrów mają aria-pressed", chips.length > 0 && chips.every((c) => c !== null),
     JSON.stringify(chips));
 
+  // ————— 8b. Trener 320 px: usuwanie klienta i wybór doręczenia (0.79.0) —————
+  // Operacja nieodwracalna na wąskim ekranie: przycisk nie może być mniejszy
+  // od celu dotykowego ani opisany samym słowem „Usuń” (czytnik ekranu bez
+  // kontekstu wiersza nie wie, kogo dotyczy).
+  const usun = await coach.evaluate(() => {
+    const b = [...document.querySelectorAll("button")].filter((x) => x.textContent.trim() === "Usuń");
+    const r = b[0]?.getBoundingClientRect();
+    return { ile: b.length, h: r ? Math.round(r.height) : 0,
+             etykieta: b[0]?.getAttribute("aria-label") ?? null };
+  });
+  check("lista klientów: przycisk „Usuń” ≥ 44 px i z etykietą wskazującą klienta",
+    usun.ile > 0 && usun.h >= 44 && /^Usuń klienta .+/.test(usun.etykieta ?? ""),
+    JSON.stringify(usun));
+
+  await coach.click("button:has-text('+ Nowy klient')");
+  await coach.waitForSelector("#nc-email");
+  const doreczenie = await coach.evaluate(() => {
+    const fs = [...document.querySelectorAll("fieldset")].find((f) =>
+      f.querySelector("legend")?.textContent?.includes("przekazać link"));
+    const radia = [...(fs?.querySelectorAll("input[type='radio']") ?? [])].map((el) => {
+      const lab = el.closest("label");
+      return { h: Math.round((lab ?? el).getBoundingClientRect().height),
+               opis: (lab?.textContent ?? "").trim().length > 0 };
+    });
+    return { legend: fs?.querySelector("legend")?.textContent?.trim() ?? null, radia };
+  });
+  check("doręczenie zaproszenia: fieldset z legend i dwie opisane opcje ≥ 44 px",
+    doreczenie.legend !== null && doreczenie.radia.length === 2
+      && doreczenie.radia.every((r) => r.h >= 44 && r.opis), JSON.stringify(doreczenie));
+  const unlabeledZapros = await coach.evaluate(UNLABELED_JS);
+  check("formularz zaproszenia: wszystkie pola mają etykiety", unlabeledZapros.length === 0,
+    JSON.stringify(unlabeledZapros));
+  await assertNoHorizontalScroll(coach, "lista klientów z formularzem zaproszenia @320");
+  await coach.click("button:has-text('+ Nowy klient')");
+
   // ————— 8a. Trener 320 px: karta „Przypisz plan” (0.76.0, bloki jak szablony) —————
   console.log("8a. Trener — karta „Przypisz plan” (320 px)");
   await coach.click("a[href^='/trener/klient/']");

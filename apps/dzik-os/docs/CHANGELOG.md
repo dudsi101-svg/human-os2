@@ -1,5 +1,38 @@
 # Changelog — Dzik OS
 
+## 0.79.0 — 2026-09-16
+
+**Dwa polecenia właściciela z 16.09 (gałąź `agent/usuwanie-klientow`, bez migracji).**
+
+* **Trener może usunąć klienta — i serwer sam decyduje, co to znaczy.**
+  Panel nie miał dotąd ŻADNEGO sposobu pozbycia się klienta; skutek było widać
+  na produkcji, gdzie limit dziesięciu miejsc wyczerpały konta testowe
+  i pomyłkowe, i nie dało się założyć kolejnego. Teraz przycisk **„Usuń”** jest
+  przy każdym kliencie, a tryb zależy od stanu konta:
+  * konto, które **nigdy nie zostało aktywowane** i które **ten trener założył**,
+    znika trwale razem z zaproszeniem i zwalnia miejsce w limicie;
+  * konto, z którego ktoś **choć raz korzystał**, zostaje wraz z danymi
+    i historią — kończy się wyłącznie współpraca i klient znika z listy trenera.
+
+  Granica jest w kodzie, nie w instrukcji: trwałe skasowanie wymaga czterech
+  warunków naraz (konto PENDING, nigdy nie zalogowane, dokładnie jedna relacja
+  należąca do tego trenera, założona przez niego). Panel nie wybiera trybu
+  i nie może go wymusić parametrem — pokazuje tylko to, co serwer zapowiedział,
+  a okno potwierdzenia mówi wprost, co zniknie, a co zostanie. Klient, który
+  chce usunąć SWOJE dane, ma do tego własną drogę (Ustawienia → usunięcie
+  danych) i to nadal jedyna droga, która te dane rusza.
+
+  Łańcuch pokwitowań audytu zostaje nietknięty także przy trwałym kasowaniu:
+  usunięcie konta jest w nim zdarzeniem, nie luką (skasowanie wiersza zerwałoby
+  weryfikację łańcucha dla zdarzeń po nim, również cudzych).
+
+* **Zaproszenie: trener wybiera, czy leci e-mail, czy dostaje link do
+  przekazania.** Dotąd link wracał wyłącznie awaryjnie, gdy wysyłka zawiodła.
+  Teraz przy zakładaniu konta i przy „Wyślij ponownie” są dwie jawne opcje;
+  przy wyborze linku e-mail **nie wychodzi w ogóle**. Domyślnie nadal e-mail,
+  więc nic się nie zmienia tym, którzy o zmianę nie prosili. Klient po staremu
+  ustawia hasło sam — trener nie pozna go także przy przekazaniu ręcznym.
+
 ## 0.78.0 — 2026-09-15
 
 **Dwie decyzje właściciela z 15.09 (gałąź `agent/ciaza-i-archiwizacja`, bez migracji).**

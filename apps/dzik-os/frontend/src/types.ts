@@ -617,6 +617,10 @@ export interface CoachClientRow {
   account_pending: boolean;
   /** Termin ważności aktywnego zaproszenia (bez tokenu — serwer zna tylko hash). */
   invitation_expires_at: string | null;
+  /** Co zrobi „Usuń” dla tego klienta (0.79.0). Wylicza SERWER tą samą
+   * funkcją, która wykona operację, więc panel nie zgaduje i nie może
+   * obiecać czegoś innego, niż się wydarzy. */
+  usuniecie: "usuniete_konto" | "zakonczona_wspolpraca";
   consent_scopes: {
     collaboration: boolean;
     training: boolean;

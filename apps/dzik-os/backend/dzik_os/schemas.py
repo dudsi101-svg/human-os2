@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator, model_validator
 
@@ -630,6 +631,17 @@ class RelationshipIn(BaseModel):
 
     client_email: EmailStr
     client_name: str = Field(min_length=1, max_length=200)
+    #: Jak doręczyć link aktywacyjny. "email" (domyślnie, zachowanie sprzed
+    #: 0.79.0) wysyła wiadomość; "link" NIE wysyła nic i zwraca link
+    #: trenerowi do przekazania własną drogą — bo nie każdy klient odbiera
+    #: pocztę, którą podał, a trener i tak jest tu osobą zapraszającą.
+    delivery: Literal["email", "link"] = "email"
+
+
+class InvitationDeliveryIn(BaseModel):
+    """Sposób doręczenia przy ponownym wysłaniu zaproszenia."""
+
+    delivery: Literal["email", "link"] = "email"
 
 
 class ActivationInspectIn(BaseModel):

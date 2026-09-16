@@ -1,6 +1,6 @@
 # Stan przekazania — przeczytaj przed rozpoczęciem rundy
 
-**Aktualizacja:** 2026-09-15 · **Wersja w `main`:** 0.77.0 (wywiad kaloryczny wg specyfikacji właściciela, migracja 42, `820f6ba`) — **0.78.0 w gałęzi `agent/ciaza-i-archiwizacja`**: dodatek kcal przy ciąży i karmieniu (§6.4, pytanie doprecyzowujące, wersja definicji 3) oraz archiwizacja poprzedniego planu przy przypisaniu — obie rzeczy na wyraźną decyzję właściciela z 15.09.
+**Aktualizacja:** 2026-09-16 · **Wersja w `main`:** 0.78.0 (dodatek kcal przy ciąży i karmieniu, archiwizacja poprzedniego planu, `3e75bd4`; wdrożone po naprawie flakującego testu motywu `568b5d4`) — **0.79.0 w gałęzi `agent/usuwanie-klientow`**: usuwanie klientów w dwóch trybach (trwale tylko konto nigdy nieaktywowane, założone przez tego trenera; inaczej zakończenie współpracy) oraz wybór doręczenia zaproszenia (e-mail albo link do przekazania) — polecenia właściciela z 16.09.
 **Tryb pracy:** jeden piszący i jeden PR `[WRITER]` naraz
 (`KOORDYNACJA.md`, zasada nadrzędna).
 

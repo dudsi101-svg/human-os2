@@ -1,6 +1,6 @@
 # Stan wydania — Dzik OS
 
-**Wersja:** 0.78.0 (dodatek kaloryczny przy ciąży i karmieniu wg specyfikacji §6.4; przypisanie planu archiwizuje poprzedni) · **Data:** 2026-09-15 · **Środowisko:** produkcja
+**Wersja:** 0.79.0 (usuwanie klientów w dwóch trybach; wybór doręczenia zaproszenia) · **Data:** 2026-09-16 · **Środowisko:** produkcja
 (pilotaż) — https://dzik-os-panel.fly.dev
 
 Jedna strona prawdy o tym, co DZIAŁA na produkcji teraz. Aktualizowana

@@ -10,7 +10,7 @@ type Filter = "all" | "review" | "checkin" | "payment" | "messages" | "pain" | "
 interface InvitationInfo {
   id: string;
   expires_at: string;
-  delivery: "email" | "manual";
+  delivery: "email" | "manual" | "link";
   activation_link?: string;
 }
 
@@ -28,8 +28,28 @@ function InvitationPanel({ invitation, onClose }: { invitation: InvitationInfo; 
   const [copied, setCopied] = useState(false);
   return (
     <div className="card card--accent">
-      <h2>Zaproszenie wysłane</h2>
-      {invitation.delivery === "email" ? (
+      <h2>{invitation.delivery === "link" ? "Link do przekazania" : "Zaproszenie wysłane"}</h2>
+      {invitation.delivery === "link" ? (
+        <>
+          <p>
+            Zaproszenie czeka, a e-mail celowo nie został wysłany — wybrałeś
+            przekazanie linku własną drogą. Link jest jednorazowy i ważny do{" "}
+            {plDate(invitation.expires_at)}. Klient sam ustawi hasło — Ty go
+            nigdy nie poznasz.
+          </p>
+          <p style={{ fontFamily: "monospace", fontSize: "0.8rem", wordBreak: "break-all" }}>
+            {invitation.activation_link}
+          </p>
+          <div className="row">
+            <button className="btn btn--small" onClick={async () => {
+              await navigator.clipboard?.writeText(invitation.activation_link ?? "");
+              setCopied(true);
+            }}>
+              {copied ? "Skopiowano ✓" : "Kopiuj link"}
+            </button>
+          </div>
+        </>
+      ) : invitation.delivery === "email" ? (
         <p>
           Klient otrzymał e-mail z jednorazowym linkiem aktywacyjnym
           (ważny do {plDate(invitation.expires_at)}). Sam ustawi swoje hasło —
@@ -71,6 +91,7 @@ export default function Clients() {
   const [filter, setFilter] = useState<Filter>("all");
   const [showNew, setShowNew] = useState(false);
   const [newClient, setNewClient] = useState({ client_name: "", client_email: "" });
+  const [delivery, setDelivery] = useState<"email" | "link">("email");
   const [invitation, setInvitation] = useState<InvitationInfo | null>(null);
 
   const load = () => {
@@ -89,7 +110,7 @@ export default function Clients() {
   async function createClient(e: FormEvent) {
     e.preventDefault();
     try {
-      const r = await api.post<CreateClientResponse>("/api/coach/clients", newClient);
+      const r = await api.post<CreateClientResponse>("/api/coach/clients", { ...newClient, delivery });
       setShowNew(false);
       setNewClient({ client_name: "", client_email: "" });
       setInvitation(r.invitation);
@@ -99,13 +120,38 @@ export default function Clients() {
     }
   }
 
-  async function resendInvitation(clientId: string) {
+  async function resendInvitation(clientId: string, sposob: "email" | "link") {
     setError(null);
     try {
       const r = await api.post<{ invitation: InvitationInfo }>(
-        `/api/coach/clients/${clientId}/invitations`
+        `/api/coach/clients/${clientId}/invitations`,
+        { delivery: sposob }
       );
       setInvitation(r.invitation);
+      load();
+    } catch (err) {
+      setError((err as Error).message);
+    }
+  }
+
+  async function deleteClient(c: CoachClientRow) {
+    // Treść pytania zależy od tego, co SERWER zapowiedział w polu `usuniecie`
+    // — ta sama funkcja wyliczy tryb ponownie przy wykonaniu, więc panel nie
+    // może obiecać czegoś innego, niż się wydarzy.
+    const pytanie =
+      c.usuniecie === "usuniete_konto"
+        ? `Usunąć konto „${c.display_name}” (${c.email})?\n\n` +
+          "Konto nigdy nie zostało aktywowane, więc zniknie razem z zaproszeniem " +
+          "i zwolni miejsce w limicie. Tej operacji nie da się cofnąć."
+        : `Usunąć „${c.display_name}” z Twojej listy?\n\n` +
+          "Współpraca zostanie zakończona i klient zniknie z listy, ale jego " +
+          "konto, dane i historia ZOSTAJĄ — należą do niego, nie do Ciebie. " +
+          "Miejsce w limicie się zwolni.";
+    if (!confirm(pytanie)) return;
+    setError(null);
+    try {
+      await api.del(`/api/coach/clients/${c.client_id}`);
+      setInvitation(null);
       load();
     } catch (err) {
       setError((err as Error).message);
@@ -189,14 +235,30 @@ export default function Clients() {
           <label htmlFor="nc-email">E-mail</label>
           <input id="nc-email" type="email" required value={newClient.client_email}
             onChange={(e) => setNewClient({ ...newClient, client_email: e.target.value })} />
+          <fieldset style={{ border: 0, padding: 0, margin: "10px 0 0" }}>
+            <legend style={{ padding: 0, fontWeight: 600 }}>Jak przekazać link aktywacyjny?</legend>
+            <label style={{ display: "flex", alignItems: "center", gap: 8, minHeight: 44 }}>
+              <input type="radio" name="nc-delivery" value="email"
+                checked={delivery === "email"} onChange={() => setDelivery("email")} />
+              Wyślij e-mail z linkiem (domyślnie)
+            </label>
+            <label style={{ display: "flex", alignItems: "center", gap: 8, minHeight: 44 }}>
+              <input type="radio" name="nc-delivery" value="link"
+                checked={delivery === "link"} onChange={() => setDelivery("link")} />
+              Pokaż mi link — przekażę go sam
+            </label>
+          </fieldset>
           <small>
             Klient otrzyma jednorazowy link aktywacyjny i SAM ustawi swoje
-            hasło — nikt go nie zobaczy. Zapraszając potwierdzasz, że klient
-            wyraził zgodę na przetwarzanie danych w celu prowadzenia
-            trenerskiego; zobaczy ją w aplikacji i może ją cofnąć.
+            hasło — nikt go nie zobaczy, także przy przekazywaniu ręcznym.
+            Zapraszając potwierdzasz, że klient wyraził zgodę na przetwarzanie
+            danych w celu prowadzenia trenerskiego; zobaczy ją w aplikacji
+            i może ją cofnąć.
           </small>
           <div style={{ marginTop: 10 }}>
-            <button className="btn">Wyślij zaproszenie</button>
+            <button className="btn">
+              {delivery === "link" ? "Utwórz i pokaż link" : "Wyślij zaproszenie"}
+            </button>
           </div>
         </form>
       )}
@@ -257,10 +319,21 @@ export default function Clients() {
                 )}
               </div>
             </div>
-            <small>
-              {c.email} · ostatni raport:{" "}
-              {c.last_checkin_week ? plDate(c.last_checkin_week) : "brak"}
-            </small>
+            <div className="row row--between" style={{ alignItems: "center", gap: 8 }}>
+              <small>
+                {c.email} · ostatni raport:{" "}
+                {c.last_checkin_week ? plDate(c.last_checkin_week) : "brak"}
+              </small>
+              <button className="btn btn--danger btn--small"
+                // 44 px celu dotykowego: `btn--small` daje 38 i kontrola
+                // dostępności to wyłapała. Przy operacji nieodwracalnej
+                // pomyłka kciuka kosztuje najwięcej.
+                style={{ minHeight: 44 }}
+                aria-label={`Usuń klienta ${c.display_name}`}
+                onClick={(e) => { e.preventDefault(); deleteClient(c); }}>
+                Usuń
+              </button>
+            </div>
             {c.account_pending && (
               <div className="row" style={{ marginTop: 8, gap: 6 }}>
                 <small className="dim">
@@ -269,8 +342,12 @@ export default function Clients() {
                     : "brak aktywnego zaproszenia"}
                 </small>
                 <button className="btn btn--ghost btn--small"
-                  onClick={(e) => { e.preventDefault(); resendInvitation(c.client_id); }}>
+                  onClick={(e) => { e.preventDefault(); resendInvitation(c.client_id, "email"); }}>
                   Wyślij ponownie
+                </button>
+                <button className="btn btn--ghost btn--small"
+                  onClick={(e) => { e.preventDefault(); resendInvitation(c.client_id, "link"); }}>
+                  Pokaż link
                 </button>
                 {c.invitation_expires_at && (
                   <button className="btn btn--ghost btn--small"
