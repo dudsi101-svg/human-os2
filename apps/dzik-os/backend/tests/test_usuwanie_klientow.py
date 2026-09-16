@@ -7,10 +7,9 @@ który go usunie, daje czerwony test.
 """
 
 from conftest import CLIENT_A, COACH, login
-
-from dzik_os.db import db_session
 from sqlalchemy import String, Text
 
+from dzik_os.db import db_session
 from dzik_os.klienci_usuwanie import (
     TABELE_AUDYTU,
     USUN_KONTO,
