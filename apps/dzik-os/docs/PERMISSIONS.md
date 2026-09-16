@@ -91,6 +91,7 @@ domeny endpointu (`sensitive` wynika z katalogu kategorii).
 | GET /api/auth/sessions; POST /api/auth/sessions/revoke-others | zalogowany | własne sesje | — | — | R/W |
 | POST /api/auth/sessions/{session_id}/revoke | zalogowany | wyłącznie własna sesja (cudza aktywna → ACCESS_DENIED) | — | — | W |
 | POST /api/coach/clients | COACH | nowe konto: PENDING + zaproszenie aktywacyjne + zgoda-deklaracja; istniejące konto: tylko aktywny CLIENT, **bez auto-zgody** (nadaje ją sam klient) i bez zaproszenia | tworzy/reaktywuje | — | W |
+| DELETE /api/coach/clients/{id} | COACH | usuwa WŁASNEGO klienta; tryb rozstrzyga serwer (`klienci_usuwanie.tryb_usuniecia`), nie parametr żądania: trwałe skasowanie konta tylko przy czterech warunkach naraz — PENDING, `last_login_at` puste, dokładnie jedna relacja należąca do tego trenera i przez niego założona; inaczej relacja → ENDED, konto i dane klienta zostają. Łańcuch pokwitowań (`receipts`) nigdy nie jest kasowany | tak (usuwa albo kończy) | — | W |
 | POST /api/coach/clients/{id}/invitations, /invitations/cancel | COACH | zaproszenia wyłącznie własnego klienta w statusie PENDING (konto aktywowane → 409; cudzy/nieznany klient → 404) | tak (dowolny status) | — | W |
 | GET /api/coach/clients, /api/coach/dashboard | COACH | wyłącznie własne relacje (metadane operacyjne) | — | — | R |
 | POST /api/coach/clients/{id}/relationship-status | COACH | własna relacja | — | — | W |
@@ -482,6 +483,37 @@ Model sesji (`auth_sessions`, `security.py`, `routers/auth.py`):
 * Zdarzenia audytu: `SESSION_LOGGED_OUT`, `SESSION_REVOKED`,
   `SESSIONS_REVOKED`, `PASSWORD_CHANGED` (payload bez sekretów — testowane
   w `tests/test_sessions.py`).
+
+## Usuwanie klienta przez trenera (od 0.79.0)
+
+Trener nie jest właścicielem konta klienta — to osobny podmiot danych z własnym
+logowaniem. Dlatego `DELETE /api/coach/clients/{id}` ma **dwa tryby i żaden
+z nich nie jest wybierany przez klienta API**:
+
+* `usuniete_konto` — konto znika z bazy razem ze wszystkim, co na nie wskazuje.
+  Dozwolone WYŁĄCZNIE gdy zachodzą jednocześnie: `status == "PENDING"`,
+  `last_login_at is None`, w bazie jest dokładnie jedna relacja tego klienta
+  i należy do tego trenera, oraz `created_by == coach.id`. Takie konto jest
+  w praktyce samym zaproszeniem — nie ma podmiotu danych, który by z niego
+  korzystał.
+* `zakonczona_wspolpraca` — każdy inny przypadek. Relacja przechodzi w ENDED;
+  konto, dane, historia i dostęp klienta zostają nietknięte.
+
+Zbiór tabel do sprzątnięcia przy trwałym kasowaniu wyliczany jest z **metadanych
+SQLAlchemy** (klucze obce na `users.id` plus ustalone kolumny bez klucza), a nie
+z listy pisanej ręcznie — ponad sześćdziesiąt tabel wskazuje na użytkownika
+i lista rozjechałaby się przy pierwszej nowej. `tests/test_usuwanie_klientow.py`
+sprawdza to samo NIEZALEŻNĄ drogą (przeszukuje każdą kolumnę tekstową każdej
+tabeli), więc pominięta tabela czerwienieje w testach, a nie na produkcji.
+
+**Łańcuch audytu (`receipts`) nie jest kasowany nigdy.** Pokwitowania są spięte
+`event_hash`/`previous_hash`; usunięcie wiersza unieważniłoby weryfikację
+łańcucha dla wszystkich zdarzeń po nim, także cudzych. `subject_id` jest tam
+zwykłym `String(40)` bez klucza obcego, więc nic się nie psuje — usunięcie konta
+zostaje w audycie jako zdarzenie `CLIENT_ACCOUNT_DELETED`.
+
+Usunięcie WŁASNYCH danych przez klienta to osobna, niezmieniona droga:
+`POST /api/me/deletion-request` (anonimizacja, wymaga hasła i frazy).
 
 ## Zaproszenia i aktywacja konta (od 0.11.0)
 

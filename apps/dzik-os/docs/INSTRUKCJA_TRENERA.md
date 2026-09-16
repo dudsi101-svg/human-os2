@@ -331,6 +331,41 @@ gdy operator włączy `DZIK_DIET_WIZARD_ENABLED`. Twoje ręczne plany
 * Wiadomości: zakładka „Wiadomości" — wątek per klient, załączniki
   (zdjęcia, PDF, MP4 do 20 MB).
 
+## Usuwanie klienta (0.79.0)
+
+Przy każdym kliencie na liście jest przycisk **„Usuń”**. Robi jedną z dwóch
+rzeczy — aplikacja sama rozpoznaje którą i mówi Ci to w oknie potwierdzenia,
+ZANIM cokolwiek zrobi.
+
+**Konto, które nigdy nie zostało aktywowane** (klient nie ustawił hasła, nigdy
+się nie zalogował) i które Ty założyłeś — znika naprawdę, razem z zaproszeniem.
+Tak kasujesz konta testowe i pomyłki. Tej operacji nie da się cofnąć.
+
+**Konto, z którego ktoś korzystał** — zostaje. Kończy się wyłącznie współpraca:
+klient znika z Twojej listy, a jego konto, dane, plany i historia zostają przy
+nim. Nie dlatego, że aplikacja jest ostrożna, tylko dlatego, że te dane nie są
+Twoje — klient tylko Ci je powierzył. Jeśli chce je usunąć, robi to sam
+(Ustawienia → usunięcie danych) i tylko on może.
+
+W obu przypadkach zwalnia się miejsce w limicie podopiecznych.
+
+Konta klienta, który ma jeszcze innego trenera, nie usuniesz trwale nawet gdy
+jest nieaktywowane — dla tamtego trenera to wciąż jego podopieczny.
+
+## Zaproszenie: e-mail albo link do przekazania (0.79.0)
+
+Przy zakładaniu konta wybierasz, jak klient dostanie link aktywacyjny:
+
+* **„Wyślij e-mail z linkiem”** (domyślnie) — aplikacja wysyła wiadomość.
+* **„Pokaż mi link — przekażę go sam”** — e-mail NIE wychodzi, a link
+  dostajesz na ekranie do skopiowania. Przydaje się, gdy znasz klienta
+  osobiście albo gdy podany adres jest tylko loginem.
+
+Ten sam wybór masz przy koncie oczekującym na aktywację: **„Wyślij ponownie”**
+albo **„Pokaż link”**. Każdy nowy link unieważnia poprzedni.
+
+Hasła nie poznajesz w żadnym z tych wariantów — ustawia je wyłącznie klient.
+
 ## Jeden aktywny plan na klienta (0.78.0)
 
 Przypisanie planu — z szablonu, z bloków albo obu naraz — **archiwizuje
