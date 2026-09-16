@@ -91,3 +91,19 @@ walidacji), `frontend/src/pages/coach/PrzypiszPlan.tsx`, `frontend/src/pages/coa
 * ten sam blok dwa razy → 422;
 * siedem bloków → 422 z komunikatem o limicie łącznym;
 * blok zarchiwizowany w zestawie → 422 (bez zmian).
+
+## Wynik bramek (`629fb5b`)
+
+| Bramka | Wynik |
+|---|---|
+| CI GitHub (8 zadań) | frontend, backend 3.11/3.12, backend-postgres, e2e, quality 3.11/3.12/3.13 — wszystkie zielone |
+| pytest backend (pełny) | 2022 passed, 1 skipped (916 s) |
+| Playwright (pełny) | 65 passed, 2 skipped |
+| `tools/mutacje.py` | 17/17 wykrytych |
+| `tools/mutacje_bezpieczenstwa.py` | 9/9 zabitych |
+| a11y — motyw ciemny i czerwony | obie serie przeszły |
+| `e2e/test_pwa_offline.mjs` | przeszedł |
+
+Dwie usterki znalazły testy, nie przegląd kodu: komunikat „Dodano rozgrzewkę do 2 dni”
+przy planie jednodniowym (raport mylił pozycje z dniami) oraz wskazówka w Szablonach
+odsyłająca do nazwy przycisku, która nie istnieje od 0.76.0.
